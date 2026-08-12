@@ -8,7 +8,14 @@ import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from .errors import CatalogError, CorruptCatalogError, Diagnostic, UnsupportedFormatError, UnsupportedVersionError
+from .errors import (
+    CatalogError,
+    CorruptCatalogError,
+    Diagnostic,
+    UnsupportedFormatError,
+    UnsupportedVersionError,
+)
+from .native import NATIVE_HEADER_SIZE, identify_native_header, read_native_catalog
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,10 +42,10 @@ def inspect_catalog(path: str | Path) -> CatalogInfo:
     stripped = prefix.lstrip(b"\xef\xbb\xbf\x00\t\r\n ")
     suffix = path.suffix.casefold()
 
-    if suffix == ".amc":
-        raise UnsupportedVersionError(
-            "native .amc inspection is blocked until an upstream-derived signature and header specification is available"
-        )
+    native_header = prefix[:NATIVE_HEADER_SIZE]
+    if prefix.startswith(b" AMC_") or suffix == ".amc":
+        version = identify_native_header(native_header, file_size=size)
+        return CatalogInfo(str(path), "amc-native", version, None, size)
     if stripped.startswith((b"{", b"[")):
         return _inspect_json(path, size)
     if stripped.startswith(b"<"):
@@ -56,6 +63,21 @@ def validate_catalog(path: str | Path) -> list[Diagnostic]:
         return [Diagnostic(error.code, str(error), offset=error.offset)]
     except OSError as error:
         return [Diagnostic("io_error", str(error))]
+    if info.format == "amc-native":
+        if info.version in {"1.0", "1.1", "2.1", "3.0"}:
+            message = f"recognized legacy native AMC {info.version} header; records were not validated"
+        else:
+            try:
+                catalog = read_native_catalog(path)
+            except CatalogError as error:
+                return [Diagnostic(error.code, str(error), offset=error.offset)]
+            except OSError as error:
+                return [Diagnostic("io_error", str(error))]
+            message = (
+                f"parsed source-derived native AMC {info.version} structure with "
+                f"{len(catalog.movies)} movie(s); upstream-fixture verification is pending"
+            )
+        return [Diagnostic("native_structure_unverified", message, severity="warning")]
     return [
         Diagnostic(
             "catalog_valid",

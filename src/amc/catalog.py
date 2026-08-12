@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
+import json
 
 from .model import Movie
 
 
 class Catalog:
-    def __init__(self, movies: Iterable[Movie] = ()) -> None:
+    def __init__(
+        self, movies: Iterable[Movie] = (), *, metadata: dict[str, object] | None = None
+    ) -> None:
         self._movies: list[Movie] = []
+        self.metadata = _copy_metadata(metadata)
         for movie in movies:
             self.add(movie, renumber=False)
 
@@ -77,9 +81,35 @@ class Catalog:
         }
 
     def merge(self, movies: Iterable[Movie]) -> int:
-        """Append movies, assigning collision-free numbers, and return the count."""
+        """Append movies and retain metadata when merging another catalog."""
+        merged_metadata = self.metadata
+        if isinstance(movies, Catalog):
+            incoming = _copy_metadata(movies.metadata)
+            conflicts = [
+                key for key, value in incoming.items()
+                if key in self.metadata and self.metadata[key] != value
+            ]
+            if conflicts:
+                raise ValueError(f"conflicting catalog metadata: {conflicts[0]}")
+            merged_metadata = {**self.metadata, **incoming}
         count = 0
         for movie in movies:
             self.add(movie, renumber=movie.number <= 0 or any(item.number == movie.number for item in self))
             count += 1
+        self.metadata = merged_metadata
         return count
+
+
+def _copy_metadata(metadata: dict[str, object] | None) -> dict[str, object]:
+    """Validate JSON-compatible catalog metadata and return an isolated deep copy."""
+    if metadata is None:
+        return {}
+    if not isinstance(metadata, dict):
+        raise TypeError("catalog metadata must be an object")
+    if any(not isinstance(key, str) for key in metadata):
+        raise TypeError("catalog metadata keys must be strings")
+    try:
+        encoded = json.dumps(metadata, ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError) as error:
+        raise TypeError(f"catalog metadata must be JSON-compatible: {error}") from error
+    return json.loads(encoded)

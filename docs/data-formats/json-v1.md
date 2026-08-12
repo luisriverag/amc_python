@@ -12,12 +12,16 @@ compatibility. Files are UTF-8 text and conventionally use the `.json` suffix.
 {
   "format": "amc-python",
   "version": 1,
+  "metadata": {},
   "movies": []
 }
 ```
 
 `format` and `version` are required in files written by this application. Readers
-also accept a bare movie array for early-prototype compatibility. Unknown envelope
+also accept a bare movie array for early-prototype compatibility. `metadata` is an
+optional object for catalog-level, JSON-compatible data; writers always emit it.
+Metadata keys must be strings, values must be finite JSON values, and construction
+makes a deep copy so caller mutations cannot change the catalog. Unknown envelope
 members are ignored. A recognized `amc-python` envelope with a version other than
 `1` is rejected rather than guessed.
 

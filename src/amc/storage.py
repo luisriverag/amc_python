@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import os
 import re
-import csv
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
-from dataclasses import fields
+from dataclasses import asdict, fields
 from pathlib import Path
 
 from .catalog import Catalog
 from .model import Movie
+from .native import NATIVE_HEADER_SIZE, NATIVE_HEADERS, read_native_catalog
 
 _XML_FIELDS = {
     "OriginalTitle": "original_title", "TranslatedTitle": "translated_title",
@@ -49,6 +50,8 @@ def _atomic_text(path: Path, *, encoding: str = "utf-8", newline: str | None = N
 
 def load(path: str | Path) -> Catalog:
     path = Path(path)
+    if path.suffix.casefold() == ".amc" or _has_native_header(path):
+        return _load_native(path)
     if path.suffix.casefold() == ".xml":
         return load_xml(path)
     if path.suffix.casefold() == ".csv":
@@ -62,13 +65,39 @@ def load(path: str | Path) -> Catalog:
     rows = document.get("movies", document) if isinstance(document, dict) else document
     if not isinstance(rows, list):
         raise ValueError("catalog JSON must contain a list of movies")
-    return Catalog(Movie.from_dict(row) for row in rows)
+    metadata = document.get("metadata", {}) if isinstance(document, dict) else {}
+    if not isinstance(metadata, dict):
+        raise ValueError("catalog JSON metadata must be an object")
+    return Catalog((Movie.from_dict(row) for row in rows), metadata=metadata)
+
+
+def _has_native_header(path: Path) -> bool:
+    """Detect exact native headers without interpreting arbitrary binary files."""
+    with path.open("rb") as stream:
+        return stream.read(NATIVE_HEADER_SIZE) in NATIVE_HEADERS
+
+
+def _load_native(path: Path) -> Catalog:
+    native = read_native_catalog(path)
+    metadata = {
+        "native": {
+            "version": native.properties.version,
+            "owner": native.properties.owner,
+            "mail": native.properties.mail,
+            "site": native.properties.site,
+            "description": native.properties.description,
+            "column_settings": native.properties.column_settings,
+            "gui_properties": native.properties.gui_properties,
+            "custom_fields": [asdict(field) for field in native.properties.custom_fields],
+        }
+    }
+    return Catalog(native.movies, metadata=metadata)
 
 
 def save(catalog: Catalog, path: str | Path) -> None:
     path = Path(path)
     with _atomic_text(path) as stream:
-        json.dump({"format": "amc-python", "version": 1, "movies": [m.to_dict() for m in catalog]}, stream, ensure_ascii=False, indent=2)
+        json.dump({"format": "amc-python", "version": 1, "metadata": catalog.metadata, "movies": [m.to_dict() for m in catalog]}, stream, ensure_ascii=False, indent=2)
         stream.write("\n")
 
 
@@ -126,7 +155,31 @@ def save_xml(catalog: Catalog, path: str | Path) -> None:
     """Write an XML catalog that Ant Movie Catalog can import."""
     path = Path(path)
     root = ET.Element("AntMovieCatalog", {"Format": "4.2.2 Python"})
-    contents = ET.SubElement(ET.SubElement(root, "Catalog"), "Contents")
+    catalog_node = ET.SubElement(root, "Catalog")
+    metadata = _xml_metadata(catalog.metadata)
+    properties = ET.SubElement(catalog_node, "Properties")
+    for tag in ("Owner", "Mail", "Site", "Description"):
+        value = metadata.get(tag.casefold(), "")
+        if value:
+            properties.set(tag, str(value))
+    definitions = metadata.get("custom_fields", [])
+    if isinstance(definitions, list) and definitions:
+        definitions_node = ET.SubElement(catalog_node, "CustomFieldsProperties")
+        for setting in ("ColumnSettings", "GUIProperties", "OtherProperties"):
+            value = metadata.get(_camel_to_snake(setting), "")
+            if value:
+                definitions_node.set(setting, str(value))
+        for definition in definitions:
+            if not isinstance(definition, dict):
+                continue
+            field_node = ET.SubElement(definitions_node, "CustomField")
+            for key, value in definition.items():
+                if key == "list_values" and isinstance(value, (list, tuple)):
+                    for item in value:
+                        ET.SubElement(field_node, "ListValue", {"Text": str(item)})
+                elif value not in (None, "", False, [], ()):
+                    field_node.set(_snake_to_camel(key), str(value))
+    contents = ET.SubElement(catalog_node, "Contents")
     for movie in catalog:
         node = ET.SubElement(
             contents,
@@ -144,7 +197,11 @@ def save_xml(catalog: Catalog, path: str | Path) -> None:
                     node.set(tag, str(value))
         for tag, value in movie.extras.items():
             if tag not in _XML_FIELDS:
-                ET.SubElement(node, tag).text = str(value)
+                if not isinstance(value, (str, int, float, bool)) and value is not None:
+                    raise ValueError(
+                        f"movie extra {tag!r} cannot be represented losslessly in AMC XML"
+                    )
+                ET.SubElement(node, tag).text = "" if value is None else str(value)
     tree = ET.ElementTree(root)
     ET.indent(tree, space="  ")
     with _atomic_text(path) as stream:
@@ -164,7 +221,8 @@ def _number(value: str | None, kind: type[int] | type[float]):
 def load_xml(path: str | Path) -> Catalog:
     """Read the XML export produced by Ant Movie Catalog 3.x/4.x."""
     root = ET.parse(path).getroot()
-    catalog = Catalog()
+    metadata = _read_xml_metadata(root)
+    catalog = Catalog(metadata={"amc_xml": metadata} if metadata else {})
     for node in root.findall(".//Movie"):
         values: dict[str, object] = {
             "number": int(_number(node.get("Number"), int) or 0),
@@ -186,3 +244,55 @@ def load_xml(path: str | Path) -> Catalog:
         values["extras"] = extras
         catalog.add(Movie(**values), renumber=False)
     return catalog
+
+
+def _read_xml_metadata(root: ET.Element) -> dict[str, object]:
+    result: dict[str, object] = {}
+    properties = root.find("./Catalog/Properties")
+    if properties is not None:
+        for tag in ("Owner", "Mail", "Site", "Description"):
+            value = properties.get(tag)
+            if value is not None:
+                result[tag.casefold()] = value
+    definitions = root.find("./Catalog/CustomFieldsProperties")
+    if definitions is not None:
+        for setting in ("ColumnSettings", "GUIProperties", "OtherProperties"):
+            value = definitions.get(setting)
+            if value is not None:
+                result[_camel_to_snake(setting)] = value
+        fields: list[dict[str, object]] = []
+        for node in definitions.findall("CustomField"):
+            definition = {_camel_to_snake(key): value for key, value in node.attrib.items()}
+            values = [item.get("Text", "") for item in node.findall("ListValue")]
+            if values:
+                definition["list_values"] = values
+            fields.append(definition)
+        if fields:
+            result["custom_fields"] = fields
+    return result
+
+
+def _xml_metadata(metadata: dict[str, object]) -> dict[str, object]:
+    xml = metadata.get("amc_xml")
+    if isinstance(xml, dict):
+        return xml
+    native = metadata.get("native")
+    return native if isinstance(native, dict) else {}
+
+
+def _camel_to_snake(value: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", value).casefold()
+
+
+def _snake_to_camel(value: str) -> str:
+    special = {
+        "tag": "Tag", "name": "Name", "extension": "Ext", "field_type": "Type",
+        "default_value": "DefaultValue", "media_info": "MediaInfo",
+        "multi_values": "MultiValues", "multi_value_separator": "MultiValuesSep",
+        "remove_parentheses": "MultiValuesRmP", "patch_values": "MultiValuesPatch",
+        "excluded_in_scripts": "ExcludedInScripts", "gui_properties": "GUIProperties",
+        "list_auto_add": "ListAutoAdd", "list_sort": "ListSort",
+        "list_auto_complete": "ListAutoComplete",
+        "list_use_catalog_values": "ListUseCatalogValues",
+    }
+    return special.get(value, "".join(part.capitalize() for part in value.split("_")))

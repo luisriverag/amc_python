@@ -184,3 +184,86 @@ def test_written_json_uses_documented_envelope(tmp_path: Path):
     assert document["format"] == "amc-python"
     assert document["version"] == 1
     assert len(document["movies"]) == 1
+
+
+def test_json_roundtrip_preserves_catalog_metadata(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    catalog = Catalog([Movie(title="Alien")], metadata={"owner": "Ripley", "nested": {"x": 1}})
+
+    save(catalog, target)
+    restored = load(target)
+
+    assert restored.metadata == catalog.metadata
+    assert next(iter(restored)).title == "Alien"
+
+
+def test_xml_roundtrip_preserves_catalog_and_custom_field_metadata(tmp_path: Path):
+    source = tmp_path / "metadata.xml"
+    source.write_text('''<AntMovieCatalog Format="4.2"><Catalog>
+      <Properties Owner="Antoine" Mail="a@example.test" Site="example.test" Description="Movies"/>
+      <CustomFieldsProperties ColumnSettings="columns" GUIProperties="gui">
+        <CustomField Tag="Inventory" Name="Inventory code" Type="List" MultiValues="True">
+          <ListValue Text="A"/><ListValue Text="B"/>
+        </CustomField>
+      </CustomFieldsProperties>
+      <Contents><Movie Number="1" OriginalTitle="Brazil" Inventory="A"/></Contents>
+    </Catalog></AntMovieCatalog>''', encoding="utf-8")
+
+    catalog = load_xml(source)
+    metadata = catalog.metadata["amc_xml"]
+    assert (metadata["owner"], metadata["mail"], metadata["column_settings"]) == (
+        "Antoine", "a@example.test", "columns"
+    )
+    assert metadata["custom_fields"][0]["list_values"] == ["A", "B"]
+
+    target = tmp_path / "roundtrip.xml"
+    save_xml(catalog, target)
+    restored = load_xml(target)
+    assert restored.metadata == catalog.metadata
+    assert next(iter(restored)).extras["Inventory"] == "A"
+
+
+def test_xml_export_rejects_structured_extra_instead_of_losing_it(tmp_path: Path):
+    catalog = Catalog([Movie(title="Alien", extras={"native_records": [{"tag": "x"}]})])
+
+    try:
+        save_xml(catalog, tmp_path / "catalog.xml")
+    except ValueError as error:
+        assert "cannot be represented losslessly" in str(error)
+    else:
+        raise AssertionError("structured movie extra was flattened into XML")
+
+
+def test_catalog_metadata_is_validated_and_deep_copied():
+    metadata = {"owner": "Ripley", "nested": {"values": [1]}}
+    catalog = Catalog(metadata=metadata)
+    metadata["nested"]["values"].append(2)
+    assert catalog.metadata == {"owner": "Ripley", "nested": {"values": [1]}}
+
+    for invalid, message in (
+        ([], "metadata must be an object"),
+        ({1: "value"}, "keys must be strings"),
+        ({"bad": object()}, "JSON-compatible"),
+        ({"bad": math.nan}, "JSON-compatible"),
+    ):
+        try:
+            Catalog(metadata=invalid)
+        except TypeError as error:
+            assert message in str(error)
+        else:
+            raise AssertionError(f"invalid metadata was accepted: {invalid!r}")
+
+
+def test_catalog_merge_metadata_conflict_is_atomic():
+    destination = Catalog([Movie(number=1, title="Existing")], metadata={"a": 1, "z": 1})
+    source = Catalog([Movie(number=2, title="Incoming")], metadata={"b": 2, "z": 9})
+
+    try:
+        destination.merge(source)
+    except ValueError as error:
+        assert str(error) == "conflicting catalog metadata: z"
+    else:
+        raise AssertionError("conflicting metadata was merged")
+
+    assert destination.metadata == {"a": 1, "z": 1}
+    assert [movie.title for movie in destination] == ["Existing"]

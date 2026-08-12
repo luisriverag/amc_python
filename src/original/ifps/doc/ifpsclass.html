@@ -1,0 +1,70 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifpsclass.pas</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Back to </b><a href="library.html">Libraries</a><br /><br />
+<b>ifpsclass.html</b><br /><br />
+<b>types</b>
+TIFPSClassWrapper = <b>class</b><br>
+This class contains the declarations for individual classes.<br><br>
+<b>constructor</b> Create(Classes: TIFPSClasses; Cl: TClass; InheritsFrom: TIFPSClassWrapper);<br>
+Create an instance of the TIFPSClassWrapper. You never have to do this. Use TIFPSClasses.AddClass function instead.<br><br>
+<b>property</b> Classes: TIFPSClasses <b>read</b> FClasses;<br>
+Contains the TIFPSClasses this class is linked to.<br><br>
+<b>property</b> TheClass: TClass <b>read</b> FCl;<br>
+Contains the current class type<br><br>
+<b>function</b> AddFunction(Ptr: Pointer; <b>const</b> Decl: <b>string</b>): Boolean;<br>
+Add a function declaration to the function list. Decl should contain the full function declaration. If the function is virtual, it <u>must</u> be declared in that class.<br><br>
+<b>function</b> AddProperty(<b>const</b> Name, FType: <b>string</b>): Boolean;<br>
+Add a property declaration to the class.<br><br>
+<b>property </b>TheClassName: <b>string read </b>FClassName;<br>
+Contains the class name of the class. This is always equal to real class name, except when it's TObject. TObject will be calling DelphiTObject.<br><br>
+<b>property</b> ClassNameHash: Cardinal <b>read </b>FClassNameHash;<br>
+Contains the class name hash. This is needed for internal processing.<br><br>
+<br>
+TIFPSClasses = <b>class</b><br>
+This class maintains a list of all individual classes.<br><br>
+<b>constructor</b> Create;<br>
+Creates an instance of TIFPSClassses.<br><Br>
+<b>function</b> FindClass(<b>const</b> Name: <b>string</b>): TIFPSClassWrapper;<br>
+Find a class in the classes list.<br><br>
+<b>function</b> AddClass(FClass: TClass; InheritsFrom: TIFPSClassWrapper): TIFPSClassWrapper;<br>
+Registers a new class in the classes list. FClass should be the real class. InheritsFrom should be the TIFPSClassWrapper that this class inherits from.<br><br>
+<br><b>Functions:</b><br>
+<b>procedure</b> RegisterEClasses(ScriptEngine: TIFPasScript; FCl: TIFPSClasses);<br>
+Register all classes that are registered with TIFPSClasses.<br><br>
+<b>function</b> AddClassToScriptEngine(ScriptEngine: TIfPasScript; FClass: TObject; <b>const</b> ClassName, VarName: <b>string</b>): Boolean;<br>
+Add a class variable to the script engine. FClass should be the Object the class points to. ClassName should be the class the variable should be and varname should be the name of the new variable.<br><br>
+<b>Using the classes library</b><br />
+Create a variable of type TIFPSClasses.<br>
+Use the <b>stdimport</b> unit and register at least TObject (SIRegisterTObject).<br><br>
+To add your own classes use TIFPSClasses.AddClass function.<br><br>
+<b>var</b><br>
+&nbsp;&nbsp;  MyClasses: TIFPSClasses;<br>
+<b>initialization</b><br>
+&nbsp;&nbsp;...<br>
+&nbsp;&nbsp;MyClasses := TIFPSClasses.Create;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<b>with</b> MyClasses.AddClass(TMyClass, MyClasses.FindClass('DelphiTObject'))<b> do</b><Br>
+&nbsp;&nbsp;<b>begin</b><br>
+&nbsp;&nbsp;&nbsp;&nbsp;AddFunction(@TMyClasses.Test, 'procedure test(s: string)');<br>
+&nbsp;&nbsp;<b>end</b>;<br>
+&nbsp;&nbsp;...<br>
+<b>finalization</b><br>
+&nbsp;&nbsp;...<br>
+&nbsp;&nbsp;MyClasses.Free;<br>
+&nbsp;&nbsp;...<br>
+<b>end</b>.<br>
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

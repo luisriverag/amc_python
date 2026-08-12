@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="WebSite PRO 4.3" />
+  <title>Ant Movie Catalog Help</title>
+       <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+       <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Pliki językowe</p>
+<hr />
+<p>Pliki językowe używają składni podobnej do plików INI. Są one plikami tekstowymi, więc możesz je
+   edytować jakimkolwiek edytorem tekstu jak np. Notatnik Windows.</p>
+<p>Plik zawiera sekcje. Sekcja jest nazwą w nawiasach. Nazwami sekcji są nazwy okien aplikacji.</p>
+<blockquote>
+  <p>np.: <code>[MainWindow]</code></p>
+</blockquote>
+<p>Poniżej znajdziesz wszystko to, co odnosi się do konkretnego okna. Dane te są parami atrybutów i wartości.</p>
+<blockquote>
+  <p>np.: <code>Attribute=Value (Atrybut=Wartość)</code></p>
+</blockquote>
+<p>Atrybuty są ścieżkami do komponentu do przetłumaczenia, zaś wartość jest nowym tekstem do wyświetlenia.
+Ścieżka jest złożona z nazwy okna, kropki i właściwość do modyfikacji ("komponent.właściwość").
+Niektóre elementy zawierają komponenty wewnątrz komponentów. Czasami pojawiają się tablice, dlatego jest indeks w nawiasach kwadratowych.
+Właściwości okien zawierają tylko odpowiednią nazwę.</p>
+<blockquote>
+  <p>np. dla sekcji <code>[ExportWin]</code>:</p>
+  <p><code>Caption=Eksport pliku do innego formatu</code> // tytuł okna eksportu <br />
+    <code>btn1.Caption=Pomoc</code> // nazwa pierwszego przycisku okna Eksportu<br />
+    <code>Messages.Strings.String[0]=Błąd zapisu</code> // pierwsza wiadomość listy wiadomości okna Eksportu</p>
+</blockquote>
+<p>Nazwy komponentów używają nazw "standardowych".</p>
+<p>Przyciski rozpoczynają się od "btn", Działania (menu/elementy paska narzędziowego) rozpoczynają się od "Action",
+Znaczniki rozpoczynają się od "CB", Radio przyciski rozpoczynają się od "RB", etykiety rozpoczynają się od L lub LH, Pola danych rozpoczynają się od E, itd...</p>
+<p>Podstawowe okno dialogowe może mieć od 0 do 4 przycisków nazwanych btn1, btn2, btn3, btn4; gdzie btn1 jest przyciskiem w prawym, dolnym rogu.<br />
+</p>
+<p>Tooltips are stored in the "Hint" properties. In these properties, there can be two different strings, separated by the character "|". 
+    The first part is used for the actual tooltip, the second part is displayed in the status bar at the bottom of the current window.
+    In general it is better to avoid tooptips for input fields, so the Hint property of these should only have contents after the "|".
+</p>
+<p>Linia komentarza rozpoczyna się średnikiem (;) i jest ignorowana przez program.</p>
+<p>Istnieje sekcja specjalna, która jest używana do wyświetlania informacji w oknie wyboru języka:</p>
+<p>
+<code>[FileInformation]</code><br />
+<code>Icon=</code> Bitmapa 16x16 (4-bitowy kolor), zakodowana w MIME<br />
+<code>Name=</code> Nazwa języka po angielsku<br />
+<code>LocalName=</code> Nazwa języka w języku, którego dotyczy<br />
+<code>Version=</code> Wersja programu dla której powstał plik (jeśli jest niższa niż VersionFormat, oznacza że część jest ciągle po angielsku)<br />
+<code>VersionFormat=</code> Której wersji programu odpowiada struktura pliku<br />
+<code>Comments=</code> Dowolny tekst (koniec linii = "|"; odnośnik &lt;link&gt;adres&lt;/link&gt;)<br />
+<code>Authors=</code>Dane i adres email tłumaczy (każda część oddzielona jest "|": dane1|email1|dane2|email2<br />
+</p>
+<p>Jeśli chcesz być powiadomiony o błędach w tłumaczeniu, możesz uruchomić program z parametrem <code>/tr_show_errors</code>.</p>
+</body>
+</html>

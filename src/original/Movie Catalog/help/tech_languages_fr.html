@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Fichiers de traduction</p>
+<hr />
+<p>Les fichiers de traduction utilisent une syntaxe proche de celle des fichiers
+  INI. Ils s'agit de simples fichiers texte, que vous pouvez donc modifier avec
+  n'importe quel &eacute;diteur texte, comme le Bloc-Notes de Windows.</p>
+<p>Le fichier contient des sections. Une section est un nom entre crochets. Les
+  noms de sections correspondent aux noms des fen&ecirc;tres de l'application.</p>
+<blockquote>
+  <p>ex. : <code>[MainWindow]</code></p>
+</blockquote>
+<p>En-dessous de cela, vous trouvez les &eacute;l&eacute;ments correspondants
+  &agrave; la fen&ecirc;tre sp&eacute;cifi&eacute;e. Ces items sont des paires
+  attributs/valeurs.</p>
+<blockquote>
+  <p>ex. : <code>Attribute=Value</code></p>
+</blockquote>
+<p>Les attributs correspondent au chemin version le composant &agrave; traduire, et les valeurs au nouveau texte &agrave; afficher. Le chemin est construit avec
+  le nom du composant, un point, puis la propri&eacute;t&eacute; &agrave; modifier ("composant.propriété"). Pour certains &eacute;l&eacute;ments
+  il y a un composant dans un autre composant. Parfois il s'agit de tableaux d'éléments, donc il y a un num&eacute;ro d'index entre crochets.
+  Pour les propriétés des fenêtres il y a juste un nom de propriété tout seul.</p>
+<blockquote>
+  <p>ex. pour la section [ExportWin] :</p>
+  <p><code>Caption=Export to another file format</code> // titre (caption)
+    de la fen&ecirc;tre d'exportation<br />
+    <code>btn1.Caption=Help</code> // titre (caption) du premier bouton
+    de la fen&ecirc;tre d'exportation<br />
+    <code>Messages.Strings.String[0]=Unable to save</code> // premier
+    message de la liste de messages de la fen&ecirc;tre d'exportation</p>
+</blockquote>
+<p>Les noms de composants utilisent des noms &quot;standard&quot;.</p>
+<p>Les boutons commencent par &quot;btn&quot;, les actions (items de menus &amp;
+  barres d'outils) commencent par &quot;Action&quot;, les cases &agrave; cocher
+  (checkbox) commencent par &quot;CB&quot;, les boutons radio commencent par &quot;RB&quot;,
+  les labels commencent par L ou LH, les champs d'&eacute;dition commencent par
+  E, etc...</p>
+<p>La fen&ecirc;tre de dialogue de base peut avoir de 0 &agrave; 4 boutons, appel&eacute;s
+  btn1, btn2, btn3, btn4 ; o&ugrave; btn1 est le bouton dans le coin inf&eacute;rieur
+  droit.</p>
+<p>Les infobulles sont stockées dans les propriétés "Hint". Celles-ci peuvent comporter deux chaînes de texte, séparées par le caractère "|". 
+    La première partie est utilisée pour l'infobulle elle-même, la seconde partie est affichée dans la barre de statut en bas de la fenêtre active.
+    En général il vaut mieux éviter d'utiliser des infobulles pour les champs d'entrée, donc pour ceux-là la propriété Hint ne devrait comporter du texte qu'après le "|".
+</p>
+<p>Une ligne de commentaire commence par un point-virgule (;) et est ignor&eacute;e
+  par le programme.</p>
+<p>Il y a une section spéciale, qui est utilisée pour afficher des informations dans la fenêtre de sélection de
+  la langue :</p>
+<p>
+<code>[FileInformation]</code><br />
+<code>Icon=</code> Une image bitmap en 16x16 (couleurs 4 bits), encodée MIME<br />
+<code>Name=</code> Nom de la langue, en anglais<br />
+<code>LocalName=</code> Nom de la langue traduite dans la langue elle-même<br />
+<code>Version=</code> Version du programme pour laquelle le contenu a été traduit (si inférieur à VersionFormat, cela signifie qu'il y a des parties encore en anglais)<br />
+<code>VersionFormat=</code> Version du programme pour laquelle la structure du fichier a été faite<br />
+<code>Comments=</code> Texte libre (retour à la ligne = "|", lien = &lt;link&gt;adresse&lt;/link&gt;)<br />
+<code>Authors=</code> Noms et adresses e-mail des traducteurs (chaque nom/adresse est séparé par un "|" : nom1|adr1|nom2|adr2)<br />
+</p>
+<p>Si vous voulez être averti des erreurs de traduction, vous pouvez démarrer le programme avec le paramètre <code>/tr_show_errors</code>.</p>
+</body>
+</html>

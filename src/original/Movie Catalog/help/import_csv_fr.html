@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Importation CSV</p>
+<hr>
+<p>CSV est un format de fichier texte qui est tr&egrave;s utile du fait que beaucoup
+  de programme permettent d'ouvrir et enregistrer ce type de fichiers (par exemple
+  Microsoft Excel).</p>
+<p>Dans ces fichiers chacun des enregistrements est sur une ligne et les champs
+  sont séparés par un caract&egrave;re (généralement
+  une virgule ou un point-virgule).</p>
+<p>Quand vous importez ce type de fichiers, chaque ligne sera considérée
+  comme un film dans la liste. Ensuite la ligne est séparée en plusieurs
+  champs. Le programme ne peut pas deviner &agrave; quel champ du film correspond
+  chacune des colonnes des enregistrements CSV. Vous allez donc devoir le lui
+  expliquer. </p>
+<p>Pour cela vous devez cliquer sur l'en-t&ecirc;te de colonne pour l'associer à un champ du catalogue.</p>
+<p>Répétez cette étape pour chacune des colonnes qui doit être importée.</p>
+<p>Si vous n'associez
+  pas de champ &agrave; une colonne, cette colonne ne sera pas utilisée
+  pour l'importation de données.</p>
+<p>Si aucune colonne "Numéro" n'est spécifiée,
+  les numéros seront créés &agrave; partir du plus haut numéro
+  existant + 1. Idem pour les numéros provenant du fichier CSV et étant
+  déj&agrave; présents dans la liste, donc il n'y a pas de numéros
+  en double.</p>
+<p>Les champs de type date doivent être au format 'yyyy-mm-dd' ou régional pour être lus correctement.</p>
+</body>
+</html>

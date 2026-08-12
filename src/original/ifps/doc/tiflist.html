@@ -1,0 +1,30 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TIFList</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_utl.html">ifs_utl.pas</a><br /><br />
+<b>TIfList</b><br />br />
+TIfList is used to store an array of pointers. It is much like TList in Delphi.<br /><br />
+TIfList = <b>class</b>(TObject)<br />
+<b>constructor</b> Create;<br />
+<b>destructor</b> Destroy; <b>override</b>;<br />
+<b>function</b> Count: Cardinal;<br />
+<b>function</b> GetItem(Nr: Cardinal): Pointer;<br />
+<b>procedure</b> SetItem(Nr: Cardinal; P: Pointer);<br />
+<b>procedure</b> Add(P: Pointer);<br />
+<b>procedure</b> Remove(P: Pointer);<br />
+<b>procedure</b> Delete(Nr: Cardinal);<br />
+<b>procedure</b> Clear; <b>virtual</b>;<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

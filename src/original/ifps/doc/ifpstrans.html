@@ -1,0 +1,41 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifpstrans.pas</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Back to </b><a href="library.html">Libraries</a><br /><br />
+<b>ifpstrans.pas</b><br /><br />
+<b>procedure</b> RegisterTransLibrary(p: TIfPasScript);<br />
+Registers the transform library. This can be used for stream operations to put other types than strings in it.<br /><br />
+This will register:
+<tt>
+function TransformExtendedToString(E: Extended): string;<br>
+function TransformDoubleToString(E: Double): string;<br>
+function TransformSingleToString(E: Single): string;<br>
+function TransformIntegertoString(E: Longint): string;<br>
+function TransformSmallInttoString(E: SmallInt): string;<br>
+function TransformBytetoString(E: Byte): string;<br>
+function TransformShortIntToString(E: ShortInt): string;<br>
+function TransformWordtoString(E: Word): string;<br>
+<br>
+function TransformStringToExtended(E: String): Extended;<br>
+function TransformStringToDouble(E: String): Double;<br>
+function TransformStringToSingle(E: String): Single;<br>
+function TransformStringToInteger(E: String): Longint;<br>
+function TransformStringToSmallInt(E: String): SmallInt;<br>
+function TransformStringToByte(E: String): Byte;<br>
+function TransformStringToShortInt(E: String): ShortInt;<br>
+function TransformStringToWord(E: String): word;<br>
+</tt>
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

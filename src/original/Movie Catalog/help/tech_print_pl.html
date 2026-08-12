@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="WebSite PRO 4.3" />
+  <title>Ant Movie Catalog Help</title>
+       <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+       <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Tworzenie raportów (wzorców do drukowania)</p>
+<hr />
+<p> UWAGA: PROJEKTANT RAPORTÓW JEST PO ANGIELSKU, POZOSTAWIAM ORYGINALNE NAZWY ABY UŁATWIĆ PRACĘ (tł.)</p>
+<p>Żeby uruchomić "Projektanta raportów" kliknij na przycisku "Projektant..." w oknie drukowania.
+   Możesz także użyć skrótu, który został dodany do menu Start lub uruchomić AMCReport.exe,
+   który znajduje się w tym samym folderze co Ant Movie Catalog.</p>
+<p>"Projektant raportów" jest właściwie edytorem FreeReport i nie uległ praktycznie żadnej modyfikacji
+   (jest raczej złożony, więc prawdopodobnie zostawię go w tej postaci w jakiej jest).</p>
+<p>Ta strona pokaże różne sposoby tworzenia raportu.</p>
+<hr />
+
+<p class="subtitle">Wybór rozmiaru papieru.</p>
+<p>File -> Page Options - wybór rozmiaru papieru. Zazwyczaj będzie to A4 (lub Letter).
+   Jeśli chcesz, to możesz także wybrać orientację poziomą (Landscape) zamiast pionowej (Portrait).</p>
+
+<p class="subtitle">Ramki</p>
+<p>Żeby pola zostały rozpoznane muszą być umieszczone w "Ramkach". Aby umieścić ramkę na stronie,
+   kliknij na ikonie <i>Insert band</i> <img src="img/print_band.png" alt="Insert band (Wstaw ramkę)" />, a następnie na stronie,
+   gdzie chcesz umieścić tą ramkę. Następnie możesz wybrać jaki typ ramki chcesz umieścić:</p>
+<p><img src="img/print_bandtype.png" alt="Insert band type (Typ strefy)" /></p>
+<p>Większość typów nie ma zastosowania. Te, które możesz użyć są następujące:</p>
+<ul>
+  <li><i>Report title &amp; Report summary</i> : &nbsp;&nbsp;Pojawiają się jedynie na pierwszej stronie (Tytuł i Podsumowanie raportu)</li>
+  <li><i>Page header &amp; Page footer</i> :&nbsp;&nbsp; Nagłówek i stopka każdej strony</li>
+  <li><i>Master data</i> : &nbsp;&nbsp;Jest to najważniejsza ramka. Jako jedyna będzie powtarzana dla każdego filmu</li>
+</ul>
+<p>Wybierz "Master data" i kliknij "OK". Kolejne okno poprosi o wybranie źródła, zostaw domyślne ("None") i kliknij "OK".</p>
+
+<p class="subtitle">Obiekty tekstowe</p>
+<p>Aby umieścić obiekt tekstowy na ramce "Master data", wybierz ikonę <i>Insert rectangle object</i>
+  <img src="img/print_rectangle.png" alt="Insert rectangle object" /> i umieść na ramce (uwaga: jeśli umieścisz poza nią, nie pojawi się ono w końcowym raporcie).</p>
+<p>Wyświetli się edytor tekstu:</p>
+<p><img src="img/print_texteditor.png" alt="Text editor" /></p>
+<p>Możesz tu wpisać jakikolwiek tekst i kliknąć "OK". Aby wywołać to okno ponownie, po prostu dwukrotnie kliknij na obiekcie.</p>
+<p>W menu kontekstowym (prawy klik) tego pola tekstowego są trzy opcje:</p>
+<ul>
+  <li><i>Stretched</i> &nbsp;&nbsp;: Powiększa wysokość pola, jeśli to będzie konieczne</li>
+  <li><i>Word wrap</i> : Zawija wiersze jeśli są dłuższe, niż pole.</li>
+  <li><i>Autosiz</i>e &nbsp;&nbsp;: Powiększa szerokość pola, jeśli to konieczne.</li>
+</ul>
+
+<p class="subtitle">Zmienne (pola filmów i inne)</p>
+<p>Żeby umieścić pole filmu, dodaj obiekt tekstowy, we właściwościach ustaw nazwę pola pomiędzy [ ]. Lista nazw pól jest dostępna za pomocą przycisku "Variable" jako "Movie fields" w oknie Edytora tekstu :</p>
+<p><img src="img/print_variables.png" alt="Zmienne" /></p>
+<p>Nazwy pól mogą być również wydrukowane przy użyciu zmiennych. Aby tego dokonać musisz dopisać prefiks "label:" przed nazwą pola, cała nazwa i prefiks powinny być w nawiasie kwadratowym (np. [label:Director]). Dostępne jako "Field labels" w "Variable". Jest to użyteczne przy tworzeniu wielojęzycznych raportów (wstawione zostaną nazwy w języku, jaki jest ustawiony w programie)</p>
+<p>Jeśli zmienisz kategorię na "Others" będziesz mógł wybrać pola specjalne takie jak:
+   numer strony, data, itp...</p>
+<p>Możesz wprowadzić normalny tekst i zmienne w tym samym obiekcie tekstowym.</p>
+
+<p class="subtitle">Grafika</p>
+<p>Aby umieścić obrazek, użyj ikony <i>Insert picture </i><img src="img/print_picture.png" alt="picture" />.
+Okno obrazka wygląda tak:</p>
+<p><img src="img/print_picturewin.png" alt="Picture" /></p>
+<p>Aby wyświetlało ono okładkę bieżącego filmu, kliknij na przycisk "Memo" i wpisz "[Picture]" lub wybierz z listy zmiennych ("Variable").</p>
+<p>W menu kontekstowym okna obrazka, są trzy opcje:</p>
+<ul>
+  <li><i>Stretched</i> :&nbsp;&nbsp; dopasowuje obrazek, aby pasował do rozmiaru obiektu</li>
+  <li><i>Center picture</i> : &nbsp;&nbsp;ustawia obrazek pośrodku obiektu</li>
+  <li><i>Keep aspect ratio</i> : &nbsp;&nbsp;zachowuje proporcje obrazka podczas dopasowania</li>
+</ul>
+<p>Możesz także rysować linie używając ikony <i>Draw line</i> <img src="img/print_lines.png" alt="lines" />.</p>
+<p class="subtitle">Skrypty</p>
+<p>W oknie edytora tekstu oraz okna obrazka (po wejściu w Memo) jest u góry opcja "Script". Po jej zaznaczeniu otworzy się u dołu okno w którym można wprowadzić komendy skryptu. Skrypt ten nie jest związany z tymi używanymi przez Ant Movie Catalog, poza użyciem tego samego języka programowania - Pascala. Oto kilka przykładów:</p>
+<ul>
+  <li><p>Jeśli chcesz aby obrazek pojawiał się tylko dla filmów komediowych, umieść następujący kod w skrypcie w części Memo obrazka:</p>
+<pre>begin
+  Visible := [Category] = 'Komedia';
+end;</pre>
+  Uwaga: kategoria jest uwzględniana tylko w całości i dokładnie; w powyższym przykładzie nie zostanie uwzględniona np. "Komedia / Wojenny" ani "komedia".<br>
+  </li>
+  <li><p>Jeśli chcesz umieścić rok w nawiasach po tytule filmu tylko, gdy został on podany (aby uniknąć wstawienia pustych nawiasów) wykorzystaj poniższy skrypt w oknie edytora tekstu:</p>
+<pre>begin
+if ([Year] &lt;&gt; '') then
+  tmp1 := [OriginalTitle] + ' (' + [Year] + ')'
+else
+  tmp1 := [OriginalTitle]
+end;</pre>
+  <p>Zaś w oknie edytora umieść <code>[tmp1]</code>, aby wyświetlić wynik skryptu jako nową zmienną.</p>
+  </li>
+</ul>
+<p>Oto lista niektórych podstawowych funkcji dostępnych dla skryptów:</p>
+<ul>
+  <li><p><code>Length(&lt;string&gt;)</code>: Zwraca długość łańcucha.</p></li>
+  <li><p><code>Pos(&lt;substring&gt;, &lt;string&gt;)</code>: Zwraca pierwszą pozycję podciągu w ciągu znaków (tak samo jak funkcja Delphi).</p></li>
+  <li><p><code>LastPos(&lt;substring&gt;, &lt;string&gt;)</code>: Zwraca ostatnią pozycję podciągu w ciągu znaków.</p></li>
+  <li><p><code>Copy(&lt;string&gt;, &lt;from&gt;, &lt;count&gt;)</code>: Zwraca część ciągu (tak samo jak funkcja Delphi).</p></li>
+  <li><p><code>StringReplace(&lt;s&gt;, &lt;old&gt;, &lt;new&gt;)</code>: zastępuje stary ciąg nowym w ciągu s (wielkie litery).</p></li>
+  <li><p><code>StringReplaceIgnoreCase(&lt;s&gt;, &lt;old&gt;, &lt;new&gt;)</code>: Taka sama jak StringReplace, ale bez wielkich liter.</p></li>
+  <li><p><code>RegExprSetSubstitute(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;TemplateStr&gt;)</code>: Zwraca ciąg TemplateStr z wartościami '$&' lub '$0' zastępuje wszystkie występujące i zamienia występujące '$n' na podwyrażenie #n.</p></li>
+  <li><p><code>RegExprSetReplace(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;ReplaceStr&gt;)</code>: Zwraca ciąg wystąpienia InputStr i zamienia na ciąg ReplaceStr (z wykorzystaniem podstawiania).</p></li>
+  <li><p><code>RegExprSetReplaceSimple(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;ReplaceStr&gt;)</code>: Zwraca ciąg wystąpienia InputStr i zamienia na ciąg ReplaceStr (bez wykorzystywania podstawiania).</p></li>
+  <li><p><code>UpperCase(&lt;string&gt;)</code>: Zmienia wszystkie litery ciągu na wielkie litery.</p></li>
+  <li><p><code>LowerCase(&lt;string&gt;)</code>: Zmienia wszystkie litery ciągu na małe litery.</p></li>
+  <li><p><code>NameCase(&lt;string&gt;)</code>: Zmienia wszystkie litery ciągu na małe, z wyjątkiem pierwszej litery.</p></li>
+
+  <li><p><code>Str(&lt;value&gt;)</code>: Konwertuje liczbę na ciąg znaków.</p></li>
+  <li><p><code>FormatFloat(&lt;formatstr&gt;, &lt;value&gt;)</code>: Konwertuje wartość numeryczną na ciąg z wykorzystaniem maski w formatstr (taki sam format jak w Delphi).</p></li>
+  <li><p><code>FormatDateTime(&lt;formatstr&gt;, &lt;value&gt;)</code>: Konwertuje datę/czas na ciąg znaków z wykorzystaniem maski w formatstr (taki sam format jak w Delphi).</p></li>
+  <li><p><code>StrToDate(&lt;string&gt;)</code>: Konwertuje ciąg znaków na datę.</p></li>
+  <li><p><code>StrToTime(&lt;string&gt;)</code>: Konwertuje ciąg znaków na czas.</p></li>
+
+  <li><p><code>Int(&lt;value&gt;)</code>: Zwraca liczbę całkowitą.</p></li>
+  <li><p><code>Frac(&lt;value&gt;)</code>: Zwraca ułamek liczby.</p></li>
+  <li><p><code>Round(&lt;value&gt;)</code>: Zwraca zaokrągloną wartość liczby.</p></li>
+  <li><p><code>value1 Mod value2</code>: Zwraca resztę z dzielenia value1 / value2.</p></li>
+
+  <li><p><code>DATE</code>: Zwraca aktualną datę.</p></li>
+  <li><p><code>TIME</code>: Zwraca aktualny czas.</p></li>
+  <li><p><code>PAGE#</code>: Zwraca aktualny numer strony.</p></li>
+  <li><p><code>TOTALPAGES</code>: Zwraca całkowitą liczbę stron w utworzonym raporcie. Aby korzystać z tej opcji, raport musi mieć aktywowaną funkcję "Two pass report".</p></li>
+</ul>
+<hr />
+<p>Wiele funkcji Projektanta Raportów nie jest wykorzystanych, jak np. pola DB, podgląd wydruku, podraporty...<br>
+Obecnie jedyną metodą podglądu wydruku jest zapisanie wzorca i użycie "Odśwież" w oknie Ant Movie Catalog, oczywiście po wskazaniu zapisanego wzorca z listy.</p>
+<p>W przypadku problemów z polami filmu, upewnij się, że są one umieszczone na ramce "Master data". Jeśli niektóre pola nie działają (np. "Total pages"), sprawdź czy zaznaczone jest "Two pass report" w File -&gt; Report Options.</p>
+</body>
+</html>

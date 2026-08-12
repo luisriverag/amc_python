@@ -1,0 +1,138 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TIfPasScript</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifspas.html">ifspas.pas</a><br /><br />
+<b>TIFPasScript</b><br />
+TIFPasScript is the script engine, it support most of Object Pascal syntax.<br /><br />
+TIfPasScript = <b>class</b>
+<br />
+<b>Protected section:</b><br />
+Variables: <a href="tvariablemanager.html">PVariableManager</a>;<br />
+This list contains all global variables from the current script.<br /><br />
+Types: <a href="ttypemanager.html">PTypeManager</a>;
+This list contains all types from the current script.<br /><br />
+Procedures: <a href="tproceduremanager.html">PProcedureManager</a>;<br />
+This list contains all the functions (internal and external) of the current script.<br /><br />
+Parser: <a href="tifpascalparser.html">TIfPascalParser</a>;<br />
+Contains the parser that is used by the script engine.<br /><br />
+CurrProc: <a href="tprocedure.html">PProcedure</a>;<br />
+Contains the current function that the script engine is running in.<br /><br />
+FAttachedOnes: <a href="tiflist.html">TIfList</a>;<br />
+Contains all attached script engine<br /><br />
+FLastException: <a href="tifserror.html">TIFSError</a>;<br />
+<br /><br />
+<b>Public section</b><br />
+<b>procedure</b> RunError(SE: <a href="tifpasscript.html">TIfPasScript</a>; C: <a href="tifpasscripterror.html">TIfPasScriptError</a>);<br />
+Makes an error occur.<br /><br />
+<b>procedure</b> RunError2(SE: <a href="tifpasscript.html">TIfPasScript</a>; C: <a href="tifpasscripterror.html">TIfPasScriptError</a>; Ext: <b>string</b>);<br />
+Makes an error occur.<br /><br />
+<b>function</b> Getvariable(<b>const</b> Name: <b>string</b>): <A href="tifvariant.html">PIfvariant</a>;<br />
+Return variable with name 'Name'.<br /><br />
+<b>function</b> Getfunction(s: <b>string</b>): <a href="tprocedure.html">PProcedure</a>;<br />
+Return function with name s.<br /><br />
+<b>function</b> GetType(<b>const</b> s: <b>string</b>): <a href="ttyperec.html">PTypeRec</a>;<br />
+Returns a type with name S. <br /><br />
+<b>function</b> Removefunction(D: <a href="tprocedure.html">PProcedure</a>): Boolean;<br />
+Remove a function. This does not free the <a href="tprocedure.html">PProcedure</a> record.<br /><br />
+<b>function</b> Addvariable(Name, FType: <b>string</b>; constant: Boolean): <a href="tifvariant.html">PIfvariant</a>;<br />
+Add a variable to the script engine.<br /><br />
+<b>function</b> Addfunction(proc: Pointer; Decl: <b>string</b>; Ext: Pointer): <a href="tprocedure.html">PProcedure</a>;<br />
+Add a function to the script engine.<br /><br />
+<b>function</b> AddType(<b>const</b> Name, Decl: <b>string</b>): PTypeRec;<br />
+Add a type to the script engine.<br /><br />
+<b>function</b> AddTypeEx(Name: <b>string</b>): PTypeRec;<br />
+Add a type to the script engine, but only create a PTypeRec, user can fill in record.<br /><br />
+<b>function</b> AddClass(<b>const</b> Name, Decl: <b>string</b>; RegProc: Pointer): PTypeRec;<br />
+Same as AddType, except that all functions are automaticly assigned.<br /><br />
+<b>function</b> Callfunction(P: <a href="tprocedure.html">PProcedure</a>; Params: <b>array of</b> variant): variant;<br />
+Calls a function<br /><br />
+<b>function</b> CallMethod(P: <a href="tprocedure.html">PProcedure</a>; MySelf: PCreatedClass; Params: <b>array of</b> variant): variant;<br />
+Calls a method.<br /><br />
+<b>function</b> variantToIFvar>iant(<b>const</b> variant; Res: <a href="tifvariant.html">PIfvariant</a>): Boolean;<br />
+Copy variant to <a href="tifvariant.html">PIfvariant</a><br /><br />
+<b>function</b> IfvariantTovariant(v: <a href="tifvariant.html">PIfvariant</a>; <b>var</b> res: variant): Boolean;<br />
+Copy <a href="tifvariant.html">PIfvariant</a> to variant<br /><br />
+<b>function</b> Copyvariant(p: <a href="tifvariant.html">PIfvariant</a>): <a href="tifvariant.html">PIfvariant</a>;<br />
+Copy a <a href="tifvariant.html">PIfvariant</a>.<br /><br />
+<b>function</b> CreateReal(<b>const</b> E: Extended): <a href="tifvariant.html">PIfvariant</a>;<br />
+Create a real number.<br /><br />
+<b>function</b> Createstring(<b>const</b> s: <b>string</b>): <a href="tifvariant.html">PIfvariant</a>t;<br />
+Create a string.<br /><br />
+<b>function</b> CreateInteger(I: Longint): <a href="tifvariant.html">PIfvariant</a>;<br />
+Create an integer.<br /><br />
+<b>function</b> CreateBool(b: Boolean): <a href="tifvariant.html">PIfvariant</a>;<br />
+create a boolean.<br /><br />
+<b>function</b> CreatevarType(p: <a href="tifvariant.html">PIfvariant</a>): <a href="tifvariant.html">PIfvariant</a>;<br />
+Create a link-to-an-other-variant variant<br /><br />
+<b>procedure</b> Cleanup;<br />
+Cleanup all classes, variables and resource.s<br /><br />
+<b>procedure</b> RunScript;<br />
+Run the script engine/<br /><br />
+<b>function</b> RunScriptProc(Func: <a href="tprocedure.html">PProcedure</a>; Parameters: <a href="tvariablemanager.html">PvariableManager</a>): <a href="tifvariant.html">PIfvariant</a>;<br />
+Run a function from the script. Returns EParamError with position -1 when number of parameters <> real number of parameters or EParamError with Position (paramno) if the type does not match. <br /><br />
+<b>function</b> RunScriptconstructor(FType: PTypeRec; Func: <a href="tprocedure.html">PProcedure</a>; Parameters: <a href="tvariablemanager.html">PvariableManager</a>): <a href="tifvariant.html">PIfvariant</a>;<br />
+Run a script constructor.<br /><br />
+<b>function</b> RunInherited(proc: <a href="tprocedure.html">PProcedure</a>; Params: PvariableManager; res: <a href="tifvariant.html">PIfvariant</a>): <a href="tifpasscripterror.html">TIfPasScriptError;<br />
+Run an inherited function.<br /><br />
+<b>function</b> Setproperty(prop, Data: <a href="tifvariant.html">PIfvariant</a>): Boolean;<br />
+Set a property value.<br /><br />
+<b>function</b> Getproperty(prop: <a href="tifvariant.html">PIfvariant</a>): <a href="tifvariant.html">PIfvariant</a>;<br />
+Get a property value.<br /><br />
+<b>function</b> Attach(ScriptEngine: <a href="tifpasscript.html">TIfPasScript</a>): Boolean;<br />
+Attach an other script engine to this one.<br /><br />
+<b>function</b> Attach2(ScriptEngine: <a href="tifpasscript.html">TIfPasScript</a>; FreeOnCleanup: Boolean): Boolean;<br />
+Attach an other script engine to this one. If freeOnCleanup is false, the script engine will not be freed.<br /><br />
+<b>procedure</b> AddResource(FreeProc: <a href="ifspas.html#tresourcefree">TResourceFree</a>; Data: Pointer);<br />
+Add a rsource to the resource list.<br /><br />
+<b>procedure</b> RemoveResource(Data: Pointer);<br />
+Remove a resource from the resource list.<br /><br />
+<b>function</b> IsValidResource(FreeProc: <a href="ifspas.html#tresourcefree">TResourceFree</a>; Data: Pointer): Boolean;<br />
+Check if it's a valid resource.<br /><br />
+<b>function</b> FindResource(FreeProc: <a href="ifspas.html#tresourcefree">TResourceFree</a>): Pointer;<br />
+Search for resource with FreeProc (freeProc)<br /><br />
+<b>procedure</b> SetText(<b>const</b> Data: <b>string</b>);<br />
+Set the current text.<br /><br />
+<b>procedure</b> SetPData(<b>const</b> Data: <b>string</b>);<br />
+Load the text as pcode data.<br /><br />
+<b>function</b> GetPData(<b>var</b> Data: <b>string</b>): Boolean;<br />
+Returns the current pcode data.<br /><br />
+<b>constructor</b> Create(id: Pointer);<br />
+Create an instance of the script engine.<br /><br />
+<b>destructor</b> Destroy; Override;<br />
+Destroy an instance of the script engine.<br /><br />
+<b>property</b> ModuleName: <b>string</b> <b>read</b> FModuleName <b>write</b> FModuleName;<br />
+Return or set the name of this module. It is equal to the program or unit parameter.<br /><br />
+<b>property</b> IsUnit: Boolean read FIsUnit;<br />
+This is true when the current file is a unit.<br /><br />
+<b>property</b> OnRunLine: <a href="ifspas.html#tonrunline">TOnRunLine</a> <b>Read</b> FOnRunLine <b>Write</b> FOnRunLine;<br />
+This event is called every time that a line has been runned.<br /><br />
+<b>property</b> OnUses: <a href="ifspas.html#tonuses">TOnUses</a> <b>Read</b> FOnUses <b>Write</b> FOnUses;<br />
+This event is called when a script is assigned with 'SYSTEM' parameter and for each uses.<br /><br />
+<b>property</b> OnExternal: <a href="ifspas.html#tonexternal">TOnExternal</a> <b>read</b> FOnExternal <b>write</b> FOnExternal;<br />
+This event is called when a external function is called.<br /><br />
+<b>property</b> ErrorCode: <a href="tifpasscripterror.html">TIfPasScriptError</a> <b>read</b> GetErrorCode;<br />
+This contains current error code<br /><br />
+<b>property</b> ErrorPos: Longint <b>Read</b> GetErrorPos;<br />
+This contains the position of the error that has occured.<br /><br />
+<b>property</b> Errorstring: <b>string</b> <b>Read</b> GetErrorString;<br />
+This contains the parameter for current error.<br /><br />
+<b>property</b> ErrorModule: <b>string</b> <b>read</b> GetErrorModule;<br />
+This contains the module the error has happend in.<br /><br />
+<b>property</b> MaxBeginNesting: Longint <b>read</b> FMaxBeginNesting <b>write</b> FMaxBeginNesting;<br />
+This is the maximum number of nestings.<br /><br />
+<b>property</b> MaxArrayLength: Longint <b>read</b> FMaxArrayLength <b>write</b> FMaxArrayLength;<br />
+This is the maximum length on an array (not yet used in current version).<br /><br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

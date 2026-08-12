@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<meta name="GENERATOR" content="Microsoft&reg; HTML Help Workshop 4.1">
+<!-- Sitemap 1.0 -->
+</HEAD><BODY>
+<UL>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Accueil">
+		<param name="Local" value="index_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Informations g&eacute;n&eacute;rales">
+		<param name="Local" value="general_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Informations de film">
+		<param name="Local" value="movie_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Champs personnalis&eacute;s">
+		<param name="Local" value="customfields_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Extras">
+		<param name="Local" value="extras_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Recherche">
+		<param name="Local" value="search_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Impression">
+		<param name="Local" value="print_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Importation depuis un autre format">
+		<param name="Local" value="import_fr.html">
+		</OBJECT>
+	<UL>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Importation CSV">
+			<param name="Local" value="import_csv_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Importation Ant Movie Catalog">
+			<param name="Local" value="import_amc_fr.html">
+			</OBJECT>
+	</UL>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Exportation vers un autre format">
+		<param name="Local" value="export_fr.html">
+		</OBJECT>
+	<UL>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Exportation vers HTML">
+			<param name="Local" value="export_html_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Exportation vers CSV">
+			<param name="Local" value="export_csv_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Exportation vers SQL">
+			<param name="Local" value="export_sql_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Exportation des images uniquement">
+			<param name="Local" value="export_images_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Exportation pour Ant Movie Catalog">
+			<param name="Local" value="export_amc_fr.html">
+			</OBJECT>
+	</UL>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Films pr&ecirc;t&eacute;s">
+		<param name="Local" value="lent_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Scripting">
+		<param name="Local" value="script_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Pr&eacute;f&eacute;rences">
+		<param name="Local" value="options_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Barres d'outils">
+		<param name="Local" value="toolbar_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Informations techniques">
+		<param name="Local" value="tech_fr.html">
+		</OBJECT>
+	<UL>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Fichiers de traduction">
+			<param name="Local" value="tech_languages_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Format des fichiers de catalogue">
+			<param name="Local" value="tech_format_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Cr&eacute;ation de scripts">
+			<param name="Local" value="tech_script_fr.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Cr&eacute;ation de rapports">
+			<param name="Local" value="tech_print_fr.html">
+			</OBJECT>
+	</UL>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Historique des versions">
+		<param name="Local" value="history_fr.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Informations sur l'auteur, cr&eacute;dits et liens">
+		<param name="Local" value="about_fr.html">
+		</OBJECT>
+</UL>
+</BODY></HTML>

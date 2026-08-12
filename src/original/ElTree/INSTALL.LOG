@@ -1,0 +1,126 @@
+***  Installation Started 02/10/2002 0:50  ***
+Title: EldoS ElTree Lite Installation
+Source: T:\PowerArchiver\ElTreeLite.EXE
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\UNWISE.EXE
+RegDB Key: Software\Microsoft\Windows\CurrentVersion\Uninstall\EldoS ElTree
+RegDB Val: EldoS ElTree
+RegDB Name: DisplayName
+RegDB Root: 2
+RegDB Key: Software\Microsoft\Windows\CurrentVersion\Uninstall\EldoS ElTree
+RegDB Val: C:\Programs\dev\Borland\DELPHI~2\Compos\ElTree\UNWISE.EXE C:\Programs\dev\Borland\DELPHI~2\Compos\ElTree\INSTALL.LOG
+RegDB Name: UninstallString
+RegDB Root: 2
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\readme.txt
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\license.txt
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\how_to.faq
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\file_id.diz
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\purchase.txt
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\ElCRC32.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\elDemo.dpr
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\elDemo.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\ElHashList.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\ElMD5.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\frmMain.dfm
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\frmMain.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\frmSelForm.dfm
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Demos\DskBrows\frmSelForm.pas
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\CHECKCTL.RES
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElHeader.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElTree.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElPack.inc
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElContBase.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElHeader.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElHintWnd.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElList.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElScrollBar.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElStack.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElTools.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElTree.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElVCLUtils.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Source\ElStrUtils.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\DCLELTD3.RES
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB3.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltD4.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltD5.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB4.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB5.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltD3.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltD4.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltD5.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltD6.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltd6.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB3.bpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB4.bpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB5.bpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB3.cpp
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB3.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB4.cpp
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB4.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB5.cpp
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\dcleltB5.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB3.cpp
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB3.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB4.cpp
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB4.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB5.cpp
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB5.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB3.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD3.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD4.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB4.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD5.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB5.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD3.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD6.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD4.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD6.res
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeD5.dpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB3.bpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB4.bpk
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\eltreeB5.bpk
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\ElHeader.dcr
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\ElTree.dcr
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmItemCol.dfm
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmItemCol.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmItemsProp.dfm
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmItemsProp.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmSectEdit.dfm
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmSectEdit.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmSectProp.dfm
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\frmSectProp.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\TreeDsgn.pas
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\Design\ElPack.inc
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Code\ElReg.pas
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Help
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Help\ElPack.cnt
+File Copy: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\Help\ELPACK.HLP
+RegDB Key: SOFTWARE\Microsoft\Windows\Help
+RegDB Val: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\HELP
+RegDB Name: ElPack.cnt
+RegDB Root: 2
+RegDB Key: SOFTWARE\Microsoft\Windows\Help
+RegDB Val: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\HELP
+RegDB Name: ElPack.hlp
+RegDB Root: 2
+RegDB Key: SOFTWARE\Microsoft\Windows\Help
+RegDB Val: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\HELP
+RegDB Name: ContLib.hlp
+RegDB Root: 2
+RegDB Key: SOFTWARE\Microsoft\Windows\Help
+RegDB Val: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\HELP
+RegDB Name: ContLib.cnt
+RegDB Root: 2
+Made Dir: C:\Programs\dev\Borland\Delphi 6\Compos\ElTree\BACKUP
+RegDB Key: SOFTWARE\EldoS\ElTree
+RegDB Val: C:\Programs\dev\Borland\DELPHI~2\Compos\ElTree
+RegDB Name: InstallationDirectory
+RegDB Root: 2
+RegDB Tree: SOFTWARE\EldoS\ElTree
+RegDB Root: 1
+File Tree: C:\Programs\dev\Borland\DELPHI~2\Compos\ElTree\HELP\*.gid

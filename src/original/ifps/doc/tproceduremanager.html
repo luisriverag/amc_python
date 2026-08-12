@@ -1,0 +1,33 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TProcedureManager</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_var.html">ifs_var.pas</a><br /><br />
+<b>PProcedureManager</b><br /><br />
+PProcedureManager is used to store internal and external functions.<br /><br />
+<b>Type:</b><br />
+TProcedureManager = TIfList;<br />
+PProcedureManager = TProcedureManager;<br />
+<br /><br />
+<b>Helper functions:<b><br />
+<b>function</b> PM_Create: PProcedureManager;<br />
+<b>function</b> PM_Destroy(p: PProcedureManager);<br />
+<b>function</b> PM_Clear(p: PProcedureManager);<br />
+<b>function</b> PM_AddExtOfObject(p: PProcedureManager; ScriptEngine: Pointer; <b>const</b> Name, Decl: <b>string</b>; <i>{$IFNDEF NOCLASSES}</i>ClassType: <a href="ttyperec.html">PTypeRec</a>;<i>{$ENDIF}</i> Ext: Pointer; Addr: <a href="tregisteredproc.html">TRegisteredProcObject</a>): <a href="tprocedure.html">PProcedure</a>;<br />
+<b>function</b> PM_AddExt(p: PProcedureManager; ScriptEngine: Pointer; <b>const</b> Name, Decl: <b>string</b>; <i>{$IFNDEF NOCLASSES}</i>ClassType: <a href="ttyperec.html">PTypeRec</a>;<i>{$ENDIF}</i> Ext, Addr: Pointer): <a href="tprocedure.html">PProcedure</a>;<br />
+<b>function</b> PM_AddInt(p: PProcedureManager; ScriptEngine: Pointer; <b>const</b> Name, Decl: <b>string</b>; <i>{$IFNDEF NOCLASSES}</i>ClassType: <a href="ttyperec.html">PTypeRec</a>;<i>{$ENDIF}</i> Ext: Pointer; Offset: Longint): <a href="tprocedure.html">PProcedure</a>;<br />
+<b>function</b> PM_Find(p: PProcedureManager; const Name: string): Integer;<br />
+<b>function</b> PM_Get(p: PProcedureManager; i: LongInt): PProcedure;<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

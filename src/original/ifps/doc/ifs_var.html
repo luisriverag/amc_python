@@ -1,0 +1,114 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifs_var.pas</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+Back to <a href="index.html">Index</a>.<br /><br />
+<B>Unit</b> ifs_var.pas<br /><br />
+<b>Types:</b><br />
+<a href="tifvariant.html">PIFVariant</a><br />
+<a href="ttyperec.html">PTypeRec</a><br />
+<a href="tifsclasstype.html">PIFSClassType</a><br />
+<a href="tcreatedclass.html">PCreatedClass</a><br />
+<a href="tprocedure.html">PProcedure</a><br />
+<a href="tproceduremanager.html">PProcedureManager</a><br />
+<a href="tvariablemanager.html">PVariableManager</a><br />
+<a href="tifpasscripterror.html">PIFSPasScriptError</a><br />
+<a href="ttypemanager.html">PTypeManager</a><br />
+<a href="tifsproctype.html">PIFSProcType</a><br />
+<a href="tifsrecordtype.html">PIFSRecordType</a><br />
+<a href="tpropertydef.html">PPropertyDef</a><br />
+<a href="tregisteredproc.html">PRegisteredProc</a><br />
+TCSV_UByte = Byte;<br />
+TCSV_SByte = ShortInt;<br />
+TCSV_Char = Char;<br />
+TCSV_UInt16 = Word;<br />
+TCSV_SInt16 = SmallInt;<br />
+TCSV_UInt32 = Cardinal;<br />
+TCSV_SInt32 = Longint;<br />
+<br />
+<b>Constants:</b>
+CSV_NONE = 0; <i>{ Void/ERROR }</i><br />
+CSV_UByte = 1; <i>{ Byte }</i><br />
+CSV_SByte = 2; <i>{ ShortInt }</i><br />
+CSV_UInt16 = 3; <i>{ Word }</i><br />
+CSV_SInt16 = 4; <i>{ Integer (Delphi : SmallInt) }</i><br />
+CSV_UInt32 = 5; <i>{ Longint (Delphi : Cardinal) }</i><br />
+CSV_SInt32 = 6; <i>{ Longint }</i><br />
+CSV_Char = 7; <i>{ Char }</i><br />
+CSV_String = 8; <i>{ String }</i><br />
+CSV_Real = 9; <i>{ Real }</i><br />
+CSV_Single = 10; <i>{ Single }</i><br />
+CSV_Double = 11; <i>{ Double }</i><br />
+CSV_Extended = 12; <i>{ Extended }</i><br />
+CSV_Comp = 13; <i>{ Comp }</i><br />
+CSV_Bool = 14; <i>{ Boolean }</i><br />
+CSV_Var = 15; <i>{ Variable in function call }</i><br />
+CSV_Array = 16; <i>{ Array }</i><br />
+CSV_Record = 17; <i>{ Record }</i><br />
+CSV_Internal = 19; <i>{ Internal }</i><br />
+CSV_Class = 18; <i>{ Class }</i><br />
+CSV_ClassRef = 20; <i>{ Class of Class }</i><br />
+CSV_Property = 21; <i>{ Property }</i><br />
+CSV_TypeCopy = 22;<br />
+CSV_ProcVariable = 23;<br />
+CSV_Special = 24;<br />
+CSV_ExternalObject = 25;<br />
+CSV_ExternalObjectProperty = 26;<br />
+CSV_Variant = 27;<br />
+<br />
+<b>Functions:</b><br />
+<b>function</b> CreateCajVariant(PType: <a href="tifvariant.html">PIfVariant</a>): <a href="tifvariant.html">PIfVariant</a>;<br />
+Create a variant.<br /><br />
+<b>procedure</b> DestroyCajVariant(p: <a href="tifvariant.html">PIfVariant</a>);<br />
+Destroy a variant.<br /><br />
+<b>function</b> ChangeType(p: <a href="tifvariant.html">PIfVariant</a>; newtype: <a href="tifvariant.html">PIfVariant</a>): <a href="tifvariant.html">PIfVariant</a>;<br />
+Change the type of a variant. (returns p)<br /><br />
+<b>function</b> DoMinus(p: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Do a *-1 on P.<br /><br />
+<b>function</b> DoNot(p: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Do a NOT on P<br /><br />
+<b>procedure</b> SetInteger(p: <a href="tifvariant.html">PIfVariant</a>; I: LongInt);<br />
+Set the value of P to I.<br /><br />
+<b>procedure</b> SetReal(p: <a href="tifvariant.html">PIfVariant</a>; i: Extended);<br />
+Set the value of P to I.<br /><br />
+<b>procedure</b> SetString(p: <a href="tifvariant.html">PIfVariant</a>; <b>const</b> I: <b>string</b>);<br />
+Set the value of P to I.<br /><br />
+<b>procedure</b> SetBoolean(p: <a href="tifvariant.html">PIfVariant</a>; i: Boolean);<br />
+Set the value of P to I.<br /><br />
+<b>function</b> IsStringType(v: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Returns if v is of string type (char or string).<br /><br />
+<b>function</b> IsIntRealType(v: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Returns if v is of real or integer type.<br /><br />
+<b>function</b> IsIntegerType(v: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Returns if v is of integer type.<br /><br />
+<b>function</b> IsBooleanType(v: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Returns if v is of boolean type.<br /><br />
+<b>function</b> IsRealType(v: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Returns if v is of real type.<br /><br />
+<b>function</b> GetString(v: <a href="tifvariant.html">PIfVariant</a>): <b>string</b>;<br />
+Returns the value of V as a string.<br /><br />
+<b>function</b> GetReal(v: <a href="tifvariant.html">PIfVariant</a>): Extended;<br />
+Returns the value of V as a real.<br /><br />
+<b>function</b> GetInteger(v: <a href="tifvariant.html">PIfVariant</a>): LongInt;<br />
+Returns the value of V as an integer.<br /><br />
+<b>function</b> GetBoolean(v: <a href="tifvariant.html">PIfVariant</a>): Boolean;<br />
+Returns the value of V as a boolean.<br /><br />
+<b>function</b> ErrorToString(e: <a href="tifpasscripterror.html">TIfPasScriptError</a>; <b>const</b> ErrorString: <b>string</b>): <b>string</b>;<br />
+Convert an error code + error param to a string.<br /><br />
+<b>function</b> GetVarLink(p: <a href="tifvariant.html">PIfVariant</a>): <a href="tifvariant.html">PIfVariant</a>;<br />
+Resolves a variable link.<br /><br />
+<b>function</b> GetTypeLink(p: <a href="tifvariant.html">PIfVariant</a>): <a href="tifvariant.html">PIfVariant</a>;<br />
+Resolves a type link.<br /><br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

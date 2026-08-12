@@ -1,0 +1,42 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifpsdate.pas</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Back to </b><a href="library.html">Libraries</a><br /><br />
+<b>ifpsdate.pas</b><br /><br />
+<b>procedure</b> RegisterDateTimeLib(ScriptEngine: TIFPasScript);<br>
+Register the DateTime library. This will import:<br><br>
+<tt>
+<b>type</b><br>
+TDateTime = double;<br>
+<br>
+function EncodeDate(Year, Month, Day: Word): TDateTime;<br>
+function EncodeTime(Hour, Min, Sec, MSec: Word): TDateTime;<br>
+procedure DecodeDate(const DateTime: TDateTime; var Year, Month, Day: Word);<br>
+procedure DecodeTime(const DateTime: TDateTime; var Hour, Min, Sec, MSec: Word);<br>
+function Date: TDateTime;<br>
+function Time: TDateTime;<br>
+function Now: TDateTime;<br>
+function DateToStr(DateTime: TDateTime): string;<br>
+function TimeToStr(DateTime: TDateTime): string;<br>
+function DateTimeToStr(DateTime: TDateTime): string;<br>
+function StrToDate(S: string): TDateTime;<br>
+function StrToDateDef(S: string; Default: TDateTime): TDateTime;<br>
+function StrToTime(S: string): TDateTime;<br>
+function StrToTimeDef(S: string; Default: TDateTime): TDateTime;<br>
+function StrToDateTime(S: string): TDateTime;<br>
+function StrToDateTimeDef(S: string; Default: TDateTime): TDateTime;<br>
+</tt>
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

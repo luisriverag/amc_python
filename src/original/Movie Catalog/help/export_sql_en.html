@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Export to SQL</p>
+<hr />
+<p>This isn't really a file format, but this export option will allow you to generate all the SQL commands useful to import easily the movie list in a database.</p>
+<p>The primary idea was creating a mySQL database, viewable with a PHP page, because it would be much more interactive than an HTML page for the people that want to see your movie list if you put it on the web.</p>
+<p>The SQL export will create a table (movies by default) containing movies with the values of the selected fields.
+  The movie number is automatically added because it is the primary key of the table.
+  Then the movie numbers have to be unique for each movie to have a valid SQL export.
+  You can easily renumber your movies if needed or if you are not sure to have a unique number for each movie.</p>
+<p>If you export the movie extras, another table will be created (extras by default) containing movie extras with the values of the selected fields.
+   The extra number and the movie number are automatically added because they are the primary key of the table.
+   The extra numbers are always unique so you don't have to worry about this here.</p>
+<p>If you enable the export of movie pictures, a "PICTURENAME" field will be added in table of movies, containing the filename of the movie picture.</p>
+<p>If you enable the export of extra pictures, a "PICTURENAME" field will be added in table of extras, containing the filename of the extra picture.</p>
+<p>There is an option to generate UPDATE queries instead of INSERT queries, if you want to update information without first deleting existing data.
+  It updates the movies on the basis of their number, so it may cause problem if you modify the numbers of some movies.
+  Also, if you export extras, the old movie extras will be deleted before to add the new ones.</p>
+</body>
+</html>

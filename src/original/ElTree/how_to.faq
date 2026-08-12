@@ -1,0 +1,76 @@
+1.  Q: How to get the first ELTreeItem in the tree?
+    A: Don't forget about Items property of ELTree. You can access all the items
+       with the Items.Item[index] property.
+
+2.  Q: How to clear the whole tree?
+    A: There is a public method Clear in the TELTreeItems.
+
+3.  Q: Why is adding 1000 items so slow?
+    A: When you do some time-consuming procedure like adding lots of items or
+       deleting lots of items, don't forget to make such thing:
+
+       ELTree.IsUpdating:=true; // this prevents redrawing
+       YourMethodToAdd1000Items;
+       ELTree.IsUpdating:=false; // redraw the tree now!
+
+4.  Q: I set IsUpdating, do something, but the tree doesn't redraw itself.
+       What's up?
+    A: When you set IsUpdating to True, the internal update counter
+       increments. The tree is redrawn when the counter is 0. So you should do
+       IsUpdating:=false after you have set it to True. 
+
+5.  Q: Why is the scrolling so slow and flickering?
+    A: Yes, this can happen on slow computers. Turning off ScrollTracikng will
+       speed up scrolling.
+
+6.  Q: Is it possible to draw an image in one of the listview cells of the
+       ElTree grid (not just for the nodes of the treeview part?)
+    A: Sure. First you have to mark the cells as owner-drawn. If
+       OwnerDrawByColumn property is true, then the header section's style
+       defines, whether the cell is owner drawn. If OwnerDrawByColumn property
+       is false, then the text of the cell defines this. OwnerDrawMask defines
+       the text, that, when found in the cell, forces the OnItemDraw event to
+       be fired. 
+
+       if (OwnerDrawByColumn and (Header section's Style=elhsOwnerDraw))
+          or ((not (OwnerDrawByColumn)) and (cell text = OwnerDrawMask))
+       then call_event_handler else draw_as_known.
+
+       This behavior is more clear when you take a look at the source code. 
+
+       Other approach is to use CellStyles.
+
+7:  Q: How do I make ElTree behave like a grid?
+    A: First, make some fake main column and hide it. Then add the amount of
+       columns you need in your grid. To select the cells, and not the rows,
+       a) set RowSelect to false. 
+       b) set MultiSelect to false (if needed). 
+       c) set SelectColumn to the index of the column you want to select. 
+          When the user clicks the cell or presses the arrow key, you will need
+          to change the value of this parameter. 
+       d) enjoy :).
+
+       You will access the cell's data as Items[Row].ColumnText[Column]. This is 
+       quick and easy. BTW forget about main tree column: it is hidden and
+       nobody will ever see or use it. 
+       
+8.  Q: How do I draw the item's line with some color?
+    A: use CellStyles. Set Item.UseStyles to true, and see the help file :).
+       The demo project ElIniEdit uses CellStyles to provide custom coloring.
+
+9.  Q: The text bottom is cut, when HorizontalLines is false. A bug!
+    A: 1) Version 2.02 fixes this problem for a common situations. Although it 
+          cannot remove all the problems, as some Cell Style can define the
+          font size as 72 ;)
+       2) Try to set Font.Height as POSITIVE value. Then internal font leading
+          is counted.       
+
+
+100000.
+    Q: I wanna get some cool feature!     
+    A: Why not? Just send me a letter.
+
+100001.
+    Q: I wanna change some ugly behaviour!
+    A: Hmm, I can speak with you about changing this behaviour, but I can also
+      leave it unchanged: some users may rely on it. 

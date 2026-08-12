@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="WebSite PRO 4.3" />
+  <title>Ant Movie Catalog Help</title>
+       <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+       <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Preferencje</p>
+<hr />
+<ul id="options">
+  <li><a href="#display">Opcje ogólne</a>
+  <ul>
+    <li><a href="#customizetoolbar">Ikony Paska narzędzi</a></li>
+  </ul></li>
+  <li><a href="#files">Pliki</a></li>
+  <li><a href="#movielist">Lista filmów</a>
+  <ul>
+    <li><a href="#formattedtitle">Formatowanie tytułu</a></li>
+    <li><a href="#grouping">Grupowanie</a></li>
+  </ul></li>
+  <li><a href="#extralist">Lista dodatków</a>
+  <li><a href="#movieinfo">Film / Dodatkowe informacje</a>
+  <ul>
+    <li><a href="#dropdown">Listy rozwijane</a></li>
+    <li><a href="#mediafilesimport">Import plików medialnych</a></li>
+    <li><a href="#pictureimport">Import obrazków</a></li>
+    <li><a href="#searchinternet">Szukaj w Internecie</a></li>
+  </ul></li>
+  <li><a href="#scripting">Skrypty</a></li>
+  <li><a href="#export">Eksport</a></li>
+  <li><a href="#folders">Foldery</a></li>
+</ul>
+<hr />
+<p class="subtitle" id="display">Opcje ogólne</p>
+<blockquote>
+  <p><b>Zestaw ikon</b>: Pozwala ustalić "temat" ikon, które pojawiają się w pasku narzędziowym. Są to proste bitmapy (".bmp") przechowywane w podkatalogu "Toolbars". Do programu dołączonych jest kilka zestawów ikon.</p>
+  <p><b>Schemat kolorowania</b>: Określa jak zachowują się ikony, jeśli nie są wskazane myszką.
+  Dostępne są tryby: "Automatyczny", "Szare, gdy nieaktywne" (styl Windows 98/2000), "Jasne, gdy nieaktywne"  (styl Office/Windows XP), "Ciemne, gdy nieaktywne" lub "Zawsze widoczne".</p>
+  <p><b>Styl Office XP</b>: Menu i pasek zachowują się jak w Microsoft Office XP.</p>
+  <p><b>Ikony w menu</b>: Wyświetla ikony przy nazwach w menu. Są one identyczne z tymi w pasku.</p>
+  <p><b>Brak cieniowania dla listy filmów, panelu informacji o filmie i okna okładek</b>: Jeśli zostanie zaznaczone, obramowania wymienionych okien staną się bardziej "miękkie". Może to wyglądać lepiej, jeśli używasz Windows XP z inną skórką, niż Windows Classic.</p>
+  <p><b>Wyświetlaj logo powitalne</b>: przy starcie programu wyświetlane jest logo powitalne.</p>
+</blockquote>
+<p class="subtitle" id="customizetoolbar">Ikony Paska narzędzi</p>
+<blockquote>
+  <p>Możesz wybrać, które ikony powinny być wyświetlane na głównym pasku narzędzi. Zajrzyj
+     <a href="toolbar_pl.html">na tę stronę</a> w celu uzyskania więcej informacji.</p>
+</blockquote>
+<p class="subtitle" id="files">Pliki</p>
+<blockquote>
+  <p><b>Zawsze twórz kopię bezpieczeństwa</b>: Za każdym razem podczas zapisywania katalogu, rozszerzenie poprzedniego pliku zostanie zmienione na ".bak".</p>
+  <p><b>Podczas startu automatycznie otwieraj... </b>: Pozwala sprecyzować, który plik ma zostać otworzony
+     zamiast tworzenia nowego pliku przy starcie. Opcja "Ponowne uruchomienie - otwieraj ostatnio
+     użyty plik" otwiera ten plik, zamiast pliku wyszczególnionego.</p>
+  <p><b>Pokaż w menu liczbę ostatnio otwieranych plików </b>: Ostatnio używane pliki są wyświetlane
+     w menu "Plik", powyżej "Wyjścia", pozwala to na szybkie ponowne otworzenie tych plików.
+     Możesz tutaj wybrać liczbę plików, które mają być przechowywane w historii.</p>
+  <p><b>Napraw rozszerzenie AMC</b>: Przepisuje do rejestru Windows wartości, które pozwalają otworzyć
+     pliki .amc przez Ant Movie Catalog za pomocą dwukliku.</p>
+     <p><b>Automatycznie importuj pola niestandardowe z pliku do nowych katalogów</b>: Podczas tworzenia nowego katalogu wybrany plik z polami niestandardowymi zostanie automatycznie dodany.</p>
+  <p><b>Historia wypożyczeń</b>: Zapisuje wszystkie zmiany w wypożyczeniach (wypożyczenia/zwroty) w pliku tekstowym, wykorzystując format CSV
+  (możesz więc otworzyć go takimi programami jak Excel).
+     Domyślnie plik jest przechowywany w folderze aplikacji i nazywa się "Loans history.csv".
+     Ten sam plik jest współdzielony przy każdym uruchomieniu Ant Movie Catalog, więc możesz mieć
+     problemy, jeśli będziesz chciał wykorzystać to okno w kilku programach na raz (w późniejszym terminie zostanie to usprawnione).</p>
+  <p><b>Szablon HTML</b> : Plik szablonu HTML wykorzystywany do wyświetlania HTML.
+  Domyślny plik jest przechowywany w folderze szablonów pod nazywą "HTMLDefaultTemplate.html".
+  Możesz zmienić ten plik na inny szablon HTML. Na <a href="export_html_pl.html">tej stronie</a> uzyskasz więcej informacji na temat szablonów HTML.</p>
+</blockquote>
+<p class="subtitle" id="movielist">Lista filmów</p>
+<blockquote>
+  <p><b>Pola wyboru</b>: Jeśli ta opcja jest włączona, to na liście filmów pojawią się pola wyboru w głównym
+     oknie (kliknięcie LPM zaznacza/odznacza, kliknięcie PPM zmienia kolor oznaczenia filmu).
+     Używanie pól wyboru jest dowolne. Pozwalają one sprecyzować, czy dany film jest już dostępny w twojej kolekcji czy nie
+     lub, czy już go oglądałeś, czy też cokolwiek innego. Pola te mogą być również stosowane jako filtr do eksportu, drukowania lub skryptów.</p>
+  <p><b>Pola wyboru w wyświetlaniu miniatur</b>: Jeśli ta opcja jest włączona, pola wyboru pojawią się pod miniaturami filmów w głównym oknie,
+  jeśli zostało wybrane wyświetlanie miniatur (LPM do zaznaczania/odznaczania, PPM do zmiany koloru oznaczenia filmu).</p>
+  <p><b>Kolor tła pól wyboru</b>: Jeśli ta opcja jest włączona, pola wyboru będą wyświetlane z kolorem tła skojarzonym z oznacznikiem koloru filmu.</p>
+  <p><b>Kolor tła linii</b>: Jeśli ta opcja jest włączona, linia z tytułem na liście filmów zostanie wyświetlona z kolorem tła skojarzonym z oznacznikiem koloru filmu.</p>
+  <p><b>Gorąca ścieżka</b>: Podkreśla pozycje na liście podczas przesuwania nad nimi myszką.</p>
+  <p><b>Wzbogacony pasek przewijania</b>: Używa wzbogaconego paska przewijania w głównym oknie i oknie pożyczających.</p>
+  <p><b>Kolumna "Numer filmu"</b>: Pokazuje lub ukrywa kolumnę zawierającą numery filmów po lewej stronie listy filmów.
+     Jeśli nie używasz numerów, ukrycie tej kolumny pozostawia więcej miejsca dla innych informacji.</p>
+  <p><b>Liczba znaków w sekcji w trybie widoku tabeli</b>: Ustal liczbę znaków do wyświetlenia w sekcji w trybie widoku tabeli
+  (Sekcje FormatedTitle, OriginalTitle i TranslatedTitle nie są brane pod uwagę). Domyślnie liczba znaków jest ustawiona na 32.
+  Wstaw 0, aby usunąć to ograniczenie we wszystkich sekcjach, ale wyświetlanie trybu tabeli może być znacznie wolniejsze.</p>
+  <p><b>Automatycznie rozwijaj listę w trybie widoku tabeli</b>: Jeśli ta opcja jest włączona, lista filmów zostanie automatycznie rozwinięta po zaznaczeniu trybu widoku tabeli.</p>
+  <p><b>Automatycznie rozwijaj listę w trybie widoku miniatur</b>: Jeśli ta opcja jest włączona, lista filmów zostanie automatycznie rozwinięta po zaznaczeniu trybu widoku miniatur.</p>
+  <p><b>Potwierdzaj usuwanie</b>: Program poprosi o potwierdzenie usunięcia filmu z listy</p>
+  <p><b>Potwierdzaj cofanie zmian</b>: Program poprosi o potwierdzenie przed cofnięciem wprowadzonych zmian dla danego filmu.</p>
+  <p><b>Skróty klawiszowe, Poprzedni/Następny film</b> : Pozwala zdefiniować skrót do poprzedniego lub następnego filmu bez utraty z pola widzenia
+     bieżącego pola. Jest to użyteczne przy modyfikowaniu jednego pola w wielu filmach bez potrzeby użycia myszki w celu wybrania kolejnego filmu.
+     Klawiszem domyślnym jest Ctrl + Page Up/Down, który spełnia tę samą funkcję co Ctrl + Num 9/3.</p>
+  <p class="subtitle" id="formattedtitle">Formatowanie tytułu</p>
+  <blockquote>
+  <p><b>Wyświetlanie tytułu</b>: </p>
+    <ul>
+    <li><i>Tytuł oryginalny</i>: Wyświetla tylko oryginalny tytuł.</li>
+    <li><i>Tytuł polski</i>: Wyświetla polski tytuł, jeśli jest dostępny, w przeciwnym wypadku wyświetla
+        tytuł oryginalny.</li>
+    <li><i>Tytuł oryginalny (Tytuł polski)</i>: Wyświetla jako pierwszy tytuł oryginalny, a następnie
+        polski, jeśli jest dostępny.</li>
+    <li><i>Tytuł polski (Tytuł oryginalny)</i>: Wyświetla jako pierwszy tytuł polski, a następnie tytuł
+        oryginalny. Jeśli polski tytuł nie jest dostępny, wyświetlany jest tylko tytuł oryginalny.</li>
+    <li><i>Etykieta filmu</i>: pokazuje zamiast tytułów etykiety filmów.</li>
+    </ul>
+  <p><b>Następujące prefiksy na końcu tytułu</b> : Możesz sprecyzować tutaj listę prefiksów, które będą się
+     znajdowały na końcu tytułu filmu (np. "The Matrix" zmieni się na "Matrix, The"). Domyślnie lista
+     ta posiada angielskie i francuskie prefiksy.<br>
+     Wprowadzając prefiksy wpisz każdy w oddzielnej linii, bez spacji i cudzysłowa (prefiks będzie
+     rozpoznany jeśli w tytule filmu znajduje się za nim spacja lub cudzysłów). <br>
+     W tej chwili nie są dostępne inne języki, ponieważ mogłoby to powodować problemy, np. niemieckie "Die"
+     po angielsku ("The") wyświetli film "Die Hard" jako "Hard, Die" co nie jest poprawne.
+     Ale możesz zmienić te prefiksy sam dopasowując je do własnego języka.</p>
+  </blockquote>
+  <p class="subtitle" id="grouping">Grupowanie</p>
+  <blockquote>
+  <p><b>Pokaż ilość w grupie</b>: W trybie "Grupuj w/g" wyświetla liczbę filmów w każdej grupie obok nazwy grupy.</p>
+  <p><b>Pełne rozwinięcie każdej grupy</b>: Gdy funkcja "Grupuj w/g" jest włączona, to podczas odświeżania listy rozwija wszystkie grupy.</p>
+  <p><b>Dodaj separator do grup z polami o wielu wartościach</b>: Ustawia separator między różnymi wartościami w wielu polach
+  (Typ mediów, Żródło, Reżyser, Producent, Kraj, Gatunek, Aktorzy, Format wideo, Format audio, Języki, Napisy).
+  Na przykład, jeżeli w polu Gatunek z wartościami "Akcja, Thriller", separatorem jest "," należy do grup "Akcja" i "Thriller".
+  Opcję tę można włączyć lub wyłączyć za pomocą skojarzonego z tą funkcją pola wyboru.</p>
+  <p><b>Usuń wartości w nawiasach w polach o wielu wartościach</b>: Zaznacz tę opcję, aby usunąć wartości w nawiasach w polach o wielu wartościach
+  Wartości w nawiasach w polu aktora są zawsze usuwane domyślnie.</p>
+  <p><b>Dodaj poprawkę ignorowania wartości w nawiasach (I, (II, (II, (IV... (XXX</b>: Zaznacz tę opcję, aby zastosować poprawkę (domyślnie zaznaczona).</p>
+  <p><b>Sortuj grupy wg liczby filmów w grupie</b>: Zaznacz tę opcję, aby posortować grupy w/g ilości w grupie, a nie kolejności alfabetycznej.</p>
+  <p><b>Rozmieszczenie</b>: Określ, czy grupy bez żadnych wartości ("&lt; brak &gt;", z błędem "&lt; ?()? &lt;") powinny być umieszczone powyżej lub poniżej grup wspólnych.</p>
+  <p><b>Umieść w specjalnej grupie elementy, które byłyby same w swojej grupie</b>: Tworzenie dla filmów, które byłyby same w grupie, grupy "&lt; inne &gt;".</p>
+  </blockquote>
+</blockquote>
+<p class="subtitle" id="extralist">Lista dodatków</p>
+<blockquote>
+  <p><b>Pola wyboru</b>: Jeśli ta opcja jest włączona, pola wyboru będą wyświetlane w Liście dodatków w głównym oknie.
+    Korzystanie z tych pól wyboru jest dowolne. Mogą być stosowane jako filtr dla eksportu HTML lub skryptów.</p>
+  <p><b>Pokaż numer dodatku z tytułem dodatku</b>: If this option is enabled, the extra number will be added before extra title when extra title is displayed in the extra list.</p>
+  <p><b>Potwierdzaj usuwanie</b>: Pyta o potwierdzenie przed usunięciem jednego lub więcej dodatków z listy.</p>
+  <p><b>Wyświetlaj ilość w grupie</b>: W trybie "Grupuj wg" wyświetla liczbę dodatków w każdej grupie, w pobliżu nazwy grupy.</p>
+  <p><b>Domyślnie pełne rozwinięcie każdej grupy</b>: Gdy funkcja "Grupuj wg" jest włączona, nastąpi pełne rozwinięcie wszystkich grup podczas odświeżania listy.</p>
+  <p><b>Twórz grupy z polami o wielu wartościach oddzielone</b>: Ustaw separator między różnymi wartościami w polach wieloczłonowych (np. Kategoria).
+  Na przykład pole Kategoria o wartościach "Trailer, Video" przenależy do grup "Trailer" i "Video", jeśli został użyty separator ",".
+  Opcja ta może być włączona lub wyłączona poprzez zaznaczenie/odznaczenie skojarzonego pola wyboru.</p>
+  <p><b>Usuń wartości w nawiasach w polach o wielu wartościach</b>: Zaznacz tę opcję, aby usunąć wartości w nawiasach w polach o wielu wartościach.</p>
+  <p>Sortuj grupy wg ilości w grupie: Zaznacz tę opcję, aby posortować grupy wg ilości w grupie, a nie kolejności alfabetycznej.</p>
+  <p><b>Rozmieszczenie</b>: Określ, czy grupy bez żadnych wartości ("&lt; brak &gt;", z błędem "&lt; ?()? &gt;") powinny być umieszczone powyżej lub poniżej grup wspólnych.</p>
+
+</blockquote>
+<p class="subtitle" id="movieinfo">Filmy / Dodatkowe informacje</p>
+<blockquote>
+  <p><b>Pytaj o numer</b>: Podczas dodawania filmu pojawi się okienko, które umożliwi ci wybór numeru nowego filmu.
+     Jeśli ta opcja jest wyłączona numer filmu będzie nadany domyślnie jako numer najwyższy + 1, chyba że wybierzesz kolejną opcję: </p>
+  <p><b>Użyj pierwszego dostępnego ...</b>: Użyje domyślnie pierwszego dostępnego numeru zamiast najwyższego + 1.</p>
+  <p><b>Otwórz okno "Pobierz informacje..."</b>: Kiedy dodasz film otworzy się okno importu informacji z pliku lub za pomocą skryptu.</p>
+  <p><b>Edycja domyślnych wartości filmu</b>: Wyświetla okno pozwalające na modyfikowanie wartości,
+        które zostaną automatycznie wprowadzone w momencie dodawania nowego filmu do listy.</p>
+  <p><b>Edycja domyślnych wartości dodatków</b>: Wyświetla okno pozwalające na modyfikowanie wartości domyślnych dodatków,
+        które zostaną automatycznie wprowadzone w momencie dodawania nowego filmu do listy.</p>
+  <p><b>Ocena - Nie pokazuj ułamków dziesiętnych...</b>: Jeśli opcja ta jest włączona, ocena może być wyłącznie liczbą całkowitą, jak w poprzednich wersjach.</p>
+  <p><b>Kolor tła (Obrazek)</b>: Pozwala wybrać kolor, jaki będzie użyty jako tło w Oknie obrazka, np. jeśli na twojej stronie tło jest białe,
+  to możesz i tu oglądać obrazki na takim tle. Domyślnym ustawieniem  jest ButtonFace, który jest zgodny z kolorem okien dialogowych i przycisków w Windows.</p>
+  <p><b>Dopasuj obrazek do okna</b>: Powiększa/pomniejsza obrazek, aby do oglądania nie był potrzebny pasek przewijania.</p>
+  <p><b>Kolor tła (obramowanie pól filmu)</b>: Pozwala wybrać kolor tła obramowania pól filmu i pól niestandardowych.
+     Domyślna wartość to dla clWindow (biały) - gdy aktywne i BtnFace (jasnoszary) - gdy nieaktywne.</p>
+  <p class="subtitle" id="dropdown">Listy rozwijane</p>
+  <blockquote>
+    <p>Listy te zawierają domyślne ustawienia dla niektórych pól opisu filmu.
+    Aby je uzupełnić lub zmienić należy u góry okna wybrać o które pole chodzi, natomiast w dolnej części wprowadzić żądane zmiany.</p>
+    <p><b>Te same opcje dla wszystkich list</b>: Zachowuje te same opcje dla wszystkich list.</p>
+    <p><b>Automatyczne sortowanie elementów</b>: Sortuje zawartość list alfabetycznie.</p>
+    <p><b>Automatyczne uzupełnianie podczas wpisywania</b>: Jeśli ta opcja jest włączona, to podczas wpisywania tekstu,
+    w głównym oknie pojawi się "sugestia" pasującej wartości - tak jak podczas wpisywania adresu w przeglądarce internetowej.
+    Mogą przy tym powstać problemy związane z posiadaniem kilku podobnych wpisów.</p>
+    <p><b>Użyj wartości aktualnego katalogu zamiast pierwotnie zdefiniowanej listy</b>: Nie używa wartości wprowadzonych dla list,
+    ale przeszukuje bieżący katalog w celu znalezienia wartości do wyświetlenia w tych listach.</p>
+    <p><b>Automatycznie dodawaj wartości, które nie występują na listach</b>: Jeśli wprowadzona wartość nie figuruje na danej liście,
+    wartość ta zostanie automatycznie dodana (np. jeśli wprowadzisz kraj, którego nie ma jeszcze na liście, program dołączy go do listy).</p>
+    <p><b>Edytuj elementy</b>: Opcja ta pozwala na edycję zawartości listy</p>
+  </blockquote>
+  <p class="subtitle" id="mediafilesimport">Import plików medialnych</p>
+  <blockquote>
+    <p><b>Pobierz informacje z pliku</b>: Pozwala sprecyzować sposób działania, kiedy plik wideo jest wprowadzony do głównego okna (np. z Windows Explorera)
+    lub kiedy użytkownik chce uzyskać informację z plików (z menu).</p>
+    <ul>
+      <li><b>Importuj etykietę płyty</b>: Pobiera nazwę z nośnika, na którym znajduje się plik i umieszcza w polu "Etykieta".</li>
+      <li><b>Importuj nazwę pliku jako tytuł</b>: Umieszcza nazwę pliku w polu "Tytuł oryginalny".
+        Możesz zdefiniować ustawienia filtrowania nazwy pliku, klikając na przycisk "Filtruj nazwę pliku".</li>
+      <li><b>Importuj pełną ścieżkę do pola "Ścieżka pliku"</b>: Wpisz nazwę pliku i pełną ścieżkę do folderu w pole "Ścieżka pliku".</li>
+      <li>Importuj pełną ścieżkę do pola URL: Wpisz nazwę pliku i pełną ścieżkę do folderu w pole URL.</li>
+      <li><b>Importuj rozmiar</b>: Odczytuje rozmiary wybranych plików. Mogą one zostać zsumowane lub tylko zapisane ze znakiem "+" pomiędzy każdą wartością, zależnie od wybranego trybu.</li>
+      <li><b>Importuj czas trwania</b>: Odczytuje długość pliku (w minutach) i umieszcza w polu "Czas trwania".</li>
+      <li><b>Zezwalaj na wyczyszczenie pól...</b>: Zezwala na wyczyszczenie pól lub nie, gdy nowa importowana wartość jest pusta.</li>
+      <li><b>Użyj wewnętrznego silnika...</b>: Domyślnie MediaInfo.dll jest używany dla wszystkich rodzajów plików multimedialnych za wyjątkiem AVI,
+      ponieważ Ant Movie Catalog ma własny silnik dla tego formatu, który jest znacznie szybszy, choć mniej dokładny.</li>
+     <li><b>Rozszerzenia</b>: Tutaj możesz dodawać, usuwać i modyfikować rozszerzenia do identyfikacji plików wideo.
+         Może to być przydatne w celu dodania innych formatów wideo.</li>
+    </ul>
+    <p><b>Pobierz dane ze strumieni audio/wideo</b>: Umieszcza odczytane dane w odpowiednich polach.
+       Dla plików AVI, jeśli używasz wewnętrznego silnika, nazwy kodeków są zdefiniowane z pliku "Codecs.ini".</p>
+  </blockquote>
+  <p class="subtitle" id="pictureimport">Import obrazków</p>
+  <blockquote>
+    <p><b>Importowanie obrazków z zewnętrznych źródeł</b>: Istnieje kilka sposobów na skojarzenie importowanych obrazków z filmem lub dodatkami:</p>
+    <ul>
+      <li><b>Przechowuj obrazek w katalogu</b>: Obrazek zostanie zapisany w pliku katalogu; opcja ta działa wyłącznie wtedy, jeśli katalog zostanie zapisany
+      w formacie ".amc", a nie ".xml". Zależnie od wielkości obrazków, może to prowadzić do powstawania bardzo dużych plików, co z kolei prowadzi
+      do większego wykorzystania pamięci i dłuższego wczytywania. Dla dużych plików stanowczo doradza się nie używanie tej opcji.</li>
+      <li><b>Kopiuj obrazek do folderu katalogu i połącz z katalogiem</b>: Kopiuje obrazek do folderu, w którym zapisany jest katalog i tworzy odnośnik
+      do obrazka (w katalogu przechowywana jest tylko nazwa pliku).</li>
+      <li><b>Kopiuj obrazek do folderu obrazków w katalogu i połącz z katalogiem</b>: Kopiuje plik obrazka do folderu obrazków
+        (Nazwa katalogu + '_pics') w folderze katalogu, a następnie tworzy łącze względne do obrazka
+        (w katalogu przechowywana jest tylko nazwa folderu i nazwa obrazka).</li>
+      <li><b>Tylko łącze do okładki</b>: Zapisuje tylko ścieżkę do pliku w katalogu. <i>"Twórz względną ścieżkę</i> może być wykorzystane,
+      jeśli folder katalogu i okładek są podobne np. katalog jest w folderze "moje dokumenty\katalogi\filmy.amc", zaś okładki w "moje dokumenty\moje obrazy\okładki".
+      To pozwala nie troszczyć się o dokładne położenie obu folderów.<br> Z drugiej strony, jeśli przeniesiemy plik katalogu do innego folderu bez przeniesienia okładek - nie będą one wyświetlane.</li>
+    </ul>
+    <p>Te same opcje są dostępne w oknie "Wybór obrazka".</p>
+    <p>Trzecia opcja jest niedostępna przy skryptach internetowych w bieżącej wersji, gdyż tylko "lokalne" odnośniki są dopuszczalne.</p>
+    <p>Obrazki przechowywane w tym samym folderze co katalog są z nim trwale związane, zostaną więc usunięte podczas aktualizacji okładek
+    (np. jeśli zmienimy obrazek danego filmu na inny, to stary obrazek zostanie usunięty).<br>
+     Aby tego uniknąć należy przechowywać obrazki np. w podfolderze "obrazki" i dodawać je do bazy z wykorzystaniem odnośników.
+     Pozwoli to również na łatwiejsze przenoszenie danych (wystarczy skopiować folder katalogu wraz z podfolderem).</p>
+  </blockquote>
+  <p class="subtitle" id="searchinternet">Szukaj w Internecie</p>
+  <blockquote>
+    <p>Tu można dopasować menu "Szukaj w Internecie" do swoich potrzeb. Menu to zawiera adresy stron internetowych.
+    Po wybraniu jednego z nich uruchomiona zostanie domyślna przeglądarka i nawiązane połączenie z wybraną stroną zaś do adresu, w miejsce "%s",
+    wstawiony zostanie tytuł filmu. Pozwala to na wyszukiwanie danych o filmie w Internecie, bez aktualizacji danych w katalogu.</p>
+    <p>Nazwy stron muszą być niepowtarzalne. Jeśli chcesz oddzielić jakąś grupę adresów, wystarczy jako nazwę wstawić "-" z liczbą lub literą;
+    pole adresu w tym wypadku jest ignorowane.</p>
+  </blockquote>
+</blockquote>
+<p class="subtitle" id="scripting">Skrypty</p>
+<blockquote>
+  <p><b>Automatycznie uruchom ostatnio użyty skrypt...</b>: Uruchamia ostatnio używany skrypt przy otwieraniu się okna "<i>Pobierz informacje ze skryptu</i>", bez konieczności wybierania.</p>
+  <p><b>Użyj proxy podczas połączenia z Internetem</b>: Pozwala sprecyzować dane na temat serwera proxy.</p>
+  <p><b>Utrzymuj połączenie</b>: Domyślnie połączenie z Internetem jest zamykane po każdym zapytaniu (o stronę czy obrazek).
+  Jeśli ta opcja jest zaznaczona, połączenie nie zostanie zamknięte automatycznie. Może to trochę podnieść prędkość, ale pozostawiłem to jako opcję do wyboru,
+  ponieważ wielu ludzi miało problemy, kiedy połączenie było cały czas otwarte. Jeśli otrzymujesz informacje o błędzie, jak np. "Connection closed gracefully" po aktywowaniu tej opcji, to nie włączaj jej.<br>
+  Oczywiście opcja ta dotyczy połączeń modemowych.</p>
+</blockquote>
+<p class="subtitle" id="export">Eksport</p>
+<blockquote>
+  <p><b>Automatycznie wczytuj ostatnio używany szablon</b>: Zapamiętuje nazwę ostatnio otwartego szablonu, więc będzie on samoczynnie otwierany przy każdym pojawieniu się tego okna.</p>
+  <p><b>Łamanie linii zostanie zastąpione...</b> : Pozwala na modyfikację tagu użytego do łamania linii. Ponieważ to jest jedyny tag,
+  którego ten program nie pobiera z szablonu, możesz go tutaj zdefiniować. Jeśli chcesz użyć HTML, prawdopodobnie użyjesz domyślnego tagu &lt;br&gt;,
+     ale możesz też użyć &lt;br /&gt; dla XHTML lub XML. Możesz także po prostu zostawić to pole puste, jeśli nie chcesz zamieniać tagu łamania linii na jakiś inny.</p>
+  <p><b>Wymuś rozmiar obrazka dodając atrybuty</b>: Pozwala wyszczególnić wartości cech HTML takich jak: wysokość & szerokość.
+  Jeśli zostawisz jedno z tych pól (albo oba) puste, to wartość ta nie będzie dodana.</p>
+  <p><b>Format daty SQL</b>: Pozwala zdefiniować, który format daty ma zostać użyty podczas eksportowania do SQL.
+  Jeśli pozostawisz to pole puste, zostanie użyty domyślny skrócony format daty Windows.
+     Charakterystyczne cechy matrycy używane w Delphi: yy i yyyy = rok ( 2 albo 4 cyfry), m i mm =
+     miesiąc ( lub z 0 na początku), d i dd = dzień ( lub z 0 na początku), aby cechy pozostały
+     niezmienione muszą zostać załączone w cudzysłowie (np.: yyyy"/ mm /" dd).</p>
+  <p><b>Pamiętaj nazwę ostatnio eksportowanego pliku</b>: Używa nazwy ostatniego pliku jako domyślnej zamiast nazwy katalogu.</p>
+  <p><b>Otwórz eksportowany plik po zakończeniu eksportu</b>: Uruchamia utworzony plik po wyeksportowaniu.</p>
+  <p><b>Indywidualny styl nazw plików stron i obrazkówk</b> : Pozwala sprecyzować jak program ma stworzyć nazwy plików skojarzonych ze sobą podczas eksportu</p>
+  <p>
+    <u>Przykład:</u> Jeśli eksportujesz plik &quot;Moje filmy.amc&quot; do &quot;Moja lista.html&quot;: </p>
+  <blockquote>
+    <table>
+      <tr>
+        <td style="font-style: italic;">Nazwa eksportowanego pliku + Numer filmu</td>
+        <td style="font-style: italic;">Nazwa katalogu + Numer filmu</td>
+        <td style="font-style: italic;">Tytuł filmu</td>
+        <td style="font-style: italic;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td>moja lista.html</td>
+        <td>moja lista.html</td>
+        <td>moja lista.html</td>
+        <td>Cała lista</td>
+      </tr>
+      <tr>
+        <td>moja lista_1.html</td>
+        <td>moje filmy_1.html</td>
+        <td>matrix.html</td>
+        <td>Pierwszy film</td>
+      </tr>
+      <tr>
+        <td>moja lista_2.html</td>
+        <td>moje filmy_2.html</td>
+        <td>starwars - episode one.html</td>
+        <td>Drugi film</td>
+      </tr>
+      <tr>
+        <td>itd...</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+    </table>
+  </blockquote>
+  <p><b>Dodaj rozszerzenie pliku</b>: Pozwala na wymuszenie innego rozszerzenia dla plików pojedynczych.
+  Może to być w pełni wykorzystane np. wtedy, gdy twoja główna lista jest w pliku .html,
+  a ty chcesz pliki .php dla wszystkich indywidualnych stron filmów.
+  Jeśli to pole jest puste, to rozszerzenie pliku głównego jest używane dla plików indywidualnych.</p>
+  <p><b>Dodaj zera przed numerem filmu dla niskich numerów</b>: Jeśli włączone, to do małych numerów zostaną dodane zera.
+     Będą więc one właściwie uporządkowane we wszystkich menedżerach plików (tylko Explorer Windows XP wydaje się dostrzegać numery w nazwach zbioru podczas porządkowania).</p>
+  <p><b>Kopiuj obrazki do tego samego folderu, co eksportowany plik</b>: Rozpakowuje lub kopiuje okładki z katalogu do tego samego folderu, w którym znajduje się eksportowany plik.</p>
+  <p>Kopiuj obrazki do podfolderu obrazków: Wypakowuje lub kopiuje obrazki z katalogu do podfolderu obrazków (nazwa eksportowanego pliku + '_pics')
+  w tym samym folderze co eksportowany plik, a nie kopiuje obrazków bezpośrednio do folderu, w którym znajduje się eksportowany plik.</p>
+  <p><b>Kopiuj tylko w przypadku, gdy plik docelowy nie istnieje</b>: Jeśli ta opcja jest włączona, obrazek filmu nie zostanie skopiowany,
+  jeśli taka nazwa pliku już istnieje (porównywana jest tylko nazwa pliku, więc obrazek nie zostanie zapisany nawet wtedy, gdy jest inny).
+  <p>Dołącz obrazki dodatków: Dołącza wypakowane lub skopiowanie obrazki dodatków.</p>
+</blockquote>
+<p class="subtitle" id="folders">Foldery</p>
+<blockquote>
+  <p>Możesz tutaj zdefiniować zachowanie się okienek dialogowych wyboru pliku: </p>
+  <ul>
+    <li>Wczytywanie lub zapisywanie katalogów</li>
+    <li>Wybór obrazka</li>
+    <li>Eksportowanie</li>
+    <li>Wczytywanie lub zapisywanie szablonu HTML</li>
+    <li>Importowanie</li>
+    <li>Pobieranie informacji z plików</li>
+    <li>Zapisywanie grafiki</li>
+    <li>Wczytywanie lub zapisywanie skryptów</li>
+  </ul>
+  <p>Opcja "<i>Te same opcje dla wszystkich okien</i>" pozwala zdefiniować ten sam domyślny folder dla wszystkich okien.</p>
+</blockquote>
+</body>
+</html>

@@ -1,0 +1,17 @@
+                             ElTree Lite End-User Licenses.
+
+ElTree Lite is freeware under the terms of this license.
+
+The  software  included  is  distributed AS IS, with no warranties given, either
+explicit or implied.
+
+ElTree  Lite   may   be   used  in  freeware  and commercial projects and may be
+distributed  ONLY   as   a  part of the compiled software (executable modules or
+DLLs).  You  are not  allowed  to  produce  any  ActiveX  controls  from  ElTree
+Lite  or  create  ElTree  Lite components  descendants  for  redistribution.  If
+you   create  ElTree  Lite  components  descendants   that   you  are  going  to
+distribute,  you  must  purchase  developer's  license for ElTree or ElPack. See
+purchase.txt for details.
+
+
+

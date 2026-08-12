@@ -1,0 +1,62 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>FAQ</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+Back to <a href="index.html">Index</a>.<br /><br />
+<b>Q:</b> How do I install Innerfuse Pascal Script in the Delphi IDE?<br>
+<b>A:</b> You can't. It's not a component, but a library. See the next FAQ item for help on how to get started.<Br><br>
+<b>Q:</b> How to get started?<br>
+<b>A:</b> Download the library, unzip it and make sure ifspas.pas, ifs_utl.pas, ifs_var.pas, ifs_obj.pas are in your library path, and ifs_def.inc in your include path. <br>
+Add ifspas, ifs_var and ifs_utl to your uses.<br>
+Add this code:<br>
+var<br>
+ScriptEngine: TIfPasScript;<br>
+begin<br>
+&nbsp;&nbsp;  ScriptEngine := TIfPasScript.Create(nil);<br>
+&nbsp;&nbsp;  ScriptEngine.SetText(ScriptData);<i> // replace scriptdata with where the script is (for example: memo1.text)</i><br>
+&nbsp;&nbsp;  ScriptEngine.RunScript;<br>
+&nbsp;&nbsp;  <B>if</b> Scriptengine.ErrorCode &lt;&gt; ENoError <b>then</b><br>
+&nbsp;&nbsp;&nbsp;&nbsp; ShowMessage('Error: '+ErrorToString(ScriptEngine.Error, ScriptEngine.ErrorString));<br>
+&nbsp;&nbsp;  ScriptEngine.Free;<br>
+end;<br>
+</br>
+<br>
+<b>Q:</b> Why doesn't the uses work how it should work.<br>
+<b>A:</b> When calling OnUses the ScriptEngine.OnUses is called. SYSTEM uses is always
+called, even with no OnUses. You can add variables, types, classes or functions
+there or your could attach a script to it.<br>
+<br>
+<b>Q:</b> How can I add a variable to the variable list:<br>
+<b>A:</b> The prefered way to do it is in the OnUses function:<br>
+function MyOnUses(id: Pointer; Sender: TIfPasScript; Name: string): TIfPasScriptError<br>
+begin<br>
+&nbsp;&nbsp;    if Name='SYSTEM' then begin<br>
+&nbsp;&nbsp;&nbsp;&nbsp;	  Sender.AddVariable('Edit1Text', 'String', False)^.CV_Str := Edit1.Text;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      RegisterStdLib(Sender); // This function adds the standard libraries.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      MyOnUses := ENoError;<br>
+&nbsp;&nbsp;    end else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      MyOnUses := EUnknownIdentifier;<br>
+end;<br>
+After the TIfPasScript.Create, you put: script.OnUses := MyOnUses;<br>
+<br>
+<b>Q:</b> How can I read the value of a variable:<br>
+<b>A: </b>First call GetVariable('VarName'), if the result of that function is nil, the variable does not exist. Else if it does   exist, the function returns returns an PIFVariant.<br>
+<br>
+<b>Q: </b>Can you help me with ....? Are you going to add .....?<br>
+<b>A: </b>I prefer you post questions, bug reports or suggestions on our newsserver:<br>
+news://www.carlo-kok.com<br>
+if the news server does not work, please report it to me.<br>
+<br>
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

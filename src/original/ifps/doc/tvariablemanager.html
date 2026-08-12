@@ -1,0 +1,38 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TVariableManager</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_var.html">ifs_var.pas</a><br /><br />
+<b>PVariableManager</b><br /><br />
+PVariableManager used to store variables in the script engine.<br /><br />
+<b>type</b><br />
+PVariableManager = ^TVariableManager;<br />
+TVariableManager = <b>packed record</b><br />
+&nbsp;&nbsp;Names: <a href="tifstringlist.html">TifStringList</a>;<br />
+&nbsp;&nbsp;Ptr: <a href="tiflist.html">TifList</a>;<br />
+<b>end</b>;<br /><br />
+<b>Helper functions:</b><br />
+<b>function</b> VM_Create(InheritFrom: PVariableManager): PVariableManager;<br />
+<b>procedure</b> VM_Destroy(p: PVariableManager);<br />
+<b>function</b> VM_Add(P: PVariableManager; D: <a href="tifvariant.html">PIfVariant</a>; <b>const</b> Name: <b>string</b>): <a href="tifvariant.html">PIfVariant</a>;<br />
+<b>procedure</b> VM_Delete(p: PVariableManager; Idx: LongInt);<br />
+<b>function</b> VM_Get(p: PVariableManager; Idx: LongInt): <a href="tifvariant.html">PIfVariant</a>;<br />
+<b>function</b> VM_GetName(p: PVariableManager; Idx: LongInt): <b>String</b>;<br />
+<b>procedure</b> VM_SetName(p: PVariableManager; Idx: LongInt; S: <b>string</b>);<br />
+<b>procedure</b> VM_Set(p: PVariableManager; Idx: LongInt; N: <a href="tifvariant.html">PIfVariant</a>);<br />
+<b>function</b> VM_Count(p: PVariableManager): LongInt;<br />
+<b>function</b> VM_Find(p: PVariableManager; <b>const</b> Name: <b>string</b>): LongInt;<br />
+<b>procedure</b> VM_Clear(p: PVariableManager);<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

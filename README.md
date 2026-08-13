@@ -37,6 +37,21 @@ For porting work, the checked-in Delphi snapshot is treated as the user-designat
 authoritative source baseline. Missing archive provenance remains documented and
 this assumption is not presented as independent compatibility verification.
 
+## Port progress
+
+**22% — 10 of 46 implementation-plan checklist items complete**
+
+`██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **10 / 46**
+
+This bar is calculated from the checked boxes in the
+[implementation plan](docs/IMPLEMENTATION_PLAN.md); it is an auditable project-task
+indicator, not a claim that 22% of every upstream feature is compatible. A task is
+only checked off when its tests, documentation, and required compatibility evidence
+are complete. In particular, native AMC support remains **investigating** until
+genuine upstream-generated fixtures and cross-application verification exist. See
+the [compatibility matrix](docs/compatibility.md) for capability-level status and
+the [port audit](docs/PORT_AUDIT.md) for the evidence gaps behind the number.
+
 ## Install and use
 
 ```console
@@ -67,12 +82,23 @@ amc -c movies.json duplicates --json
 amc -c movies.json renumber
 amc -c movies.json backup movies.backup.json
 amc -c movies.json restore movies.backup.json
+amc -c movies.json loan-out 12 "Sam Bell"
+amc -c movies.json loan-in 12
 amc -c movies.json gui
+amc-web movies.json
 amc inspect movies.json --json
 amc validate movies.json
 amc inspect-script scripts/provider.ifs
 amc list-scripts scripts/
 ```
+
+The desktop interface requires Tk. Tk ships with the official Windows and macOS
+Python installers, but many Linux distributions package it separately; on
+Debian/Ubuntu install it with `sudo apt install python3-tk` before running
+`amc-gui` or `amc gui`. `python3-tk` is an operating-system package rather than a
+Python distribution, so it cannot correctly be declared as a wheel dependency.
+The built wheel exposes both `amc` and `amc-gui`, and the packaging check imports
+`tkinter` and `amc.gui` from an isolated wheel installation.
 
 The JSON representation is UTF-8, human-readable, versioned, and written
 atomically. Catalog metadata is validated as finite JSON data and isolated from
@@ -121,7 +147,17 @@ the destination only on success.
 applies the same type/range validation as JSON loading before saving.
 
 The optional desktop interface uses Python's built-in Tk toolkit. It provides a
-searchable, sortable movie list and dialogs for adding and editing catalog entries.
+searchable, sortable movie list, file import/export, open/save-as, validated
+backup/restore, loan controls, and catalog review tools. Setup, supported workflows,
+and explicit limitations are documented in the [desktop guide](docs/gui.md).
+
+AMC Python also includes a read-only web interface at `http://0.0.0.0:6910/` via
+`amc-web movies.json`. This is a new convenience interface beyond the upstream port,
+but its searchable table, All/Loaned/Available/Checked/Unchecked views, details, and
+poster presentation intentionally mirror the desktop/original GUI vocabulary. The
+default bind exposes the catalog to every network interface; use
+`amc-web movies.json --host 127.0.0.1` for local-only access. See the
+[web interface guide](docs/web.md).
 
 ## Development
 

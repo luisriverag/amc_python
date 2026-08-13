@@ -344,7 +344,10 @@ def _number(value: str | None, kind: type[int] | type[float]):
 
 def load_xml(path: str | Path) -> Catalog:
     """Read the XML export produced by Ant Movie Catalog 3.x/4.x."""
-    root = ET.parse(path).getroot()
+    try:
+        root = ET.parse(path).getroot()
+    except ET.ParseError as error:
+        raise ValueError(f"invalid catalog XML: {error}") from error
     metadata = _read_xml_metadata(root)
     catalog = Catalog(metadata={"amc_xml": metadata} if metadata else {})
     for node in root.findall(".//Movie"):

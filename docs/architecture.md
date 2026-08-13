@@ -24,11 +24,13 @@
 | `gui.py` | Tk widgets and interaction | Format-specific rules |
 
 `CatalogService` is the first shared application boundary. It opens and reloads a
-catalog and performs add, replace, and remove operations against an isolated copy.
+catalog and performs add, batch add, replace, remove, merge, sort, and renumber
+operations against an isolated copy.
 The copy is published to the UI only after atomic persistence succeeds, so a failed
-write cannot leave the GUI displaying state that was never saved. Additional
-import/export and backup operations should move behind this boundary as CLI and GUI
-workflows converge.
+write cannot leave an adapter displaying state that was never saved. The CLI uses
+this boundary for its mutating CRUD, media-import, catalog-merge, and renumber
+workflows, interchange-to-JSON conversion, exports, and validated backup/restore.
+Storage dispatch remains a repository concern used behind this boundary.
 
 ## Target boundaries
 

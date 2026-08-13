@@ -74,12 +74,33 @@ def main() -> int:
             raise RuntimeError(f"expected one AMC Python wheel, found {len(wheels)}")
         venv.EnvBuilder(with_pip=True).create(environment)
         python = environment_python(environment)
-        run([str(python), "-m", "pip", "install", "--no-deps", str(wheels[0])])
+        run([str(python), "-m", "pip", "install", str(wheels[0])])
         clean_environment = os.environ.copy()
         clean_environment.pop("PYTHONPATH", None)
         run([str(python), "-m", "amc.cli", "--help"], environment=clean_environment)
         run(
             [str(environment_script(environment, "amc")), "--help"],
+            environment=clean_environment,
+        )
+        run(
+            [str(python), "-c", "import tkinter; import amc.gui"],
+            environment=clean_environment,
+        )
+        run(
+            [
+                str(python),
+                "-c",
+                "from importlib.metadata import entry_points; "
+                "assert any(e.name == 'amc-gui' for e in entry_points(group='console_scripts'))",
+            ],
+            environment=clean_environment,
+        )
+        run(
+            [str(environment_script(environment, "amc-gui")), "--help"],
+            environment=clean_environment,
+        )
+        run(
+            [str(environment_script(environment, "amc-web")), "--help"],
             environment=clean_environment,
         )
         run_with_output(

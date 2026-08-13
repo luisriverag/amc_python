@@ -63,11 +63,19 @@ def test_package_check_builds_installs_and_smoke_tests(monkeypatch, tmp_path):
     assert MODULE.main() == 0
     assert calls[0][0][1:4] == ["-m", "pip", "wheel"]
     assert calls[1][0][1:4] == ["-m", "pip", "install"]
+    assert "--no-deps" not in calls[1][0]
     assert calls[2][0][1:] == ["-m", "amc.cli", "--help"]
     assert "PYTHONPATH" not in calls[2][1]
     assert calls[3][0][-1] == "--help"
     assert calls[3][0][0].endswith("/venv/bin/amc")
     assert "PYTHONPATH" not in calls[3][1]
+    assert calls[4][0][-1] == "import tkinter; import amc.gui"
+    assert "amc-gui" in calls[5][0][-1]
+    assert calls[6][0][0].endswith("/venv/bin/amc-gui")
+    assert calls[6][0][-1] == "--help"
+    assert calls[7][0][0].endswith("/venv/bin/amc-web")
+    assert calls[7][0][-1] == "--help"
+    assert all("PYTHONPATH" not in environment for _, environment in calls[2:])
     assert output_calls[0][0][-2:] == ["list", "--json"]
     assert output_calls[0][1] == "[]\n"
     assert "PYTHONPATH" not in output_calls[0][2]

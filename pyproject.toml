@@ -8,12 +8,14 @@ version = "0.1.0"
 description = "A portable Python movie catalog inspired by Ant Movie Catalog"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = ["Pillow>=10"]
 license = "GPL-2.0-or-later"
 license-files = ["LICENSE"]
 keywords = ["movie", "catalog", "ant-movie-catalog"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Environment :: Console",
+  "Environment :: X11 Applications",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -23,6 +25,8 @@ classifiers = [
 
 [project.scripts]
 amc = "amc.cli:main"
+amc-gui = "amc.gui:main"
+amc-web = "amc.web:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

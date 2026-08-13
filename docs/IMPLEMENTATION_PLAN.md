@@ -109,9 +109,16 @@ all omitted or opaque data is reported.
 - [ ] Add bulk operations (complete validated field editing, atomic backup/restore,
   normalized title/year duplicate detection, JSON output, installed smoke checks,
   and stable exit codes are complete).
-- [ ] Add complete GUI editing, open/save-as, import/export, pictures, dirty-state
-  prompts, undo, progress, cancellation, and accessibility.
-- [ ] Add loan management and catalog preferences if confirmed upstream features.
+- [ ] Add pictures, undo, progress,
+  cancellation, and accessibility (service-backed open/save-as, merge import,
+  validated backup/restore, basic XML/CSV/HTML/AMC export, single-movie loan
+  controls, loan/checked view filters, validated editing of every modeled scalar
+  field, read-only detail review, statistics, duplicate review, and confirmed
+  renumbering are complete;
+  mutations currently save immediately, so no dirty state is retained for prompting).
+- [ ] Add loan management and catalog preferences if confirmed upstream features
+  (atomic single-movie check-out/check-in is implemented; borrower lists, grouped
+  media behavior, and history remain pending).
 
 ## Milestone 6: scripts, metadata, and media
 
@@ -209,8 +216,10 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 2. Add formatter, linter, type checker, coverage threshold, wheel/sdist build, clean
    install, and subprocess CLI smoke tests to Linux and Windows CI.
 3. [Partial] A shared application service now owns GUI open/reload and
-   failure-atomic add/replace/remove persistence. Move CLI mutations, imports,
-   exports, backup, and storage dispatch/codecs behind the same boundary.
+   failure-atomic add/replace/remove, batch media import, catalog merge, sort, and
+   renumber persistence, interchange conversion, export, and validated
+   backup/restore; the CLI uses it for those workflows. Separate storage
+   dispatch/codecs behind repository interfaces.
 4. Add performance, concurrency, permission, durability, and large-catalog tests.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.

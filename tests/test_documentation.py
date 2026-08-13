@@ -32,6 +32,20 @@ def test_port_audit_current_counts_match_repository():
     assert f"{len(tools)} repository tools" in audit
 
 
+def test_readme_port_progress_matches_implementation_plan():
+    plan = (ROOT / "docs" / "IMPLEMENTATION_PLAN.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    complete = len(re.findall(r"^- \[x\]", plan, re.MULTILINE))
+    total = complete + len(re.findall(r"^- \[ \]", plan, re.MULTILINE))
+    percent = round(complete / total * 100)
+
+    assert f"**{percent}% — {complete} of {total} implementation-plan" in readme
+    progress = re.search(r"`([█░]+)` \*\*(\d+) / (\d+)\*\*", readme)
+    assert progress is not None
+    assert (progress.group(1).count("█"), len(progress.group(1))) == (complete, total)
+    assert progress.groups()[1:] == (str(complete), str(total))
+
+
 def test_readme_commands_are_registered_by_cli_parser():
     from amc.cli import parser
 

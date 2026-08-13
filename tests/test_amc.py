@@ -51,6 +51,17 @@ def test_cli_add_and_list(tmp_path: Path, capsys):
     assert "Moon (2009)" in capsys.readouterr().out
 
 
+def test_cli_loan_out_and_in(tmp_path: Path, capsys):
+    target = tmp_path / "movies.json"
+    main(["-c", str(target), "add", "Moon"])
+
+    assert main(["-c", str(target), "loan-out", "1", "Sam Bell"]) == 0
+    assert load(target).get(1).borrower == "Sam Bell"
+    assert main(["-c", str(target), "loan-in", "1"]) == 0
+    assert load(target).get(1).borrower == ""
+    assert "Checked out #1 to Sam Bell" in capsys.readouterr().out
+
+
 def test_xml_roundtrip_preserves_supported_and_custom_fields(tmp_path: Path):
     target = tmp_path / "export.xml"
     original = Movie(number=7, title="Moon", year=2009, checked=True, extras={"CustomField": "kept"})
@@ -75,6 +86,22 @@ def test_sort_is_case_insensitive_and_empty_search_returns_all():
     catalog.sort()
     assert [movie.title for movie in catalog] == ["Alpha", "beta", "zulu"]
     assert catalog.search("  ") == list(catalog)
+
+
+def test_descending_sort_keeps_missing_values_last():
+    catalog = Catalog([
+        Movie(title="Unknown"),
+        Movie(title="Older", year=1979),
+        Movie(title="Newer", year=2009),
+    ])
+
+    catalog.sort("year", reverse=True)
+
+    assert [(movie.title, movie.year) for movie in catalog] == [
+        ("Newer", 2009),
+        ("Older", 1979),
+        ("Unknown", None),
+    ]
 
 
 def test_csv_roundtrip_with_amc_headers_and_custom_fields(tmp_path: Path):

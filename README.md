@@ -166,3 +166,19 @@ detailed native-format analysis, and read-only native-format inspection—not
 additional unrelated CRUD features. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for checks, fixture requirements, and the
 definition of an acceptable compatibility change.
+
+Install the project together with its development checks, then run both canonical
+commands from the repository root:
+
+```console
+python -m pip install -e .[dev]
+python tools/check.py
+python tools/check_package.py
+```
+
+`check.py` runs the focused Ruff rule set, the complete test suite with branch
+coverage (minimum 80%), bytecode compilation, fixture-manifest validation, a
+source-tree CLI smoke test, and whitespace checks. `check_package.py` separately
+builds a wheel, installs it into an isolated virtual environment, and exercises the
+installed console entry points. Formatting and static type checking are not yet
+canonical gates; see the engineering baseline in the implementation plan.

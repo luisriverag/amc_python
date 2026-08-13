@@ -49,9 +49,11 @@ unit and compatibility evidence are recorded.
 - [ ] Split tests into `unit`, `integration`, `compatibility`, `cli`, and `gui`.
 - [x] Configure Linux and Windows CI for all supported Python versions; hosted run
   verification remains pending.
-- [ ] Add formatting, linting, static typing, and coverage (canonical commands now
-  cover tests, compilation, diff validation, wheel building, isolated installation,
-  and source-tree and installed-module CLI smoke checks).
+- [ ] Add formatting, linting, static typing, and coverage (focused Ruff linting
+  and an 80% branch-coverage floor now run in the canonical command and CI;
+  formatter and static typing remain pending. Canonical commands also cover tests,
+  compilation, diff validation, wheel building, isolated installation, and
+  source-tree and installed-module CLI smoke checks).
 - [x] Establish and automatically validate the fixture provenance manifest contract;
   genuine upstream fixtures still need to be produced and registered.
 - [ ] Add a changelog and architecture-decision log.

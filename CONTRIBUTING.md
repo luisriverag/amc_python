@@ -2,20 +2,28 @@
 
 ## Local checks
 
-Run the complete currently available check set before committing:
+Install the development extra once, then run the complete currently available check
+set before committing:
 
 ```console
+python -m pip install -e .[dev]
 python tools/check.py
 python tools/check_package.py
 ```
 
-`check.py` also verifies repository Markdown links, that audit module/tool counts
-match the tree, and that README command examples remain registered by the CLI.
+`check.py` runs focused Ruff lint rules, executes all tests with branch measurement,
+and enforces an 80% repository-wide coverage floor. It also verifies repository
+Markdown links and audit counts, checks README command registration, compiles the
+Python tree, validates fixture manifests, smoke-tests the source CLI, and rejects
+whitespace errors in staged and unstaged changes. The Ruff configuration currently
+checks import/name errors and selected `E4`, `E7`, and `E9` rules; it is not a claim
+that a formatter or comprehensive style policy has been adopted.
 
-`check.py` runs source-tree checks; `check_package.py` builds a wheel, installs it
-into a temporary virtual environment, and smoke-tests the installed module without
-letting the repository `PYTHONPATH` mask packaging errors. These commands must
-remain the canonical local equivalent of CI.
+`check_package.py` builds a wheel, installs it into a temporary virtual environment,
+and smoke-tests the installed module and console entry points without letting the
+repository `PYTHONPATH` mask packaging errors. These two commands are the canonical
+local equivalent of the configured CI jobs. A configured workflow is not evidence
+that a hosted run has passed; record hosted-run evidence separately when available.
 
 ## Test-driven changes
 

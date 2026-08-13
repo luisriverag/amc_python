@@ -8,7 +8,11 @@ import os
 import struct
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO
+from typing import TYPE_CHECKING, BinaryIO
+
+if TYPE_CHECKING:
+    from .catalog import Catalog
+    from .model import Movie
 
 from .errors import CorruptCatalogError, UnsupportedFormatError, UnsupportedVersionError
 
@@ -395,8 +399,6 @@ def read_native_catalog(
     limits: NativeReadLimits | None = None,
 ) -> NativeCatalog:
     """Read AMC 3.1–4.2 movie rows and source-derived AMC 4.2 extras."""
-    from .model import Movie
-
     path = Path(path)
     limits = limits or NativeReadLimits()
     file_size = path.stat().st_size
@@ -473,7 +475,8 @@ def _read_legacy_catalog(
             record = stream.read(record_size)
             if len(record) != record_size:
                 raise CorruptCatalogError("truncated legacy native movie record", offset=offset)
-            get = lambda name: _legacy_value(record, layout[name], encoding)
+            def get(name: str) -> object:
+                return _legacy_value(record, layout[name], encoding)
             raw_rating = int(get("rating")) if "rating" in layout else 0
             rating_map = {0: None, 1: 2.0, 2: 4.0, 3: 6.0, 4: 8.0, 5: 9.0}
             rating = rating_map.get(raw_rating)

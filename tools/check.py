@@ -19,7 +19,9 @@ def run(command: list[str], *, environment: dict[str, str] | None = None) -> Non
 
 def main() -> int:
     """Run tests, bytecode compilation, CLI smoke checking, and diff validation."""
-    run([sys.executable, "-m", "pytest", "-q"])
+    run([sys.executable, "-m", "ruff", "check", "src", "tests", "tools"])
+    run([sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q"])
+    run([sys.executable, "-m", "coverage", "report"])
     run([sys.executable, "-m", "compileall", "-q", "src", "tests", "tools"])
     run([sys.executable, "tools/validate_fixtures.py"])
     environment = os.environ.copy()

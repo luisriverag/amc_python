@@ -178,8 +178,14 @@ implementation milestone is:
 ## Audit reproduction
 
 ```console
+python -m pip install -e .[dev]
 git status --short --branch
 git log --oneline --decorate -8
 python tools/check.py
 python tools/check_package.py
 ```
+
+The source-tree check currently applies focused Ruff diagnostics and an 80% aggregate
+branch-coverage floor. It does not run a formatter or static type checker. The
+packaging check is intentionally separate because it builds and installs an isolated
+wheel rather than importing from `src/`.

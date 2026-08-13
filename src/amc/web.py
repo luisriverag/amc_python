@@ -72,9 +72,11 @@ def render_catalog(
     if sort not in sort_fields:
         raise ValueError(f"unknown web sort field: {sort}")
     if sort == "title":
-        key = lambda movie: movie.display_title().casefold()
+        def key(movie: Movie) -> object:
+            return movie.display_title().casefold()
     else:
-        key = lambda movie: getattr(movie, sort)
+        def key(movie: Movie) -> object:
+            return getattr(movie, sort)
     present = [movie for movie in movies if key(movie) is not None]
     missing = [movie for movie in movies if key(movie) is None]
     movies = sorted(present, key=key, reverse=descending) + missing
@@ -313,8 +315,10 @@ def run(path: Path, *, host: str = HOST, port: int = PORT) -> None:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="amc-web", description="AMC Python read-only web catalog")
     parser.add_argument("catalog", nargs="?", type=Path, default=Path("catalog.json"))
-    parser.add_argument("--host", default=HOST); parser.add_argument("--port", type=int, default=PORT)
-    args = parser.parse_args(argv); run(args.catalog, host=args.host, port=args.port)
+    parser.add_argument("--host", default=HOST)
+    parser.add_argument("--port", type=int, default=PORT)
+    args = parser.parse_args(argv)
+    run(args.catalog, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

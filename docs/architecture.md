@@ -17,7 +17,7 @@
 | `catalog.py` | In-memory collection operations | Serialization details |
 | `application.py` | Persistent, failure-atomic user-interface mutations | Presentation or format-specific rules |
 | `storage.py` | JSON, CSV, XML, static HTML, dispatch, and atomic persistence | User interaction |
-| `native.py` | Read-only native AMC parsing and resource limits | Writing native catalogs or UI behavior |
+| `native.py` | Native AMC parsing, resource limits, and explicit experimental 4.2 serialization | UI behavior or compatibility claims without upstream fixtures |
 | `media.py` | Bounded media discovery and dependency-free file/WAV facts | Network access or UI behavior |
 | `scripts.py` | Bounded legacy script metadata inspection | Script execution or network access |
 | `cli.py` | Argument parsing and terminal presentation | Domain policy |

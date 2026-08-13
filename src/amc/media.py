@@ -77,13 +77,11 @@ def discover_media(
         if extensions is not None
         else None
     )
-    include = lambda item: (
-        item.is_file()
-        and (
+    def include(item: Path) -> bool:
+        return item.is_file() and (
             normalized_extensions is None
             or item.suffix.casefold() in normalized_extensions
         )
-    )
     result: list[Path] = []
     for value in paths:
         path = Path(value)

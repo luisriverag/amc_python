@@ -35,8 +35,12 @@ partial. “Verified (internal only)” applies solely to Python-owned contracts
 
 Python 3.10 and newer is declared. A Linux and Windows workflow is configured for
 Python 3.10–3.13; this repository does not contain evidence of a completed hosted CI
-run. Tk is optional at runtime in practice but is not yet modeled as a package extra
-or checked before launching the GUI.
+run. The workflow installs the `dev` extra and runs focused Ruff linting, the full
+test suite with an 80% aggregate branch-coverage floor, compilation and source CLI
+checks, plus isolated wheel/entry-point smoke tests. Formatting and static type
+checking are not yet configured gates. Tk comes from the Python/operating-system
+installation rather than a wheel extra; the isolated packaging check explicitly
+imports both `tkinter` and `amc.gui` before exercising the GUI entry point.
 
 The detailed evidence and gap analysis is maintained in
 [`PORT_AUDIT.md`](PORT_AUDIT.md).

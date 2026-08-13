@@ -15,9 +15,20 @@
 |---|---|---|
 | `model.py` | Movie values and validation | Filesystem or UI behavior |
 | `catalog.py` | In-memory collection operations | Serialization details |
-| `storage.py` | JSON, CSV, and XML codecs | User interaction |
+| `application.py` | Persistent, failure-atomic user-interface mutations | Presentation or format-specific rules |
+| `storage.py` | JSON, CSV, XML, static HTML, dispatch, and atomic persistence | User interaction |
+| `native.py` | Read-only native AMC parsing and resource limits | Writing native catalogs or UI behavior |
+| `media.py` | Bounded media discovery and dependency-free file/WAV facts | Network access or UI behavior |
+| `scripts.py` | Bounded legacy script metadata inspection | Script execution or network access |
 | `cli.py` | Argument parsing and terminal presentation | Domain policy |
 | `gui.py` | Tk widgets and interaction | Format-specific rules |
+
+`CatalogService` is the first shared application boundary. It opens and reloads a
+catalog and performs add, replace, and remove operations against an isolated copy.
+The copy is published to the UI only after atomic persistence succeeds, so a failed
+write cannot leave the GUI displaying state that was never saved. Additional
+import/export and backup operations should move behind this boundary as CLI and GUI
+workflows converge.
 
 ## Target boundaries
 
@@ -80,3 +91,14 @@ whether redistribution is permitted. Synthetic fixtures must be clearly labeled.
 - Existing destination data must remain intact after failed serialization.
 - Plugins/scripts are untrusted and must not receive unrestricted execution by
   default.
+
+## Deliberate prototype boundaries
+
+- `scripts.py` reads leading metadata comments only. It never invokes IFPS or
+  executes Pascal source, and static values are deliberately omitted.
+- `media.py` provides portable filesystem facts and PCM WAV metadata. Full codec
+  inspection belongs behind a future optional provider with timeouts and bounds.
+- Static HTML export escapes every modeled value and accepts only bounded,
+  allow-listed templates. It does not claim AMC template-language compatibility.
+- `storage.py` remains too broad; codec separation should follow genuine fixture
+  contracts rather than moving unverified behavior between modules prematurely.

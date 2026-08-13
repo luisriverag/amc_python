@@ -1,5 +1,6 @@
 """Portable movie-catalog library."""
 
+from .application import CatalogService
 from .catalog import Catalog
 from .errors import CatalogError
 from .inspection import CatalogInfo, inspect_catalog, validate_catalog
@@ -16,6 +17,7 @@ from .native import (
 
 __all__ = [
     "Catalog",
+    "CatalogService",
     "CatalogError",
     "CatalogInfo",
     "Movie",

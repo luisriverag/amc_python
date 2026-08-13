@@ -64,19 +64,16 @@ def validate_catalog(path: str | Path) -> list[Diagnostic]:
     except OSError as error:
         return [Diagnostic("io_error", str(error))]
     if info.format == "amc-native":
-        if info.version in {"1.0", "1.1", "2.1", "3.0"}:
-            message = f"recognized legacy native AMC {info.version} header; records were not validated"
-        else:
-            try:
-                catalog = read_native_catalog(path)
-            except CatalogError as error:
-                return [Diagnostic(error.code, str(error), offset=error.offset)]
-            except OSError as error:
-                return [Diagnostic("io_error", str(error))]
-            message = (
-                f"parsed source-derived native AMC {info.version} structure with "
-                f"{len(catalog.movies)} movie(s); upstream-fixture verification is pending"
-            )
+        try:
+            catalog = read_native_catalog(path)
+        except CatalogError as error:
+            return [Diagnostic(error.code, str(error), offset=error.offset)]
+        except OSError as error:
+            return [Diagnostic("io_error", str(error))]
+        message = (
+            f"parsed source-derived native AMC {info.version} structure with "
+            f"{len(catalog.movies)} movie(s); upstream-fixture verification is pending"
+        )
         return [Diagnostic("native_structure_unverified", message, severity="warning")]
     return [
         Diagnostic(

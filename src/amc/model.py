@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import asdict, dataclass, field, fields
 from typing import Any
@@ -82,7 +83,17 @@ class Movie:
             raise TypeError("checked must be a boolean")
         if not isinstance(self.extras, dict):
             raise TypeError("movie extras must be an object")
-        self.extras = dict(self.extras)
+        if any(not isinstance(key, str) for key in self.extras):
+            raise TypeError("movie extras keys must be strings")
+        try:
+            encoded_extras = json.dumps(
+                self.extras, ensure_ascii=False, allow_nan=False
+            )
+        except (TypeError, ValueError) as error:
+            raise TypeError(
+                f"movie extras must be JSON-compatible: {error}"
+            ) from error
+        self.extras = json.loads(encoded_extras)
         if self.rating is not None and not 0 <= self.rating <= 10:
             raise ValueError("rating must be between 0 and 10")
 

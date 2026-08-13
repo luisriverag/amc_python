@@ -6,9 +6,8 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
-from .catalog import Catalog
+from .application import CatalogService
 from .model import Movie
-from .storage import load, save
 
 
 class CatalogWindow(ttk.Frame):
@@ -17,7 +16,7 @@ class CatalogWindow(ttk.Frame):
     def __init__(self, master: tk.Tk, path: Path) -> None:
         super().__init__(master, padding=10)
         self.path = path
-        self.catalog = load(path) if path.exists() else Catalog()
+        self.service = CatalogService(path)
         self.search_text = tk.StringVar()
         self.pack(fill="both", expand=True)
 
@@ -42,13 +41,13 @@ class CatalogWindow(ttk.Frame):
     def refresh(self) -> None:
         self.table.delete(*self.table.get_children())
         query = self.search_text.get().strip()
-        movies = self.catalog.search(query) if query else list(self.catalog)
+        movies = self.service.catalog.search(query) if query else list(self.service.catalog)
         for movie in movies:
             self.table.insert("", "end", iid=str(movie.number), values=(movie.number, movie.display_title(), movie.year or "", movie.director))
 
     def selected(self) -> Movie | None:
         selection = self.table.selection()
-        return self.catalog.get(int(selection[0])) if selection else None
+        return self.service.catalog.get(int(selection[0])) if selection else None
 
     def add(self) -> None:
         self._dialog(Movie(), is_new=True)
@@ -61,15 +60,11 @@ class CatalogWindow(ttk.Frame):
     def remove(self) -> None:
         movie = self.selected()
         if movie and messagebox.askyesno("Remove movie", f"Remove {movie.display_title()}?"):
-            self.catalog.remove(movie.number)
-            self.persist()
+            self.service.remove(movie.number)
+            self.refresh()
 
     def sort(self, field: str) -> None:
-        self.catalog.sort(field)
-        self.refresh()
-
-    def persist(self) -> None:
-        save(self.catalog, self.path)
+        self.service.catalog.sort(field)
         self.refresh()
 
     def _dialog(self, movie: Movie, *, is_new: bool) -> None:
@@ -89,11 +84,15 @@ class CatalogWindow(ttk.Frame):
             if year and not year.isdigit():
                 messagebox.showerror("Invalid year", "Year must be a number.", parent=dialog)
                 return
+            data = movie.to_dict()
             for name, value in values.items():
-                setattr(movie, name, int(year) if name == "year" and year else (None if name == "year" else value.get().strip()))
+                data[name] = int(year) if name == "year" and year else (None if name == "year" else value.get().strip())
+            replacement = Movie.from_dict(data)
             if is_new:
-                self.catalog.add(movie)
-            self.persist()
+                self.service.add(replacement)
+            else:
+                self.service.replace(movie.number, replacement)
+            self.refresh()
             dialog.destroy()
 
         ttk.Button(dialog, text="Save", command=accept).grid(row=len(values), column=1, sticky="e", padx=8, pady=10)

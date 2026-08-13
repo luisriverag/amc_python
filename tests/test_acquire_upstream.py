@@ -41,6 +41,34 @@ def test_download_streams_archive_and_records_provenance(tmp_path: Path):
     assert not (tmp_path / "source.rar.part").exists()
 
 
+def test_download_rejects_wrong_digest_without_replacing_archive(tmp_path: Path):
+    source = tmp_path / "source.rar"
+    source.write_bytes(b"new archive")
+    destination = tmp_path / "archive.rar"
+    destination.write_bytes(b"trusted archive")
+
+    try:
+        MODULE.download(source.as_uri(), destination, "0" * 64)
+    except ValueError as error:
+        assert "archive SHA-256 mismatch" in str(error)
+    else:
+        raise AssertionError("download accepted the wrong digest")
+
+    assert destination.read_bytes() == b"trusted archive"
+    assert not (tmp_path / "archive.rar.part").exists()
+
+
+def test_download_accepts_expected_digest_case_insensitively(tmp_path: Path):
+    payload = b"verified archive"
+    source = tmp_path / "source.rar"
+    source.write_bytes(payload)
+    expected = hashlib.sha256(payload).hexdigest().upper()
+
+    result = MODULE.download(source.as_uri(), tmp_path / "archive.rar", expected)
+
+    assert result["sha256"] == expected.lower()
+
+
 def test_inventory_is_sorted_and_content_addressed(tmp_path: Path):
     (tmp_path / "z.pas").write_text("unit Z;", encoding="utf-8")
     (tmp_path / "dir").mkdir()
@@ -48,6 +76,70 @@ def test_inventory_is_sorted_and_content_addressed(tmp_path: Path):
     entries = MODULE.inventory(tmp_path)
     assert [entry["path"] for entry in entries] == ["dir/a.dfm", "z.pas"]
     assert all(len(entry["sha256"]) == 64 for entry in entries)
+
+
+def test_compare_inventories_reports_every_difference(tmp_path: Path):
+    acquired = tmp_path / "acquired"
+    snapshot = tmp_path / "snapshot"
+    acquired.mkdir()
+    snapshot.mkdir()
+    (acquired / "same.pas").write_text("same", encoding="utf-8")
+    (snapshot / "same.pas").write_text("same", encoding="utf-8")
+    (acquired / "changed.pas").write_text("upstream", encoding="utf-8")
+    (snapshot / "changed.pas").write_text("snapshot", encoding="utf-8")
+    (acquired / "missing.pas").write_text("missing", encoding="utf-8")
+    (snapshot / "extra.pas").write_text("extra", encoding="utf-8")
+
+    result = MODULE.compare_inventories(
+        MODULE.inventory(acquired), MODULE.inventory(snapshot)
+    )
+
+    assert result == {
+        "equivalent": False,
+        "matched": ["same.pas"],
+        "changed": ["changed.pas"],
+        "missing_from_snapshot": ["missing.pas"],
+        "unexpected_in_snapshot": ["extra.pas"],
+    }
+
+
+def test_compare_inventories_identifies_equivalent_trees(tmp_path: Path):
+    (tmp_path / "unit.pas").write_text("unit Example;", encoding="utf-8")
+    entries = MODULE.inventory(tmp_path)
+    result = MODULE.compare_inventories(entries, entries)
+    assert result["equivalent"] is True
+    assert result["matched"] == ["unit.pas"]
+
+
+def test_compare_to_requires_extraction_directory(tmp_path: Path):
+    source = tmp_path / "source.rar"
+    source.write_bytes(b"archive")
+    try:
+        MODULE.main(["--url", source.as_uri(), "--compare-to", str(tmp_path)])
+    except ValueError as error:
+        assert str(error) == "--compare-to requires --extract-to"
+    else:
+        raise AssertionError("main accepted a comparison without extraction")
+
+
+def test_main_rejects_invalid_expected_digest_before_download(tmp_path: Path):
+    destination = tmp_path / "archive.rar"
+    try:
+        MODULE.main([
+            "--url",
+            (tmp_path / "missing.rar").as_uri(),
+            "--output",
+            str(destination),
+            "--expected-sha256",
+            "not-a-digest",
+        ])
+    except ValueError as error:
+        assert str(error) == (
+            "--expected-sha256 must be exactly 64 hexadecimal characters"
+        )
+    else:
+        raise AssertionError("main accepted an invalid digest")
+    assert not destination.exists()
 
 
 def test_main_writes_machine_readable_archive_metadata(tmp_path: Path):

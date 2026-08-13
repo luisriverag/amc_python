@@ -26,9 +26,15 @@ Every feature change must include:
 - [ ] Reacquire `amc_sources.rar` and record URL, retrieval date, byte size, and
   SHA-256 digest; a checked-in extracted snapshot exists without these records.
 - [x] Add a streaming acquisition, extraction, checksum, and inventory tool.
+- [x] Add deterministic acquired-tree versus checked-in-snapshot comparison
+  reporting; running it against the unavailable official archive remains pending.
+- [x] Support pre-installation verification against an independently supplied
+  archive SHA-256; no authoritative published digest has yet been located.
 - [ ] Confirm snapshot/archive equivalence and complete application/dependency
   license review.
-- [ ] Add the applicable license and attribution files.
+- [ ] Add the applicable license and attribution files (root GPLv2 text and an
+  initial notice inventory are present; ElTree redistribution and per-file
+  component review remain blockers).
 - [ ] Inventory every source unit, form, resource, script, and file
   format (952 files counted; initial subsystem map recorded).
 - [ ] Map each unit to a Python subsystem or an explicit omission
@@ -43,9 +49,11 @@ unit and compatibility evidence are recorded.
 - [ ] Split tests into `unit`, `integration`, `compatibility`, `cli`, and `gui`.
 - [x] Configure Linux and Windows CI for all supported Python versions; hosted run
   verification remains pending.
-- [ ] Add formatting, linting, static typing, coverage, wheel build, and installed
-  CLI smoke checks.
-- [ ] Establish fixture provenance and regeneration instructions.
+- [ ] Add formatting, linting, static typing, and coverage (canonical commands now
+  cover tests, compilation, diff validation, wheel building, isolated installation,
+  and source-tree and installed-module CLI smoke checks).
+- [x] Establish and automatically validate the fixture provenance manifest contract;
+  genuine upstream fixtures still need to be produced and registered.
 - [ ] Add a changelog and architecture-decision log.
 - [x] Specify internal JSON v1 and test failed-write destination preservation for
   JSON, CSV, and XML serialization failures.
@@ -57,8 +65,10 @@ unit and compatibility evidence are recorded.
 - [ ] Identify the native signature, header, versions, encodings, record framing,
   checksums, compression, and picture representation.
 - [ ] Add empty, one-record, all-fields, Unicode, picture, and corrupt fixtures.
-- [x] Implement source-derived native 1.0–4.2 header detection and 3.1–4.2
-  read-only record parsing; compatibility verification remains blocked on fixtures.
+- [x] Implement source-derived native 1.0–4.2 header detection and read-only record
+  parsing; compatibility verification remains blocked on genuine fixtures.
+- [x] Add explicit, atomic source-derived AMC 4.2 export with synthetic round-trip
+  coverage; upstream acceptance and byte-level compatibility remain unverified.
 - [x] Add format-neutral `amc inspect` and `amc validate`; modern native validation
   parses structure but reports unverified status rather than claiming compatibility.
 - [ ] Parse catalog metadata, movie records, custom fields, and pictures (read-only
@@ -79,7 +89,8 @@ all omitted or opaque data is reported.
   definitions are retained for native and XML inputs).
 - [ ] Preserve duplicate custom fields, ordering, types, and attributes.
 - [ ] Verify Python XML output by importing it into upstream AMC.
-- [ ] Add configurable merge policies: `error`, `skip`, `replace`, and `renumber`.
+- [x] Add configurable movie collision policies: `error`, `skip`, `replace`, and
+  `renumber`; metadata supports `error`, `keep`, `replace`, and `namespace`.
 - [ ] Add streaming readers and documented resource limits.
 
 **Gate:** semantic round trips are verified for every supported format/version.
@@ -95,19 +106,25 @@ all omitted or opaque data is reported.
 ## Milestone 5: application services and interfaces
 
 - [ ] Move mutations and persistence policy out of CLI/GUI adapters into services.
-- [ ] Add complete field editing, bulk operations, backup/restore, duplicate
-  detection, JSON CLI output, and stable exit codes.
+- [ ] Add bulk operations (complete validated field editing, atomic backup/restore,
+  normalized title/year duplicate detection, JSON output, installed smoke checks,
+  and stable exit codes are complete).
 - [ ] Add complete GUI editing, open/save-as, import/export, pictures, dirty-state
   prompts, undo, progress, cancellation, and accessibility.
 - [ ] Add loan management and catalog preferences if confirmed upstream features.
 
 ## Milestone 6: scripts, metadata, and media
 
-- [ ] Inventory the upstream scripting API and decide compatibility boundaries.
+- [ ] Inventory the complete upstream scripting API and decide execution boundaries
+  (bounded, non-executing `.ifs` Infos/Options/Parameters, mutation permissions,
+  and static-variable-name discovery is implemented without exposing static values).
 - [ ] Define a provider interface with timeouts, caching, rate limits, and safe
   field-level merge previews.
-- [ ] Add image download and media-file analysis as optional capabilities.
+- [ ] Add image download and full media-file analysis as optional capabilities
+  (portable file facts and PCM WAV analysis are available without dependencies).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
+- [ ] Reproduce upstream HTML template/tag semantics (safe static HTML table export
+  is available as a non-compatible baseline).
 
 ## Milestone 7: release
 
@@ -127,8 +144,9 @@ unblock earlier evidence gates.
 
 1. Reacquire and checksum the published source archive; compare its deterministic
    inventory with both checked-in source trees.
-2. Complete application and bundled-dependency license review, then add root-level
-   license and attribution files.
+2. Resolve the ElTree source-redistribution blocker and finish the `Common` and
+   `antcomponents` per-file review recorded in `THIRD_PARTY_NOTICES.md`; root-level
+   GPLv2 and initial attribution files are now present.
 3. Generate AMC 4.2.3.2 empty, one-movie, all-fields, custom-field, embedded-picture,
    linked-picture, supplementary-record, Unicode/code-page, and corrupt catalogs.
 4. Record producer version, creation steps, SHA-256, expected contents, mutations,
@@ -143,13 +161,17 @@ reviewable provenance. Until then, native support stays **investigating**.
    XML exports; then repeat for one fixture per claimed older version.
 2. Determine encoding from upstream behavior instead of treating CP-1252 as a
    universal default; cover undecodable bytes and locale differences.
-3. Define strict behavior for truncated final records instead of copying upstream's
-   silent stop, and test every bounded length/count/picture path.
-4. Preserve native-only scalar values, custom-field types, embedded images, and
-   supplementary records through native → JSON → JSON without normalization loss.
-5. [Partial] File size, movie count, individual picture, and cumulative picture
-   limits are implemented. Add cumulative string/nesting limits and fuzz/property
-   tests for parser termination and stable diagnostics.
+3. [Partial] Strictly reject truncated final records instead of copying upstream's
+   silent stop; exhaustive byte-boundary truncation tests cover an empty 4.2 catalog
+   and a populated 4.2 record. Repeat with genuine fixtures and older versions.
+4. [Partial] Synthetic AMC 4.2 coverage preserves native-only scalar values,
+   custom-field definitions/values, embedded images, and supplementary records
+   through native → JSON → JSON without normalization loss. Unparseable framerate
+   and file-size text and negative native movie numbers are retained opaquely rather
+   than discarded; repeat with genuine fixtures before claiming compatibility.
+5. [Partial] File size, movie, picture, string, custom-field/list-value, and
+   supplementary-record limits are implemented. Exhaustive 4.2 truncation checks
+   cover parser termination and bounded offsets; add broader fuzz/property tests.
 6. Split `native.py` into header, primitive, metadata, and record modules only after
    fixture-backed boundaries are stable.
 
@@ -163,14 +185,22 @@ fail with documented diagnostics and offsets, and no supported bytes disappear.
    supplementary-record models; stop using reserved `extras`/`metadata` keys as the
    long-term typed representation.
 3. Preserve duplicate custom fields, order, types, attributes, and unknown nested XML
-   opaquely; retain current rejection wherever lossless XML output is impossible.
-4. Specify metadata merge policies (`error`, `keep`, `replace`, `namespace`) and
-   movie collision policies (`error`, `skip`, `replace`, `renumber`). Current
-   metadata merging is validated, deep-copied, and atomic but supports `error` only.
+   opaquely; all native custom values are now retained in an ordered fallback list,
+   protecting duplicates and reserved-key collisions, while the general typed model
+   and XML behavior remain pending.
+4. [Implemented internally] Metadata merge policies (`error`, `keep`, `replace`,
+   `namespace`) and movie collision policies (`error`, `skip`, `replace`,
+   `renumber`) are validated, deep-copied, atomic, and exposed by the CLI; verify
+   them against genuine interchange fixtures.
 5. Verify Python XML output by opening and resaving it with upstream AMC.
 
 **Exit criterion:** documented semantic round trips pass for native, XML, and JSON;
 CSV has explicitly documented lossy boundaries.
+
+The internal JSON v1 boundary now validates envelope discriminator types and each
+indexed movie object, rejects duplicate object members and non-standard non-finite
+numbers, and validates/deep-copies movie extras. This closes the schema-validation
+gap for the Python-owned format; it is not evidence for an upstream format.
 
 ### P3 — engineering and release gates
 
@@ -178,7 +208,9 @@ CSV has explicitly documented lossy boundaries.
    local check command.
 2. Add formatter, linter, type checker, coverage threshold, wheel/sdist build, clean
    install, and subprocess CLI smoke tests to Linux and Windows CI.
-3. Extract storage dispatch/codecs and a shared application service from CLI/GUI.
+3. [Partial] A shared application service now owns GUI open/reload and
+   failure-atomic add/replace/remove persistence. Move CLI mutations, imports,
+   exports, backup, and storage dispatch/codecs behind the same boundary.
 4. Add performance, concurrency, permission, durability, and large-catalog tests.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.

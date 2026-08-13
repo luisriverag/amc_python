@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import csv
+import html
 import json
 import os
 import re
+import shutil
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from dataclasses import asdict, fields
@@ -13,7 +15,7 @@ from pathlib import Path
 
 from .catalog import Catalog
 from .model import Movie
-from .native import NATIVE_HEADER_SIZE, NATIVE_HEADERS, read_native_catalog
+from .native import NATIVE_HEADER_SIZE, NATIVE_HEADERS, read_native_catalog, write_native_catalog
 
 _XML_FIELDS = {
     "OriginalTitle": "original_title", "TranslatedTitle": "translated_title",
@@ -57,18 +59,46 @@ def load(path: str | Path) -> Catalog:
     if path.suffix.casefold() == ".csv":
         return load_csv(path)
     with path.open(encoding="utf-8") as stream:
-        document = json.load(stream)
-    if isinstance(document, dict) and document.get("format") not in (None, "amc-python"):
-        raise ValueError(f"unsupported catalog format: {document.get('format')!r}")
-    if isinstance(document, dict) and document.get("version", 1) != 1:
-        raise ValueError(f"unsupported catalog version: {document.get('version')!r}")
+        document = json.load(
+            stream,
+            object_pairs_hook=_json_object,
+            parse_constant=_reject_json_constant,
+        )
+    if isinstance(document, dict):
+        format_name = document.get("format", "amc-python")
+        if not isinstance(format_name, str) or format_name != "amc-python":
+            raise ValueError(f"unsupported catalog format: {format_name!r}")
+        version = document.get("version", 1)
+        if isinstance(version, bool) or not isinstance(version, int) or version != 1:
+            raise ValueError(f"unsupported catalog version: {version!r}")
     rows = document.get("movies", document) if isinstance(document, dict) else document
     if not isinstance(rows, list):
         raise ValueError("catalog JSON must contain a list of movies")
     metadata = document.get("metadata", {}) if isinstance(document, dict) else {}
     if not isinstance(metadata, dict):
         raise ValueError("catalog JSON metadata must be an object")
-    return Catalog((Movie.from_dict(row) for row in rows), metadata=metadata)
+    movies = []
+    for index, row in enumerate(rows):
+        try:
+            movies.append(Movie.from_dict(row))
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"invalid movie at index {index}: {error}") from error
+    return Catalog(movies, metadata=metadata)
+
+
+def _json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Build a JSON object while rejecting ambiguous duplicate member names."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON object member: {key!r}")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value: str) -> object:
+    """Reject the non-standard NaN and infinity tokens accepted by ``json``."""
+    raise ValueError(f"invalid non-finite JSON number: {value}")
 
 
 def _has_native_header(path: Path) -> bool:
@@ -99,6 +129,32 @@ def save(catalog: Catalog, path: str | Path) -> None:
     with _atomic_text(path) as stream:
         json.dump({"format": "amc-python", "version": 1, "metadata": catalog.metadata, "movies": [m.to_dict() for m in catalog]}, stream, ensure_ascii=False, indent=2)
         stream.write("\n")
+
+
+def save_native(catalog: Catalog, path: str | Path) -> None:
+    """Write an AMC 4.2 native catalog without changing the JSON default format."""
+    write_native_catalog(catalog, path)
+
+
+def copy_catalog(source: str | Path, destination: str | Path) -> None:
+    """Validate and atomically copy a catalog without reserializing its contents."""
+    source = Path(source)
+    destination = Path(destination)
+    if source.resolve() == destination.resolve():
+        raise ValueError("source and destination catalog paths must differ")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(f".{destination.name}.tmp")
+    try:
+        with source.open("rb") as incoming, temporary.open("wb") as outgoing:
+            shutil.copyfileobj(incoming, outgoing)
+            outgoing.flush()
+            os.fsync(outgoing.fileno())
+        # Validate the bytes that will actually be installed, rather than opening
+        # the source a second time and permitting a check/use race.
+        load(temporary)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def load_csv(path: str | Path) -> Catalog:
@@ -206,6 +262,74 @@ def save_xml(catalog: Catalog, path: str | Path) -> None:
     ET.indent(tree, space="  ")
     with _atomic_text(path) as stream:
         tree.write(stream, encoding="unicode", xml_declaration=True)
+
+
+def save_html(
+    catalog: Catalog,
+    path: str | Path,
+    *,
+    template: str | Path | None = None,
+    row_template: str | Path | None = None,
+) -> None:
+    """Write escaped movie rows into a safe static HTML document or template."""
+    row_source = (
+        '      <tr><td class="number">{{NUMBER}}</td>'
+        '<td class="title">{{DISPLAY_TITLE}}</td><td class="year">{{YEAR}}</td>'
+        '<td class="director">{{DIRECTOR}}</td></tr>'
+    )
+    if row_template is not None:
+        row_path = Path(row_template)
+        if row_path.stat().st_size > 256 * 1024:
+            raise ValueError("HTML row template exceeds size limit")
+        row_source = row_path.read_text(encoding="utf-8")
+    allowed = {
+        item.name.upper() for item in fields(Movie) if item.name != "extras"
+    } | {"DISPLAY_TITLE"}
+    markers = set(re.findall(r"{{([A-Z_]+)}}", row_source))
+    unknown = sorted(markers - allowed)
+    if unknown:
+        raise ValueError(f"unknown HTML row template marker: {unknown[0]}")
+    rows = []
+    for movie in catalog:
+        values = {"DISPLAY_TITLE": html.escape(movie.display_title())}
+        for item in fields(Movie):
+            if item.name == "extras":
+                continue
+            value = getattr(movie, item.name)
+            if value is None:
+                text = ""
+            elif isinstance(value, bool):
+                text = "true" if value else "false"
+            else:
+                text = str(value)
+            values[item.name.upper()] = html.escape(text)
+        row = row_source
+        for marker, value in values.items():
+            row = row.replace(f"{{{{{marker}}}}}", value)
+        rows.append(row)
+    body = "\n".join(rows)
+    default_template = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Movie Catalog</title><style>body{{font-family:sans-serif;margin:2rem}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ccc;padding:.4rem;text-align:left}}th{{background:#eee}}.number,.year{{text-align:right}}</style></head>
+<body><h1>Movie Catalog</h1><table>
+    <thead><tr><th>Number</th><th>Title</th><th>Year</th><th>Director</th></tr></thead>
+    <tbody>
+{{MOVIES}}
+    </tbody>
+  </table></body></html>
+"""
+    if template is None:
+        source = default_template
+    else:
+        template_path = Path(template)
+        if template_path.stat().st_size > 1024 * 1024:
+            raise ValueError("HTML template exceeds size limit")
+        source = template_path.read_text(encoding="utf-8")
+    if source.count("{{MOVIES}}") != 1:
+        raise ValueError("HTML template must contain exactly one {{MOVIES}} marker")
+    document = source.replace("{{MOVIES}}", body)
+    with _atomic_text(Path(path)) as stream:
+        stream.write(document)
 
 
 def _number(value: str | None, kind: type[int] | type[float]):

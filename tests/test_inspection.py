@@ -163,3 +163,14 @@ def test_native_validation_returns_corruption_diagnostic_instead_of_raising(tmp_
         "corrupt_catalog", "error", 65
     )
     assert "truncated native string length" in diagnostic.message
+
+
+def test_validate_parses_fixed_record_native_structure(tmp_path: Path):
+    from amc.native import _legacy_layout
+
+    _, size = _legacy_layout("1.0")
+    target = tmp_path / "legacy.amc"
+    target.write_bytes(_NATIVE_HEADERS["1.0"] + bytes(size))
+    diagnostic = validate_catalog(target)[0]
+    assert diagnostic.code == "native_structure_unverified"
+    assert "with 1 movie(s)" in diagnostic.message

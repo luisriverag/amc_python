@@ -17,6 +17,10 @@ committed. Treat it as **source available with incomplete provenance**, not as a
 authenticated archive. Do not regenerate those facts from the Git tree or imply
 that source availability proves behavioral compatibility.
 
+**Project decision:** the user has designated this checked-in snapshot as correct
+and authoritative for continued source-driven porting. This unblocks implementation
+only; historical archive provenance and snapshot equivalence remain unknown.
+
 | Artifact | Expected location | Current state |
 |---|---|---|
 | Checked-in source | `src/original/` | present (876 files) |
@@ -45,8 +49,22 @@ Reacquire the archive reproducibly, then compare the resulting file inventory to
 the checked-in trees:
 
 ```console
-python tools/acquire_upstream.py --extract-to upstream/source
+python tools/acquire_upstream.py \
+  --expected-sha256 <digest-from-an-independent-published-source> \
+  --extract-to upstream/source \
+  --compare-to src/original
 ```
+
+This writes `upstream/comparison.json` with matched, changed, missing, and
+unexpected paths, and records the boolean result in `archive.json`. A `true`
+result proves byte-for-byte tree equality for that acquisition; a `false` result
+is deliberately retained as evidence and must be investigated rather than
+normalized away. The separately published `antcomponents` archive must be
+acquired and compared independently; it is not part of `amc_sources.rar`.
+When an independently published digest is available, `--expected-sha256` checks
+it before replacing a previously downloaded archive. Do not derive that expected
+value from the unauthenticated checked-in tree or from the same download being
+verified.
 
 ## Initial unit inventory
 
@@ -62,8 +80,8 @@ source location has been identified; it does not mean the Python behavior matche
 | `Movie Catalog/main.pas` | Main workflows, open/save, search, UI actions | future services; `amc.cli`, `amc.gui` | mapped, not compared | none upstream-derived | Selects AMC 3.5, 4.1, and current save formats |
 | `Movie Catalog/import2*.pas` | Import workflow and engines, including CSV | `amc.storage` | mapped, not reviewed | synthetic CSV | Dialect behavior still unverified |
 | `Movie Catalog/export.pas` | AMC/XML/CSV/HTML/SQL export workflow | `amc.storage` | mapped, not reviewed | synthetic XML/CSV | Python implements only JSON/XML/CSV |
-| `Movie Catalog/getscript*.pas`, `ifps/` | Website scripts and Pascal runtime | none | mapped, not ported | none | Includes modified IFPS dependency |
-| `Common/MediaInfo.pas`, `Movie Catalog/getmedia.pas` | Media metadata extraction | none | mapped, not ported | none | Python fields are passive values |
+| `Movie Catalog/getscript*.pas`, `ifps/` | Website scripts and Pascal runtime | `amc.scripts` | metadata discovery prototype; execution intentionally omitted | synthetic header tests | `TScriptInfo.Load` reads bracketed metadata from the leading Pascal comment; Python never executes IFPS code |
+| `Common/MediaInfo.pas`, `Movie Catalog/getmedia.pas` | Media metadata extraction | `amc.media` | prototype, not compared | synthetic file/WAV tests | Portable path/name/extension/size and WAV audio facts only; upstream exposes 28 media tags and filtering/merge behavior |
 | `Movie Catalog/loan.pas`, `loanhistory.pas` | Borrower and loan-history workflows | none | mapped, not ported | none | Python stores only current borrower text |
 | `Movie Catalog/programsettings.pas` | Preferences and settings XML | none | mapped, not ported | none | Separate from catalog data |
 | `Movie Catalog/printform.pas`, `amcreport/`, `FreeReport/` | Printing/report design | none | mapped, not ported | none | Bundled modified report dependency |
@@ -115,11 +133,14 @@ mapping, behavior characterization, licensing, and tests remain open.
   length-prefixed owner, mail, site, and description fields can be read for versions
   3.1–4.2, including the removed pre-3.5 ICQ slot. Version 4.0–4.2
   custom-field definitions, list values, flags, and GUI metadata are also parsed.
-  Movie rows, pictures (path plus safely skipped embedded bytes), and per-movie
+  Fixed records declared in `movieclass_old.pas`, including inline 3.0 pictures,
+  are parsed for versions 1.0–3.0. Modern movie rows, pictures, and per-movie
   custom values are parsed for versions 3.1–4.2. AMC 4.2 supplementary records
   and their safely skipped embedded pictures are represented separately. Generic
   storage dispatch and CLI import can convert supported native catalogs to JSON,
-  retaining catalog metadata and embedded picture bytes. Configurable bounds cover
+  retaining catalog metadata and embedded picture bytes. Explicit `export-amc`
+  output serializes source-derived 4.2 properties, custom definitions and values,
+  movie pictures, and supplementary records. Configurable read bounds cover
   file size, movie count, individual pictures, and cumulative picture bytes.
 - **Evidence still missing:** no genuine empty, one-record, corrupt, picture, or
   sidecar fixture is committed, so header recognition has not been cross-checked and

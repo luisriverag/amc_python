@@ -25,6 +25,11 @@ makes a deep copy so caller mutations cannot change the catalog. Unknown envelop
 members are ignored. A recognized `amc-python` envelope with a version other than
 `1` is rejected rather than guessed.
 
+Envelope discriminators are type-strict: `format` must be the string
+`"amc-python"` and `version` must be the integer `1` (a Boolean or numeric string is
+not accepted). Every `movies` item must be an object; validation errors identify
+the zero-based item index.
+
 ## Movie object
 
 The same validation applies whether a movie is decoded from JSON or constructed
@@ -45,6 +50,12 @@ Important invariants:
 - `rating`, when present, is between 0 and 10 inclusive.
 - `checked` is a Boolean.
 - `extras` is an object with string keys and JSON-compatible values.
+
+The decoder rejects duplicate object member names at every nesting level. It also
+rejects the non-standard `NaN`, `Infinity`, and `-Infinity` tokens that Python's
+standard JSON decoder otherwise accepts. This avoids silently selecting one of two
+duplicate values or admitting data that a conforming JSON implementation cannot
+read. Movie `extras` are validated as finite JSON and deep-copied on construction.
 
 The implementation enforces these primitive type invariants for every declared
 field. Additional semantic rules (for example upstream-supported year ranges) will

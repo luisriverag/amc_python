@@ -2,9 +2,11 @@ import json
 import math
 from pathlib import Path
 
+import pytest
+
 from amc import Catalog, Movie
 from amc.cli import main
-from amc.storage import load, load_csv, load_xml, save, save_csv, save_xml
+from amc.storage import copy_catalog, load, load_csv, load_xml, save, save_csv, save_html, save_xml
 
 
 def test_catalog_numbers_search_and_json_roundtrip(tmp_path: Path):
@@ -87,6 +89,103 @@ def test_csv_roundtrip_with_amc_headers_and_custom_fields(tmp_path: Path):
     assert restored.to_dict() == movie.to_dict()
 
 
+def test_html_export_is_static_escaped_and_atomic(tmp_path: Path):
+    target = tmp_path / "catalog.html"
+    save_html(Catalog([
+        Movie(number=1, title='<script>alert("x")</script>', year=1979,
+              director="Scott & Co."),
+    ]), target)
+    document = target.read_text(encoding="utf-8")
+    assert "<!doctype html>" in document
+    assert '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;' in document
+    assert "Scott &amp; Co." in document
+    assert '<script>alert("x")</script>' not in document
+
+
+def test_cli_exports_html(tmp_path: Path):
+    catalog = tmp_path / "catalog.json"
+    target = tmp_path / "catalog.html"
+    save(Catalog([Movie(title="Alien")]), catalog)
+    assert main(["-c", str(catalog), "export-html", str(target)]) == 0
+    assert '<td class="title">Alien</td>' in target.read_text(encoding="utf-8")
+
+
+def test_cli_exports_native_42_catalog(tmp_path: Path):
+    catalog = tmp_path / "catalog.json"
+    target = tmp_path / "catalog.amc"
+    save(Catalog([Movie(original_title="Alien", year=1979, rating=8.0)]), catalog)
+
+    assert main(["-c", str(catalog), "export-amc", str(target)]) == 0
+
+    restored = load(target).get(1)
+    assert (restored.original_title, restored.year, restored.rating) == (
+        "Alien", 1979, 8.0
+    )
+
+
+def test_html_export_supports_bounded_explicit_template(tmp_path: Path):
+    template = tmp_path / "template.html"
+    template.write_text("<main><h1>My movies</h1>{{MOVIES}}</main>", encoding="utf-8")
+    target = tmp_path / "catalog.html"
+    save_html(Catalog([Movie(title="Alien & Aliens")]), target, template=template)
+    assert target.read_text(encoding="utf-8") == (
+        '<main><h1>My movies</h1>      <tr><td class="number">1</td>'
+        '<td class="title">Alien &amp; Aliens</td><td class="year"></td>'
+        '<td class="director"></td></tr></main>'
+    )
+
+    previous = target.read_bytes()
+    template.write_text("no marker", encoding="utf-8")
+    with pytest.raises(ValueError, match="exactly one"):
+        save_html(Catalog(), target, template=template)
+    assert target.read_bytes() == previous
+
+
+def test_html_export_supports_escaped_row_template(tmp_path: Path):
+    row = tmp_path / "row.html"
+    row.write_text(
+        '<article data-number="{{NUMBER}}"><b>{{TITLE}}</b> '
+        '<span>{{YEAR}}</span> <i>{{DIRECTOR}}</i></article>',
+        encoding="utf-8",
+    )
+    target = tmp_path / "catalog.html"
+    save_html(
+        Catalog([Movie(title="A & B", year=2000, director="<Director>")]),
+        target,
+        row_template=row,
+    )
+    document = target.read_text(encoding="utf-8")
+    assert (
+        '<article data-number="1"><b>A &amp; B</b> <span>2000</span> '
+        '<i>&lt;Director&gt;</i></article>' in document
+    )
+    row.write_text("{{UNSAFE}}", encoding="utf-8")
+    previous = target.read_bytes()
+    with pytest.raises(ValueError, match="unknown HTML row template marker"):
+        save_html(Catalog(), target, row_template=row)
+    assert target.read_bytes() == previous
+
+
+def test_html_row_template_supports_every_modeled_scalar_field(tmp_path: Path):
+    row = tmp_path / "row.html"
+    row.write_text(
+        "{{DISPLAY_TITLE}}|{{ORIGINAL_TITLE}}|{{RATING}}|{{CHECKED}}|{{DESCRIPTION}}",
+        encoding="utf-8",
+    )
+    target = tmp_path / "catalog.html"
+    save_html(
+        Catalog([Movie(
+            title="Display", original_title="A & B", rating=8.5, checked=True,
+            description="<safe>",
+        )]),
+        target,
+        row_template=row,
+    )
+    assert "Display|A &amp; B|8.5|true|&lt;safe&gt;" in target.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_renumber_and_statistics():
     catalog = Catalog([
         Movie(number=8, title="A", year=2000, length=100, rating=8, checked=True),
@@ -100,16 +199,235 @@ def test_renumber_and_statistics():
     }
 
 
+def test_duplicate_detection_normalizes_titles_and_uses_year():
+    catalog = Catalog([
+        Movie(number=1, title=" Alien ", year=1979),
+        Movie(number=2, translated_title="alien", year=1979),
+        Movie(number=3, title="Alien", year=2000),
+        Movie(number=4),
+        Movie(number=5),
+    ])
+    assert [[movie.number for movie in group] for group in catalog.duplicates()] == [[1, 2]]
+
+
 def test_merge_resolves_duplicate_numbers():
     catalog = Catalog([Movie(number=1, title="Existing")])
     assert catalog.merge([Movie(number=1, title="Duplicate"), Movie(number=8, title="Free")]) == 2
     assert [(movie.number, movie.title) for movie in catalog] == [(1, "Existing"), (2, "Duplicate"), (8, "Free")]
 
 
+def test_merge_movie_collision_policies_are_atomic():
+    for policy, expected, count in (
+        ("skip", [(1, "Existing"), (8, "Free")], 1),
+        ("replace", [(1, "Replacement"), (8, "Free")], 2),
+        ("renumber", [(1, "Existing"), (2, "Replacement"), (8, "Free")], 2),
+    ):
+        catalog = Catalog([Movie(number=1, title="Existing")])
+        incoming = [Movie(number=1, title="Replacement"), Movie(number=8, title="Free")]
+        assert catalog.merge(incoming, collision=policy) == count
+        assert [(movie.number, movie.title) for movie in catalog] == expected
+        assert incoming[0].number == 1
+
+    catalog = Catalog([Movie(number=1, title="Existing")])
+    with pytest.raises(ValueError, match="duplicate movie number: 1"):
+        catalog.merge(
+            [Movie(number=2, title="Would append"), Movie(number=1, title="Conflict")],
+            collision="error",
+        )
+    assert [(movie.number, movie.title) for movie in catalog] == [(1, "Existing")]
+
+
+def test_merge_metadata_keep_and_replace_policies():
+    source = Catalog(metadata={"shared": "incoming", "new": 2})
+    kept = Catalog(metadata={"shared": "existing", "old": 1})
+    kept.merge(source, metadata="keep")
+    assert kept.metadata == {"shared": "existing", "old": 1, "new": 2}
+
+    replaced = Catalog(metadata={"shared": "existing", "old": 1})
+    replaced.merge(source, metadata="replace")
+    assert replaced.metadata == {"shared": "incoming", "old": 1, "new": 2}
+
+
+def test_merge_metadata_namespace_preserves_complete_sources():
+    destination = Catalog(metadata={"owner": "Destination"})
+    destination.merge(
+        Catalog(metadata={"owner": "First", "custom": {"a": 1}}),
+        metadata="namespace",
+    )
+    destination.merge(
+        Catalog(metadata={"owner": "Second"}), metadata="namespace"
+    )
+
+    assert destination.metadata == {
+        "owner": "Destination",
+        "amc_python_merge_namespaces": {
+            "import_1": {"owner": "First", "custom": {"a": 1}},
+            "import_2": {"owner": "Second"},
+        },
+    }
+
+
+def test_merge_metadata_namespace_rejects_reserved_key_shape_atomically():
+    destination = Catalog(
+        metadata={"amc_python_merge_namespaces": "reserved by user"}
+    )
+    with pytest.raises(ValueError, match="must be an object"):
+        destination.merge(Catalog(metadata={"owner": "Incoming"}), metadata="namespace")
+    assert destination.metadata == {
+        "amc_python_merge_namespaces": "reserved by user"
+    }
+
+
+def test_cli_import_exposes_collision_policy(tmp_path: Path, capsys):
+    destination = tmp_path / "destination.json"
+    source = tmp_path / "source.json"
+    save(Catalog([Movie(number=1, title="Existing")]), destination)
+    save(Catalog([Movie(number=1, title="Incoming")]), source)
+
+    assert main(["-c", str(destination), "import", str(source), "--collision", "skip"]) == 0
+    assert "Imported 0 movie(s)" in capsys.readouterr().out
+    assert [(movie.number, movie.title) for movie in load(destination)] == [(1, "Existing")]
+
+
+def test_cli_import_exposes_metadata_namespace_policy(tmp_path: Path):
+    destination = tmp_path / "destination.json"
+    source = tmp_path / "source.json"
+    save(Catalog(metadata={"owner": "Destination"}), destination)
+    save(Catalog(metadata={"owner": "Incoming"}), source)
+
+    assert main([
+        "-c", str(destination), "import", str(source), "--metadata", "namespace"
+    ]) == 0
+    assert load(destination).metadata["amc_python_merge_namespaces"] == {
+        "import_1": {"owner": "Incoming"}
+    }
+
+
+def test_cli_list_search_and_stats_support_json(tmp_path: Path, capsys):
+    target = tmp_path / "catalog.json"
+    save(Catalog([
+        Movie(number=1, title="Alien", director="Ridley Scott", length=117),
+        Movie(number=2, title="Aliens", director="James Cameron", length=137),
+    ]), target)
+
+    assert main(["-c", str(target), "list", "--json"]) == 0
+    listing = json.loads(capsys.readouterr().out)
+    assert [row["title"] for row in listing] == ["Alien", "Aliens"]
+
+    assert main(["-c", str(target), "search", "Cameron", "--json"]) == 0
+    search = json.loads(capsys.readouterr().out)
+    assert [row["title"] for row in search] == ["Aliens"]
+
+    assert main(["-c", str(target), "stats", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "average_rating": None,
+        "checked": 0,
+        "earliest_year": None,
+        "latest_year": None,
+        "movies": 2,
+        "total_length": 254,
+    }
+
+
+def test_cli_duplicates_supports_json(tmp_path: Path, capsys):
+    target = tmp_path / "catalog.json"
+    save(Catalog([
+        Movie(number=1, title="Alien", year=1979),
+        Movie(number=2, original_title="alien", year=1979),
+    ]), target)
+    assert main(["-c", str(target), "duplicates", "--json"]) == 0
+    groups = json.loads(capsys.readouterr().out)
+    assert [[movie["number"] for movie in group] for group in groups] == [[1, 2]]
+
+
 def test_cli_reports_missing_movie_without_traceback(tmp_path: Path, capsys):
     result = main(["-c", str(tmp_path / "empty.json"), "remove", "99"])
     assert result == 2
     assert "movie 99 does not exist" in capsys.readouterr().err
+
+
+def test_cli_edit_set_supports_complete_typed_fields(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Before")]), target)
+    assert main([
+        "-c", str(target), "edit", "1", "--set", 'original_title="Alien"',
+        "--set", "year=1979", "--set", "rating=8.5", "--set", "checked=true",
+        "--set", 'extras={"edition":"Director cut"}',
+    ]) == 0
+    movie = load(target).get(1)
+    assert (movie.original_title, movie.year, movie.rating, movie.checked) == (
+        "Alien", 1979, 8.5, True
+    )
+    assert movie.extras == {"edition": "Director cut"}
+
+
+def test_cli_edit_set_rejects_invalid_values_without_saving(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Before")]), target)
+    previous = target.read_bytes()
+    assert main(["-c", str(target), "edit", "1", "--set", 'year="1979"']) == 2
+    assert target.read_bytes() == previous
+    assert main(["-c", str(target), "edit", "1", "--set", "number=2"]) == 2
+    assert target.read_bytes() == previous
+
+
+def test_cli_exit_status_constants_are_stable():
+    from amc.cli import EXIT_ERROR, EXIT_INVALID_CATALOG, EXIT_SUCCESS
+
+    assert (EXIT_SUCCESS, EXIT_INVALID_CATALOG, EXIT_ERROR) == (0, 1, 2)
+
+
+def test_copy_catalog_validates_and_preserves_destination_on_failure(tmp_path: Path):
+    source = tmp_path / "source.json"
+    destination = tmp_path / "backup.json"
+    save(Catalog([Movie(title="Alien")]), source)
+    destination.write_bytes(b"existing backup")
+
+    copy_catalog(source, destination)
+    assert destination.read_bytes() == source.read_bytes()
+    assert next(iter(load(destination))).title == "Alien"
+
+    source.write_text("not json", encoding="utf-8")
+    previous = destination.read_bytes()
+    with pytest.raises(json.JSONDecodeError):
+        copy_catalog(source, destination)
+    assert destination.read_bytes() == previous
+    assert not (tmp_path / ".backup.json.tmp").exists()
+
+
+def test_copy_catalog_validates_the_copied_bytes(monkeypatch, tmp_path: Path):
+    source = tmp_path / "source.json"
+    destination = tmp_path / "backup.json"
+    save(Catalog([Movie(title="Valid before copy")]), source)
+    destination.write_bytes(b"existing backup")
+
+    def corrupt_during_copy(incoming, outgoing):
+        incoming.read()
+        outgoing.write(b"not json")
+
+    monkeypatch.setattr("amc.storage.shutil.copyfileobj", corrupt_during_copy)
+    with pytest.raises(json.JSONDecodeError):
+        copy_catalog(source, destination)
+    assert destination.read_bytes() == b"existing backup"
+    assert not (tmp_path / ".backup.json.tmp").exists()
+
+
+def test_cli_backup_and_restore_roundtrip(tmp_path: Path):
+    catalog = tmp_path / "catalog.json"
+    backup = tmp_path / "backup.json"
+    save(Catalog([Movie(title="Original")]), catalog)
+
+    assert main(["-c", str(catalog), "backup", str(backup)]) == 0
+    save(Catalog([Movie(title="Changed")]), catalog)
+    assert main(["-c", str(catalog), "restore", str(backup)]) == 0
+    assert next(iter(load(catalog))).title == "Original"
+
+
+def test_copy_catalog_rejects_same_path(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    save(Catalog(), target)
+    with pytest.raises(ValueError, match="paths must differ"):
+        copy_catalog(target, target)
 
 
 def test_rejects_future_json_versions(tmp_path: Path):
@@ -121,6 +439,45 @@ def test_rejects_future_json_versions(tmp_path: Path):
         assert "unsupported catalog version" in str(error)
     else:
         raise AssertionError("future catalog version was accepted")
+
+
+@pytest.mark.parametrize(
+    ("document", "message"),
+    [
+        ('{"format":null,"version":1,"movies":[]}', "unsupported catalog format"),
+        ('{"format":"amc-python","version":true,"movies":[]}', "unsupported catalog version"),
+        ('{"format":"amc-python","version":"1","movies":[]}', "unsupported catalog version"),
+        ('{"format":"amc-python","version":1,"movies":[null]}', "invalid movie at index 0"),
+        ('{"format":"amc-python","version":1,"movies":[{},42]}', "invalid movie at index 1"),
+    ],
+)
+def test_json_envelope_and_rows_use_strict_schema(
+    tmp_path: Path, document: str, message: str
+):
+    target = tmp_path / "invalid.json"
+    target.write_text(document, encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        load(target)
+
+
+@pytest.mark.parametrize(
+    ("document", "message"),
+    [
+        ('{"movies":[],"movies":[]}', "duplicate JSON object member: 'movies'"),
+        ('{"movies":[{"title":"first","title":"second"}]}', "duplicate JSON object member: 'title'"),
+        ('{"movies":[{"rating":NaN}]}', "invalid non-finite JSON number: NaN"),
+        ('{"metadata":{"limit":Infinity},"movies":[]}', "invalid non-finite JSON number: Infinity"),
+    ],
+)
+def test_json_parser_rejects_ambiguous_or_nonstandard_values(
+    tmp_path: Path, document: str, message: str
+):
+    target = tmp_path / "invalid.json"
+    target.write_text(document, encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        load(target)
 
 
 def test_json_model_rejects_ambiguous_types():
@@ -163,10 +520,25 @@ def test_movie_copies_caller_owned_extras():
     assert movie.extras == {"Inventory Code": "A-42"}
 
 
+def test_movie_deep_copies_and_validates_extras():
+    extras = {"nested": {"values": [1]}}
+    movie = Movie(extras=extras)
+    extras["nested"]["values"].append(2)
+    assert movie.extras == {"nested": {"values": [1]}}
+
+    with pytest.raises(TypeError, match="extras keys must be strings"):
+        Movie(extras={1: "invalid"})
+    with pytest.raises(TypeError, match="extras must be JSON-compatible"):
+        Movie(extras={"invalid": math.nan})
+
+
 def test_atomic_json_save_preserves_destination_on_serialization_error(tmp_path: Path):
     target = tmp_path / "catalog.json"
     target.write_text("previous contents", encoding="utf-8")
-    movie = Movie(title="Unserializable", extras={"bad": object()})
+    movie = Movie(title="Unserializable")
+    # Exercise the writer's atomic failure path even though construction rejects
+    # this value by introducing it through the deliberately mutable extras API.
+    movie.extras["bad"] = object()
     try:
         save(Catalog([movie]), target)
     except TypeError:

@@ -41,6 +41,14 @@ class Catalog:
                 return movie
         raise KeyError(f"movie {number} does not exist")
 
+    def replace(self, number: int, movie: Movie) -> Movie:
+        """Replace one movie while preserving its catalog number."""
+        current = self.get(number)
+        replacement = Movie.from_dict(movie.to_dict())
+        replacement.number = number
+        self._movies[self._movies.index(current)] = replacement
+        return replacement
+
     def search(self, query: str) -> list[Movie]:
         needle = query.strip().casefold()
         if not needle:
@@ -80,22 +88,72 @@ class Catalog:
             "latest_year": max(years) if years else None,
         }
 
-    def merge(self, movies: Iterable[Movie]) -> int:
-        """Append movies and retain metadata when merging another catalog."""
-        merged_metadata = self.metadata
+    def duplicates(self) -> list[list[Movie]]:
+        """Group movies with the same normalized title and year."""
+        groups: dict[tuple[str, int | None], list[Movie]] = {}
+        for movie in self:
+            title = movie.display_title().strip().casefold()
+            if title == "(untitled)":
+                continue
+            groups.setdefault((title, movie.year), []).append(movie)
+        return [group for group in groups.values() if len(group) > 1]
+
+    def merge(
+        self,
+        movies: Iterable[Movie],
+        *,
+        collision: str = "renumber",
+        metadata: str = "error",
+    ) -> int:
+        """Merge movies using explicit number-collision and metadata policies."""
+        if collision not in {"error", "skip", "replace", "renumber"}:
+            raise ValueError(f"unknown movie collision policy: {collision}")
+        if metadata not in {"error", "keep", "replace", "namespace"}:
+            raise ValueError(f"unknown metadata merge policy: {metadata}")
+        merged_metadata = _copy_metadata(self.metadata)
         if isinstance(movies, Catalog):
             incoming = _copy_metadata(movies.metadata)
             conflicts = [
                 key for key, value in incoming.items()
                 if key in self.metadata and self.metadata[key] != value
             ]
-            if conflicts:
+            if conflicts and metadata == "error":
                 raise ValueError(f"conflicting catalog metadata: {conflicts[0]}")
-            merged_metadata = {**self.metadata, **incoming}
+            if metadata == "namespace":
+                namespaces = merged_metadata.get("amc_python_merge_namespaces", {})
+                if not isinstance(namespaces, dict):
+                    raise ValueError(
+                        "catalog metadata amc_python_merge_namespaces must be an object"
+                    )
+                namespaces = _copy_metadata(namespaces)
+                suffix = 1
+                while f"import_{suffix}" in namespaces:
+                    suffix += 1
+                namespaces[f"import_{suffix}"] = incoming
+                merged_metadata["amc_python_merge_namespaces"] = namespaces
+            elif metadata == "replace":
+                merged_metadata.update(incoming)
+            else:
+                merged_metadata = {**incoming, **merged_metadata}
+
+        incoming_movies = [Movie.from_dict(movie.to_dict()) for movie in movies]
+        result = list(self._movies)
+        used = {movie.number for movie in result}
         count = 0
-        for movie in movies:
-            self.add(movie, renumber=movie.number <= 0 or any(item.number == movie.number for item in self))
+        for movie in incoming_movies:
+            duplicate = movie.number > 0 and movie.number in used
+            if duplicate and collision == "error":
+                raise ValueError(f"duplicate movie number: {movie.number}")
+            if duplicate and collision == "skip":
+                continue
+            if duplicate and collision == "replace":
+                result = [item for item in result if item.number != movie.number]
+            elif movie.number <= 0 or duplicate:
+                movie.number = max(used, default=0) + 1
+            result.append(movie)
+            used.add(movie.number)
             count += 1
+        self._movies = result
         self.metadata = merged_metadata
         return count
 

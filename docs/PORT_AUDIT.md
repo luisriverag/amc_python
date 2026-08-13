@@ -1,12 +1,15 @@
 # Port progress audit
 
 **Audit date:** 2026-08-12  
-**Audited commit:** `bb58fd7` plus this review
+**Audited commit:** `65c443b` plus this review
 
 **Method:** source review, documentation-claim comparison, CLI enumeration, the
 complete automated test suite, and inspection of the checked-in Delphi source
 snapshot. Archive-level provenance and upstream-generated fixtures were not
 available, so no claim of behavioral parity with Ant Movie Catalog can be verified.
+The user has designated the checked-in Delphi files as the authoritative source
+baseline for continued implementation; that decision does not recreate missing
+archive provenance or genuine compatibility fixtures.
 
 ## Executive conclusion
 
@@ -16,14 +19,15 @@ behavior and
 basic in-memory operations have useful automated coverage. XML and CSV support are
 based on synthetic examples. Native `.amc` parsing, catalog metadata, and
 embedded-picture retention are implemented from the checked-in source but remain
-unverified. Scripts, media inspection, loans, localization, printing, and upstream
-GUI workflows are not ported.
+unverified. Safe subsets now exist for static HTML export, media-file discovery,
+PCM WAV inspection, and non-executing script metadata inventory. Script execution,
+loans, localization, printing, and upstream GUI workflows are not ported.
 
 Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 9 package modules, 1 acquisition tool, 70 passing tests | Python foundation exists |
+| Prototype implementation | 11 functional package modules, 4 repository tools, 154 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 initial unit mappings | Source is available for study, but provenance is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -44,27 +48,31 @@ compatibility evidence.
 | Inspection | JSON/XML/CSV identification plus native 1.0–4.2 header probe | API and CLI tests | Moderate for synthetic cases |
 | Validation | Stable diagnostics, native structural validation, CLI exit status | API and CLI tests, including corrupt native input | Moderate for synthetic cases |
 | Source acquisition tool | Streaming download, digest, extraction selection, inventory | Local HTTP and synthetic inventory tests | High for tested behavior |
+| Engineering checks | Canonical tests/compile/fixture checks plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
+| HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
+| Media prototype | File discovery/facts and PCM WAV duration/bitrate | File, WAV, bounds, filtering, recursive, and atomic CLI tests | Moderate for stated subset |
+| Script inventory | Bounded non-executing Infos/options/parameters/permissions/static-name parser | Synthetic metadata, malformed-entry, ordering, CLI tests | Moderate for stated subset |
 
 ### Present but inadequately tested
 
 | Area | Current state | Missing evidence |
 |---|---|---|
 | GUI | Minimal Tk list and six-field editor | No controller/widget tests; no display smoke run |
-| Installed CLI | Entry point declared; functions tested in-process | No subprocess contract tests from an installed wheel |
-| Packaging | Setuptools metadata and `py.typed` | No wheel/sdist build-and-install test |
+| Installed CLI | Wheel console script and module entry point smoke-tested; empty JSON list exact output checked | Broader installed command contracts remain missing |
+| Packaging | Wheel build, isolated install, license inclusion, and smoke checks | Source-distribution build/install remains missing |
 | CI | Workflow configured for Linux/Windows and Python 3.10–3.13 | No run result is stored in the repository |
 | Atomic CSV/XML | Shared atomic writer | Injected codec-failure preservation tests cover both formats |
 | Large-file behavior | XML uses iterative inspection | No resource-limit or performance tests |
 
 ### Not ported
 
-- Native `.amc` write and fixed-record 1.0–3.0 read.
+- Verified native `.amc` write compatibility (a source-derived 4.2 writer exists).
 - Verified native read compatibility for any version.
 - Catalog preferences beyond retained catalog/custom-field metadata.
 - Lossless preservation of repeated/ordered/typed unknown fields.
 - Verified external picture copy/link semantics.
-- Upstream website scripts and scripting runtime.
-- Media-file analysis.
+- Upstream website script execution and scripting runtime (metadata inventory only).
+- Full media analysis and codec mapping (portable facts and PCM WAV only).
 - Loan history and borrower workflows.
 - Localization resources.
 - Printing and reports.
@@ -79,13 +87,15 @@ compatibility evidence.
    project metadata identifies version 4.2.3.2 and the bundled readme says the
    application source is GPL, but the snapshot identity cannot be independently
    tied to a downloaded archive.
-2. **Repository licensing remains incomplete.** `pyproject.toml` declares
-   GPL-2.0-or-later and the upstream tree contains GPL notices and a GPLv2 text, but
-   there is no root `LICENSE`, attribution review, or dependency-license summary.
+2. **Source-snapshot redistribution clearance remains incomplete.** A root
+   GPLv2 `LICENSE` and an initial component notice inventory now exist, but the
+   review found an ElTree license that does not permit source redistribution and
+   unresolved per-file review for `Common` and `antcomponents`. See
+   `THIRD_PARTY_NOTICES.md`; these are release blockers, not inferred clearance.
 3. **There are no upstream-generated fixtures.** Consequently XML/CSV compatibility
    and all upstream parity claims remain unverified.
 4. **Native `.amc` verification is blocked, not implementation.** A source-derived
-   3.1–4.2 reader now exists, but it has only synthetic byte fixtures. Encoding,
+   1.0–4.2 reader now exists, but it has only synthetic byte fixtures. Encoding,
    compiler-layout assumptions, version behavior, and malformed-file compatibility
    cannot be claimed until upstream-generated catalogs are registered.
 
@@ -121,14 +131,14 @@ compatibility evidence.
 12. Native strings default to CP-1252, version comparisons are textual, and Delphi
     primitive/layout assumptions are encoded directly. They are plausible from the
     source snapshot but not established across compiler settings or real catalogs.
-13. Native reads now bound file size, movie count, individual pictures, and
-    cumulative picture bytes. Strings are individually bounded, but cumulative
-    string/metadata memory and base64 amplification remain unbounded.
+13. Native reads bound file size, movies, individual/cumulative pictures, cumulative
+    strings, custom fields/list values, and supplementary records. Base64
+    amplification and broader fuzz/property coverage remain outstanding.
 14. Native-only fields and supplementary records use reserved dictionary keys rather
     than typed format-neutral models, making collisions and merge semantics unclear.
-15. `Catalog.metadata` is now JSON-validated, deep-copied, and merged atomically,
-    but conflict policy remains top-level `error` only; namespace/keep/replace and
-    nested merge semantics are not defined.
+15. `Catalog.metadata` is JSON-validated, deep-copied, and merged atomically with
+    `error`, `keep`, `replace`, and `namespace` policies. Nested semantic merging is
+    intentionally not performed; genuine interchange verification remains absent.
 16. `storage.py` now combines JSON, CSV, XML, native dispatch, metadata translation,
     and atomic writes. Codec separation is urgent once genuine fixtures lock contracts.
 17. Review fixed native validation so structural parse failures return diagnostics
@@ -140,37 +150,36 @@ compatibility evidence.
 |---|---|---|---|---|
 | Acquire/inventory source | `tools/acquire_upstream.py` | `test_acquire_upstream.py` | Unauthenticated source snapshot checked in | Tool complete; reproducible acquisition/provenance pending |
 | Native header probe | Source-derived 1.0–4.2 recognition in `inspection.py` | All ten headers, truncation, unknown-version, CLI, and warning tests | Constants and dispatch in `movieclass.pas` | Implemented from source; genuine fixtures pending |
-| Native catalog reader | `native.py`, storage/CLI import | Source-derived synthetic happy/error tests | `TMovieList.LoadFromFile`, `ReadData`, `ReadString`, picture/custom/extra readers | 3.1–4.2 implemented; no genuine verification |
-| Native catalog writer | None | None | `TMovieList.SaveToFile` located | Not started |
+| Native catalog reader | `native.py`, storage/CLI import | Source-derived synthetic happy/error tests | `TMovieList.LoadFromFile`, `ReadRecords`, fixed records, `ReadData`, pictures/custom/extras | 1.0–4.2 implemented; no genuine verification |
+| Native catalog writer | `native.py`, `storage.py`, `export-amc` | Synthetic metadata/movie/picture/custom/extra round trip and atomic failure test | `TMovieList.SaveToFile` and nested `WriteData` methods | 4.2 implemented from source; upstream acceptance unverified |
 | Internal working format | `storage.py`, JSON v1 spec | `test_amc.py` | Not applicable | Implemented |
 | AMC XML reader/writer | `storage.py` | Synthetic tests | None | Prototype only |
 | AMC CSV reader/writer | `storage.py` | Synthetic tests | None | Prototype only |
 | Catalog operations | `catalog.py` | Direct tests | None | Prototype only |
-| CLI adapter | `cli.py` | In-process tests | None | Partial |
+| CLI adapter | `cli.py` | In-process tests plus installed entry-point/JSON smoke | None | Partial |
 | Desktop adapter | `gui.py` | None | None | Prototype only |
-| Scripts/media/pictures/loans | Flat placeholders or none | None | None | Not started |
+| Scripts/media/HTML | `scripts.py`, `media.py`, `storage.py` | Synthetic bounded subset tests | `getscript_readscripts.pas`, `getmedia.pas`, `export.pas` | Prototype subsets; no execution/provider/template parity |
+| Pictures/loans | Flat picture path/current borrower or none | None upstream-derived | Units located | Not started |
 
 ## Next audited milestone
 
-Do not expand CRUD or claim additional AMC compatibility. The next milestone is:
+Do not claim additional AMC compatibility without fixture evidence. The next
+implementation milestone is:
 
-1. Reacquire the published archive with `tools/acquire_upstream.py` and record its
-   URL, retrieval time, size, and SHA-256 digest.
-2. Compare its extracted inventory with `src/original/` and `src/antcomponents/`;
-   document or remove every discrepancy.
-3. Complete license and attribution review and add repository-level notices.
-4. Produce empty and one-movie catalogs with upstream 4.2.3.2.
-5. Register fixture provenance and hashes.
-6. Derive signature, version, and truncation tests from `movieclass.pas`.
-7. Cross-check the completed read-only native header probe against those fixtures.
+1. Cross-check the explicit native 4.2 writer with the upstream application and
+   document every normalized or unsupported field.
+2. Add malformed-metadata and output-budget tests to the native writer.
+3. Resolve the documented ElTree redistribution blocker and complete the
+   per-file `Common` and `antcomponents` license review.
+4. Produce empty and one-movie catalogs with upstream 4.2.3.2 when an upstream
+   runtime is available, and register their provenance and hashes.
+5. Cross-check the completed read-only native reader against those fixtures.
 
 ## Audit reproduction
 
 ```console
 git status --short --branch
 git log --oneline --decorate -8
-python -m pytest -q
-python -m compileall -q src tests tools
-PYTHONPATH=src python -m amc.cli --help
-git diff --check
+python tools/check.py
+python tools/check_package.py
 ```

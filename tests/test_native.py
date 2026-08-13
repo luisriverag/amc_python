@@ -4,7 +4,12 @@ from pathlib import Path
 import pytest
 
 from amc.errors import CorruptCatalogError, UnsupportedFormatError, UnsupportedVersionError
-from amc.native import NATIVE_HEADERS, identify_native_header, read_native_properties
+from amc.native import (
+    NATIVE_HEADERS,
+    NativeReadLimits,
+    identify_native_header,
+    read_native_properties,
+)
 
 
 def _string(value: str) -> bytes:
@@ -128,6 +133,31 @@ def test_custom_field_parser_rejects_invalid_count_and_boolean(tmp_path: Path):
         read_native_properties(invalid_bool)
 
 
+def test_custom_field_parser_applies_definition_and_list_limits(tmp_path: Path):
+    from amc.native import NativeReadLimits
+
+    prefix = _catalog("4.2", "", "", "", "", "", "")
+    definitions = tmp_path / "definitions.amc"
+    definitions.write_bytes(prefix + struct.pack("<i", 1))
+    with pytest.raises(CorruptCatalogError, match="custom-field limit"):
+        read_native_properties(
+            definitions, limits=NativeReadLimits(max_custom_fields=0)
+        )
+
+    list_field = b"".join((
+        _string("tag"), _string("name"), _string(""), _string("List"),
+        _string(""), _string(""), _boolean(False), b",\x00\x00\x00",
+        _boolean(False), _boolean(False), _boolean(False), _string(""),
+        struct.pack("<i", 1),
+    ))
+    values = tmp_path / "values.amc"
+    values.write_bytes(prefix + struct.pack("<i", 1) + list_field)
+    with pytest.raises(CorruptCatalogError, match="list-value limit"):
+        read_native_properties(
+            values, limits=NativeReadLimits(max_list_values_per_field=0)
+        )
+
+
 def _integer(value: int) -> bytes:
     return struct.pack("<i", value)
 
@@ -170,7 +200,10 @@ def test_read_amc_41_movie_record(tmp_path: Path):
     assert (movie.video_bitrate, movie.framerate, movie.file_size) == (1200, 23.976, 123456)
     assert movie.checked and movie.picture == "cover.jpg"
     assert movie.extras == {
-        "Inventory": "A-42", "native_color_tag": 3, "native_picture_base64": "aW1n"
+        "Inventory": "A-42",
+        "native_custom_values": [{"tag": "Inventory", "value": "A-42"}],
+        "native_color_tag": 3,
+        "native_picture_base64": "aW1n",
     }
 
 
@@ -287,6 +320,142 @@ def test_cli_imports_native_catalog_to_json(tmp_path: Path):
     assert load(destination).metadata["native"]["version"] == "4.1"
 
 
+def test_native_42_to_json_roundtrip_preserves_native_only_data(tmp_path: Path):
+    """Lock retention of native-only values before genuine fixture verification."""
+    field = b"".join((
+        _string("Inventory"), _string("Inventory"), _string("txt"),
+        _string("String"), _string("default"), _string("General;0"),
+        _boolean(False), b",\x00\x00\x00", _boolean(False), _boolean(False),
+        _boolean(True), _string("width=100"),
+    ))
+    movie = _movie_42()
+    extra_offset = movie.rfind(_boolean(True) + _string("trailer"))
+    assert extra_offset > 4
+    movie_with_custom_value = (
+        movie[: extra_offset - 4] + _string("A-42") + movie[extra_offset - 4 :]
+    )
+    source = tmp_path / "native.amc"
+    source.write_bytes(
+        _catalog("4.2", "Owner", "mail", "site", "description", "columns", "gui")
+        + _integer(1)
+        + field
+        + movie_with_custom_value
+    )
+
+    from amc.storage import load, save
+
+    imported = load(source)
+    first_json = tmp_path / "first.json"
+    second_json = tmp_path / "second.json"
+    save(imported, first_json)
+    restored = load(first_json)
+    save(restored, second_json)
+
+    imported_movie = next(iter(imported))
+    restored_movie = next(iter(restored))
+    assert restored.metadata == imported.metadata
+    assert restored_movie.to_dict() == imported_movie.to_dict()
+    assert restored_movie.extras["Inventory"] == "A-42"
+    assert restored_movie.extras["native_supplementary_records"][0][
+        "picture_base64"
+    ] == "aW0="
+    assert restored.metadata["native"]["custom_fields"][0]["field_type"] == "String"
+    assert second_json.read_text(encoding="utf-8") == first_json.read_text(encoding="utf-8")
+
+
+def test_native_reader_retains_unrepresentable_numeric_text(tmp_path: Path):
+    """Do not silently discard native scalar text the common model cannot parse."""
+    movie = _movie_42()
+    movie = movie.replace(_string("24"), _string("not-a-rate"), 1)
+    movie = movie.replace(_string("1000"), _string("1,000 KB"), 1)
+    target = tmp_path / "numeric-text.amc"
+    target.write_bytes(
+        _catalog("4.2", "", "", "", "", "", "") + _integer(0) + movie
+    )
+
+    from amc.native import read_native_catalog
+
+    parsed = read_native_catalog(target).movies[0]
+    assert parsed.framerate is None
+    assert parsed.file_size is None
+    assert parsed.extras["native_framerate_text"] == "not-a-rate"
+    assert parsed.extras["native_file_size_text"] == "1,000 KB"
+
+
+def test_native_reader_retains_negative_movie_number(tmp_path: Path):
+    movie = _movie_42()
+    movie = _integer(-7) + movie[4:]
+    target = tmp_path / "negative-number.amc"
+    target.write_bytes(
+        _catalog("4.2", "", "", "", "", "", "") + _integer(0) + movie
+    )
+
+    from amc.native import read_native_catalog
+
+    parsed = read_native_catalog(target).movies[0]
+    assert parsed.number == 0
+    assert parsed.extras["native_movie_number"] == -7
+
+
+def test_native_reader_retains_duplicate_custom_field_values_in_order(tmp_path: Path):
+    def field(name: str) -> bytes:
+        return b"".join((
+            _string("Duplicate"), _string(name), _string(""), _string("String"),
+            _string(""), _string(""), _boolean(False), b",\x00\x00\x00",
+            _boolean(False), _boolean(False), _boolean(False), _string(""),
+        ))
+
+    movie = _movie_41("first") + _string("second")
+    # _movie_41 places its one custom value at the end, so both definitions consume
+    # the two adjacent values above.
+    target = tmp_path / "duplicates.amc"
+    target.write_bytes(
+        _catalog("4.1", "", "", "", "", "", "")
+        + _integer(2)
+        + field("First")
+        + field("Second")
+        + movie
+    )
+
+    from amc.native import read_native_catalog
+
+    extras = read_native_catalog(target).movies[0].extras
+    assert extras["Duplicate"] == "second"
+    assert extras["native_custom_values"] == [
+        {"tag": "Duplicate", "value": "first"},
+        {"tag": "Duplicate", "value": "second"},
+    ]
+
+
+def test_native_reader_retains_custom_value_that_collides_with_reserved_key(
+    tmp_path: Path,
+):
+    field = b"".join((
+        _string("native_writer"), _string("Legacy writer field"), _string(""),
+        _string("String"), _string(""), _string(""), _boolean(False),
+        b",\x00\x00\x00", _boolean(False), _boolean(False), _boolean(False),
+        _string(""),
+    ))
+    movie = _movie_42()
+    extra_offset = movie.rfind(_boolean(True) + _string("trailer"))
+    movie = movie[: extra_offset - 4] + _string("custom writer") + movie[extra_offset - 4 :]
+    target = tmp_path / "reserved-collision.amc"
+    target.write_bytes(
+        _catalog("4.2", "", "", "", "", "", "")
+        + _integer(1)
+        + field
+        + movie
+    )
+
+    from amc.native import read_native_catalog
+
+    extras = read_native_catalog(target).movies[0].extras
+    assert extras["native_writer"] == "Writer"
+    assert extras["native_custom_values"] == [
+        {"tag": "native_writer", "value": "custom writer"}
+    ]
+
+
 def test_generic_storage_detects_native_header_without_amc_extension(tmp_path: Path):
     target = tmp_path / "catalog.data"
     target.write_bytes(
@@ -322,11 +491,265 @@ def test_native_read_limits_reject_file_movie_and_picture_budgets(tmp_path: Path
         read_native_catalog(
             target, limits=NativeReadLimits(max_total_picture_bytes=2)
         )
+    with pytest.raises(CorruptCatalogError, match="cumulative string-size limit"):
+        read_native_catalog(
+            target, limits=NativeReadLimits(max_total_string_bytes=10)
+        )
+
+
+def test_native_property_read_applies_cumulative_string_budget(tmp_path: Path):
+    from amc.native import NativeReadLimits
+
+    target = tmp_path / "properties.amc"
+    target.write_bytes(_catalog("3.5", "owner", "mail", "site", "description"))
+
+    with pytest.raises(CorruptCatalogError, match="cumulative string-size limit"):
+        read_native_properties(
+            target, limits=NativeReadLimits(max_total_string_bytes=13)
+        )
+
+
+def test_native_read_limits_supplementary_records(tmp_path: Path):
+    from amc.native import NativeReadLimits, read_native_catalog
+
+    target = tmp_path / "extras.amc"
+    target.write_bytes(
+        _catalog("4.2", "", "", "", "", "", "")
+        + _integer(0)
+        + _movie_42()
+    )
+
+    with pytest.raises(CorruptCatalogError, match="movie exceeds supplementary-record"):
+        read_native_catalog(target, limits=NativeReadLimits(max_extras_per_movie=0))
+    with pytest.raises(
+        CorruptCatalogError, match="cumulative supplementary-record limit"
+    ):
+        read_native_catalog(target, limits=NativeReadLimits(max_total_extras=0))
 
 
 def test_native_read_limits_validate_configuration():
     from amc.native import NativeReadLimits
 
-    for values in ({"max_movies": -1}, {"max_picture_bytes": True}):
+    for values in (
+        {"max_movies": -1},
+        {"max_picture_bytes": True},
+        {"max_total_string_bytes": -1},
+        {"max_extras_per_movie": True},
+        {"max_total_extras": -1},
+        {"max_custom_fields": True},
+        {"max_list_values_per_field": -1},
+    ):
         with pytest.raises(ValueError, match="non-negative integer"):
             NativeReadLimits(**values)
+
+
+def test_every_truncation_of_empty_amc_42_fails_with_catalog_error(tmp_path: Path):
+    """Exercise every byte boundary in a complete source-derived empty catalog."""
+    from amc.errors import CatalogError
+    from amc.native import read_native_catalog
+
+    complete = _catalog("4.2", "owner", "mail", "site", "description", "", "")
+    complete += _integer(0)
+    target = tmp_path / "truncated.amc"
+
+    for length in range(len(complete)):
+        target.write_bytes(complete[:length])
+        with pytest.raises(CatalogError) as caught:
+            read_native_catalog(target)
+        if isinstance(caught.value, CorruptCatalogError) and caught.value.offset is not None:
+            assert 0 <= caught.value.offset <= length
+
+    target.write_bytes(complete)
+    assert read_native_catalog(target).movies == ()
+
+
+def test_every_truncation_of_amc_42_movie_fails_deterministically(tmp_path: Path):
+    """Ensure partial movie data never becomes a silently accepted shorter catalog."""
+    from amc.native import read_native_catalog
+
+    prefix = _catalog("4.2", "", "", "", "", "", "") + _integer(0)
+    movie = _movie_42()
+    target = tmp_path / "truncated-movie.amc"
+
+    for length in range(1, len(movie)):
+        target.write_bytes(prefix + movie[:length])
+        with pytest.raises(CorruptCatalogError) as caught:
+            read_native_catalog(target)
+        if caught.value.offset is not None:
+            assert len(prefix) <= caught.value.offset <= len(prefix) + length
+
+    target.write_bytes(prefix + movie)
+    assert len(read_native_catalog(target).movies) == 1
+
+
+def _legacy_record(version: str, values: dict[str, object]) -> bytes:
+    from amc.native import _legacy_layout
+
+    layout, size = _legacy_layout(version)
+    record = bytearray(size)
+    for name, value in values.items():
+        offset, kind, maximum = layout[name]
+        if kind == "int":
+            struct.pack_into("<i", record, offset, int(value))
+        elif kind == "bool":
+            record[offset] = int(bool(value))
+        elif kind == "short":
+            encoded = str(value).encode("cp1252")
+            assert len(encoded) <= maximum
+            record[offset] = len(encoded)
+            record[offset + 1:offset + 1 + len(encoded)] = encoded
+        else:
+            encoded = str(value).encode("cp1252")
+            record[offset:offset + len(encoded)] = encoded
+    return bytes(record)
+
+
+def _legacy_properties(**values: str) -> bytes:
+    from amc.native import _LEGACY_PROPERTIES, _layout
+
+    layout, size = _layout(_LEGACY_PROPERTIES)
+    record = bytearray(size)
+    for name, value in values.items():
+        offset, _, maximum = layout[name]
+        encoded = value.encode("cp1252")
+        assert len(encoded) <= maximum
+        record[offset] = len(encoded)
+        record[offset + 1:offset + 1 + len(encoded)] = encoded
+    return bytes(record)
+
+
+def test_read_fixed_record_amc_30_catalog(tmp_path: Path):
+    from amc.native import read_native_catalog
+
+    record = _legacy_record("3.0", {
+        "number": 7, "original_title": "Brazil", "translated_title": "Brazil",
+        "director": "Terry Gilliam", "producer": "Arnon Milchan",
+        "country": "UK", "year": 1985, "category": "Science Fiction",
+        "length": 142, "actors": "Jonathan Pryce", "url": "https://example.test",
+        "description": "Future imperfect.", "comments": "comment",
+        "video_format": "DivX", "file_size_text": "123456",
+        "resolution": "640x480", "languages": "English", "subtitles": "French",
+        "rating": 4, "checked": True, "date": 730000, "picture": ".jpg",
+        "picture_size": 3, "borrower": "Sam",
+    })
+    target = tmp_path / "legacy.amc"
+    header = next(key for key, value in NATIVE_HEADERS.items() if value == "3.0")
+    target.write_bytes(
+        header + _legacy_properties(owner="Owner", mail="mail", site="site")
+        + record + b"img"
+    )
+    result = read_native_catalog(target)
+    movie = result.movies[0]
+    assert (result.properties.owner, result.properties.mail) == ("Owner", "mail")
+    assert (movie.number, movie.original_title, movie.rating, movie.borrower) == (
+        7, "Brazil", 8.0, "Sam"
+    )
+    assert movie.extras["native_picture_base64"] == "aW1n"
+
+    with pytest.raises(CorruptCatalogError, match="cumulative picture-size limit"):
+        read_native_catalog(
+            target, limits=NativeReadLimits(max_total_picture_bytes=2)
+        )
+
+
+def test_fixed_record_reader_rejects_truncation_and_retains_negative_number(
+    tmp_path: Path,
+):
+    from amc.native import read_native_catalog
+
+    header = next(key for key, value in NATIVE_HEADERS.items() if value == "1.0")
+    record = _legacy_record("1.0", {"number": -3, "original_title": "Legacy"})
+    target = tmp_path / "legacy.amc"
+    target.write_bytes(header + record)
+    movie = read_native_catalog(target).movies[0]
+    assert movie.number == 0
+    assert movie.extras["native_movie_number"] == -3
+    target.write_bytes(header + record[:-1])
+    with pytest.raises(CorruptCatalogError, match="truncated legacy native movie"):
+        read_native_catalog(target)
+
+
+@pytest.mark.parametrize("version", ["1.0", "1.1", "2.1"])
+def test_read_older_fixed_record_catalogs(tmp_path: Path, version: str):
+    from amc.native import read_native_catalog
+
+    values: dict[str, object] = {
+        "number": 1, "original_title": "Legacy", "year": 2000,
+    }
+    if version != "1.0":
+        values["rating"] = 5
+    if version in {"2.1"}:
+        values.update({"checked": False, "date": 0})
+    header = next(key for key, item in NATIVE_HEADERS.items() if item == version)
+    properties = _legacy_properties(owner="Owner") if version == "2.1" else b""
+    target = tmp_path / f"{version}.amc"
+    target.write_bytes(header + properties + _legacy_record(version, values))
+    movie = read_native_catalog(target).movies[0]
+    assert movie.original_title == "Legacy"
+    assert movie.rating == (None if version == "1.0" else 9.0)
+
+
+def test_write_native_42_round_trip_retained_data(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import read_native_catalog, write_native_catalog
+
+    field = {
+        "tag": "Mood", "name": "Mood", "extension": "", "field_type": "List",
+        "default_value": "Calm", "media_info": "", "multi_values": True,
+        "multi_value_separator": ";", "remove_parentheses": False,
+        "patch_values": False, "excluded_in_scripts": False,
+        "gui_properties": "", "list_values": ["Calm", "Tense"],
+        "list_auto_add": True, "list_sort": True,
+        "list_auto_complete": False, "list_use_catalog_values": True,
+    }
+    movie = Movie(
+        number=4, original_title="Brazil", year=1985, rating=8.5,
+        framerate=24.0, file_size=123, checked=True, picture="cover.jpg",
+        extras={
+            "native_date": 730000, "native_writer": "Tom Stoppard",
+            "native_color_tag": 3, "native_picture_base64": "aW1n",
+            "native_custom_values": [{"tag": "Mood", "value": "Tense"}],
+            "native_supplementary_records": [{
+                "checked": True, "tag": "Bonus", "title": "Interview",
+                "category": "Extra", "url": "", "description": "Behind scenes",
+                "comments": "", "created_by": "Owner", "picture_path": "extra.jpg",
+                "picture_base64": "eA==",
+            }],
+        },
+    )
+    catalog = Catalog([movie], metadata={"native": {
+        "owner": "Owner", "mail": "mail@example.test", "site": "site",
+        "description": "Catalog", "column_settings": "columns",
+        "gui_properties": "gui", "custom_fields": [field],
+    }})
+    target = tmp_path / "catalog.amc"
+
+    write_native_catalog(catalog, target)
+    result = read_native_catalog(target)
+
+    assert result.properties.version == "4.2"
+    assert result.properties.owner == "Owner"
+    assert result.properties.custom_fields[0].list_values == ("Calm", "Tense")
+    restored = result.movies[0]
+    assert (restored.original_title, restored.rating, restored.extras["Mood"]) == (
+        "Brazil", 8.5, "Tense"
+    )
+    assert restored.extras["native_picture_base64"] == "aW1n"
+    assert result.movie_extras[0][0].title == "Interview"
+    assert result.movie_extras[0][0].picture_data == b"x"
+
+
+def test_native_writer_is_atomic_on_encoding_failure(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import write_native_catalog
+
+    target = tmp_path / "catalog.amc"
+    target.write_bytes(b"existing")
+
+    with pytest.raises(ValueError, match="cannot encode"):
+        write_native_catalog(Catalog([Movie(number=1, original_title="snowman ☃")]), target)
+
+    assert target.read_bytes() == b"existing"
+    assert not (tmp_path / ".catalog.amc.tmp").exists()

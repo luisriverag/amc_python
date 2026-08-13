@@ -23,6 +23,13 @@ classifiers = [
   "Topic :: Multimedia :: Video",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "coverage[toml]>=7.6",
+  "pytest>=8.3",
+  "ruff>=0.12",
+]
+
 [project.scripts]
 amc = "amc.cli:main"
 amc-gui = "amc.gui:main"
@@ -31,6 +38,21 @@ amc-web = "amc.web:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["src/amc", "tools"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

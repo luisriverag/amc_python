@@ -126,10 +126,11 @@ def inspect_script(path: str | Path) -> ScriptInfo:
     info = _section_values(sections.get("Infos", []))
     fields = _section_values(sections.get("Fields", []))
     extra_fields = _section_values(sections.get("ExtraFields", []))
-    boolean = lambda key, default: info.get(key, "1" if default else "0") != "0"
-    section_boolean = lambda values, key, default: (
-        values.get(key, "1" if default else "0") != "0"
-    )
+    def boolean(key: str, default: bool) -> bool:
+        return info.get(key, "1" if default else "0") != "0"
+
+    def section_boolean(values: dict[str, str], key: str, default: bool) -> bool:
+        return values.get(key, "1" if default else "0") != "0"
     options, option_warnings = _parsed_items(
         sections.get("Options", []), _option, "option"
     )

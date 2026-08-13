@@ -509,6 +509,20 @@ def test_native_property_read_applies_cumulative_string_budget(tmp_path: Path):
         )
 
 
+def test_native_reader_preserves_undefined_cp1252_bytes(tmp_path: Path):
+    target = tmp_path / "ansi-byte.amc"
+    raw_owner = b"Owner\x90Name"
+    target.write_bytes(
+        next(header for header, version in NATIVE_HEADERS.items() if version == "4.2")
+        + _integer(len(raw_owner))
+        + raw_owner
+        + _string("") * 5
+        + _integer(0)
+    )
+
+    assert read_native_properties(target).owner == "Owner\x90Name"
+
+
 def test_native_read_limits_supplementary_records(tmp_path: Path):
     from amc.native import NativeReadLimits, read_native_catalog
 

@@ -82,7 +82,7 @@ source location has been identified; it does not mean the Python behavior matche
 | `Movie Catalog/export.pas` | AMC/XML/CSV/HTML/SQL export workflow | `amc.storage` | mapped, not reviewed | synthetic XML/CSV | Python implements only JSON/XML/CSV |
 | `Movie Catalog/getscript*.pas`, `ifps/` | Website scripts and Pascal runtime | `amc.scripts` | metadata discovery prototype; execution intentionally omitted | synthetic header tests | `TScriptInfo.Load` reads bracketed metadata from the leading Pascal comment; Python never executes IFPS code |
 | `Common/MediaInfo.pas`, `Movie Catalog/getmedia.pas` | Media metadata extraction | `amc.media` | prototype, not compared | synthetic file/WAV tests | Portable path/name/extension/size and WAV audio facts only; upstream exposes 28 media tags and filtering/merge behavior |
-| `Movie Catalog/loan.pas`, `loanhistory.pas` | Borrower and loan-history workflows | none | mapped, not ported | none | Python stores only current borrower text |
+| `Movie Catalog/loan.pas`, `loanhistory.pas` | Borrower and loan-history workflows | `amc.application`, `amc.cli` | current-borrower subset | synthetic service/CLI tests | Atomic single-movie check-out/check-in follows `strBorrower`; borrower lists, grouped media, and history logging are not ported |
 | `Movie Catalog/programsettings.pas` | Preferences and settings XML | none | mapped, not ported | none | Separate from catalog data |
 | `Movie Catalog/printform.pas`, `amcreport/`, `FreeReport/` | Printing/report design | none | mapped, not ported | none | Bundled modified report dependency |
 | `Movie Catalog/languages/`, `help/` | Localization and user documentation | none | mapped, not ported | none | Multiple language assets are present |

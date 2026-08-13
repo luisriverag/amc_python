@@ -8,21 +8,17 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from .catalog import Catalog
+from .application import CatalogService
 from .errors import CatalogError
 from .inspection import inspect_catalog, validate_catalog
 from .model import Movie
 from .media import discover_media, movie_from_media
 from .scripts import discover_scripts, inspect_script
-from .storage import copy_catalog, load, save, save_csv, save_html, save_native, save_xml
+from .storage import load
 
 EXIT_SUCCESS = 0
 EXIT_INVALID_CATALOG = 1
 EXIT_ERROR = 2
-
-
-def _catalog(path: Path) -> Catalog:
-    return load(path) if path.exists() else Catalog()
 
 
 def parser() -> argparse.ArgumentParser:
@@ -40,6 +36,11 @@ def parser() -> argparse.ArgumentParser:
     add.add_argument("--director", default="")
     remove = commands.add_parser("remove", help="remove a movie")
     remove.add_argument("number", type=int)
+    loan_out = commands.add_parser("loan-out", help="check out a movie to a borrower")
+    loan_out.add_argument("number", type=int)
+    loan_out.add_argument("borrower")
+    loan_in = commands.add_parser("loan-in", help="check in a loaned movie")
+    loan_in.add_argument("number", type=int)
     edit = commands.add_parser("edit", help="edit a movie")
     edit.add_argument("number", type=int)
     edit.add_argument("--title")
@@ -158,7 +159,7 @@ def _run(args: argparse.Namespace) -> int:
                 print(f"{label.replace('_', ' ').title()}: {value if value is not None else '-'}")
         return EXIT_SUCCESS
     if args.command == "import-xml":
-        save(load(args.source), args.catalog)
+        CatalogService.convert_to(args.source, args.catalog)
         return EXIT_SUCCESS
     if args.command == "gui":
         from .gui import run
@@ -166,17 +167,17 @@ def _run(args: argparse.Namespace) -> int:
         run(args.catalog)
         return EXIT_SUCCESS
     if args.command == "backup":
-        copy_catalog(args.catalog, args.destination)
+        CatalogService(args.catalog).backup(args.destination)
         return EXIT_SUCCESS
     if args.command == "restore":
-        copy_catalog(args.source, args.catalog)
+        CatalogService.restore_to(args.source, args.catalog)
         return EXIT_SUCCESS
-    catalog = _catalog(args.catalog)
+    service = CatalogService(args.catalog)
+    catalog = service.catalog
     if args.command == "import":
-        count = catalog.merge(
+        count = service.merge(
             load(args.source), collision=args.collision, metadata=args.metadata
         )
-        save(catalog, args.catalog)
         print(f"Imported {count} movie(s)")
     elif args.command == "import-media":
         extensions = (
@@ -188,18 +189,20 @@ def _run(args: argparse.Namespace) -> int:
             args.paths, recursive=args.recursive, extensions=extensions
         )
         movies = [movie_from_media(path) for path in paths]
-        for movie in movies:
-            catalog.add(movie)
-        save(catalog, args.catalog)
+        service.add_many(movies)
         print(f"Imported {len(movies)} media file(s)")
     elif args.command == "add":
-        movie = catalog.add(Movie(title=args.title, year=args.year, director=args.director))
-        save(catalog, args.catalog)
+        movie = service.add(Movie(title=args.title, year=args.year, director=args.director))
         print(f"Added #{movie.number}: {movie.display_title()}")
     elif args.command == "remove":
-        movie = catalog.remove(args.number)
-        save(catalog, args.catalog)
+        movie = service.remove(args.number)
         print(f"Removed #{movie.number}: {movie.display_title()}")
+    elif args.command == "loan-out":
+        movie = service.check_out(args.number, args.borrower)
+        print(f"Checked out #{movie.number} to {movie.borrower}")
+    elif args.command == "loan-in":
+        movie = service.check_in(args.number)
+        print(f"Checked in #{movie.number}: {movie.display_title()}")
     elif args.command == "edit":
         movie = catalog.get(args.number)
         values = movie.to_dict()
@@ -219,25 +222,23 @@ def _run(args: argparse.Namespace) -> int:
                 raise ValueError(
                     f"invalid JSON value for movie field {field}: {error.msg}"
                 ) from error
-        replacement = catalog.replace(args.number, Movie.from_dict(values))
-        save(catalog, args.catalog)
+        replacement = service.replace(args.number, Movie.from_dict(values))
         print(f"Updated #{replacement.number}: {replacement.display_title()}")
     elif args.command == "export-xml":
-        save_xml(catalog, args.destination)
+        service.export(args.destination, format="xml")
     elif args.command == "export-csv":
-        save_csv(catalog, args.destination)
+        service.export(args.destination, format="csv")
     elif args.command == "export-html":
-        save_html(
-            catalog,
+        service.export(
             args.destination,
+            format="html",
             template=args.template,
             row_template=args.row_template,
         )
     elif args.command == "export-amc":
-        save_native(catalog, args.destination)
+        service.export(args.destination, format="amc")
     elif args.command == "renumber":
-        catalog.renumber()
-        save(catalog, args.catalog)
+        service.renumber()
     elif args.command == "stats":
         statistics = catalog.statistics()
         if args.as_json:

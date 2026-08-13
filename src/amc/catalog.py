@@ -64,9 +64,12 @@ class Catalog:
             raise ValueError(f"unknown movie field: {field}")
         def key(item: Movie):
             value = getattr(item, field)
-            return (value is None, value.casefold() if isinstance(value, str) else value)
+            return value.casefold() if isinstance(value, str) else value
 
-        self._movies.sort(key=key, reverse=reverse)
+        present = [movie for movie in self._movies if getattr(movie, field) is not None]
+        missing = [movie for movie in self._movies if getattr(movie, field) is None]
+        present.sort(key=key, reverse=reverse)
+        self._movies = present + missing
 
     def renumber(self, start: int = 1) -> None:
         """Assign consecutive numbers while preserving the current order."""

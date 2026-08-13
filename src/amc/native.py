@@ -59,6 +59,20 @@ def _legacy_layout(version: str) -> tuple[dict[str, tuple[int, str, int]], int]:
     return _layout(tuple(fields))
 
 
+def _decode_native_string(raw: bytes, encoding: str) -> str:
+    """Decode ANSI text while preserving undefined Windows-1252 byte values."""
+    try:
+        return raw.decode(encoding)
+    except UnicodeDecodeError:
+        if encoding.casefold().replace("-", "") not in {"cp1252", "windows1252"}:
+            raise
+        undefined = {0x81, 0x8D, 0x8F, 0x90, 0x9D}
+        return "".join(
+            chr(value) if value in undefined else bytes((value,)).decode("cp1252")
+            for value in raw
+        )
+
+
 def _legacy_value(record: bytes, spec: tuple[int, str, int], encoding: str) -> object:
     offset, kind, size = spec
     if kind == "int":
@@ -76,7 +90,7 @@ def _legacy_value(record: bytes, spec: tuple[int, str, int], encoding: str) -> o
     else:
         raw = record[offset:offset + size].split(b"\0", 1)[0].rstrip(b" ")
     try:
-        return raw.decode(encoding)
+        return _decode_native_string(raw, encoding)
     except UnicodeDecodeError as error:
         raise CorruptCatalogError("cannot decode legacy native string", offset=offset) from error
 
@@ -272,7 +286,7 @@ def _read_string(stream: BinaryIO, encoding: str) -> str:
     if len(raw_value) != size:
         raise CorruptCatalogError("truncated native string value", offset=stream.tell())
     try:
-        return raw_value.decode(encoding)
+        return _decode_native_string(raw_value, encoding)
     except (LookupError, UnicodeDecodeError) as error:
         raise CorruptCatalogError(
             f"cannot decode native string using {encoding}: {error}", offset=offset + 4
@@ -297,7 +311,7 @@ def _read_custom_field(
     patch_values = False
     if version >= "4.1":
         raw_separator = _read_exact(stream, 4, "multi-value separator")
-        separator = raw_separator[:1].decode(encoding) if raw_separator[0] else ","
+        separator = _decode_native_string(raw_separator[:1], encoding) if raw_separator[0] else ","
         remove_parentheses = _read_bool(stream)
         patch_values = _read_bool(stream)
     excluded = _read_bool(stream)

@@ -33,6 +33,9 @@ The JSON shapes are part of the CLI contract:
   validate the copied bytes, and replace the destination only after validation.
 - `import-media` fully discovers and inspects its bounded input set before saving;
   directory recursion is opt-in and extension filters are explicit.
+- `loan-out` rejects an empty borrower or a movie loaned to a different borrower;
+  `loan-in` rejects a movie that is not currently loaned. Both changes are saved
+  atomically.
 - `inspect-script` and `list-scripts` emit metadata as JSON but never execute the
   inspected Pascal scripts. Static variable values are not returned.
 - `export-html` escapes modeled movie values. Document and row templates are

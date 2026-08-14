@@ -48,6 +48,19 @@ def test_catalog_page_escapes_untrusted_fields(tmp_path: Path):
     assert "Alien <script>" not in page
 
 
+def test_catalog_table_shows_posters_without_checked_or_borrower_columns(tmp_path: Path):
+    service = _service(tmp_path)
+    movie = service.catalog.get(1)
+    movie.extras["native_picture_base64"] = "AA=="
+
+    page = render_catalog(service)
+
+    assert "<th scope='col'>Poster</th>" in page
+    assert "class='poster-thumb' src='/poster/1'" in page
+    assert ">Checked</a></th>" not in page
+    assert ">Borrower</a></th>" not in page
+
+
 def test_catalog_page_sorts_columns_and_preserves_filter_parameters(tmp_path: Path):
     page = render_catalog(
         _service(tmp_path), view="All", sort="title", descending=True
@@ -76,7 +89,7 @@ def test_catalog_page_paginates_bounded_rows_and_preserves_state(tmp_path: Path)
         service, sort="title", descending=True, page=2, page_size=25
     )
 
-    assert page.count("<tr><td>") == 5
+    assert page.count("<tr><td class='poster-cell'>") == 5
     assert "Showing 26–30 of 30 matching movie(s); 30 total" in page
     assert "Page 2 of 2" in page
     assert "size=25" in page
@@ -126,6 +139,24 @@ def test_movie_page_matches_details_and_allows_only_web_links(tmp_path: Path):
     assert "Open movie URL" in safe_page
     assert "A&amp;B" in safe_page
     assert "javascript:" not in unsafe_page
+
+
+def test_movie_page_includes_extended_media_fields_and_native_file_path(tmp_path: Path):
+    service = _service(tmp_path)
+    movie = Movie(
+        number=3, title="Media", producer="Producer", media_type="Blu-ray",
+        video_format="HEVC", resolution="3840x2160", file_size=123456,
+        extras={"native_file_path": r"D:\\Movies\\Media.mkv"},
+    )
+
+    page = render_movie(service, movie)
+
+    for label, value in (
+        ("Producer", "Producer"), ("Media type", "Blu-ray"),
+        ("Video format", "HEVC"), ("Resolution", "3840x2160"),
+        ("File size", "123456"), ("File path", r"D:\\Movies\\Media.mkv"),
+    ):
+        assert f"<dt>{label}</dt><dd>{value}</dd>" in page
 
 
 def test_poster_response_verifies_image_and_detects_mime_type(tmp_path: Path):

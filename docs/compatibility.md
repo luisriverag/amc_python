@@ -10,7 +10,7 @@ partial. “Verified (internal only)” applies solely to Python-owned contracts
 |---|---|---|---|
 | Internal JSON v1 read/write | verified (internal only) | Format specification, semantic round trip, strict envelope/row validation, duplicate-key rejection, and finite JSON enforcement | Add an explicit version-migration framework before a v2 format is needed |
 | Atomic output replacement | partial | JSON, CSV, and XML serialization failures plus an injected replacement failure | Test permissions, durability, and concurrency |
-| Native `.amc` read | investigating | User-designated source baseline drives fixed-record 1.0–3.0 and modern 3.1–4.2 parsing, bounded collections, exhaustive synthetic record-truncation checks for 1.0–3.0 and 4.2, deterministic byte-mutation checks, native→JSON retention, and preservation of undefined CP-1252 bytes; no genuine fixtures | Generate genuine fixtures, determine real catalog code pages, cross-check every version, and add property-framework fixture mutation coverage |
+| Native `.amc` read | investigating | User-designated source baseline drives fixed-record 1.0–3.0 and modern 3.1–4.2 parsing, pre-3.0 linked-picture and borrower sidecars, bounded collections, exhaustive synthetic record-truncation checks for 1.0–3.0 and 4.2, deterministic byte-mutation checks, native→JSON retention, and preservation of undefined CP-1252 bytes; no genuine fixtures | Generate genuine fixtures (including legacy sidecars), determine real catalog code pages, cross-check every version, and add property-framework fixture mutation coverage |
 | Non-destructive inspection/validation | partial | JSON/XML/CSV inspection plus source-derived native 1.0–4.2 header probe | Validate native records after genuine fixtures exist |
 | Native `.amc` write | investigating | Explicit, atomic AMC 4.2 export with synthetic byte round trips for metadata, custom values, pictures, and supplementary records; existing destinations receive an fsynced, atomically replaced `.bak` copy before replacement; POSIX directory entries are fsynced after both replacements; injected serialization, backup-copy, and final-replacement interruptions preserve the destination; strict retained-rating, custom-field, separator, and structural metadata validation; configurable budgets exposed by CLI | Cross-check files in upstream 4.2.3.2 before compatibility claims |
 | AMC XML read | partial | Synthetic movie, catalog-property, and custom-field-definition tests | Add real 3.x/4.x exports |
@@ -22,7 +22,7 @@ partial. “Verified (internal only)” applies solely to Python-owned contracts
 | Catalog metadata | investigating | Native/XML properties retained in validated, deep-copied JSON metadata; explicit error/keep/replace/namespace merge policies | Cross-check policies with genuine fixtures and define typed long-term models |
 | Catalog merging | partial | Movie-number `error`/`skip`/`replace`/`renumber` and metadata `error`/`keep`/`replace`/`namespace` policies are available in the model and CLI | Verify policies with genuine interchange fixtures |
 | Custom-field definitions | investigating | Native and XML definitions retained in JSON metadata; every native value is additionally retained as an ordered tag/value list so duplicates and reserved-key collisions survive | Cross-check genuine fixtures and typed-value behavior |
-| Website scripts | investigating | Bounded, non-executing `.ifs` metadata/permissions/static-name inspection with malformed-entry diagnostics; static values are not exposed | Design sandboxed provider execution and map runtime APIs |
+| Website scripts | investigating | Bounded, non-executing `.ifs` metadata/permissions/static-name inspection with malformed-entry diagnostics, source-shaped field exclusion delimiters, validated option/parameter configuration, and atomic JSON settings persistence; static values are not exposed or persisted | Design sandboxed provider execution and map runtime APIs |
 | Media analysis | prototype | Portable file facts and dependency-free PCM WAV duration/audio data can create movie entries | Add bounded optional codec providers and map upstream field/filter semantics |
 | Loans | prototype | Source-derived atomic single/multi-movie transitions with opt-in case-insensitive media-label and retained-native-number grouping, validated JSON-retained history, managed/active borrower lists, and atomic source-shaped TSV export; synthetic service/CLI/GUI tests | Verify grouping and TSV encoding/consumer behavior with upstream AMC |
 | CLI CRUD | partial | In-process function tests, explicit import policies, shared application services for failure-atomic mutations, exports, and validated backup/restore, read-only protection for native/XML/CSV interchange paths, plus an installed empty-list JSON contract | Expand installed end-to-end command behavior contracts |
@@ -30,6 +30,16 @@ partial. “Verified (internal only)” applies solely to Python-owned contracts
 | Web interface (Python extension) | prototype | Read-only responsive table/poster-gallery/details UI with search, bounded pagination, sortable headings, failure-safe external-change reload, desktop-aligned views, security headers, size/pixel-bounded decoded-image MIME handling, HTML escaping, and safe-link tests; independent of Tk | Add authentication/TLS deployment guidance before any mutation support |
 | Localization | unsupported | Upstream language/help assets located; Python strings are inline English | Inventory resource formats and supported locales |
 | Printing/reports | unsupported | `printform.pas`, `amcreport/`, and bundled FreeReport located | Decide port/omission after behavior and license review |
+
+## Parity accounting notes
+
+The web server, internal JSON format, JSON script-settings files, strict corrupt-file
+diagnostics, and safer active-borrower deletion behavior are AMC Python features or
+intentional divergences. They are tested functionality, but they do not increase
+the count of upstream-verified subsystems. Likewise, accepting an internal JSON
+catalog with an `.amc` filename is a migration aid for earlier AMC Python releases,
+not support for another native AMC header. The detailed source-by-source gaps are
+tracked in the [port audit](PORT_AUDIT.md#gap-matrix-against-the-original-application).
 
 ## Supported Python environments
 

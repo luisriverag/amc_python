@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import configparser
 import math
 import os
 import shutil
@@ -565,7 +566,57 @@ def _read_legacy_catalog(
                 borrower=str(get("borrower")) if "borrower" in layout else "",
                 extras=extras,
             ))
+    if version in {"1.0", "1.1", "2.1"}:
+        _read_legacy_sidecars(path, movies, encoding, limits)
     return NativeCatalog(properties, tuple(movies), tuple(() for _ in movies))
+
+
+def _read_legacy_sidecars(
+    path: Path, movies: list["Movie"], encoding: str, limits: NativeReadLimits
+) -> None:
+    """Apply the picture and borrower sidecars used before native AMC 3.0."""
+    by_number = {movie.number: movie for movie in movies}
+    picture_prefix = path.with_suffix("")
+    for movie in movies:
+        for extension in (".jpg", ".gif", ".png"):
+            picture = picture_prefix.with_name(
+                f"{picture_prefix.name}_{movie.number}{extension}"
+            )
+            if picture.is_file():
+                movie.picture = picture.name
+                break
+
+    borrowers = path.with_suffix(".amcl")
+    if not borrowers.is_file():
+        return
+    size = borrowers.stat().st_size
+    if size > limits.max_file_bytes:
+        raise CorruptCatalogError(
+            f"legacy borrower sidecar exceeds file-size limit: {size} > "
+            f"{limits.max_file_bytes}"
+        )
+    parser = configparser.ConfigParser(
+        interpolation=None, delimiters=("=",), strict=False
+    )
+    parser.optionxform = str
+    try:
+        with borrowers.open(encoding=encoding) as stream:
+            parser.read_file(stream)
+        for borrower in parser.sections():
+            for value in parser.options(borrower):
+                try:
+                    number = int(value)
+                except ValueError as error:
+                    raise CorruptCatalogError(
+                        f"invalid movie number in legacy borrower sidecar: {value!r}"
+                    ) from error
+                movie = by_number.get(number)
+                if movie is not None:
+                    movie.borrower = borrower
+    except (configparser.Error, LookupError, UnicodeError) as error:
+        raise CorruptCatalogError(
+            f"cannot read legacy borrower sidecar: {error}"
+        ) from error
 
 
 def _layout(

@@ -17,7 +17,10 @@ amc-web movies.json --host 127.0.0.1
 The web interface is a new AMC Python feature rather than a ported upstream web
 server. Its UX deliberately follows the original/desktop catalog manager: a movie
 table, search, All/Loaned/Available/Checked/Unchecked views, movie details, linked
-or embedded posters, checked and borrower columns, and safe HTTP(S) movie links.
+or embedded posters, poster thumbnails in the table, and safe HTTP(S) movie links.
+The compact table omits checked and borrower columns; those values remain available
+through filters and the individual movie page. Movie pages show the modeled catalog
+and technical media fields, including a retained native file path when available.
 Column headings toggle ascending/descending sorting and display the active direction.
 The Layout selector switches between the information-dense original-style table and
 a responsive poster-card gallery. Cards retain the current search/view/sort/page

@@ -14,7 +14,13 @@ from .inspection import inspect_catalog, validate_catalog
 from .model import Movie
 from .native import NativeWriteLimits
 from .media import discover_media, movie_from_media
-from .scripts import discover_scripts, inspect_script
+from .scripts import (
+    configure_script,
+    discover_scripts,
+    inspect_script,
+    load_script_configuration,
+    save_script_configuration,
+)
 from .storage import load
 
 EXIT_SUCCESS = 0
@@ -165,6 +171,15 @@ def parser() -> argparse.ArgumentParser:
         "list-scripts", help="list legacy script metadata without executing scripts"
     )
     scripts.add_argument("directory", type=Path)
+    configure = commands.add_parser(
+        "configure-script",
+        help="validate legacy script options without executing the script",
+    )
+    configure.add_argument("path", type=Path)
+    configure.add_argument("--option", action="append", default=[], metavar="NAME=INTEGER")
+    configure.add_argument("--parameter", action="append", default=[], metavar="NAME=VALUE")
+    configure.add_argument("--load", type=Path, metavar="SETTINGS")
+    configure.add_argument("--save", type=Path, metavar="SETTINGS")
     return result
 
 
@@ -187,6 +202,20 @@ def _run(args: argparse.Namespace) -> int:
             ensure_ascii=False,
             sort_keys=True,
         ))
+        return EXIT_SUCCESS
+    if args.command == "configure-script":
+        options = {
+            name: int(value)
+            for name, value in _assignments(args.option, "script option")
+        }
+        parameters = dict(_assignments(args.parameter, "script parameter"))
+        configured = inspect_script(args.path)
+        if args.load:
+            configured = load_script_configuration(configured, args.load)
+        configured = configure_script(configured, options=options, parameters=parameters)
+        if args.save:
+            save_script_configuration(configured, args.save)
+        print(json.dumps(configured.to_dict(), ensure_ascii=False, sort_keys=True))
         return EXIT_SUCCESS
     if args.command == "validate":
         diagnostics = validate_catalog(args.path)
@@ -418,6 +447,24 @@ def _run(args: argparse.Namespace) -> int:
                 year = f" ({movie.year})" if movie.year else ""
                 print(f"{movie.number:>5}  {movie.display_title()}{year}")
     return EXIT_SUCCESS
+
+
+def _assignments(values: list[str], label: str) -> list[tuple[str, str]]:
+    """Split repeatable CLI NAME=VALUE assignments with stable diagnostics."""
+    result = []
+    names = set()
+    for item in values:
+        if "=" not in item:
+            raise ValueError(f"{label} must use NAME=VALUE")
+        name, value = item.split("=", 1)
+        normalized = name.strip().casefold()
+        if not normalized:
+            raise ValueError(f"{label} name cannot be empty")
+        if normalized in names:
+            raise ValueError(f"duplicate {label}: {name!r}")
+        names.add(normalized)
+        result.append((name, value))
+    return result
 
 
 if __name__ == "__main__":

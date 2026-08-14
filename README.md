@@ -1,6 +1,6 @@
 # AMC Python
 
-A cross-platform Python catalog inspired by Ant Movie Catalog. It provides a
+A cross-platform Python catalog inspired by [Ant Movie Catalog](https://antp.be/software/moviecatalog). It provides a
 reusable model, JSON persistence, import and export tools, command-line and desktop
 interfaces, and a read-only web view.
 

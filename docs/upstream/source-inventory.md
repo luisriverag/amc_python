@@ -11,22 +11,25 @@ components at `src/antcomponents/`. The two trees contain 952 files: 418 belong 
 help, resources, and components. This corrects the previous statement that no
 upstream source was present.
 
-The snapshot did not arrive through `tools/acquire_upstream.py`: no archive,
-`archive.json`, retrieval timestamp, byte size, digest, or generated inventory was
-committed. Treat it as **source available with incomplete provenance**, not as an
-authenticated archive. Do not regenerate those facts from the Git tree or imply
-that source availability proves behavioral compatibility.
+The contributor later supplied the original RAR and companion ZIP. Their byte
+sizes and digests are recorded in `archive-provenance.md`, and clean extraction
+confirmed that all 952 expanded paths and content digests match the checked-in
+trees. Treat this as **archive/tree identity with incomplete publisher
+authentication**: the precise retrieval time and an independently published digest
+are unavailable, and source availability does not prove behavioral compatibility.
 
 **Project decision:** the user has designated this checked-in snapshot as correct
-and authoritative for continued source-driven porting. This unblocks implementation
-only; historical archive provenance and snapshot equivalence remain unknown.
+and authoritative for continued source-driven porting. Exact equality with the
+supplied archives is now established; publisher origin and compatibility remain
+separate evidence questions.
 
 | Artifact | Expected location | Current state |
 |---|---|---|
 | Checked-in source | `src/original/` | present (876 files) |
 | Companion components | `src/antcomponents/` | present (76 files) |
-| Downloaded archive | `upstream/amc_sources.rar` | absent |
-| Archive provenance and digest | `upstream/archive.json` | absent |
+| Supplied application archive | `src/original_compressed/amc_sources.rar` | present; digest recorded |
+| Supplied component archive | `src/components_compressed/antcomponents.zip` | present; digest recorded |
+| Archive provenance and digest | `docs/upstream/archive-provenance.md` | present for both supplied archives |
 | Extracted acquisition workspace | `upstream/source/` | absent |
 | Generated file inventory | `upstream/inventory.json` | absent |
 | Reviewed unit-to-module map | table below | initial map only |
@@ -37,34 +40,33 @@ only; historical archive provenance and snapshot equivalence remain unknown.
 | Property | Evidence/value |
 |---|---|
 | Published URL | `https://update.antp.be/amc/amc_sources.rar` (acquisition-tool default; not proven as snapshot origin) |
-| Retrieved at / byte size / SHA-256 | **not recorded** |
+| Retrieved at / byte size / SHA-256 | Precise retrieval time unknown; sizes and SHA-256 values recorded in `archive-provenance.md` |
 | Product version | `MovieCatalog.dof` declares file version **4.2.3.2** |
 | Source language/compiler | Delphi; bundled readme requires Delphi 7 with Update 1 and mentions possible Delphi 6 support |
 | Copyright | bundled readme: 2000–2023 Antoine Potten and Mickaël Vanneufville |
 | Application license | bundled readme says GPL; application units contain GPL-2.0-or-later notices; GPLv2 text exists under `Movie Catalog/dev/` |
 | Third-party licensing | **review required**; several bundled dependency license files exist |
-| Snapshot/archive equivalence | **unverified** |
+| Snapshot/archive equivalence | **verified** for all 952 files in the two supplied archives |
 
-Reacquire the archive reproducibly, then compare the resulting file inventory to
-the checked-in trees:
+Reproduce the supplied RAR comparison with:
 
 ```console
 python tools/acquire_upstream.py \
-  --expected-sha256 <digest-from-an-independent-published-source> \
+  --url file://$PWD/src/original_compressed/amc_sources.rar \
+  --expected-sha256 96ac957a892094f2b97c9eebcbe31d4f0d78f2557800dcae276ffe551952cfb7 \
   --extract-to upstream/source \
+  --strip-root \
   --compare-to src/original
 ```
 
 This writes `upstream/comparison.json` with matched, changed, missing, and
-unexpected paths, and records the boolean result in `archive.json`. A `true`
-result proves byte-for-byte tree equality for that acquisition; a `false` result
-is deliberately retained as evidence and must be investigated rather than
-normalized away. The separately published `antcomponents` archive must be
-acquired and compared independently; it is not part of `amc_sources.rar`.
-When an independently published digest is available, `--expected-sha256` checks
-it before replacing a previously downloaded archive. Do not derive that expected
-value from the unauthenticated checked-in tree or from the same download being
-verified.
+unexpected paths, and records the boolean result in `archive.json`. The
+`--strip-root` option removes the RAR's sole `amc_sources/` packaging directory.
+The same tool extracts ZIP files directly, so the component archive can be compared
+without that option against `src/antcomponents/`. A `true` result proves tree
+equality for the supplied bytes; it does not authenticate their publisher origin.
+If an independently published digest becomes available, use it with
+`--expected-sha256` when performing a fresh network acquisition.
 
 ## Initial unit inventory
 
@@ -82,7 +84,7 @@ source location has been identified; it does not mean the Python behavior matche
 | `Movie Catalog/export.pas` | AMC/XML/CSV/HTML/SQL export workflow | `amc.storage` | mapped, not reviewed | synthetic XML/CSV | Python implements only JSON/XML/CSV |
 | `Movie Catalog/getscript*.pas`, `ifps/` | Website scripts and Pascal runtime | `amc.scripts` | metadata discovery prototype; execution intentionally omitted | synthetic header tests | `TScriptInfo.Load` reads bracketed metadata from the leading Pascal comment; Python never executes IFPS code |
 | `Common/MediaInfo.pas`, `Movie Catalog/getmedia.pas` | Media metadata extraction | `amc.media` | prototype, not compared | synthetic file/WAV tests | Portable path/name/extension/size and WAV audio facts only; upstream exposes 28 media tags and filtering/merge behavior |
-| `Movie Catalog/loan.pas`, `loanhistory.pas` | Borrower and loan-history workflows | `amc.application`, `amc.cli` | current-borrower subset | synthetic service/CLI tests | Atomic single-movie check-out/check-in follows `strBorrower`; borrower lists, grouped media, and history logging are not ported |
+| `Movie Catalog/loan.pas`, `loanhistory.pas` | Borrower and loan-history workflows | `amc.application`, `amc.loans`, `amc.cli` | prototype subset | synthetic service/CLI tests | Atomic single/multi-movie transitions follow `strBorrower`; opt-in media-label and retained-native-number expansion follow `ActionOptionsIncLab`/`ActionOptionsIncNum`; empty labels are not grouped; managed names combine with active values case-insensitively; unlike upstream deletion, active names cannot be removed implicitly; Python retains ISO-8601 events and exports the seven-column TSV layout as UTF-8; upstream verification remains pending |
 | `Movie Catalog/programsettings.pas` | Preferences and settings XML | none | mapped, not ported | none | Separate from catalog data |
 | `Movie Catalog/printform.pas`, `amcreport/`, `FreeReport/` | Printing/report design | none | mapped, not ported | none | Bundled modified report dependency |
 | `Movie Catalog/languages/`, `help/` | Localization and user documentation | none | mapped, not ported | none | Multiple language assets are present |
@@ -104,7 +106,9 @@ source location has been identified; it does not mean the Python behavior matche
 - [x] Localization (`languages/`, `help/`)
 - [x] Preferences and UI state (`programsettings.pas`)
 - [x] Forms and user workflows (`*.dfm` and paired units)
-- [ ] Update mechanism (not yet located/reviewed)
+- [x] Update mechanism (no application self-update subsystem located; `CheckVersion`
+  in `getscript.pas` exposes the running application version to scripts, while
+  `TMediaInfo.Create(..., CheckVersion)` checks the MediaInfo DLL API version)
 
 Discovery checkmarks only mean likely source locations were found. Detailed symbol
 mapping, behavior characterization, licensing, and tests remain open.

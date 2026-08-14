@@ -18,8 +18,11 @@ export an existing catalog as XML in Ant Movie Catalog before importing it here.
 > [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 > **Upstream status:** an extracted source snapshot is now checked in under
 > `src/original/` with its companion components under `src/antcomponents/`. Its
-> archive URL, retrieval timestamp, size, and digest were not recorded, so snapshot
-> provenance is incomplete. Initial source-unit mapping is recorded in the
+> two supplied archives, reported source page, sizes, digests, and exact expanded-tree
+> comparisons are recorded in the
+> [archive provenance record](docs/upstream/archive-provenance.md). The precise
+> download time and an independently published checksum are unavailable, so origin
+> authentication remains incomplete. Initial source-unit mapping is recorded in the
 > [upstream source inventory](docs/upstream/source-inventory.md); no Python codec is
 > yet verified against an upstream-generated catalog. Native AMC 1.0–4.2 headers
 > can be identified non-destructively. Catalog owner, mail, site, and description
@@ -34,18 +37,19 @@ export an existing catalog as XML in Ant Movie Catalog before importing it here.
 > validation remains pending.
 
 For porting work, the checked-in Delphi snapshot is treated as the user-designated
-authoritative source baseline. Missing archive provenance remains documented and
-this assumption is not presented as independent compatibility verification.
+authoritative source baseline. Its equality with the checked-in archives is
+verified, but the reported download origin is not presented as independent
+publisher authentication or compatibility verification.
 
 ## Port progress
 
-**22% — 10 of 46 implementation-plan checklist items complete**
+**23% — 11 of 47 implementation-plan checklist items complete**
 
-`██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **10 / 46**
+`███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **11 / 47**
 
 This bar is calculated from the checked boxes in the
 [implementation plan](docs/IMPLEMENTATION_PLAN.md); it is an auditable project-task
-indicator, not a claim that 22% of every upstream feature is compatible. A task is
+indicator, not a claim that 23% of every upstream feature is compatible. A task is
 only checked off when its tests, documentation, and required compatibility evidence
 are complete. In particular, native AMC support remains **investigating** until
 genuine upstream-generated fixtures and cross-application verification exist. See
@@ -76,6 +80,10 @@ amc -c movies.json export-html movies.html
 amc -c movies.json export-html movies.html --template template.html
 amc -c movies.json export-html movies.html --row-template movie-row.html
 amc -c movies.json export-amc movies.amc
+amc -c movies.json export-amc movies.amc --max-output-bytes 104857600
+amc -c movies.json picture-set 12 cover.jpg --embed
+amc -c movies.json picture-set 12 cover.jpg --embed --crop 10,10,300,450
+amc -c movies.json picture-export 12 exported-cover.jpg
 amc -c movies.json stats
 amc -c movies.json stats --json
 amc -c movies.json duplicates --json
@@ -84,6 +92,12 @@ amc -c movies.json backup movies.backup.json
 amc -c movies.json restore movies.backup.json
 amc -c movies.json loan-out 12 "Sam Bell"
 amc -c movies.json loan-in 12
+amc -c movies.json loan-out 12 "Sam Bell" --include-media-label
+amc -c movies.json loan-out 12 "Sam Bell" --include-native-number
+amc -c movies.json loan-history --json
+amc -c movies.json loan-history-export "Loans history.csv"
+amc -c movies.json borrower-add "Sam Bell"
+amc -c movies.json borrowers
 amc -c movies.json gui
 amc-web movies.json
 amc inspect movies.json --json

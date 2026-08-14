@@ -6,12 +6,14 @@ under GPL-2.0-or-later. It is also the GPL version 2 text shipped with the upstr
 Ant Movie Catalog application. Files in the historical trees remain under their
 own notices; the root license does not replace those notices.
 
-This inventory is based only on the checked-in snapshot. Because the archive has
-not yet been reacquired and matched, it is not a final redistribution clearance.
+This inventory is based on the checked-in snapshot. The supplied compressed
+archives exactly match the expanded trees as documented in
+`docs/upstream/archive-provenance.md`, but that content match is not a final
+redistribution clearance.
 
 | Path | Component and credited author | Notice found in snapshot | Review status |
 |---|---|---|---|
-| `src/original/Movie Catalog/` | Ant Movie Catalog, Antoine Potten and Mickaël Vanneufville | GPL; full GPLv2 text at `dev/license.txt` | Notice present. Snapshot identity still needs verification. |
+| `src/original/Movie Catalog/` | Ant Movie Catalog, Antoine Potten and Mickaël Vanneufville | GPL; full GPLv2 text at `dev/license.txt` | Notice present. Archive/tree equality is verified; publisher authentication is incomplete. |
 | `src/original/Common/` | Shared Ant application units | Upstream readme says units are GPL or MPL; individual file headers vary | **Incomplete:** produce a per-file mapping before redistribution. |
 | `src/original/FreeReport/` | FreeReport, credited in source primarily to A. Tzyganenko | GNU Library General Public License v2 at `license.txt` | Notice present; modifications and individual bundled units still need review. |
 | `src/original/ifps/` | Innerfuse Pascal Script, Carlo Kok / Innerfuse | Custom permissive license with attribution and documentation conditions at `license.txt` | Notice present; required product attribution must be retained. |
@@ -32,8 +34,9 @@ licenses must be reviewed if they are later vendored or distributed in artifacts
 
 Before publishing an artifact containing either historical tree:
 
-1. reacquire the official archive and record URL, retrieval time, byte size, and
-   SHA-256, then prove which checked-in files came from it;
+1. independently authenticate the supplied archives against the publisher (the
+   contributor-reported source page, sizes, hashes, and exact tree matches are
+   recorded, but no publisher checksum or precise retrieval time is available);
 2. resolve the ElTree source-redistribution restriction;
 3. finish per-file review of `Common` and `antcomponents`, including modifications
    and conflicting or exceptional notices; and

@@ -12,6 +12,7 @@ from .application import CatalogService
 from .errors import CatalogError
 from .inspection import inspect_catalog, validate_catalog
 from .model import Movie
+from .native import NativeWriteLimits
 from .media import discover_media, movie_from_media
 from .scripts import discover_scripts, inspect_script
 from .storage import load
@@ -39,8 +40,43 @@ def parser() -> argparse.ArgumentParser:
     loan_out = commands.add_parser("loan-out", help="check out a movie to a borrower")
     loan_out.add_argument("number", type=int)
     loan_out.add_argument("borrower")
+    loan_out.add_argument("--include-media-label", action="store_true")
+    loan_out.add_argument("--include-native-number", action="store_true")
     loan_in = commands.add_parser("loan-in", help="check in a loaned movie")
     loan_in.add_argument("number", type=int)
+    loan_in.add_argument("--include-media-label", action="store_true")
+    loan_in.add_argument("--include-native-number", action="store_true")
+    loan_history = commands.add_parser("loan-history", help="show loan history")
+    loan_history.add_argument("--json", action="store_true", dest="as_json")
+    loan_export = commands.add_parser(
+        "loan-history-export", help="export upstream-style tab-separated loan history"
+    )
+    loan_export.add_argument("destination", type=Path)
+    loan_export.add_argument("--catalog-name")
+    borrower_list = commands.add_parser("borrowers", help="list borrower names")
+    borrower_list.add_argument("--json", action="store_true", dest="as_json")
+    borrower_add = commands.add_parser("borrower-add", help="add a borrower name")
+    borrower_add.add_argument("name")
+    borrower_remove = commands.add_parser(
+        "borrower-remove", help="remove an unused borrower name"
+    )
+    borrower_remove.add_argument("name")
+    picture_set = commands.add_parser("picture-set", help="link or embed a movie picture")
+    picture_set.add_argument("number", type=int)
+    picture_set.add_argument("source", type=Path)
+    picture_set.add_argument("--embed", action="store_true")
+    picture_set.add_argument("--max-bytes", type=int, default=64 * 1024 * 1024)
+    picture_set.add_argument("--max-pixels", type=int, default=40_000_000)
+    picture_set.add_argument(
+        "--crop",
+        metavar="X,Y,WIDTH,HEIGHT",
+        help="crop an embedded picture before storing it",
+    )
+    picture_clear = commands.add_parser("picture-clear", help="remove a movie picture")
+    picture_clear.add_argument("number", type=int)
+    picture_export = commands.add_parser("picture-export", help="export a movie picture")
+    picture_export.add_argument("number", type=int)
+    picture_export.add_argument("destination", type=Path)
     edit = commands.add_parser("edit", help="edit a movie")
     edit.add_argument("number", type=int)
     edit.add_argument("--title")
@@ -90,6 +126,16 @@ def parser() -> argparse.ArgumentParser:
         "export-amc", help="write a source-derived AMC 4.2 native catalog"
     )
     native_export.add_argument("destination", type=Path)
+    native_export.add_argument("--encoding", default="cp1252")
+    native_export.add_argument("--max-output-bytes", type=int)
+    native_export.add_argument("--max-string-bytes", type=int)
+    native_export.add_argument("--max-picture-bytes", type=int)
+    native_export.add_argument("--max-total-picture-bytes", type=int)
+    native_export.add_argument("--max-movies", type=int)
+    native_export.add_argument("--max-custom-fields", type=int)
+    native_export.add_argument("--max-list-values", type=int)
+    native_export.add_argument("--max-extras-per-movie", type=int)
+    native_export.add_argument("--max-total-extras", type=int)
     commands.add_parser("renumber", help="assign consecutive movie numbers")
     backup = commands.add_parser("backup", help="copy the catalog to a validated backup")
     backup.add_argument("destination", type=Path)
@@ -198,11 +244,69 @@ def _run(args: argparse.Namespace) -> int:
         movie = service.remove(args.number)
         print(f"Removed #{movie.number}: {movie.display_title()}")
     elif args.command == "loan-out":
-        movie = service.check_out(args.number, args.borrower)
+        movie = service.check_out(
+            args.number,
+            args.borrower,
+            include_media_label=args.include_media_label,
+            include_native_number=args.include_native_number,
+        )
         print(f"Checked out #{movie.number} to {movie.borrower}")
     elif args.command == "loan-in":
-        movie = service.check_in(args.number)
+        movie = service.check_in(
+            args.number,
+            include_media_label=args.include_media_label,
+            include_native_number=args.include_native_number,
+        )
         print(f"Checked in #{movie.number}: {movie.display_title()}")
+    elif args.command == "loan-history":
+        events = service.loan_history()
+        if args.as_json:
+            print(json.dumps([event.to_dict() for event in events], ensure_ascii=False))
+        else:
+            for event in events:
+                print(
+                    f"{event.timestamp}  {event.action.upper():>3}  "
+                    f"#{event.movie_number} {event.title} — {event.borrower}"
+                )
+    elif args.command == "loan-history-export":
+        service.export_loan_history(
+            args.destination, catalog_name=args.catalog_name
+        )
+    elif args.command == "borrowers":
+        names = service.borrowers()
+        if args.as_json:
+            print(json.dumps(names, ensure_ascii=False))
+        else:
+            for name in names:
+                print(name)
+    elif args.command == "borrower-add":
+        print(f"Added borrower: {service.add_borrower(args.name)}")
+    elif args.command == "borrower-remove":
+        print(f"Removed borrower: {service.remove_borrower(args.name)}")
+    elif args.command == "picture-set":
+        crop = None
+        if args.crop is not None:
+            try:
+                parts = tuple(int(value) for value in args.crop.split(","))
+            except ValueError as error:
+                raise ValueError("crop must be X,Y,WIDTH,HEIGHT integers") from error
+            if len(parts) != 4:
+                raise ValueError("crop must be X,Y,WIDTH,HEIGHT integers")
+            crop = parts
+        movie = service.set_picture(
+            args.number,
+            args.source,
+            embed=args.embed,
+            max_bytes=args.max_bytes,
+            max_pixels=args.max_pixels,
+            crop=crop,
+        )
+        print(f"Updated picture for #{movie.number}: {movie.picture}")
+    elif args.command == "picture-clear":
+        movie = service.clear_picture(args.number)
+        print(f"Cleared picture for #{movie.number}")
+    elif args.command == "picture-export":
+        service.export_picture(args.number, args.destination)
     elif args.command == "edit":
         movie = catalog.get(args.number)
         values = movie.to_dict()
@@ -236,7 +340,52 @@ def _run(args: argparse.Namespace) -> int:
             row_template=args.row_template,
         )
     elif args.command == "export-amc":
-        service.export(args.destination, format="amc")
+        defaults = NativeWriteLimits()
+        service.export(
+            args.destination,
+            format="amc",
+            native_encoding=args.encoding,
+            native_limits=NativeWriteLimits(
+                max_file_bytes=(
+                    defaults.max_file_bytes
+                    if args.max_output_bytes is None else args.max_output_bytes
+                ),
+                max_total_string_bytes=(
+                    defaults.max_total_string_bytes
+                    if args.max_string_bytes is None else args.max_string_bytes
+                ),
+                max_picture_bytes=(
+                    defaults.max_picture_bytes
+                    if args.max_picture_bytes is None else args.max_picture_bytes
+                ),
+                max_total_picture_bytes=(
+                    defaults.max_total_picture_bytes
+                    if args.max_total_picture_bytes is None
+                    else args.max_total_picture_bytes
+                ),
+                max_movies=(
+                    defaults.max_movies
+                    if args.max_movies is None else args.max_movies
+                ),
+                max_custom_fields=(
+                    defaults.max_custom_fields
+                    if args.max_custom_fields is None else args.max_custom_fields
+                ),
+                max_list_values_per_field=(
+                    defaults.max_list_values_per_field
+                    if args.max_list_values is None else args.max_list_values
+                ),
+                max_extras_per_movie=(
+                    defaults.max_extras_per_movie
+                    if args.max_extras_per_movie is None
+                    else args.max_extras_per_movie
+                ),
+                max_total_extras=(
+                    defaults.max_total_extras
+                    if args.max_total_extras is None else args.max_total_extras
+                ),
+            ),
+        )
     elif args.command == "renumber":
         service.renumber()
     elif args.command == "stats":

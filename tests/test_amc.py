@@ -59,7 +59,66 @@ def test_cli_loan_out_and_in(tmp_path: Path, capsys):
     assert load(target).get(1).borrower == "Sam Bell"
     assert main(["-c", str(target), "loan-in", "1"]) == 0
     assert load(target).get(1).borrower == ""
-    assert "Checked out #1 to Sam Bell" in capsys.readouterr().out
+    assert main(["-c", str(target), "loan-history", "--json"]) == 0
+    output = capsys.readouterr().out
+    assert "Checked out #1 to Sam Bell" in output
+    events = json.loads(output.splitlines()[-1])
+    assert [(event["action"], event["borrower"]) for event in events] == [
+        ("out", "Sam Bell"), ("in", "Sam Bell")
+    ]
+
+
+def test_cli_manages_and_lists_borrowers(tmp_path: Path, capsys):
+    target = tmp_path / "movies.json"
+    assert main(["-c", str(target), "borrower-add", "Sam Bell"]) == 0
+    assert main(["-c", str(target), "borrowers", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out.splitlines()[-1]) == ["Sam Bell"]
+    assert main(["-c", str(target), "borrower-remove", "sam bell"]) == 0
+    assert load(target).metadata["amc_python_borrowers"] == []
+
+
+def test_cli_exports_upstream_style_loan_history(tmp_path: Path):
+    target = tmp_path / "movies.json"
+    history = tmp_path / "history.csv"
+    main(["-c", str(target), "add", "Moon"])
+    main(["-c", str(target), "loan-out", "1", "Sam Bell"])
+
+    assert main([
+        "-c", str(target), "loan-history-export", str(history),
+        "--catalog-name", "Moon.amc",
+    ]) == 0
+
+    assert "\tMoon.amc\tOut\t1\t\tMoon\tSam Bell" in history.read_text()
+
+
+def test_cli_can_include_movies_with_same_media_label(tmp_path: Path):
+    target = tmp_path / "movies.json"
+    save(Catalog([
+        Movie(number=1, title="Part one", media_label="BOX"),
+        Movie(number=2, title="Part two", media_label="box"),
+    ]), target)
+
+    assert main([
+        "-c", str(target), "loan-out", "2", "Ripley", "--include-media-label"
+    ]) == 0
+    assert [movie.borrower for movie in load(target)] == ["Ripley", "Ripley"]
+    assert main([
+        "-c", str(target), "loan-in", "1", "--include-media-label"
+    ]) == 0
+    assert [movie.borrower for movie in load(target)] == ["", ""]
+
+
+def test_cli_can_include_movies_with_same_retained_native_number(tmp_path: Path):
+    target = tmp_path / "movies.json"
+    save(Catalog([
+        Movie(number=1, title="Part one", extras={"native_movie_number": 7}),
+        Movie(number=2, title="Part two", extras={"native_movie_number": 7}),
+    ]), target)
+
+    assert main([
+        "-c", str(target), "loan-out", "2", "Ripley", "--include-native-number"
+    ]) == 0
+    assert [movie.borrower for movie in load(target)] == ["Ripley", "Ripley"]
 
 
 def test_xml_roundtrip_preserves_supported_and_custom_fields(tmp_path: Path):
@@ -79,6 +138,116 @@ def test_cli_edit_and_export(tmp_path: Path):
     main(["-c", str(catalog), "export-xml", str(xml)])
     movie = next(iter(load_xml(xml)))
     assert (movie.title, movie.year) == ("Moon", 2009)
+
+
+def test_cli_native_export_accepts_encoding_and_budgets(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    target = tmp_path / "movies.amc"
+    save(Catalog([Movie(title="Amélie")]), catalog)
+
+    assert main([
+        "-c", str(catalog), "export-amc", str(target),
+        "--encoding", "utf-8", "--max-output-bytes", "4096",
+        "--max-string-bytes", "1024", "--max-picture-bytes", "16",
+        "--max-total-picture-bytes", "32",
+        "--max-movies", "1", "--max-custom-fields", "0",
+        "--max-list-values", "0", "--max-extras-per-movie", "0",
+        "--max-total-extras", "0",
+    ]) == 0
+
+    assert target.exists()
+
+
+@pytest.mark.parametrize(("option", "message"), [
+    ("--max-movies", "movie-count limit"),
+    ("--max-custom-fields", "custom-field limit"),
+    ("--max-list-values", "list-value limit"),
+    ("--max-extras-per-movie", "supplementary-record limit"),
+    ("--max-total-extras", "supplementary-record limit"),
+])
+def test_cli_native_export_exposes_structural_budgets(
+    tmp_path: Path, capsys, option: str, message: str
+):
+    catalog = tmp_path / f"{option[2:]}.json"
+    target = tmp_path / f"{option[2:]}.amc"
+    field = {"tag": "Mood", "field_type": "List", "list_values": ["Calm"]}
+    movie = Movie(extras={"native_supplementary_records": [{}]})
+    save(Catalog([movie], metadata={"native": {"custom_fields": [field]}}), catalog)
+    target.write_bytes(b"trusted")
+
+    assert main(["-c", str(catalog), "export-amc", str(target), option, "0"]) == 2
+
+    assert message in capsys.readouterr().err
+    assert target.read_bytes() == b"trusted"
+
+
+def test_cli_native_export_rejects_invalid_budget_atomically(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    target = tmp_path / "movies.amc"
+    save(Catalog([Movie(title="Alien")]), catalog)
+    target.write_bytes(b"trusted")
+
+    assert main([
+        "-c", str(catalog), "export-amc", str(target),
+        "--max-output-bytes", "64",
+    ]) == 2
+
+    assert target.read_bytes() == b"trusted"
+
+
+def test_cli_embeds_exports_and_clears_picture(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    source = tmp_path / "cover.jpg"
+    destination = tmp_path / "copy.jpg"
+    save(Catalog([Movie(title="Alien")]), catalog)
+    from PIL import Image
+
+    Image.new("RGB", (2, 2), "green").save(source)
+    expected = source.read_bytes()
+
+    assert main([
+        "-c", str(catalog), "picture-set", "1", str(source), "--embed"
+    ]) == 0
+    source.unlink()
+    assert main([
+        "-c", str(catalog), "picture-export", "1", str(destination)
+    ]) == 0
+    assert destination.read_bytes() == expected
+    assert main(["-c", str(catalog), "picture-clear", "1"]) == 0
+    assert load(catalog).get(1).picture == ""
+
+
+def test_cli_crops_embedded_picture(tmp_path: Path):
+    from PIL import Image
+
+    catalog = tmp_path / "movies.json"
+    source = tmp_path / "cover.png"
+    destination = tmp_path / "crop.png"
+    save(Catalog([Movie(title="Alien")]), catalog)
+    Image.new("RGB", (5, 4), "purple").save(source)
+
+    assert main([
+        "-c", str(catalog), "picture-set", "1", str(source),
+        "--embed", "--crop", "1,1,2,2",
+    ]) == 0
+    assert main([
+        "-c", str(catalog), "picture-export", "1", str(destination)
+    ]) == 0
+    with Image.open(destination) as cropped:
+        assert cropped.size == (2, 2)
+
+
+def test_cli_rejects_malformed_crop(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    source = tmp_path / "cover.png"
+    save(Catalog([Movie(title="Alien")]), catalog)
+    source.write_bytes(b"unused")
+
+    assert main([
+        "-c", str(catalog), "picture-set", "1", str(source),
+        "--embed", "--crop", "1,2,3",
+    ]) == 2
+    assert load(catalog).get(1).picture == ""
 
 
 def test_sort_is_case_insensitive_and_empty_search_returns_all():

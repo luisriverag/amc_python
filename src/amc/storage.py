@@ -58,7 +58,13 @@ def _atomic_text(path: Path, *, encoding: str = "utf-8", newline: str | None = N
 
 def load(path: str | Path) -> Catalog:
     path = Path(path)
-    if path.suffix.casefold() == ".amc" or _has_native_header(path):
+    has_native_header = _has_native_header(path)
+    if has_native_header:
+        return _load_native(path)
+    if path.suffix.casefold() == ".amc" and not _has_json_header(path):
+        # Keep reporting useful native-header errors for malformed native files,
+        # while retaining compatibility with JSON catalogs that older releases
+        # allowed users to save with an .amc filename.
         return _load_native(path)
     if path.suffix.casefold() == ".xml":
         return load_xml(path)
@@ -111,6 +117,15 @@ def _has_native_header(path: Path) -> bool:
     """Detect exact native headers without interpreting arbitrary binary files."""
     with path.open("rb") as stream:
         return stream.read(NATIVE_HEADER_SIZE) in NATIVE_HEADERS
+
+
+def _has_json_header(path: Path) -> bool:
+    """Recognize a JSON object or array without decoding an entire catalog."""
+    with path.open("rb") as stream:
+        prefix = stream.read(4096)
+    if prefix.startswith(b"\xef\xbb\xbf"):
+        prefix = prefix[3:]
+    return prefix.lstrip().startswith((b"{", b"["))
 
 
 def _load_native(path: Path) -> Catalog:

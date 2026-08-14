@@ -20,6 +20,18 @@ def test_catalog_numbers_search_and_json_roundtrip(tmp_path: Path):
     assert [movie.to_dict() for movie in load(target)] == [movie.to_dict() for movie in catalog]
 
 
+def test_json_catalog_with_legacy_amc_extension_still_opens(tmp_path: Path):
+    target = tmp_path / "legacy-working-catalog.amc"
+    original = Catalog([Movie(number=1, title="Alien", year=1979)])
+    save(original, target)
+
+    restored = load(target)
+
+    assert [movie.to_dict() for movie in restored] == [
+        movie.to_dict() for movie in original
+    ]
+
+
 def test_import_ant_xml(tmp_path: Path):
     source = tmp_path / "catalog.xml"
     source.write_text('''<?xml version="1.0"?><AntMovieCatalog><Catalog><Contents>

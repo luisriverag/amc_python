@@ -1,7 +1,7 @@
 # Port progress audit
 
-**Audit date:** 2026-08-13
-**Audited commit:** `0575daa` plus this review
+**Audit date:** 2026-08-14
+**Audited commit:** `510d171` plus this documentation review
 
 **Method:** source review, documentation-claim comparison, CLI enumeration, the
 complete automated test suite, and inspection of the checked-in Delphi source
@@ -21,7 +21,8 @@ application service, and guarded CLI workflows have useful automated coverage.
 Native `.amc` parsing/writing, XML, CSV, metadata, and embedded-picture retention
 are implemented from source or synthetic examples but lack genuine upstream
 fixtures. Safe subsets also exist for HTML export, media discovery, PCM WAV
-inspection, non-executing script metadata, desktop/web presentation, and loans.
+inspection, non-executing script metadata and public settings, desktop/web
+presentation, and loans.
 Script execution, localization, printing, and full
 upstream desktop workflows are not ported. Python-owned borrower/history metadata
 is deliberately distinguished from upstream file-format compatibility.
@@ -30,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 14 functional package modules, 5 repository tools, 344 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 14 functional package modules, 5 repository tools, 356 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -67,10 +68,10 @@ confidence.
 | Engineering checks | Canonical tests/compile/fixture checks plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
 | HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
 | Media prototype | File discovery/facts and PCM WAV duration/bitrate | File, WAV, bounds, filtering, recursive, and atomic CLI tests | Moderate for stated subset |
-| Script inventory | Bounded non-executing Infos/options/parameters/permissions/static-name parser | Synthetic metadata, malformed-entry, ordering, CLI tests | Moderate for stated subset |
+| Script inventory/settings | Bounded non-executing Infos/options/parameters/permissions/static-name parser; validated option/parameter overrides; atomic Python JSON settings | Synthetic metadata, malformed-entry, configuration, persistence, and CLI tests | Moderate for the stated non-executing subset; no runtime parity |
 | Application service | Failure-atomic CRUD, merge, media import, loans, undo/redo, backup/restore, and export orchestration | Mutation-failure, persistence, history, and adapter tests | High for tested internal workflows |
 | Loan prototype | Single/batch, media-label, and retained-native-number group transitions; managed borrowers; JSON history; source-shaped TSV export | Unit/service/CLI/GUI tests, including atomic conflicts and output preservation | Moderate internally; upstream encoding/behavior unverified |
-| Web prototype | Read-only table, gallery, details, bounded posters, pagination, search, and safe links | HTTP, escaping, reload, MIME, bounds, and security-header tests | Moderate for stated read-only subset |
+| Web prototype | Read-only poster table/gallery, expanded details, bounded posters, pagination, search, and safe links | HTTP, escaping, reload, MIME, bounds, and security-header tests | Moderate for stated Python extension; upstream has no corresponding web server |
 | Picture prototype | Linked and byte/pixel-bounded validated embedded set/clear/crop, JSON/native retention, and atomic export | Service/CLI/native tests, including malformed image, crop/bounds, and failure preservation | Moderate internally; upstream path/conversion semantics unverified |
 
 ### Present but inadequately tested
@@ -91,7 +92,9 @@ confidence.
 - Catalog preferences beyond retained catalog/custom-field metadata.
 - Lossless preservation of repeated/ordered/typed unknown fields.
 - Verified upstream external/embedded picture path and conversion semantics.
-- Upstream website script execution and scripting runtime (metadata inventory only).
+- Upstream website script compilation/execution, network/provider APIs, result
+  selection and merge, license-acceptance workflow, debugging, and static session
+  state (metadata and public settings only).
 - Full media analysis and codec mapping (portable facts and PCM WAV only).
 - Upstream verification of grouped-loan and TSV history encoding/consumption.
 - Localization resources.
@@ -177,6 +180,46 @@ confidence.
     and atomic writes. Codec separation is urgent once genuine fixtures lock contracts.
 20. Review fixed native validation so structural parse failures return diagnostics
     instead of escaping `validate_catalog` and becoming CLI usage errors.
+21. Pre-3.0 picture and borrower sidecars are implemented from
+    `TMovieList.ReadPictures`/`ReadBorrowers`, but `ConfigParser` has not been shown
+    equivalent to Delphi `TMemIniFile` for duplicate keys, comments, malformed INI,
+    or locale-specific decoding. No genuine sidecar fixture exists.
+22. JSON content saved under an `.amc` suffix is accepted for compatibility with
+    earlier AMC Python releases. This is an internal migration behavior, not an Ant
+    Movie Catalog format feature, and content probing still performs multiple file
+    opens.
+23. Script settings use an AMC Python JSON document and basename identity. Upstream
+    caches script metadata, license acceptance, options, parameters, and static
+    values in its settings INI. Python deliberately excludes license acceptance and
+    static values and therefore cannot consume or reproduce that cache.
+24. The script reader bounds the first read to 1 MiB, but currently rejects any
+    script whose file prefix exceeds that size even when its metadata comment ends
+    earlier. It does not compile Pascal, implement IFPS APIs, perform HTTP requests,
+    or preview field-level merge results.
+25. The read-only web server, its poster table, and retained-file-path display are
+    Python extensions. They must not be counted as upstream UI parity; the file path
+    remains an opaque `native_file_path` extra rather than a typed movie field.
+
+## Gap matrix against the original application
+
+This matrix distinguishes a source-located feature from a completed port. “Subset”
+means Python implements useful behavior but not the complete upstream workflow.
+
+| Original subsystem | Upstream source | Python coverage | Remaining gap |
+|---|---|---|---|
+| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes | Genuine files for every version; code-page behavior; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
+| Movie and custom-field model | `movieclass.pas`, `fields.pas`, `customfieldsmanager.pas`, `extrasedit.pas` | Common scalar fields plus opaque metadata/extras retention | Typed writer/composer/certification/file-path and extra records; duplicate/order/type preservation; custom-field editing semantics and defaults |
+| XML/CSV import and export | `movieclass.pas`, `import2*.pas`, `export.pas` | Synthetic XML/CSV codecs | Upstream dialect/locale fixtures, streaming/resource limits, repeated/nested unknown XML, and cross-application round trips |
+| Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |
+| Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop and bounded poster display | Upstream import modes, naming/copy/move rules, conversion options, batch operations, and genuine embedded/linked fixtures |
+| Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
+| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings | IFPS compiler/runtime, complete API inventory, HTTP/browser interactions, license acceptance, debugger, results UI, safe merge preview, timeouts/cache/rate limits, and recorded provider tests |
+| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV analysis | MediaInfo integration/version checks, the full tag map, stream selection, filters, and field merge behavior |
+| HTML export | `export.pas`, template units | Safe bounded Python table/templates | Upstream template tags, multi-file output, extra/custom-field semantics, and fixture comparison |
+| Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
+| Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |
+| Desktop presentation | `main.pas` and `.dfm` forms | Broad Tk prototype with headless adapter tests | Form/workflow parity, accessibility verification, localization, real-display tests, and platform packaging |
+| Web presentation | No upstream server counterpart | Read-only AMC Python extension | Authentication/TLS deployment layer if exposed beyond localhost; it is intentionally outside parity accounting |
 
 ## Requirement traceability
 
@@ -192,7 +235,8 @@ confidence.
 | Catalog operations | `catalog.py` | Direct tests | None | Prototype only |
 | CLI adapter | `cli.py` | In-process tests plus installed entry-point/JSON smoke | None | Partial |
 | Desktop adapter | `gui.py`, `application.py` | Headless controller/dialog and service tests | Source workflows located; no display/genuine workflow fixture | Broad prototype; no upstream UI parity |
-| Scripts/media/HTML | `scripts.py`, `media.py`, `storage.py` | Synthetic bounded subset tests | `getscript_readscripts.pas`, `getmedia.pas`, `export.pas` | Prototype subsets; no execution/provider/template parity |
+| Scripts | `scripts.py`, `configure-script` | Synthetic metadata, validation, persistence, and CLI tests | `getscript_readscripts.pas`, `getscript_properties.pas` | Metadata/public-settings subset; no IFPS execution, providers, results, or upstream cache parity |
+| Media/HTML | `media.py`, `storage.py` | Synthetic bounded subset tests | `getmedia.pas`, `Common/MediaInfo.pas`, `export.pas` | Prototype subsets; no full codec or template parity |
 | Pictures/loans | Linked/embedded picture set/clear/export and native retention; current borrower; managed list; JSON history; TSV export; opt-in loan groups | Synthetic unit/service/CLI/GUI/native tests | `TMoviePicture` in `movieclass.pas`; `loan.pas`; `loanhistory.pas` characterized | Source-derived prototypes pending genuine picture/loan verification |
 
 ## Next audited milestone
@@ -225,7 +269,7 @@ Observed for this audit:
 
 | Command/check | Result |
 |---|---|
-| `python tools/check.py` | 317 tests passed; 85% aggregate branch coverage; Ruff, compilation, fixture-manifest validation, and source CLI help passed |
+| `python tools/check.py` | 356 tests passed; 82% aggregate branch coverage; Ruff, compilation, fixture-manifest validation, native-expectation verification, and source CLI help passed |
 | `python tools/check_package.py` | Wheel built and installed into an isolated environment; module and `amc`, `amc-gui`, and `amc-web` entry-point smoke checks passed |
 | `python tools/validate_fixtures.py` | 0 manifests validated, confirming the compatibility-fixture gap rather than compatibility |
 | `git diff --check` | Passed |

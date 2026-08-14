@@ -119,14 +119,19 @@ def render_catalog(
         return f"<th scope='col'><a href='/?{html.escape(params, quote=True)}'>{label}{marker}</a></th>"
 
     rows = "".join(
-        "<tr><td>{number}</td><td><a href='/movie/{number}'>{title}</a></td>"
-        "<td>{year}</td><td>{director}</td><td>{checked}</td><td>{borrower}</td></tr>".format(
+        "<tr><td class='poster-cell'>{poster}</td><td>{number}</td>"
+        "<td><a href='/movie/{number}'>{title}</a></td>"
+        "<td>{year}</td><td>{director}</td></tr>".format(
+            poster=(
+                f"<img class='poster-thumb' src='/poster/{movie.number}' "
+                "alt='' loading='lazy'>"
+                if poster_source(movie, service.path)
+                else "<span class='poster-placeholder' aria-hidden='true'>—</span>"
+            ),
             number=movie.number,
             title=html.escape(movie.display_title()),
             year=movie.year or "",
             director=html.escape(movie.director),
-            checked="Yes" if movie.checked else "",
-            borrower=html.escape(movie.borrower),
         )
         for movie in movies
     )
@@ -172,16 +177,30 @@ def render_catalog(
 <label>View <select name='view'>{options}</select></label><label>Layout <select name='layout'>{layouts}</select></label><label>Rows <select name='size'>{sizes}</select></label><input type='hidden' name='sort' value='{html.escape(sort, quote=True)}'><button>Apply</button></form>
 {f"<p class='warning' role='alert'>Catalog reload failed; showing the last valid snapshot: {html.escape(reload_error)}</p>" if reload_error else ""}
 <p role='status'>Showing {start + 1 if total_results else 0}–{start + len(movies)} of {total_results} matching movie(s); {len(service.catalog)} total</p>
-{f"<div class='table-scroll'><table><caption class='sr-only'>Movie catalog</caption><thead><tr>{heading('number', '#')}{heading('title', 'Title')}{heading('year', 'Year')}{heading('director', 'Director')}{heading('checked', 'Checked')}{heading('borrower', 'Borrower')}</tr></thead><tbody>{rows}</tbody></table></div>" if layout == "Table" else f"<section class='poster-grid' aria-label='Movie posters'>{cards}</section>"}<nav aria-label='Catalog pages'>{previous}<span>Page {page} of {total_pages}</span>{following}</nav></main>"""
+{f"<div class='table-scroll'><table><caption class='sr-only'>Movie catalog</caption><thead><tr><th scope='col'>Poster</th>{heading('number', '#')}{heading('title', 'Title')}{heading('year', 'Year')}{heading('director', 'Director')}</tr></thead><tbody>{rows}</tbody></table></div>" if layout == "Table" else f"<section class='poster-grid' aria-label='Movie posters'>{cards}</section>"}<nav aria-label='Catalog pages'>{previous}<span>Page {page} of {total_pages}</span>{following}</nav></main>"""
     return _page("Catalog", body)
 
 
 def render_movie(service: CatalogService, movie: Movie) -> str:
     """Render one movie using the desktop details/poster vocabulary."""
     fields = (
-        ("Original title", movie.original_title), ("Director", movie.director),
-        ("Category", movie.category), ("Actors", movie.actors),
-        ("Borrower", movie.borrower), ("Description", movie.description),
+        ("Number", movie.number), ("Original title", movie.original_title),
+        ("Translated title", movie.translated_title), ("Director", movie.director),
+        ("Producer", movie.producer), ("Country", movie.country),
+        ("Category", movie.category), ("Year", movie.year),
+        ("Length", movie.length), ("Rating", movie.rating),
+        ("Date", movie.date), ("Borrower", movie.borrower),
+        ("Media label", movie.media_label), ("Media type", movie.media_type),
+        ("Media count", movie.media_count), ("Source", movie.source),
+        ("Languages", movie.languages), ("Subtitles", movie.subtitles),
+        ("Video format", movie.video_format),
+        ("Video bitrate", movie.video_bitrate),
+        ("Audio format", movie.audio_format),
+        ("Audio bitrate", movie.audio_bitrate),
+        ("Resolution", movie.resolution), ("Framerate", movie.framerate),
+        ("File size", movie.file_size),
+        ("File path", movie.extras.get("native_file_path", "")),
+        ("Actors", movie.actors), ("Description", movie.description),
         ("Comments", movie.comments),
     )
     details = "".join(
@@ -238,7 +257,7 @@ def poster_response(service: CatalogService, movie: Movie) -> tuple[bytes, str]:
 
 def _page(title: str, body: str) -> str:
     return f"""<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>{html.escape(title)} — AMC Python</title><style>
-:root{{--accent:#234f78;--line:#c8d2dc;--paper:#fff;--bg:#edf1f5}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);font:16px system-ui;color:#17212b}}header,main{{max-width:1100px;margin:auto;padding:1rem}}header{{background:var(--accent);color:white}}header a{{color:white}}form{{display:flex;gap:1rem;align-items:end;flex-wrap:wrap}}input,select,button{{font:inherit;padding:.5rem}}.warning{{padding:.75rem;border-left:5px solid #a33;background:#fff0f0}}.table-scroll{{overflow-x:auto}}table{{width:100%;border-collapse:collapse;background:var(--paper)}}th,td{{padding:.65rem;border:1px solid var(--line);text-align:left}}th{{background:#dce6ef}}th a{{color:#17212b}}tbody tr:hover{{background:#f4f8fb}}nav{{display:flex;justify-content:center;align-items:center;gap:1.5rem;padding:1rem}}.poster-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1rem}}.card{{background:white;border:1px solid var(--line);padding:.75rem}}.card a{{color:inherit;text-decoration:none}}.card h2{{font-size:1.05rem;margin:.65rem 0}}.card p{{margin:.35rem 0;color:#45515d}}.cover{{height:250px;display:grid;place-items:center;background:#dce6ef;color:#586875}}.cover img{{width:100%;height:100%;object-fit:contain}}.details{{display:grid;grid-template-columns:minmax(220px,320px) 1fr;gap:2rem;background:white}}.details img{{max-width:100%;max-height:420px}}dt{{font-weight:700;margin-top:.8rem}}dd{{margin:.2rem 0;white-space:pre-wrap}}.sr-only{{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}a:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible{{outline:3px solid #f5b942;outline-offset:2px}}@media(max-width:650px){{.details{{grid-template-columns:1fr}}table{{font-size:.85rem}}}}
+:root{{--accent:#234f78;--line:#c8d2dc;--paper:#fff;--bg:#edf1f5}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);font:16px system-ui;color:#17212b}}header,main{{max-width:1100px;margin:auto;padding:1rem}}header{{background:var(--accent);color:white}}header a{{color:white}}form{{display:flex;gap:1rem;align-items:end;flex-wrap:wrap}}input,select,button{{font:inherit;padding:.5rem}}.warning{{padding:.75rem;border-left:5px solid #a33;background:#fff0f0}}.table-scroll{{overflow-x:auto}}table{{width:100%;border-collapse:collapse;background:var(--paper)}}th,td{{padding:.65rem;border:1px solid var(--line);text-align:left}}th{{background:#dce6ef}}th a{{color:#17212b}}tbody tr:hover{{background:#f4f8fb}}.poster-cell{{width:76px;text-align:center;padding:.3rem}}.poster-thumb{{display:block;width:56px;height:78px;object-fit:cover;margin:auto;background:#dce6ef}}.poster-placeholder{{display:grid;place-items:center;width:56px;height:78px;margin:auto;background:#e7edf2;color:#687783}}nav{{display:flex;justify-content:center;align-items:center;gap:1.5rem;padding:1rem}}.poster-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1rem}}.card{{background:white;border:1px solid var(--line);padding:.75rem}}.card a{{color:inherit;text-decoration:none}}.card h2{{font-size:1.05rem;margin:.65rem 0}}.card p{{margin:.35rem 0;color:#45515d}}.cover{{height:250px;display:grid;place-items:center;background:#dce6ef;color:#586875}}.cover img{{width:100%;height:100%;object-fit:contain}}.details{{display:grid;grid-template-columns:minmax(220px,320px) 1fr;gap:2rem;background:white}}.details img{{max-width:100%;max-height:420px}}dt{{font-weight:700;margin-top:.8rem}}dd{{margin:.2rem 0;overflow-wrap:anywhere;white-space:pre-wrap}}.sr-only{{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}a:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible{{outline:3px solid #f5b942;outline-offset:2px}}@media(max-width:650px){{.details{{grid-template-columns:1fr}}table{{font-size:.85rem}}}}
 </style></head><body>{body}</body></html>"""
 
 

@@ -82,6 +82,9 @@ unit and compatibility evidence are recorded.
   versions 3.1–4.2, including 4.2 supplementary records; generic/CLI read-only
   import is wired with header-based detection, catalog metadata, and embedded bytes
   retained in JSON).
+  Pre-3.0 external picture names and `.amcl` borrower assignments are now loaded
+  from the sidecars used by upstream; genuine legacy fixture verification remains
+  pending.
 - [ ] Cross-check native parsing against XML produced by upstream AMC.
 
 **Gate:** supported `.amc` files can be converted without the original program and
@@ -141,7 +144,10 @@ all omitted or opaque data is reported.
 
 - [ ] Inventory the complete upstream scripting API and decide execution boundaries
   (bounded, non-executing `.ifs` Infos/Options/Parameters, mutation permissions,
-  and static-variable-name discovery is implemented without exposing static values).
+  and static-variable-name discovery is implemented without exposing static values;
+  case-insensitive option/parameter configuration and atomic AMC Python JSON public
+  settings are implemented, but they do not reproduce upstream's INI cache, license
+  acceptance, static state, compiler, or runtime).
 - [ ] Define a provider interface with timeouts, caching, rate limits, and safe
   field-level merge previews.
 - [ ] Add image download and full media-file analysis as optional capabilities

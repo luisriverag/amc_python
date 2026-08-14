@@ -11,7 +11,9 @@ from amc.native import (
     NATIVE_HEADER_SIZE,
     NATIVE_HEADERS,
     NativeReadLimits,
+    _legacy_layout,
     identify_native_header,
+    read_native_catalog,
     read_native_properties,
 )
 
@@ -60,6 +62,36 @@ def test_native_properties_reject_fixed_record_versions(tmp_path: Path):
     target.write_bytes(next(header for header, version in NATIVE_HEADERS.items() if version == "3.0"))
     with pytest.raises(UnsupportedVersionError, match="fixed-record AMC 3.0"):
         read_native_properties(target)
+
+
+def test_legacy_catalog_applies_picture_and_borrower_sidecars(tmp_path: Path):
+    target = tmp_path / "movies.amc"
+    header = next(key for key, value in NATIVE_HEADERS.items() if value == "1.1")
+    layout, size = _legacy_layout("1.1")
+    record = bytearray(size)
+    struct.pack_into("<i", record, layout["number"][0], 7)
+    record[layout["original_title"][0]] = 5
+    record[layout["original_title"][0] + 1:layout["original_title"][0] + 6] = b"Alien"
+    target.write_bytes(header + record)
+    (tmp_path / "movies_7.gif").write_bytes(b"GIF89a")
+    (tmp_path / "movies.amcl").write_text("[Ripley]\n7=\n", encoding="cp1252")
+
+    catalog = read_native_catalog(target)
+
+    assert (catalog.movies[0].picture, catalog.movies[0].borrower) == (
+        "movies_7.gif", "Ripley"
+    )
+
+
+def test_legacy_catalog_rejects_invalid_borrower_sidecar_number(tmp_path: Path):
+    target = tmp_path / "movies.amc"
+    header = next(key for key, value in NATIVE_HEADERS.items() if value == "1.0")
+    _, size = _legacy_layout("1.0")
+    target.write_bytes(header + bytes(size))
+    (tmp_path / "movies.amcl").write_text("[Ripley]\nnot-a-number=\n", encoding="cp1252")
+
+    with pytest.raises(CorruptCatalogError, match="invalid movie number"):
+        read_native_catalog(target)
 
 
 @pytest.mark.parametrize(

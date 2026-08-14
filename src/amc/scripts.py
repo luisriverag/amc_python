@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+import json
+import os
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Callable, TypeVar
+from typing import Callable, Iterable, TypeVar
 
 MAX_SCRIPT_HEADER_BYTES = 1024 * 1024
 T = TypeVar("T")
@@ -83,7 +85,8 @@ def _section_values(lines: list[str]) -> dict[str, str]:
 
 
 def _names(value: str) -> tuple[str, ...]:
-    return tuple(item.strip() for item in value.replace(";", ",").split(",") if item.strip())
+    normalized = value.replace(";", ",").replace("|", ",")
+    return tuple(item.strip() for item in normalized.split(",") if item.strip())
 
 
 def _parsed_items(
@@ -167,3 +170,120 @@ def discover_scripts(directory: str | Path) -> list[ScriptInfo]:
     if not directory.is_dir():
         raise ValueError(f"script path is not a directory: {directory}")
     return [inspect_script(path) for path in sorted(directory.glob("*.ifs"))]
+
+
+def configure_script(
+    script: ScriptInfo,
+    *,
+    options: dict[str, int] | None = None,
+    parameters: dict[str, str] | None = None,
+) -> ScriptInfo:
+    """Apply validated option and parameter choices without executing a script."""
+    option_values = _casefold_overrides(options or {}, "option")
+    parameter_values = _casefold_overrides(parameters or {}, "parameter")
+    known_options = _unique_names((item.name for item in script.options), "option")
+    known_parameters = _unique_names(
+        (item.name for item in script.parameters), "parameter"
+    )
+    unknown_options = option_values.keys() - known_options
+    unknown_parameters = parameter_values.keys() - known_parameters
+    if unknown_options:
+        raise ValueError(f"unknown script option: {sorted(unknown_options)[0]!r}")
+    if unknown_parameters:
+        raise ValueError(f"unknown script parameter: {sorted(unknown_parameters)[0]!r}")
+
+    configured_options = []
+    for item in script.options:
+        value = option_values.get(item.name.casefold(), item.value)
+        allowed = {choice for choice, _description in item.values}
+        if allowed and value not in allowed:
+            raise ValueError(
+                f"invalid value {value} for script option {item.name!r}; "
+                f"expected one of {sorted(allowed)}"
+            )
+        configured_options.append(replace(item, value=value))
+    configured_parameters = tuple(
+        replace(
+            item,
+            value=parameter_values.get(item.name.casefold(), item.value),
+        )
+        for item in script.parameters
+    )
+    return replace(
+        script,
+        options=tuple(configured_options),
+        parameters=configured_parameters,
+    )
+
+
+def save_script_configuration(script: ScriptInfo, path: str | Path) -> None:
+    """Atomically persist public option/parameter values without static state."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    document = {
+        "format": "amc-python-script-settings",
+        "version": 1,
+        "script": Path(script.path).name,
+        "options": {item.name: item.value for item in script.options},
+        "parameters": {item.name: item.value for item in script.parameters},
+    }
+    try:
+        with temporary.open("w", encoding="utf-8") as stream:
+            json.dump(document, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def load_script_configuration(script: ScriptInfo, path: str | Path) -> ScriptInfo:
+    """Load and validate a saved configuration for the selected script."""
+    with Path(path).open(encoding="utf-8") as stream:
+        document = json.load(stream)
+    if not isinstance(document, dict):
+        raise ValueError("script settings must be a JSON object")
+    if document.get("format") != "amc-python-script-settings":
+        raise ValueError("unsupported script settings format")
+    if document.get("version") != 1:
+        raise ValueError(f"unsupported script settings version: {document.get('version')!r}")
+    script_name = document.get("script")
+    if not isinstance(script_name, str) or script_name.casefold() != Path(script.path).name.casefold():
+        raise ValueError("script settings belong to a different script")
+    options = document.get("options", {})
+    parameters = document.get("parameters", {})
+    if not isinstance(options, dict) or any(
+        not isinstance(key, str) or isinstance(value, bool) or not isinstance(value, int)
+        for key, value in options.items()
+    ):
+        raise ValueError("script settings options must map names to integers")
+    if not isinstance(parameters, dict) or any(
+        not isinstance(key, str) or not isinstance(value, str)
+        for key, value in parameters.items()
+    ):
+        raise ValueError("script settings parameters must map names to strings")
+    return configure_script(script, options=options, parameters=parameters)
+
+
+def _casefold_overrides(values: dict[str, T], label: str) -> dict[str, T]:
+    result: dict[str, T] = {}
+    for name, value in values.items():
+        normalized = name.strip().casefold()
+        if not normalized:
+            raise ValueError(f"script {label} name cannot be empty")
+        if normalized in result:
+            raise ValueError(f"duplicate script {label}: {name!r}")
+        result[normalized] = value
+    return result
+
+
+def _unique_names(values: Iterable[str], label: str) -> set[str]:
+    result: set[str] = set()
+    for value in values:
+        normalized = value.casefold()
+        if normalized in result:
+            raise ValueError(f"duplicate script {label} declaration: {value!r}")
+        result.add(normalized)
+    return result

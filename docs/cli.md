@@ -69,6 +69,13 @@ The JSON shapes are part of the CLI contract:
   upstream dialog's implicit clearing of every associated loan.
 - `inspect-script` and `list-scripts` emit metadata as JSON but never execute the
   inspected Pascal scripts. Static variable values are not returned.
+- `configure-script SCRIPT --option NAME=INTEGER --parameter NAME=VALUE` applies
+  case-insensitive, source-shaped option and parameter choices and emits the
+  resulting metadata as JSON. Named option values are validated against the choices
+  declared by the script. `--load SETTINGS` restores a matching JSON settings file,
+  command-line overrides take precedence, and `--save SETTINGS` atomically persists
+  the resulting public option/parameter values. Pascal is never executed and
+  static/session values are never written to the settings file.
 - `export-html` escapes modeled movie values. Document and row templates are
   bounded and unknown row markers are rejected before destination replacement.
 - `export-amc` atomically writes the source-derived AMC 4.2 layout. It preserves

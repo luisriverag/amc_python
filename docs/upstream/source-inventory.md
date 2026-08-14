@@ -82,7 +82,7 @@ source location has been identified; it does not mean the Python behavior matche
 | `Movie Catalog/main.pas` | Main workflows, open/save, search, UI actions | future services; `amc.cli`, `amc.gui` | mapped, not compared | none upstream-derived | Selects AMC 3.5, 4.1, and current save formats |
 | `Movie Catalog/import2*.pas` | Import workflow and engines, including CSV | `amc.storage` | mapped, not reviewed | synthetic CSV | Dialect behavior still unverified |
 | `Movie Catalog/export.pas` | AMC/XML/CSV/HTML/SQL export workflow | `amc.storage` | mapped, not reviewed | synthetic XML/CSV | Python implements only JSON/XML/CSV |
-| `Movie Catalog/getscript*.pas`, `ifps/` | Website scripts and Pascal runtime | `amc.scripts` | metadata discovery prototype; execution intentionally omitted | synthetic header tests | `TScriptInfo.Load` reads bracketed metadata from the leading Pascal comment; Python never executes IFPS code |
+| `Movie Catalog/getscript*.pas`, `ifps/` | Website scripts and Pascal runtime | `amc.scripts` | metadata/configuration prototype; execution intentionally omitted | synthetic header, configuration, and persistence tests | `TScriptInfo.Load` reads bracketed metadata from the leading Pascal comment; `TScriptOptions` and `TScriptParameters` provide source-shaped configurable inputs; Python validates and atomically stores public settings but never persists static state or executes IFPS code |
 | `Common/MediaInfo.pas`, `Movie Catalog/getmedia.pas` | Media metadata extraction | `amc.media` | prototype, not compared | synthetic file/WAV tests | Portable path/name/extension/size and WAV audio facts only; upstream exposes 28 media tags and filtering/merge behavior |
 | `Movie Catalog/loan.pas`, `loanhistory.pas` | Borrower and loan-history workflows | `amc.application`, `amc.loans`, `amc.cli` | prototype subset | synthetic service/CLI tests | Atomic single/multi-movie transitions follow `strBorrower`; opt-in media-label and retained-native-number expansion follow `ActionOptionsIncLab`/`ActionOptionsIncNum`; empty labels are not grouped; managed names combine with active values case-insensitively; unlike upstream deletion, active names cannot be removed implicitly; Python retains ISO-8601 events and exports the seven-column TSV layout as UTF-8; upstream verification remains pending |
 | `Movie Catalog/programsettings.pas` | Preferences and settings XML | none | mapped, not ported | none | Separate from catalog data |
@@ -136,7 +136,10 @@ mapping, behavior characterization, licensing, and tests remain open.
   it. This needs fixture-backed characterization before choosing compatible versus
   stricter Python behavior.
 - **Legacy sidecars:** versions before 3.0 can read pictures from an extensionless
-  sidecar and borrowers from an `.amcl` sidecar.
+  filename prefix (`<catalog>_<movie number>.jpg`, then GIF, then PNG) and borrowers
+  from sections and movie-number keys in an `.amcl` INI sidecar. AMC Python now
+  applies both source-derived sidecars and rejects malformed borrower numbers;
+  genuine legacy fixtures remain unavailable.
 - **Python progress:** exact source-derived 65-byte headers for versions 1.0–4.2
   are recognized by `amc inspect`; truncated and unknown headers are rejected. The
   length-prefixed owner, mail, site, and description fields can be read for versions

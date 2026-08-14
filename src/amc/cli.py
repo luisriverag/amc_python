@@ -123,7 +123,12 @@ def parser() -> argparse.ArgumentParser:
     html_export.add_argument("--template", type=Path)
     html_export.add_argument("--row-template", type=Path)
     native_export = commands.add_parser(
-        "export-amc", help="write a source-derived AMC 4.2 native catalog"
+        "export-amc",
+        help="write an experimental, source-derived AMC 4.2 native catalog",
+        description=(
+            "Write an experimental AMC 4.2 catalog. Output has not been verified "
+            "with upstream AMC; an existing destination is preserved as .bak."
+        ),
     )
     native_export.add_argument("destination", type=Path)
     native_export.add_argument("--encoding", default="cp1252")

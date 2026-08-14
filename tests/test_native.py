@@ -1,3 +1,6 @@
+import os
+import random
+import stat
 import struct
 from pathlib import Path
 
@@ -5,6 +8,7 @@ import pytest
 
 from amc.errors import CorruptCatalogError, UnsupportedFormatError, UnsupportedVersionError
 from amc.native import (
+    NATIVE_HEADER_SIZE,
     NATIVE_HEADERS,
     NativeReadLimits,
     identify_native_header,
@@ -597,6 +601,71 @@ def test_every_truncation_of_amc_42_movie_fails_deterministically(tmp_path: Path
     assert len(read_native_catalog(target).movies) == 1
 
 
+@pytest.mark.parametrize("version", ["1.0", "1.1", "2.1", "3.0"])
+def test_every_legacy_movie_truncation_fails_deterministically(
+    tmp_path: Path, version: str
+):
+    """Reject every partial fixed record instead of silently dropping its bytes."""
+    from amc.native import read_native_catalog
+
+    header = next(key for key, item in NATIVE_HEADERS.items() if item == version)
+    properties = _legacy_properties(owner="Owner") if version in {"2.1", "3.0"} else b""
+    record = _legacy_record(version, {
+        "number": 1,
+        "original_title": "Legacy",
+        **({"picture_size": 3} if version == "3.0" else {}),
+    })
+    picture = b"img" if version == "3.0" else b""
+    prefix = header + properties
+    complete = prefix + record + picture
+    target = tmp_path / f"truncated-{version}.amc"
+
+    for length in range(1, len(record) + len(picture)):
+        target.write_bytes(prefix + (record + picture)[:length])
+        with pytest.raises(CorruptCatalogError) as caught:
+            read_native_catalog(target)
+        if caught.value.offset is not None:
+            assert len(prefix) <= caught.value.offset <= len(prefix) + length
+
+    target.write_bytes(complete)
+    assert len(read_native_catalog(target).movies) == 1
+
+
+def test_seeded_native_byte_mutations_have_bounded_public_outcomes(tmp_path: Path):
+    """Broaden corrupt-input coverage without accepting internal exceptions."""
+    from amc.errors import CatalogError
+    from amc.native import NativeReadLimits, read_native_catalog
+
+    complete = _catalog("4.2", "owner", "mail", "site", "description", "", "")
+    complete += _integer(0) + _movie_42()
+    target = tmp_path / "mutated.amc"
+    generator = random.Random(42)
+    limits = NativeReadLimits(
+        max_file_bytes=len(complete),
+        max_movies=4,
+        max_picture_bytes=1024,
+        max_total_picture_bytes=2048,
+        max_total_string_bytes=4096,
+        max_extras_per_movie=4,
+        max_total_extras=8,
+        max_custom_fields=4,
+        max_list_values_per_field=8,
+    )
+
+    for _ in range(250):
+        mutated = bytearray(complete)
+        offset = generator.randrange(NATIVE_HEADER_SIZE, len(mutated))
+        mutated[offset] ^= generator.randrange(1, 256)
+        target.write_bytes(mutated)
+        try:
+            result = read_native_catalog(target, limits=limits)
+        except CatalogError as error:
+            if isinstance(error, CorruptCatalogError) and error.offset is not None:
+                assert 0 <= error.offset <= len(mutated)
+        else:
+            assert len(result.movies) <= limits.max_movies
+
+
 def _legacy_record(version: str, values: dict[str, object]) -> bytes:
     from amc.native import _legacy_layout
 
@@ -767,7 +836,129 @@ def test_native_writer_is_atomic_on_encoding_failure(tmp_path: Path):
         write_native_catalog(Catalog([Movie(number=1, original_title="snowman ☃")]), target)
 
     assert target.read_bytes() == b"existing"
+    assert not target.with_suffix(".bak").exists()
     assert not (tmp_path / ".catalog.amc.tmp").exists()
+
+
+def test_native_writer_backs_up_existing_destination(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import read_native_catalog, write_native_catalog
+
+    target = tmp_path / "catalog.amc"
+    backup = target.with_suffix(".bak")
+    target.write_bytes(b"previous catalog")
+    backup.write_bytes(b"older backup")
+
+    write_native_catalog(Catalog([Movie(original_title="Alien")]), target)
+
+    assert backup.read_bytes() == b"previous catalog"
+    assert read_native_catalog(target).movies[0].original_title == "Alien"
+    assert not (tmp_path / ".catalog.bak.tmp").exists()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows cannot fsync directory handles")
+def test_native_writer_fsyncs_backup_and_catalog_directory_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from amc.catalog import Catalog
+    from amc.native import write_native_catalog
+
+    target = tmp_path / "catalog.amc"
+    target.write_bytes(b"previous catalog")
+    original_fsync = os.fsync
+    directory_syncs = 0
+
+    def count_directory_syncs(descriptor: int) -> None:
+        nonlocal directory_syncs
+        if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            directory_syncs += 1
+        original_fsync(descriptor)
+
+    monkeypatch.setattr("amc.native.os.fsync", count_directory_syncs)
+    write_native_catalog(Catalog(), target)
+
+    assert directory_syncs == 2
+
+
+def test_native_writer_preserves_destination_when_backup_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from amc.catalog import Catalog
+    from amc.native import write_native_catalog
+
+    target = tmp_path / "catalog.amc"
+    backup = target.with_suffix(".bak")
+    target.write_bytes(b"trusted catalog")
+    backup.write_bytes(b"trusted older backup")
+
+    def fail_copy(*args: object, **kwargs: object) -> None:
+        raise OSError("injected backup failure")
+
+    monkeypatch.setattr("amc.native.shutil.copyfileobj", fail_copy)
+    with pytest.raises(OSError, match="injected backup failure"):
+        write_native_catalog(Catalog(), target)
+
+    assert target.read_bytes() == b"trusted catalog"
+    assert backup.read_bytes() == b"trusted older backup"
+    assert not (tmp_path / ".catalog.amc.tmp").exists()
+    assert not (tmp_path / ".catalog.bak.tmp").exists()
+
+
+def test_native_writer_preserves_destination_when_serialization_is_interrupted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import _BoundedWriter, write_native_catalog
+
+    target = tmp_path / "catalog.amc"
+    backup = target.with_suffix(".bak")
+    target.write_bytes(b"trusted catalog")
+    backup.write_bytes(b"trusted older backup")
+    original_write = _BoundedWriter.write
+    calls = 0
+
+    def interrupt_write(self: _BoundedWriter, data: bytes) -> int:
+        nonlocal calls
+        calls += 1
+        if calls == 5:
+            raise OSError("injected write interruption")
+        return original_write(self, data)
+
+    monkeypatch.setattr(_BoundedWriter, "write", interrupt_write)
+    with pytest.raises(OSError, match="injected write interruption"):
+        write_native_catalog(Catalog([Movie(original_title="Alien")]), target)
+
+    assert target.read_bytes() == b"trusted catalog"
+    assert backup.read_bytes() == b"trusted older backup"
+    assert not (tmp_path / ".catalog.amc.tmp").exists()
+
+
+def test_native_writer_preserves_destination_when_replacement_is_interrupted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from amc.catalog import Catalog
+    from amc.native import write_native_catalog
+
+    target = tmp_path / "catalog.amc"
+    backup = target.with_suffix(".bak")
+    target.write_bytes(b"trusted catalog")
+    original_replace = Path.replace
+
+    def interrupt_catalog_replace(self: Path, destination: Path) -> Path:
+        if destination == target:
+            raise OSError("injected replacement interruption")
+        return original_replace(self, destination)
+
+    monkeypatch.setattr(Path, "replace", interrupt_catalog_replace)
+    with pytest.raises(OSError, match="injected replacement interruption"):
+        write_native_catalog(Catalog(), target)
+
+    assert target.read_bytes() == b"trusted catalog"
+    assert backup.read_bytes() == b"trusted catalog"
+    assert not (tmp_path / ".catalog.amc.tmp").exists()
+    assert not (tmp_path / ".catalog.bak.tmp").exists()
 
 
 def test_native_writer_limits_preserve_existing_destination(tmp_path: Path):

@@ -133,6 +133,18 @@ def test_window_save_as_ignores_cancel_and_saves_selection():
     window.service.save_as.assert_called_once_with("copy.json")
 
 
+def test_window_warns_that_opened_interchange_catalog_is_read_only():
+    window = _window()
+    with (
+        patch("amc.gui.filedialog.askopenfilename", return_value="movies.amc"),
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.open_catalog()
+
+    window.service.open.assert_called_once_with("movies.amc")
+    assert "Save As" in showinfo.call_args.args[1]
+
+
 def test_window_imports_and_refreshes():
     window = _window()
     window.service.import_from.return_value = 2
@@ -154,6 +166,36 @@ def test_window_exports_using_destination_extension():
     ):
         window.export_catalog()
     window.service.export.assert_called_once_with("movies.csv", format="csv")
+
+
+def test_window_requires_confirmation_for_unverified_native_export():
+    window = _window()
+    with (
+        patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.amc"),
+        patch("amc.gui.messagebox.askyesno", return_value=False) as confirm,
+    ):
+        window.export_catalog()
+
+    window.service.export.assert_not_called()
+    assert "not been verified" in confirm.call_args.args[1]
+
+
+def test_window_native_export_explains_existing_backup(tmp_path: Path):
+    window = _window()
+    destination = tmp_path / "movies.amc"
+    destination.write_bytes(b"old catalog")
+    with (
+        patch(
+            "amc.gui.filedialog.asksaveasfilename", return_value=str(destination)
+        ),
+        patch("amc.gui.messagebox.askyesno", return_value=True) as confirm,
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.export_catalog()
+
+    window.service.export.assert_called_once_with(str(destination), format="amc")
+    assert str(destination.with_suffix(".bak")) in confirm.call_args.args[1]
+    assert str(destination.with_suffix(".bak")) in showinfo.call_args.args[1]
 
 
 def test_window_rejects_unknown_export_extension():

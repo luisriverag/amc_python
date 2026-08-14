@@ -365,6 +365,14 @@ class CatalogWindow(ttk.Frame):
             messagebox.showerror("Could not open catalog", str(error), parent=self)
             return
         self._path_changed()
+        if Path(selected).suffix.casefold() in {".amc", ".xml", ".csv"}:
+            messagebox.showinfo(
+                "Catalog opened read-only",
+                "Interchange catalogs are protected from in-place editing. Use "
+                "Save As to create an AMC Python JSON working catalog before "
+                "making changes.",
+                parent=self,
+            )
 
     def reload_catalog(self) -> None:
         try:
@@ -439,12 +447,32 @@ class CatalogWindow(ttk.Frame):
                 parent=self,
             )
             return
+        destination_exists = Path(selected).exists()
+        if format_name == "amc":
+            backup_note = (
+                f"\n\nThe existing file will be preserved as "
+                f"{Path(selected).with_suffix('.bak')}."
+                if destination_exists
+                else ""
+            )
+            if not messagebox.askyesno(
+                "Export experimental native catalog?",
+                "Native AMC 4.2 export is source-derived but has not been verified "
+                "with the upstream application. Keep your AMC Python JSON catalog "
+                f"and test the exported file before relying on it.{backup_note}\n\n"
+                "Continue?",
+                parent=self,
+            ):
+                return
         try:
             self.service.export(selected, format=format_name)
         except (CatalogError, OSError, TypeError, ValueError) as error:
             messagebox.showerror("Could not export catalog", str(error), parent=self)
             return
-        messagebox.showinfo("Export complete", f"Exported to {selected}.", parent=self)
+        completion = f"Exported to {selected}."
+        if format_name == "amc" and destination_exists:
+            completion += f"\nPrevious file: {Path(selected).with_suffix('.bak')}"
+        messagebox.showinfo("Export complete", completion, parent=self)
 
     def backup_catalog(self) -> None:
         selected = filedialog.asksaveasfilename(

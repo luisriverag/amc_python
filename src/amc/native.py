@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import math
 import os
+import shutil
 import struct
 from dataclasses import dataclass
 from pathlib import Path
@@ -589,6 +590,7 @@ def _read_movie(
     from .model import Movie
 
     version = properties.version
+    record_offset = stream.tell()
     number = _read_int(stream, "movie number")
     date = _read_int(stream, "movie date")
     date_watched = _read_int(stream, "watched date") if version >= "4.2" else 0
@@ -693,39 +695,44 @@ def _read_movie(
             }
             for item in native_extras
         ]
-    movie = Movie(
-        number=max(number, 0),
-        original_title=original_title,
-        translated_title=translated_title,
-        director=director,
-        producer=producer,
-        country=country,
-        category=category,
-        year=year or None,
-        length=length or None,
-        rating=None if rating_raw < 0 else rating_raw / 10,
-        borrower=borrower,
-        media_label=media_label,
-        media_type=media_type,
-        media_count=media_count or None,
-        source=source,
-        languages=languages,
-        subtitles=subtitles,
-        video_format=video_format,
-        video_bitrate=video_bitrate or None,
-        audio_format=audio_format,
-        audio_bitrate=audio_bitrate or None,
-        resolution=resolution,
-        framerate=framerate,
-        file_size=file_size,
-        url=url,
-        description=description,
-        comments=comments,
-        actors=actors,
-        checked=checked,
-        picture=picture_path,
-        extras=extras,
-    )
+    try:
+        movie = Movie(
+            number=max(number, 0),
+            original_title=original_title,
+            translated_title=translated_title,
+            director=director,
+            producer=producer,
+            country=country,
+            category=category,
+            year=year or None,
+            length=length or None,
+            rating=None if rating_raw < 0 else rating_raw / 10,
+            borrower=borrower,
+            media_label=media_label,
+            media_type=media_type,
+            media_count=media_count or None,
+            source=source,
+            languages=languages,
+            subtitles=subtitles,
+            video_format=video_format,
+            video_bitrate=video_bitrate or None,
+            audio_format=audio_format,
+            audio_bitrate=audio_bitrate or None,
+            resolution=resolution,
+            framerate=framerate,
+            file_size=file_size,
+            url=url,
+            description=description,
+            comments=comments,
+            actors=actors,
+            checked=checked,
+            picture=picture_path,
+            extras=extras,
+        )
+    except (TypeError, ValueError) as error:
+        raise CorruptCatalogError(
+            f"invalid native movie value: {error}", offset=record_offset
+        ) from error
     extra_picture_bytes = sum(item.picture_size for item in native_extras)
     return movie, native_extras, picture_size + extra_picture_bytes
 
@@ -852,9 +859,42 @@ def write_native_catalog(
                 _write_movie_42(bounded, movie, tags, encoding)
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        if path.exists():
+            _backup_native_destination(path)
+        _replace_and_sync_directory(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _backup_native_destination(path: Path) -> None:
+    """Durably replace the source-shaped ``.bak`` copy before a native save."""
+    backup = path.with_suffix(".bak")
+    if backup == path:
+        raise ValueError("native catalog backup path must differ from destination")
+    temporary = backup.with_name(f".{backup.name}.tmp")
+    try:
+        with path.open("rb") as source, temporary.open("wb") as destination:
+            shutil.copyfileobj(source, destination)
+            destination.flush()
+            os.fsync(destination.fileno())
+        _replace_and_sync_directory(temporary, backup)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _replace_and_sync_directory(source: Path, destination: Path) -> None:
+    """Replace a file and persist its directory entry where the OS supports it."""
+    source.replace(destination)
+    if os.name == "nt":
+        # Python cannot open Windows directories for FlushFileBuffers. The file
+        # itself was fsynced before replacement, and os.replace remains atomic.
+        return
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    descriptor = os.open(destination.parent, flags)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _write_string(stream: BinaryIO, value: object, encoding: str, label: str) -> None:

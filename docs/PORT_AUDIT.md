@@ -153,8 +153,10 @@ confidence.
     primitive/layout assumptions are encoded directly. They are plausible from the
     source snapshot but not established across compiler settings or real catalogs.
 13. Native reads bound file size, movies, individual/cumulative pictures, cumulative
-    strings, custom fields/list values, and supplementary records. Base64
-    amplification and broader fuzz/property coverage remain outstanding.
+    strings, custom fields/list values, and supplementary records. Exhaustive
+    synthetic fixed-record truncations and a seeded 4.2 byte-mutation corpus now
+    require bounded public outcomes. Base64 amplification, a property framework,
+    and genuine-fixture mutation coverage remain outstanding.
 14. Native writes now bound output bytes, cumulative encoded-string bytes, movies,
     individual/cumulative pictures, custom fields/list values, and supplementary
     records before destination replacement. Genuine upstream acceptance remains

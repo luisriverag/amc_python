@@ -2,8 +2,11 @@ import hashlib
 import importlib.util
 import json
 import threading
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import pytest
 
 
 SPEC = importlib.util.spec_from_file_location("acquire_upstream", Path("tools/acquire_upstream.py"))
@@ -78,6 +81,38 @@ def test_inventory_is_sorted_and_content_addressed(tmp_path: Path):
     assert all(len(entry["sha256"]) == 64 for entry in entries)
 
 
+def test_extract_zip_and_strip_wrapper_directory(tmp_path: Path):
+    archive = tmp_path / "source.zip"
+    with zipfile.ZipFile(archive, "w") as stream:
+        stream.writestr("wrapper/unit.pas", "unit Example;")
+    destination = tmp_path / "expanded"
+
+    assert MODULE.extract(archive, destination) == "zipfile"
+    root = MODULE.comparison_root(destination, True)
+
+    assert root == destination / "wrapper"
+    assert MODULE.inventory(root)[0]["path"] == "unit.pas"
+
+
+def test_extract_zip_rejects_path_traversal(tmp_path: Path):
+    archive = tmp_path / "unsafe.zip"
+    with zipfile.ZipFile(archive, "w") as stream:
+        stream.writestr("../escaped.pas", "unit Escaped;")
+
+    with pytest.raises(ValueError, match="escapes extraction directory"):
+        MODULE.extract(archive, tmp_path / "expanded")
+
+    assert not (tmp_path / "escaped.pas").exists()
+
+
+def test_strip_root_requires_one_wrapper_directory(tmp_path: Path):
+    (tmp_path / "one").mkdir()
+    (tmp_path / "two").mkdir()
+
+    with pytest.raises(ValueError, match="exactly one top-level directory"):
+        MODULE.comparison_root(tmp_path, True)
+
+
 def test_compare_inventories_reports_every_difference(tmp_path: Path):
     acquired = tmp_path / "acquired"
     snapshot = tmp_path / "snapshot"
@@ -120,6 +155,39 @@ def test_compare_to_requires_extraction_directory(tmp_path: Path):
         assert str(error) == "--compare-to requires --extract-to"
     else:
         raise AssertionError("main accepted a comparison without extraction")
+
+
+def test_strip_root_requires_extraction_directory(tmp_path: Path):
+    source = tmp_path / "source.zip"
+    source.write_bytes(b"archive")
+
+    with pytest.raises(ValueError, match="--strip-root requires --extract-to"):
+        MODULE.main(["--url", source.as_uri(), "--strip-root"])
+
+
+def test_main_compares_zip_inside_wrapper_directory(tmp_path: Path):
+    source = tmp_path / "source.zip"
+    with zipfile.ZipFile(source, "w") as stream:
+        stream.writestr("wrapper/unit.pas", "unit Example;")
+    snapshot = tmp_path / "snapshot"
+    snapshot.mkdir()
+    (snapshot / "unit.pas").write_text("unit Example;", encoding="utf-8")
+    comparison = tmp_path / "comparison.json"
+
+    assert MODULE.main([
+        "--url", source.as_uri(),
+        "--output", str(tmp_path / "copy.zip"),
+        "--extract-to", str(tmp_path / "expanded"),
+        "--strip-root",
+        "--compare-to", str(snapshot),
+        "--comparison", str(comparison),
+        "--metadata", str(tmp_path / "archive.json"),
+        "--inventory", str(tmp_path / "inventory.json"),
+    ]) == 0
+
+    result = json.loads(comparison.read_text(encoding="utf-8"))
+    assert result["equivalent"] is True
+    assert result["matched"] == ["unit.pas"]
 
 
 def test_main_rejects_invalid_expected_digest_before_download(tmp_path: Path):

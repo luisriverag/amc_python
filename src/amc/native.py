@@ -1,4 +1,4 @@
-"""Read-only primitives for the source-derived native AMC binary format."""
+"""Bounded primitives for the source-derived native AMC binary format."""
 
 from __future__ import annotations
 
@@ -128,6 +128,51 @@ class NativeReadLimits:
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise ValueError(f"{name} must be a non-negative integer")
+
+
+@dataclass(frozen=True, slots=True)
+class NativeWriteLimits:
+    """Resource bounds applied before and while writing native catalogs."""
+
+    max_file_bytes: int = 1024 * 1024 * 1024
+    max_movies: int = 1_000_000
+    max_picture_bytes: int = 64 * 1024 * 1024
+    max_total_picture_bytes: int = 256 * 1024 * 1024
+    max_total_string_bytes: int = 256 * 1024 * 1024
+    max_extras_per_movie: int = 10_000
+    max_total_extras: int = 100_000
+    max_custom_fields: int = 10_000
+    max_list_values_per_field: int = 100_000
+
+    def __post_init__(self) -> None:
+        for name in self.__dataclass_fields__:
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+
+
+class _BoundedWriter:
+    """Reject output as soon as it exceeds its configured byte budget."""
+
+    def __init__(self, stream: BinaryIO, limit: int, string_limit: int) -> None:
+        self.stream = stream
+        self.limit = limit
+        self.string_limit = string_limit
+        self.written = 0
+        self.string_bytes = 0
+
+    def write(self, data: bytes) -> int:
+        if self.written + len(data) > self.limit:
+            raise ValueError("native catalog exceeds output-size limit")
+        count = self.stream.write(data)
+        self.written += count
+        return count
+
+    def account_string(self, size: int) -> None:
+        """Count encoded string payload bytes independently of total output bytes."""
+        if self.string_bytes + size > self.string_limit:
+            raise ValueError("native catalog exceeds cumulative string-size limit")
+        self.string_bytes += size
 
 
 @dataclass(frozen=True, slots=True)
@@ -501,8 +546,7 @@ def _read_legacy_catalog(
             if file_size_text and file_size_value is None:
                 extras["native_file_size_text"] = file_size_text
             raw_number = int(get("number"))
-            if raw_number < 0:
-                extras["native_movie_number"] = raw_number
+            extras["native_movie_number"] = raw_number
             movies.append(Movie(
                 number=max(raw_number, 0),
                 original_title=str(get("original_title")),
@@ -632,8 +676,7 @@ def _read_movie(
         extras["native_framerate_text"] = framerate_text
     if file_size is None and file_size_text.strip():
         extras["native_file_size_text"] = file_size_text
-    if number < 0:
-        extras["native_movie_number"] = number
+    extras["native_movie_number"] = number
     if native_extras:
         extras["native_supplementary_records"] = [
             {
@@ -738,6 +781,7 @@ def write_native_catalog(
     path: str | Path,
     *,
     encoding: str = "cp1252",
+    limits: NativeWriteLimits | None = None,
 ) -> None:
     """Atomically write a source-derived AMC 4.2 catalog.
 
@@ -745,30 +789,67 @@ def write_native_catalog(
     the ``native`` metadata namespace and each movie's ``extras`` mapping.
     """
     path = Path(path)
+    limits = limits or NativeWriteLimits()
+    movies = list(catalog)
+    if len(movies) > limits.max_movies:
+        raise ValueError("native catalog exceeds movie-count limit")
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
     try:
         with temporary.open("wb") as stream:
-            stream.write(next(header for header, version in NATIVE_HEADERS.items() if version == "4.2"))
+            bounded = _BoundedWriter(
+                stream, limits.max_file_bytes, limits.max_total_string_bytes
+            )
+            bounded.write(next(
+                header for header, version in NATIVE_HEADERS.items() if version == "4.2"
+            ))
             native = catalog.metadata.get("native", {})
             if not isinstance(native, dict):
                 raise TypeError("catalog native metadata must be an object")
             for key in ("owner", "mail", "site", "description"):
-                _write_string(stream, native.get(key, ""), encoding, key)
+                _write_string(bounded, native.get(key, ""), encoding, key)
             custom_fields = native.get("custom_fields", [])
             if not isinstance(custom_fields, list):
                 raise TypeError("native custom_fields metadata must be a list")
-            _write_string(stream, native.get("column_settings", ""), encoding, "column settings")
-            _write_string(stream, native.get("gui_properties", ""), encoding, "GUI properties")
-            _write_int(stream, len(custom_fields))
+            if len(custom_fields) > limits.max_custom_fields:
+                raise ValueError("native catalog exceeds custom-field limit")
+            _write_string(bounded, native.get("column_settings", ""), encoding, "column settings")
+            _write_string(bounded, native.get("gui_properties", ""), encoding, "GUI properties")
+            _write_int(bounded, len(custom_fields))
             tags: list[str] = []
             for field in custom_fields:
                 if not isinstance(field, dict):
                     raise TypeError("each native custom field must be an object")
-                tag = _write_custom_field(stream, field, encoding)
+                values = field.get("list_values", [])
+                if (
+                    isinstance(values, (list, tuple))
+                    and len(values) > limits.max_list_values_per_field
+                ):
+                    raise ValueError("native custom field exceeds list-value limit")
+                tag = _write_custom_field(bounded, field, encoding)
                 tags.append(tag)
-            for movie in catalog:
-                _write_movie_42(stream, movie, tags, encoding)
+            total_extras = 0
+            total_pictures = 0
+            for movie in movies:
+                records = movie.extras.get("native_supplementary_records", [])
+                if not isinstance(records, list):
+                    raise TypeError("native supplementary records must be a list")
+                if len(records) > limits.max_extras_per_movie:
+                    raise ValueError("native movie exceeds supplementary-record limit")
+                total_extras += len(records)
+                if total_extras > limits.max_total_extras:
+                    raise ValueError("native catalog exceeds supplementary-record limit")
+                pictures = [_picture_bytes(movie.extras, "native_picture_base64")]
+                for record in records:
+                    if not isinstance(record, dict):
+                        raise TypeError("each native supplementary record must be an object")
+                    pictures.append(_picture_bytes(record, "picture_base64"))
+                if any(len(picture) > limits.max_picture_bytes for picture in pictures):
+                    raise ValueError("native picture exceeds picture-size limit")
+                total_pictures += sum(map(len, pictures))
+                if total_pictures > limits.max_total_picture_bytes:
+                    raise ValueError("native catalog exceeds cumulative picture-size limit")
+                _write_movie_42(bounded, movie, tags, encoding)
             stream.flush()
             os.fsync(stream.fileno())
         temporary.replace(path)
@@ -785,6 +866,8 @@ def _write_string(stream: BinaryIO, value: object, encoding: str, label: str) ->
         raise ValueError(f"cannot encode native {label} using {encoding}: {error}") from error
     if len(raw) > _MAX_PROPERTY_BYTES:
         raise ValueError(f"native {label} exceeds string-size limit")
+    if isinstance(stream, _BoundedWriter):
+        stream.account_string(len(raw))
     _write_int(stream, len(raw))
     stream.write(raw)
 
@@ -810,9 +893,17 @@ def _write_custom_field(stream: BinaryIO, field: dict[str, object], encoding: st
         _write_string(stream, field.get(key, ""), encoding, f"custom field {key}")
     _write_bool(stream, field.get("multi_values", False), "custom multi_values")
     separator = field.get("multi_value_separator", ",")
-    if not isinstance(separator, str) or len(separator.encode(encoding)) > 1:
+    if not isinstance(separator, str):
+        raise TypeError("native custom-field separator must be a string")
+    try:
+        encoded_separator = separator.encode(encoding)
+    except (LookupError, UnicodeEncodeError) as error:
+        raise ValueError(
+            f"cannot encode native custom-field separator using {encoding}: {error}"
+        ) from error
+    if len(encoded_separator) > 1:
         raise ValueError("native custom-field separator must encode to at most one byte")
-    stream.write(separator.encode(encoding).ljust(4, b"\0"))
+    stream.write(encoded_separator.ljust(4, b"\0"))
     for key in ("remove_parentheses", "patch_values", "excluded_in_scripts"):
         _write_bool(stream, field.get(key, False), f"custom {key}")
     _write_string(stream, field.get("gui_properties", ""), encoding, "custom GUI properties")
@@ -835,6 +926,16 @@ def _retained_int(extras: dict[str, object], key: str, default: int) -> int:
     return value
 
 
+def _retained_rating(extras: dict[str, object]) -> int:
+    """Return the retained user rating as a finite native tenths integer."""
+    value = extras.get("native_user_rating", -0.1)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError("movie extra native_user_rating must be a number")
+    if not math.isfinite(value):
+        raise ValueError("movie extra native_user_rating must be finite")
+    return round(value * 10)
+
+
 def _picture_bytes(extras: dict[str, object], key: str) -> bytes:
     value = extras.get(key, "")
     if not isinstance(value, str):
@@ -852,7 +953,7 @@ def _write_movie_42(stream: BinaryIO, movie: "Movie", tags: list[str], encoding:
         _retained_int(extras, "native_movie_number", movie.number),
         _retained_int(extras, "native_date", 0),
         _retained_int(extras, "native_date_watched", 0),
-        round(float(extras.get("native_user_rating", -0.1)) * 10),
+        _retained_rating(extras),
         rating, movie.year or 0, movie.length or 0, movie.video_bitrate or 0,
         movie.audio_bitrate or 0, movie.media_count or 0,
         _retained_int(extras, "native_color_tag", 0),

@@ -24,10 +24,13 @@ Every feature change must include:
 ## Milestone 0: authoritative upstream baseline
 
 - [ ] Reacquire `amc_sources.rar` and record URL, retrieval date, byte size, and
-  SHA-256 digest; a checked-in extracted snapshot exists without these records.
+  SHA-256 digest. The contributor-supplied archive, reported source page, size,
+  digest, and commit date are now recorded; its precise download time is unknown.
 - [x] Add a streaming acquisition, extraction, checksum, and inventory tool.
 - [x] Add deterministic acquired-tree versus checked-in-snapshot comparison
-  reporting; running it against the unavailable official archive remains pending.
+  reporting; the two supplied archives match all 952 expanded files exactly.
+- [x] Make both supplied archive layouts reproducible in the acquisition tool:
+  safe built-in ZIP extraction and optional single-wrapper-directory stripping.
 - [x] Support pre-installation verification against an independently supplied
   archive SHA-256; no authoritative published digest has yet been located.
 - [ ] Confirm snapshot/archive equivalence and complete application/dependency
@@ -99,7 +102,10 @@ all omitted or opaque data is reported.
 
 ## Milestone 4: native AMC write support
 
-- [ ] Implement version-specific writers behind an experimental flag.
+- [ ] Implement version-specific writers behind an experimental flag (the 4.2
+  writer is atomic and now enforces configurable output, movie, picture,
+  cumulative encoded-string, custom-field/list-value, and supplementary-record
+  budgets; older writers and upstream acceptance remain pending).
 - [ ] Always back up existing native catalogs before replacement.
 - [ ] Test interrupted writes and preservation of the original file.
 - [ ] Open, save, and reopen generated files with upstream AMC.
@@ -117,10 +123,14 @@ all omitted or opaque data is reported.
   controls, loan/checked view filters, validated editing of every modeled scalar
   field, read-only detail review, statistics, duplicate review, and confirmed
   renumbering are complete;
-  mutations currently save immediately, so no dirty state is retained for prompting).
+  linked/size-bounded embedded picture set/clear/export, validated cropping, and
+  native retention are complete; batch picture management, progress, cancellation, accessibility,
+  and dirty-state prompting remain pending).
 - [ ] Add loan management and catalog preferences if confirmed upstream features
-  (atomic single-movie check-out/check-in is implemented; borrower lists, grouped
-  media behavior, and history remain pending).
+  (atomic single/multi-movie check-out/check-in and validated JSON-retained loan
+  history, managed borrower lists, and source-shaped TSV history export are
+  implemented; opt-in media-label and retained-native-number grouping are
+  implemented, while upstream verification and catalog preferences remain pending).
 
 ## Milestone 6: scripts, metadata, and media
 

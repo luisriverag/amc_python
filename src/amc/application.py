@@ -2,12 +2,27 @@
 
 from __future__ import annotations
 
+import base64
 from collections.abc import Callable, Iterable
+import io
+import os
 from pathlib import Path
 from typing import TypeVar
 
+from PIL import Image, UnidentifiedImageError
+
 from .catalog import Catalog
+from .loans import (
+    LoanEvent,
+    add_borrower,
+    append_event,
+    borrowers,
+    export_legacy_history,
+    history,
+    remove_borrower,
+)
 from .model import Movie
+from .native import NativeWriteLimits
 from .storage import (
     copy_catalog,
     load,
@@ -20,6 +35,8 @@ from .storage import (
 
 _Result = TypeVar("_Result")
 _HISTORY_LIMIT = 100
+_MAX_PICTURE_BYTES = 64 * 1024 * 1024
+_MAX_PICTURE_PIXELS = 40_000_000
 
 
 class CatalogService:
@@ -141,25 +158,29 @@ class CatalogService:
         """Return normalized title/year duplicate groups."""
         return self.catalog.duplicates()
 
-    def check_out(self, number: int, borrower: str) -> Movie:
+    def check_out(
+        self,
+        number: int,
+        borrower: str,
+        *,
+        include_media_label: bool = False,
+        include_native_number: bool = False,
+    ) -> Movie:
         """Assign a borrower unless the movie is already loaned elsewhere."""
-        borrower = borrower.strip()
-        if not borrower:
-            raise ValueError("borrower must not be empty")
+        updated = self.check_out_many(
+            [number], borrower, include_media_label=include_media_label,
+            include_native_number=include_native_number,
+        )
+        return next(movie for movie in updated if movie.number == number)
 
-        def assign(catalog: Catalog) -> Movie:
-            movie = catalog.get(number)
-            if movie.borrower and movie.borrower != borrower:
-                raise ValueError(
-                    f"movie {number} is already checked out to {movie.borrower}"
-                )
-            values = movie.to_dict()
-            values["borrower"] = borrower
-            return catalog.replace(number, Movie.from_dict(values))
-
-        return self._persist(assign)
-
-    def check_out_many(self, numbers: Iterable[int], borrower: str) -> list[Movie]:
+    def check_out_many(
+        self,
+        numbers: Iterable[int],
+        borrower: str,
+        *,
+        include_media_label: bool = False,
+        include_native_number: bool = False,
+    ) -> list[Movie]:
         """Assign one borrower to distinct movies in one atomic write."""
         borrower = borrower.strip()
         if not borrower:
@@ -169,8 +190,14 @@ class CatalogService:
             return []
 
         def assign_all(catalog: Catalog) -> list[Movie]:
+            expanded = self._expand_loan_groups(
+                catalog,
+                requested,
+                include_media_label=include_media_label,
+                include_native_number=include_native_number,
+            )
             updated = []
-            for number in requested:
+            for number in expanded:
                 movie = catalog.get(number)
                 if movie.borrower and movie.borrower != borrower:
                     raise ValueError(
@@ -178,41 +205,90 @@ class CatalogService:
                     )
                 values = movie.to_dict()
                 values["borrower"] = borrower
-                updated.append(catalog.replace(number, Movie.from_dict(values)))
+                replacement = catalog.replace(number, Movie.from_dict(values))
+                if not movie.borrower:
+                    append_event(
+                        catalog, replacement, action="out", borrower=borrower
+                    )
+                updated.append(replacement)
             return updated
 
         return self._persist(assign_all)
 
-    def check_in(self, number: int) -> Movie:
+    def check_in(
+        self,
+        number: int,
+        *,
+        include_media_label: bool = False,
+        include_native_number: bool = False,
+    ) -> Movie:
         """Clear the current borrower for a loaned movie."""
-        def clear(catalog: Catalog) -> Movie:
-            movie = catalog.get(number)
-            if not movie.borrower:
-                raise ValueError(f"movie {number} is not checked out")
-            values = movie.to_dict()
-            values["borrower"] = ""
-            return catalog.replace(number, Movie.from_dict(values))
+        updated = self.check_in_many(
+            [number], include_media_label=include_media_label,
+            include_native_number=include_native_number,
+        )
+        return next(movie for movie in updated if movie.number == number)
 
-        return self._persist(clear)
-
-    def check_in_many(self, numbers: Iterable[int]) -> list[Movie]:
+    def check_in_many(
+        self,
+        numbers: Iterable[int],
+        *,
+        include_media_label: bool = False,
+        include_native_number: bool = False,
+    ) -> list[Movie]:
         """Clear borrowers from distinct loaned movies in one atomic write."""
         requested = self._movie_numbers(numbers)
         if not requested:
             return []
 
         def clear_all(catalog: Catalog) -> list[Movie]:
+            expanded = self._expand_loan_groups(
+                catalog,
+                requested,
+                include_media_label=include_media_label,
+                include_native_number=include_native_number,
+            )
             updated = []
-            for number in requested:
+            for number in expanded:
                 movie = catalog.get(number)
                 if not movie.borrower:
                     raise ValueError(f"movie {number} is not checked out")
                 values = movie.to_dict()
                 values["borrower"] = ""
-                updated.append(catalog.replace(number, Movie.from_dict(values)))
+                replacement = catalog.replace(number, Movie.from_dict(values))
+                append_event(
+                    catalog, replacement, action="in", borrower=movie.borrower
+                )
+                updated.append(replacement)
             return updated
 
         return self._persist(clear_all)
+
+    def loan_history(self) -> list[LoanEvent]:
+        """Return validated loan events in chronological insertion order."""
+        return history(self.catalog)
+
+    def borrowers(self) -> list[str]:
+        """Return managed borrowers plus names referenced by active loans."""
+        return borrowers(self.catalog)
+
+    def add_borrower(self, name: str) -> str:
+        """Persist a managed borrower name."""
+        return self._persist(lambda catalog: add_borrower(catalog, name))
+
+    def remove_borrower(self, name: str) -> str:
+        """Remove an unused managed borrower name."""
+        return self._persist(lambda catalog: remove_borrower(catalog, name))
+
+    def export_loan_history(
+        self, destination: str | Path, *, catalog_name: str | None = None
+    ) -> None:
+        """Export retained events using the upstream tab-separated column layout."""
+        export_legacy_history(
+            self.catalog,
+            destination,
+            catalog_name=self.path.name if catalog_name is None else catalog_name,
+        )
 
     def set_checked(self, number: int, checked: bool) -> Movie:
         """Set the catalog-review flag for one movie atomically."""
@@ -252,6 +328,133 @@ class CatalogService:
             return updated
 
         return self._persist(update_all)
+
+    def set_picture(
+        self,
+        number: int,
+        source: str | Path,
+        *,
+        embed: bool = False,
+        max_bytes: int = _MAX_PICTURE_BYTES,
+        max_pixels: int = _MAX_PICTURE_PIXELS,
+        crop: tuple[int, int, int, int] | None = None,
+    ) -> Movie:
+        """Link or embed a movie picture in one atomic catalog mutation."""
+        if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 0:
+            raise ValueError("max_bytes must be a non-negative integer")
+        if isinstance(max_pixels, bool) or not isinstance(max_pixels, int) or max_pixels < 1:
+            raise ValueError("max_pixels must be a positive integer")
+        source_path = Path(source)
+        encoded = ""
+        if embed:
+            size = source_path.stat().st_size
+            if size > max_bytes:
+                raise ValueError(f"picture exceeds size limit: {size} > {max_bytes}")
+            data = source_path.read_bytes()
+            if len(data) > max_bytes:
+                raise ValueError(f"picture exceeds size limit: {len(data)} > {max_bytes}")
+            data = self._prepare_picture(data, max_pixels=max_pixels, crop=crop)
+            if len(data) > max_bytes:
+                raise ValueError(
+                    f"cropped picture exceeds size limit: {len(data)} > {max_bytes}"
+                )
+            encoded = base64.b64encode(data).decode("ascii")
+        elif crop is not None:
+            raise ValueError("crop is only supported for embedded pictures")
+
+        def update(catalog: Catalog) -> Movie:
+            movie = catalog.get(number)
+            values = movie.to_dict()
+            values["picture"] = source_path.name if embed else str(source_path)
+            extras = dict(values["extras"])
+            if embed:
+                extras["native_picture_base64"] = encoded
+            else:
+                extras.pop("native_picture_base64", None)
+            values["extras"] = extras
+            return catalog.replace(number, Movie.from_dict(values))
+
+        return self._persist(update)
+
+    def clear_picture(self, number: int) -> Movie:
+        """Remove both linked and embedded picture state atomically."""
+        def clear(catalog: Catalog) -> Movie:
+            movie = catalog.get(number)
+            values = movie.to_dict()
+            values["picture"] = ""
+            extras = dict(values["extras"])
+            extras.pop("native_picture_base64", None)
+            values["extras"] = extras
+            return catalog.replace(number, Movie.from_dict(values))
+
+        return self._persist(clear)
+
+    def export_picture(self, number: int, destination: str | Path) -> None:
+        """Atomically copy an embedded or linked picture to *destination*."""
+        movie = self.catalog.get(number)
+        encoded = movie.extras.get("native_picture_base64", "")
+        if encoded:
+            if not isinstance(encoded, str):
+                raise TypeError("embedded picture must be a base64 string")
+            try:
+                data = base64.b64decode(encoded, validate=True)
+            except ValueError as error:
+                raise ValueError("embedded picture is not valid base64") from error
+        else:
+            if not movie.picture:
+                raise ValueError(f"movie {number} has no picture")
+            source = Path(movie.picture)
+            if not source.is_absolute():
+                source = self.path.parent / source
+            data = source.read_bytes()
+        destination = Path(destination)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_name(f".{destination.name}.tmp")
+        try:
+            with temporary.open("wb") as stream:
+                stream.write(data)
+                stream.flush()
+                os.fsync(stream.fileno())
+            temporary.replace(destination)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    @staticmethod
+    def _prepare_picture(
+        data: bytes,
+        *,
+        max_pixels: int,
+        crop: tuple[int, int, int, int] | None,
+    ) -> bytes:
+        """Validate an image and optionally return a safely cropped encoding."""
+        try:
+            with Image.open(io.BytesIO(data)) as image:
+                width, height = image.size
+                if width < 1 or height < 1 or width * height > max_pixels:
+                    raise ValueError(
+                        f"picture exceeds pixel limit: {width}x{height} > {max_pixels}"
+                    )
+                if crop is not None:
+                    if (
+                        len(crop) != 4
+                        or any(isinstance(value, bool) or not isinstance(value, int) for value in crop)
+                    ):
+                        raise TypeError("crop must contain four integers")
+                    left, top, crop_width, crop_height = crop
+                    if left < 0 or top < 0 or crop_width < 1 or crop_height < 1:
+                        raise ValueError("crop coordinates must define a positive rectangle")
+                    if left + crop_width > width or top + crop_height > height:
+                        raise ValueError("crop rectangle exceeds picture bounds")
+                    output = io.BytesIO()
+                    cropped = image.crop(
+                        (left, top, left + crop_width, top + crop_height)
+                    )
+                    cropped.save(output, format=image.format or "PNG")
+                    return output.getvalue()
+                image.verify()
+                return data
+        except (OSError, UnidentifiedImageError, Image.DecompressionBombError) as error:
+            raise ValueError(f"picture is not a supported image: {error}") from error
 
     @property
     def can_undo(self) -> bool:
@@ -316,6 +519,8 @@ class CatalogService:
         format: str,
         template: str | Path | None = None,
         row_template: str | Path | None = None,
+        native_encoding: str = "cp1252",
+        native_limits: NativeWriteLimits | None = None,
     ) -> None:
         """Export the current catalog through an explicitly selected adapter."""
         exporters = {
@@ -331,6 +536,18 @@ class CatalogService:
                 row_template=row_template,
             )
             return
+        if format == "amc":
+            if template is not None or row_template is not None:
+                raise ValueError("templates are only supported for HTML export")
+            save_native(
+                self.catalog,
+                destination,
+                encoding=native_encoding,
+                limits=native_limits,
+            )
+            return
+        if native_encoding != "cp1252" or native_limits is not None:
+            raise ValueError("native export options are only supported for AMC export")
         if template is not None or row_template is not None:
             raise ValueError("templates are only supported for HTML export")
         try:
@@ -379,3 +596,40 @@ class CatalogService:
         if len(set(requested)) != len(requested):
             raise ValueError("movie numbers must be unique")
         return requested
+
+    @staticmethod
+    def _expand_loan_groups(
+        catalog: Catalog,
+        numbers: list[int],
+        *,
+        include_media_label: bool,
+        include_native_number: bool,
+    ) -> list[int]:
+        """Expand selected movies to requested source-derived loan groups."""
+        if not isinstance(include_media_label, bool):
+            raise TypeError("include_media_label must be a boolean")
+        if not isinstance(include_native_number, bool):
+            raise TypeError("include_native_number must be a boolean")
+        selected = [catalog.get(number) for number in numbers]
+        if not include_media_label and not include_native_number:
+            return numbers
+        labels = {movie.media_label.casefold() for movie in selected if movie.media_label}
+        native_numbers = {
+            movie.extras.get("native_movie_number", movie.number)
+            for movie in selected
+        }
+        expanded = set(numbers)
+        expanded.update(
+            movie.number
+            for movie in catalog
+            if (
+                include_media_label
+                and movie.media_label
+                and movie.media_label.casefold() in labels
+            ) or (
+                include_native_number
+                and movie.extras.get("native_movie_number", movie.number)
+                in native_numbers
+            )
+        )
+        return [movie.number for movie in catalog if movie.number in expanded]

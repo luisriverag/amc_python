@@ -203,6 +203,7 @@ def test_read_amc_41_movie_record(tmp_path: Path):
         "Inventory": "A-42",
         "native_custom_values": [{"tag": "Inventory", "value": "A-42"}],
         "native_color_tag": 3,
+        "native_movie_number": 7,
         "native_picture_base64": "aW1n",
     }
 
@@ -767,3 +768,171 @@ def test_native_writer_is_atomic_on_encoding_failure(tmp_path: Path):
 
     assert target.read_bytes() == b"existing"
     assert not (tmp_path / ".catalog.amc.tmp").exists()
+
+
+def test_native_writer_limits_preserve_existing_destination(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import NativeWriteLimits, write_native_catalog
+
+    target = tmp_path / "catalog.amc"
+    target.write_bytes(b"existing")
+    catalog = Catalog([Movie(original_title="Alien")])
+
+    with pytest.raises(ValueError, match="movie-count limit"):
+        write_native_catalog(catalog, target, limits=NativeWriteLimits(max_movies=0))
+    with pytest.raises(ValueError, match="output-size limit"):
+        write_native_catalog(
+            catalog, target, limits=NativeWriteLimits(max_file_bytes=64)
+        )
+
+    assert target.read_bytes() == b"existing"
+    assert not (tmp_path / ".catalog.amc.tmp").exists()
+
+
+def test_native_writer_limits_cumulative_encoded_strings(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import NativeWriteLimits, write_native_catalog
+
+    target = tmp_path / "strings.amc"
+    target.write_bytes(b"existing")
+    catalog = Catalog([Movie(original_title="Alien")])
+
+    with pytest.raises(ValueError, match="cumulative string-size limit"):
+        write_native_catalog(
+            catalog,
+            target,
+            limits=NativeWriteLimits(max_total_string_bytes=4),
+        )
+
+    assert target.read_bytes() == b"existing"
+    assert not (tmp_path / ".strings.amc.tmp").exists()
+
+
+def test_native_writer_counts_encoded_bytes_not_characters(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import NativeWriteLimits, write_native_catalog
+
+    catalog = Catalog([Movie(original_title="é")])
+
+    with pytest.raises(ValueError, match="cumulative string-size limit"):
+        write_native_catalog(
+            catalog,
+            tmp_path / "utf8.amc",
+            encoding="utf-8",
+            limits=NativeWriteLimits(max_total_string_bytes=1),
+        )
+
+
+def test_native_writer_limits_custom_fields_and_list_values(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.native import NativeWriteLimits, write_native_catalog
+
+    field = {"tag": "Mood", "field_type": "List", "list_values": ["Calm"]}
+    catalog = Catalog(metadata={"native": {"custom_fields": [field]}})
+
+    with pytest.raises(ValueError, match="custom-field limit"):
+        write_native_catalog(
+            catalog, tmp_path / "fields.amc",
+            limits=NativeWriteLimits(max_custom_fields=0),
+        )
+    with pytest.raises(ValueError, match="list-value limit"):
+        write_native_catalog(
+            catalog, tmp_path / "values.amc",
+            limits=NativeWriteLimits(max_list_values_per_field=0),
+        )
+
+
+def test_native_writer_limits_pictures_and_supplementary_records(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import NativeWriteLimits, write_native_catalog
+
+    movie = Movie(extras={
+        "native_picture_base64": "aW1n",
+        "native_supplementary_records": [{"picture_base64": "eA=="}],
+    })
+    catalog = Catalog([movie])
+
+    with pytest.raises(ValueError, match="picture-size limit"):
+        write_native_catalog(
+            catalog, tmp_path / "picture.amc",
+            limits=NativeWriteLimits(max_picture_bytes=2),
+        )
+    with pytest.raises(ValueError, match="cumulative picture-size limit"):
+        write_native_catalog(
+            catalog, tmp_path / "pictures.amc",
+            limits=NativeWriteLimits(max_total_picture_bytes=3),
+        )
+    with pytest.raises(ValueError, match="supplementary-record limit"):
+        write_native_catalog(
+            catalog, tmp_path / "extras.amc",
+            limits=NativeWriteLimits(max_extras_per_movie=0),
+        )
+
+
+def test_native_write_limits_validate_configuration():
+    from amc.native import NativeWriteLimits
+
+    with pytest.raises(ValueError, match="max_file_bytes"):
+        NativeWriteLimits(max_file_bytes=-1)
+    with pytest.raises(ValueError, match="max_movies"):
+        NativeWriteLimits(max_movies=True)
+
+
+@pytest.mark.parametrize(("metadata", "message"), [
+    ({"native": []}, "native metadata must be an object"),
+    ({"native": {"custom_fields": {}}}, "custom_fields metadata must be a list"),
+    ({"native": {"custom_fields": ["Mood"]}}, "custom field must be an object"),
+    ({"native": {"custom_fields": [{"multi_values": 1}]}}, "must be a boolean"),
+    ({"native": {"custom_fields": [{
+        "field_type": "List", "list_values": "Calm"
+    }]}}, "list_values must be a list"),
+])
+def test_native_writer_rejects_malformed_metadata_atomically(
+    tmp_path: Path, metadata: dict[str, object], message: str
+):
+    from amc.catalog import Catalog
+    from amc.native import write_native_catalog
+
+    target = tmp_path / "metadata.amc"
+    target.write_bytes(b"trusted")
+
+    with pytest.raises(TypeError, match=message):
+        write_native_catalog(Catalog(metadata=metadata), target)
+
+    assert target.read_bytes() == b"trusted"
+    assert not (tmp_path / ".metadata.amc.tmp").exists()
+
+
+@pytest.mark.parametrize("value", ["5", True])
+def test_native_writer_rejects_invalid_retained_user_rating_atomically(
+    tmp_path: Path, value: object
+):
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import write_native_catalog
+
+    target = tmp_path / "rating.amc"
+    target.write_bytes(b"trusted")
+
+    with pytest.raises((TypeError, ValueError), match="native_user_rating"):
+        write_native_catalog(
+            Catalog([Movie(extras={"native_user_rating": value})]), target
+        )
+
+    assert target.read_bytes() == b"trusted"
+
+
+def test_native_writer_reports_unencodable_custom_separator(tmp_path: Path):
+    from amc.catalog import Catalog
+    from amc.native import write_native_catalog
+
+    catalog = Catalog(metadata={"native": {"custom_fields": [{
+        "tag": "Mood", "multi_value_separator": "☃",
+    }]}})
+
+    with pytest.raises(ValueError, match="cannot encode native custom-field separator"):
+        write_native_catalog(catalog, tmp_path / "separator.amc")

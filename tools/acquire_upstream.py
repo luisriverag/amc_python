@@ -9,6 +9,7 @@ import json
 import shutil
 import subprocess
 import urllib.request
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -50,10 +51,32 @@ def download(
 
 
 def extract(archive: Path, destination: Path) -> str:
-    """Extract with the first available supported RAR program."""
+    """Extract a ZIP directly or use the first available RAR program."""
     destination.mkdir(parents=True, exist_ok=True)
+    if zipfile.is_zipfile(archive):
+        destination_root = destination.resolve()
+        with zipfile.ZipFile(archive) as source:
+            for member in source.infolist():
+                target = (destination / member.filename).resolve()
+                if not target.is_relative_to(destination_root):
+                    raise ValueError(
+                        f"archive member escapes extraction directory: {member.filename}"
+                    )
+            source.extractall(destination)
+        return "zipfile"
     commands = (
         ("unrar", ["unrar", "x", "-o+", str(archive), str(destination)]),
+        (
+            "unar",
+            [
+                "unar",
+                "-quiet",
+                "-force-overwrite",
+                "-output-directory",
+                str(destination),
+                str(archive),
+            ],
+        ),
         ("7z", ["7z", "x", "-y", f"-o{destination}", str(archive)]),
         ("bsdtar", ["bsdtar", "-xf", str(archive), "-C", str(destination)]),
     )
@@ -61,7 +84,19 @@ def extract(archive: Path, destination: Path) -> str:
         if shutil.which(executable):
             subprocess.run(command, check=True)
             return executable
-    raise RuntimeError("RAR extraction requires unrar, 7z, or bsdtar")
+    raise RuntimeError("RAR extraction requires unrar, unar, 7z, or bsdtar")
+
+
+def comparison_root(root: Path, strip_root: bool) -> Path:
+    """Return the inventory root, optionally removing one archive wrapper directory."""
+    if not strip_root:
+        return root
+    children = list(root.iterdir())
+    if len(children) != 1 or not children[0].is_dir():
+        raise ValueError(
+            "--strip-root requires exactly one top-level directory in the archive"
+        )
+    return children[0]
 
 
 def inventory(root: Path) -> list[dict[str, object]]:
@@ -111,6 +146,11 @@ def parser() -> argparse.ArgumentParser:
     )
     result.add_argument("--output", type=Path, default=Path("upstream/amc_sources.rar"))
     result.add_argument("--extract-to", type=Path)
+    result.add_argument(
+        "--strip-root",
+        action="store_true",
+        help="inventory and compare inside the archive's sole top-level directory",
+    )
     result.add_argument("--metadata", type=Path, default=Path("upstream/archive.json"))
     result.add_argument("--inventory", type=Path, default=Path("upstream/inventory.json"))
     result.add_argument(
@@ -131,6 +171,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.compare_to and not args.extract_to:
         raise ValueError("--compare-to requires --extract-to")
+    if args.strip_root and not args.extract_to:
+        raise ValueError("--strip-root requires --extract-to")
     if args.expected_sha256 and (
         len(args.expected_sha256) != 64
         or any(character not in "0123456789abcdef" for character in args.expected_sha256)
@@ -139,13 +181,14 @@ def main(argv: list[str] | None = None) -> int:
     metadata = download(args.url, args.output, args.expected_sha256)
     if args.extract_to:
         metadata["extractor"] = extract(args.output, args.extract_to)
-        files = inventory(args.extract_to)
+        inventory_root = comparison_root(args.extract_to, args.strip_root)
+        files = inventory(inventory_root)
         args.inventory.parent.mkdir(parents=True, exist_ok=True)
         args.inventory.write_text(json.dumps(files, indent=2) + "\n", encoding="utf-8")
         metadata["files"] = len(files)
         if args.compare_to:
             comparison = compare_inventories(files, inventory(args.compare_to))
-            comparison["acquired_root"] = str(args.extract_to)
+            comparison["acquired_root"] = str(inventory_root)
             comparison["snapshot_root"] = str(args.compare_to)
             args.comparison.parent.mkdir(parents=True, exist_ok=True)
             args.comparison.write_text(

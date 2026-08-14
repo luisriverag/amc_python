@@ -15,7 +15,13 @@ from pathlib import Path
 
 from .catalog import Catalog
 from .model import Movie
-from .native import NATIVE_HEADER_SIZE, NATIVE_HEADERS, read_native_catalog, write_native_catalog
+from .native import (
+    NATIVE_HEADER_SIZE,
+    NATIVE_HEADERS,
+    NativeWriteLimits,
+    read_native_catalog,
+    write_native_catalog,
+)
 
 _XML_FIELDS = {
     "OriginalTitle": "original_title", "TranslatedTitle": "translated_title",
@@ -131,9 +137,15 @@ def save(catalog: Catalog, path: str | Path) -> None:
         stream.write("\n")
 
 
-def save_native(catalog: Catalog, path: str | Path) -> None:
+def save_native(
+    catalog: Catalog,
+    path: str | Path,
+    *,
+    encoding: str = "cp1252",
+    limits: NativeWriteLimits | None = None,
+) -> None:
     """Write an AMC 4.2 native catalog without changing the JSON default format."""
-    write_native_catalog(catalog, path)
+    write_native_catalog(catalog, path, encoding=encoding, limits=limits)
 
 
 def copy_catalog(source: str | Path, destination: str | Path) -> None:

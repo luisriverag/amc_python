@@ -232,6 +232,43 @@ def test_service_rejects_invalid_export_options(tmp_path: Path):
         service.export(tmp_path / "out", format="pdf")
     with pytest.raises(ValueError, match="only supported for HTML"):
         service.export(tmp_path / "out.xml", format="xml", template="template")
+    with pytest.raises(ValueError, match="only supported for AMC"):
+        service.export(tmp_path / "out.xml", format="xml", native_encoding="utf-8")
+
+
+def test_service_passes_native_export_encoding_and_limits(tmp_path: Path):
+    from amc.native import NativeWriteLimits
+
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add(Movie(title="Amélie"))
+    target = tmp_path / "catalog.amc"
+
+    service.export(
+        target,
+        format="amc",
+        native_encoding="utf-8",
+        native_limits=NativeWriteLimits(max_file_bytes=4096),
+    )
+
+    assert target.exists()
+
+
+def test_service_native_export_budget_preserves_destination(tmp_path: Path):
+    from amc.native import NativeWriteLimits
+
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add(Movie(title="Alien"))
+    target = tmp_path / "catalog.amc"
+    target.write_bytes(b"trusted")
+
+    with pytest.raises(ValueError, match="output-size limit"):
+        service.export(
+            target,
+            format="amc",
+            native_limits=NativeWriteLimits(max_file_bytes=64),
+        )
+
+    assert target.read_bytes() == b"trusted"
 
 
 def test_service_can_restore_over_an_unreadable_catalog(tmp_path: Path):
@@ -320,6 +357,61 @@ def test_service_checks_movie_out_and_in(tmp_path: Path):
     assert load(path).get(1).borrower == ""
 
 
+def test_service_records_persisted_check_out_and_check_in_history(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path)
+    service.add(Movie(title="Alien", media_label="DISC-1"))
+
+    service.check_out(1, "Ripley")
+    service.check_out(1, "Ripley")
+    service.check_in(1)
+
+    events = CatalogService(path).loan_history()
+    assert [(event.action, event.borrower, event.title) for event in events] == [
+        ("out", "Ripley", "Alien"),
+        ("in", "Ripley", "Alien"),
+    ]
+
+
+def test_malformed_history_makes_loan_mutation_atomic(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    save(Catalog(
+        [Movie(title="Alien")], metadata={"amc_python_loan_history": [{}]}
+    ), path)
+    service = CatalogService(path)
+
+    with pytest.raises(ValueError, match="missing or unknown"):
+        service.check_out(1, "Ripley")
+
+    assert service.catalog.get(1).borrower == ""
+    assert load(path).get(1).borrower == ""
+
+
+def test_service_manages_borrower_names_atomically(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path)
+    service.add_borrower("Ripley")
+    service.add(Movie(title="Alien", borrower="Hicks"))
+
+    assert CatalogService(path).borrowers() == ["Ripley", "Hicks"]
+    assert service.remove_borrower("Ripley") == "Ripley"
+    with pytest.raises(KeyError, match="does not exist"):
+        service.remove_borrower("Ripley")
+    assert service.borrowers() == ["Hicks"]
+
+
+def test_service_exports_loan_history_with_catalog_filename(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path)
+    service.add(Movie(title="Alien"))
+    service.check_out(1, "Ripley")
+
+    destination = tmp_path / "history.csv"
+    service.export_loan_history(destination)
+
+    assert "\tcatalog.json\tOut\t1\t\tAlien\tRipley" in destination.read_text()
+
+
 def test_service_rejects_invalid_or_conflicting_loans(tmp_path: Path):
     path = tmp_path / "catalog.json"
     service = CatalogService(path)
@@ -363,6 +455,78 @@ def test_service_bulk_loan_conflict_preserves_every_movie(tmp_path: Path):
 
     assert [movie.borrower for movie in service.catalog] == ["", "Hicks"]
     assert [movie.borrower for movie in load(path)] == ["", "Hicks"]
+
+
+def test_service_expands_loans_by_nonempty_media_label(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path)
+    service.add_many([
+        Movie(title="Disc two", media_label="BOX-1"),
+        Movie(title="Unlabeled"),
+        Movie(title="Disc one", media_label="box-1"),
+        Movie(title="Other", media_label="BOX-2"),
+    ])
+
+    selected = service.check_out(3, "Ripley", include_media_label=True)
+    assert selected.number == 3
+    assert [movie.borrower for movie in load(path)] == ["Ripley", "", "Ripley", ""]
+    assert [event.movie_number for event in service.loan_history()] == [1, 3]
+
+    service.check_in(3, include_media_label=True)
+    assert [movie.borrower for movie in load(path)] == ["", "", "", ""]
+
+
+def test_grouped_loan_conflict_is_atomic(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path)
+    service.add_many([
+        Movie(title="One", media_label="BOX", borrower="Hicks"),
+        Movie(title="Two", media_label="BOX"),
+    ])
+
+    with pytest.raises(ValueError, match="already checked out to Hicks"):
+        service.check_out(2, "Ripley", include_media_label=True)
+
+    assert [movie.borrower for movie in load(path)] == ["Hicks", ""]
+
+
+def test_empty_media_labels_are_not_grouped(tmp_path: Path):
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add_many([Movie(title="One"), Movie(title="Two")])
+
+    service.check_out(2, "Ripley", include_media_label=True)
+
+    assert [movie.borrower for movie in service.catalog] == ["", "Ripley"]
+
+
+def test_service_expands_loans_by_retained_native_number(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path)
+    service.add_many([
+        Movie(title="Disc one", extras={"native_movie_number": 7}),
+        Movie(title="Other", extras={"native_movie_number": 8}),
+        Movie(title="Disc two", extras={"native_movie_number": 7}),
+    ])
+
+    service.check_out(3, "Ripley", include_native_number=True)
+    assert [movie.borrower for movie in load(path)] == ["Ripley", "", "Ripley"]
+    service.check_in(1, include_native_number=True)
+    assert [movie.borrower for movie in load(path)] == ["", "", ""]
+
+
+def test_native_number_and_media_label_groups_form_union(tmp_path: Path):
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add_many([
+        Movie(title="Selected", media_label="BOX", extras={"native_movie_number": 7}),
+        Movie(title="Same number", extras={"native_movie_number": 7}),
+        Movie(title="Same label", media_label="box", extras={"native_movie_number": 8}),
+    ])
+
+    service.check_out(
+        1, "Ripley", include_media_label=True, include_native_number=True
+    )
+
+    assert [movie.borrower for movie in service.catalog] == ["Ripley"] * 3
 
 
 def test_service_open_and_save_as_publish_paths_only_after_success(tmp_path: Path):

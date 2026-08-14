@@ -75,6 +75,14 @@ Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+N for
 new movie, Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked
 state, Delete for removal, and F5 for reload.
 Destructive removal, restore, and renumber workflows require confirmation.
+Native `.amc` export also requires confirmation because writer output has not been
+verified in upstream AMC. The dialog advises retaining the AMC Python JSON catalog
+and, when replacing an existing destination, names the `.bak` file that will retain
+its previous bytes. Successful replacement repeats that backup path.
+Native AMC, XML, and CSV inputs open as read-only interchange catalogs. The desktop
+shows a notice after opening one and requires **Save As** to create a JSON working
+catalog before any edit, loan, picture, import, or other persisted mutation. This
+prevents the JSON persistence layer from replacing interchange bytes in place.
 
 Editor and loan dialogs wait until the window manager has made them viewable before
 taking a modal input grab. This avoids the `grab failed: window not viewable` error

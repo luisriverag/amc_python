@@ -16,6 +16,10 @@ followed by a newline.
 
 Import policy failures use status 2 and do not save the destination. Output files
 are atomically replaced only after successful serialization.
+Catalogs opened directly from `.amc`, `.xml`, or `.csv` are read-only working
+inputs: mutation commands fail with status 2 rather than overwriting interchange
+bytes with JSON. Use `import-xml` or another conversion workflow to create a JSON
+working catalog first.
 
 The JSON shapes are part of the CLI contract:
 
@@ -29,6 +33,10 @@ The JSON shapes are part of the CLI contract:
 
 ## Safety-sensitive commands
 
+- `export-amc` is explicitly labeled experimental because generated files have not
+  been opened and resaved with upstream AMC. It atomically writes source-derived
+  AMC 4.2 bytes and preserves an existing destination under the sibling `.bak`
+  name; automation should retain the JSON source until compatibility is verified.
 - `backup` and `restore` copy to a same-directory temporary file, fsync it,
   validate the copied bytes, and replace the destination only after validation.
 - `import-media` fully discovers and inspects its bounded input set before saving;

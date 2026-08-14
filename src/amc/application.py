@@ -37,6 +37,7 @@ _Result = TypeVar("_Result")
 _HISTORY_LIMIT = 100
 _MAX_PICTURE_BYTES = 64 * 1024 * 1024
 _MAX_PICTURE_PIXELS = 40_000_000
+_READ_ONLY_INTERCHANGE_SUFFIXES = {".amc", ".xml", ".csv"}
 
 
 class CatalogService:
@@ -67,11 +68,13 @@ class CatalogService:
     def save_as(self, path: str | Path) -> None:
         """Save to a new path and adopt it only after persistence succeeds."""
         candidate_path = Path(path)
+        self._require_working_format(candidate_path)
         save(self.catalog, candidate_path)
         self.path = candidate_path
         self.dirty = False
 
     def save(self) -> None:
+        self._require_working_format(self.path)
         save(self.catalog, self.path)
         self.dirty = False
 
@@ -468,6 +471,7 @@ class CatalogService:
         """Atomically restore the catalog state before the last mutation."""
         if not self._undo:
             raise ValueError("nothing to undo")
+        self._require_working_format(self.path)
         previous = self._clone(self._undo[-1])
         save(previous, self.path)
         self._undo.pop()
@@ -479,6 +483,7 @@ class CatalogService:
         """Atomically reapply the most recently undone mutation."""
         if not self._redo:
             raise ValueError("nothing to redo")
+        self._require_working_format(self.path)
         following = self._clone(self._redo[-1])
         save(following, self.path)
         self._redo.pop()
@@ -558,6 +563,7 @@ class CatalogService:
 
     def _persist(self, mutation: Callable[[Catalog], _Result]) -> _Result:
         """Save a mutation before publishing it as current application state."""
+        self._require_working_format(self.path)
         previous = self._clone(self.catalog)
         candidate = self._clone(self.catalog)
         result = mutation(candidate)
@@ -573,6 +579,15 @@ class CatalogService:
         self._redo.clear()
         self.dirty = False
         return result
+
+    @staticmethod
+    def _require_working_format(path: Path) -> None:
+        """Prevent JSON persistence from overwriting an interchange-format file."""
+        if path.suffix.casefold() in _READ_ONLY_INTERCHANGE_SUFFIXES:
+            raise ValueError(
+                f"{path.suffix or 'interchange'} catalogs are read-only; save as an "
+                "AMC Python JSON catalog before editing"
+            )
 
     @staticmethod
     def _clone(catalog: Catalog) -> Catalog:

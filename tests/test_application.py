@@ -21,6 +21,31 @@ def test_service_opens_missing_catalog_and_persists_crud(tmp_path: Path):
     assert list(load(path)) == []
 
 
+def test_native_catalog_is_read_only_until_saved_as_json(tmp_path: Path):
+    from amc.native import write_native_catalog
+
+    native_path = tmp_path / "catalog.amc"
+    json_path = tmp_path / "catalog.json"
+    write_native_catalog(Catalog([Movie(original_title="Alien")]), native_path)
+    original_bytes = native_path.read_bytes()
+    service = CatalogService(native_path)
+
+    with pytest.raises(ValueError, match="read-only.*save as"):
+        service.replace(1, Movie(original_title="Aliens"))
+    with pytest.raises(ValueError, match="read-only.*save as"):
+        service.save()
+    with pytest.raises(ValueError, match="read-only.*save as"):
+        service.save_as(tmp_path / "copy.amc")
+
+    assert native_path.read_bytes() == original_bytes
+    assert service.catalog.get(1).original_title == "Alien"
+
+    service.save_as(json_path)
+    service.replace(1, Movie(original_title="Aliens"))
+    assert load(json_path).get(1).original_title == "Aliens"
+    assert native_path.read_bytes() == original_bytes
+
+
 def test_service_does_not_publish_failed_persistence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):

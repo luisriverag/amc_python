@@ -43,13 +43,13 @@ publisher authentication or compatibility verification.
 
 ## Port progress
 
-**23% — 11 of 47 implementation-plan checklist items complete**
+**28% — 13 of 47 implementation-plan checklist items complete**
 
-`███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **11 / 47**
+`█████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **13 / 47**
 
 This bar is calculated from the checked boxes in the
 [implementation plan](docs/IMPLEMENTATION_PLAN.md); it is an auditable project-task
-indicator, not a claim that 23% of every upstream feature is compatible. A task is
+indicator, not a claim that 28% of every upstream feature is compatible. A task is
 only checked off when its tests, documentation, and required compatibility evidence
 are complete. In particular, native AMC support remains **investigating** until
 genuine upstream-generated fixtures and cross-application verification exist. See
@@ -157,6 +157,12 @@ The output shapes and stable exit statuses are documented in the
 `backup` and `restore` validate the source catalog, copy its original bytes through
 an fsynced temporary file, validate those exact copied bytes, and atomically replace
 the destination only on success.
+Native `export-amc` also preserves an existing destination as a sibling `.bak`
+file before installing the fully serialized replacement. Both backup and catalog
+replacement use same-directory temporary files; a serialization or backup-copy
+failure leaves the existing catalog unchanged. On POSIX systems, the parent
+directory is fsynced after each replacement so the renamed entries are durable;
+Python cannot obtain an equivalent directory handle on Windows.
 `edit --set FIELD=JSON` can update any modeled field except the catalog number and
 applies the same type/range validation as JSON loading before saving.
 

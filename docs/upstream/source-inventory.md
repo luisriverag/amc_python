@@ -117,6 +117,11 @@ mapping, behavior characterization, licensing, and tests remain open.
 
 - **Authoritative unit/symbols:** `Movie Catalog/movieclass.pas` defines
   `TMovieList.LoadFromFile`, `ReadHeader`, `ReadData`, and `SaveToFile`.
+- **Save backup workflow:** `Movie Catalog/main.pas` deletes the previous `.bak`
+  and renames the destination to `.bak` before `TMovieList.SaveToFile`; AMC Python
+  copies the old bytes through an fsynced temporary backup only after the new
+  catalog has serialized successfully, preserving the destination on either
+  serialization or backup failure.
 - **Recognized versions:** `LoadFromFile` dispatches headers 1.0, 1.1, 2.1, 3.0,
   3.1, 3.3, 3.5, 4.0, 4.1, and 4.2. Versions through 3.0 use fixed legacy records;
   versions 3.1 and later use `ReadData`.

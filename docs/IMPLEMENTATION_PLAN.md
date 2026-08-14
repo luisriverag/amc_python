@@ -106,8 +106,11 @@ all omitted or opaque data is reported.
   writer is atomic and now enforces configurable output, movie, picture,
   cumulative encoded-string, custom-field/list-value, and supplementary-record
   budgets; older writers and upstream acceptance remain pending).
-- [ ] Always back up existing native catalogs before replacement.
-- [ ] Test interrupted writes and preservation of the original file.
+- [x] Always back up existing native catalogs before replacement using the
+  source-shaped `.bak` name; backup failures preserve the destination.
+- [x] Test interrupted serialization, backup copying, and destination replacement;
+  each failure preserves the original catalog and cleans temporary files. Native
+  backup and catalog renames also fsync their parent directory on POSIX systems.
 - [ ] Open, save, and reopen generated files with upstream AMC.
 - [ ] Remove the experimental flag only after all compatibility fixtures pass.
 
@@ -124,8 +127,10 @@ all omitted or opaque data is reported.
   field, read-only detail review, statistics, duplicate review, and confirmed
   renumbering are complete;
   linked/size-bounded embedded picture set/clear/export, validated cropping, and
-  native retention are complete; batch picture management, progress, cancellation, accessibility,
-  and dirty-state prompting remain pending).
+  native retention are complete; unverified native export is confirmation-gated
+  and reports its replacement backup; native/XML/CSV sources are protected as
+  read-only until saved as JSON; batch picture management, progress, cancellation,
+  accessibility, and dirty-state prompting remain pending).
 - [ ] Add loan management and catalog preferences if confirmed upstream features
   (atomic single/multi-movie check-out/check-in and validated JSON-retained loan
   history, managed borrower lists, and source-shaped TSV history export are
@@ -182,7 +187,8 @@ reviewable provenance. Until then, native support stays **investigating**.
    universal default; cover undecodable bytes and locale differences.
 3. [Partial] Strictly reject truncated final records instead of copying upstream's
    silent stop; exhaustive byte-boundary truncation tests cover an empty 4.2 catalog
-   and a populated 4.2 record. Repeat with genuine fixtures and older versions.
+   and populated records for 1.0, 1.1, 2.1, 3.0, and 4.2. Repeat with genuine
+   fixtures.
 4. [Partial] Synthetic AMC 4.2 coverage preserves native-only scalar values,
    custom-field definitions/values, embedded images, and supplementary records
    through native → JSON → JSON without normalization loss. Unparseable framerate
@@ -190,7 +196,9 @@ reviewable provenance. Until then, native support stays **investigating**.
    than discarded; repeat with genuine fixtures before claiming compatibility.
 5. [Partial] File size, movie, picture, string, custom-field/list-value, and
    supplementary-record limits are implemented. Exhaustive 4.2 truncation checks
-   cover parser termination and bounded offsets; add broader fuzz/property tests.
+   cover parser termination and bounded offsets; a deterministic byte-mutation
+   corpus checks bounded public outcomes, while property-framework and genuine
+   fixture mutation coverage remain pending.
 6. Split `native.py` into header, primitive, metadata, and record modules only after
    fixture-backed boundaries are stable.
 

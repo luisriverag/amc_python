@@ -542,6 +542,18 @@ def test_cli_reports_missing_movie_without_traceback(tmp_path: Path, capsys):
     assert "movie 99 does not exist" in capsys.readouterr().err
 
 
+def test_cli_does_not_overwrite_native_catalog_with_json(tmp_path: Path, capsys):
+    from amc.native import write_native_catalog
+
+    target = tmp_path / "movies.amc"
+    write_native_catalog(Catalog([Movie(original_title="Alien")]), target)
+    original_bytes = target.read_bytes()
+
+    assert main(["-c", str(target), "add", "Aliens"]) == 2
+    assert "read-only" in capsys.readouterr().err
+    assert target.read_bytes() == original_bytes
+
+
 def test_cli_edit_set_supports_complete_typed_fields(tmp_path: Path):
     target = tmp_path / "catalog.json"
     save(Catalog([Movie(number=1, title="Before")]), target)

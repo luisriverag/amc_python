@@ -14,6 +14,7 @@ from amc.gui import (
     make_modal,
     movie_from_form,
     movie_row,
+    loan_event_row,
     movie_with_picture,
     movie_web_url,
     poster_size,
@@ -21,7 +22,9 @@ from amc.gui import (
     run,
 )
 from amc.errors import CorruptCatalogError
+from amc.catalog import Catalog
 from amc.model import Movie
+from amc.loans import LoanEvent
 
 
 def test_window_sort_delegates_to_application_service():
@@ -253,6 +256,55 @@ def test_window_shows_service_statistics_and_duplicate_count():
     assert "Duplicate groups: 1" in message
 
 
+def test_window_reports_invalid_loan_history_without_opening_dialog():
+    window = _window()
+    window.service.loan_history.side_effect = ValueError("invalid history")
+    with (
+        patch("amc.gui.tk.Toplevel") as toplevel,
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.show_loan_history()
+
+    toplevel.assert_not_called()
+    showerror.assert_called_once_with(
+        "Could not read loan history", "invalid history", parent=window
+    )
+
+
+def test_window_exports_loan_history_to_selected_destination():
+    window = _window()
+    window.service.path = Path("movies.json")
+    with (
+        patch(
+            "amc.gui.filedialog.asksaveasfilename",
+            return_value="movies loan history.csv",
+        ) as save_dialog,
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.export_loan_history()
+
+    assert save_dialog.call_args.kwargs["initialfile"] == "movies loan history.csv"
+    window.service.export_loan_history.assert_called_once_with(
+        "movies loan history.csv"
+    )
+    showinfo.assert_called_once()
+
+
+def test_window_loan_history_export_cancel_and_failure_are_safe():
+    window = _window()
+    with patch("amc.gui.filedialog.asksaveasfilename", return_value=""):
+        window.export_loan_history()
+    window.service.export_loan_history.assert_not_called()
+
+    window.service.export_loan_history.side_effect = OSError("disk full")
+    with (
+        patch("amc.gui.filedialog.asksaveasfilename", return_value="history.csv"),
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.export_loan_history()
+    showerror.assert_called_once()
+
+
 def test_window_shows_duplicate_movie_groups():
     window = _window()
     window.service.duplicates.return_value = [[
@@ -420,6 +472,99 @@ def test_window_focuses_and_selects_search_text():
     window.search_entry.selection_range.assert_called_once_with(0, "end")
 
 
+def test_window_escape_clears_search_and_focuses_table():
+    window = _window()
+    window.search_text = Mock()
+
+    window.clear_search()
+
+    window.search_text.set.assert_called_once_with("")
+    window.table.focus_set.assert_called_once_with()
+
+
+def test_window_keyboard_action_uses_button_state():
+    window = _window()
+    window.action_buttons = {"Remove": Mock()}
+
+    result = window.invoke_action("Remove")
+
+    window.action_buttons["Remove"].invoke.assert_called_once_with()
+    assert result == "break"
+
+
+def test_window_action_states_follow_selection_history_and_format():
+    window = _window()
+    names = (
+        "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
+        "Undo", "Redo", "Open URL", "Renumber",
+    )
+    window.action_buttons = {name: Mock() for name in names}
+    window.import_button = Mock()
+    window.restore_button = Mock()
+    window.table.selection.return_value = ("7", "8")
+    window.service.is_writable = True
+    window.service.can_undo = True
+    window.service.can_redo = False
+    window.service.catalog = Catalog([
+        Movie(number=7, borrower="Sam"), Movie(number=8, borrower="Sam"),
+    ])
+
+    window.update_action_states()
+
+    assert window.action_buttons["Edit"].configure.call_args.kwargs["state"] == "disabled"
+    assert window.action_buttons["Remove"].configure.call_args.kwargs["state"] == "normal"
+    assert window.action_buttons["Open URL"].configure.call_args.kwargs["state"] == "disabled"
+    assert window.action_buttons["Undo"].configure.call_args.kwargs["state"] == "normal"
+    assert window.action_buttons["Redo"].configure.call_args.kwargs["state"] == "disabled"
+    assert window.import_button.configure.call_args.kwargs["state"] == "normal"
+    assert window.restore_button.configure.call_args.kwargs["state"] == "normal"
+
+
+def test_window_disables_mutations_for_interchange_catalog():
+    window = _window()
+    names = (
+        "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
+        "Undo", "Redo", "Open URL", "Renumber",
+    )
+    window.action_buttons = {name: Mock() for name in names}
+    window.import_button = Mock()
+    window.restore_button = Mock()
+    window.table.selection.return_value = ("7",)
+    window.service.is_writable = False
+    window.service.catalog = Catalog([
+        Movie(number=7, url="https://example.com"),
+    ])
+
+    window.update_action_states()
+
+    for name in names:
+        expected = "normal" if name == "Open URL" else "disabled"
+        assert window.action_buttons[name].configure.call_args.kwargs["state"] == expected
+    assert window.import_button.configure.call_args.kwargs["state"] == "disabled"
+    assert window.restore_button.configure.call_args.kwargs["state"] == "disabled"
+
+
+def test_window_disables_actions_when_selection_lacks_required_data():
+    window = _window()
+    names = (
+        "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
+        "Undo", "Redo", "Open URL", "Renumber",
+    )
+    window.action_buttons = {name: Mock() for name in names}
+    window.import_button = Mock()
+    window.restore_button = Mock()
+    window.table.selection.return_value = ("7",)
+    window.service.is_writable = True
+    window.service.can_undo = False
+    window.service.can_redo = False
+    window.service.catalog = Catalog([Movie(number=7)])
+
+    window.update_action_states()
+
+    assert window.action_buttons["Loan In"].configure.call_args.kwargs["state"] == "disabled"
+    assert window.action_buttons["Open URL"].configure.call_args.kwargs["state"] == "disabled"
+
+
 def test_window_renders_selected_movie_details_read_only():
     window = _window()
     window.selected = Mock(return_value=Movie(
@@ -509,6 +654,21 @@ def test_movie_row_includes_checked_and_borrower_status():
         number=7, title="Moon", year=2009, director="Duncan Jones",
         checked=True, borrower="Sam Bell",
     )) == (7, "Moon", 2009, "Duncan Jones", "Yes", "Sam Bell")
+
+
+def test_loan_event_row_uses_readable_action_and_timestamp():
+    event = LoanEvent(
+        timestamp="2026-08-14T12:30:00+00:00",
+        action="out",
+        movie_number=7,
+        media_label="DVD 4",
+        title="Moon",
+        borrower="Sam Bell",
+    )
+
+    assert loan_event_row(event) == (
+        "2026-08-14 12:30:00+00:00", "Checked out", 7, "Moon", "Sam Bell",
+    )
 
 
 def test_window_toggles_selected_checked_state():

@@ -44,6 +44,27 @@ def test_validate_manifest_accepts_matching_fixture(tmp_path):
     assert MODULE.validate_manifest(path)["producer_version"] == "4.2.3.2"
 
 
+def test_validate_manifest_requires_exact_native_header_expectation(tmp_path):
+    payload = b" AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be "
+    (tmp_path / "empty.amc").write_bytes(payload)
+    document = manifest_for("empty.amc", hashlib.sha256(payload).hexdigest())
+    document["verification"] = [{
+        "path": "empty.amc",
+        "format": "amc-native",
+        "header": "AMC 4.2",
+        "version": "4.2",
+        "movies": 0,
+    }]
+    path = write_manifest(tmp_path, document)
+
+    try:
+        MODULE.validate_manifest(path)
+    except MODULE.ManifestError as error:
+        assert "65-byte ASCII AMC header" in str(error)
+    else:
+        raise AssertionError("accepted an abbreviated native header expectation")
+
+
 def test_validate_manifest_rejects_digest_mismatch(tmp_path):
     (tmp_path / "empty.amc").write_bytes(b"changed")
     path = write_manifest(tmp_path, manifest_for("empty.amc", "0" * 64))

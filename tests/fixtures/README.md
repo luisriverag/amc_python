@@ -23,6 +23,17 @@ A manifest has this shape:
   "files": [
     {"path": "empty.amc", "sha256": "<64 lowercase hexadecimal characters>"},
     {"path": "empty.xml", "sha256": "<64 lowercase hexadecimal characters>"}
+  ],
+  "verification": [
+    {
+      "path": "empty.amc",
+      "format": "amc-native",
+      "header": " AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be ",
+      "version": "4.2",
+      "movies": 0,
+      "metadata": {"owner": "", "description": ""},
+      "movie_fields": []
+    }
   ]
 }
 ```
@@ -32,3 +43,11 @@ A manifest has this shape:
 `unknown`. Paths are relative to the manifest directory and cannot escape it.
 For corrupt fixtures, describe the exact mutation in `creation_steps` and use
 `origin: mutated`.
+
+`verification` is optional while private fixture sets are being assembled. Each
+entry names a file already covered by `files` and records independently known facts
+that `python tools/verify_fixtures.py` checks by identifying and fully parsing the
+native catalog. `header` records all 65 header bytes exactly rather than accepting a
+version inferred from the filename. Optional scalar `metadata` and indexed `movie_fields` expectations
+also cross-check the native-to-JSON model conversion without storing a redundant
+generated JSON fixture. Use `--require-expectations` when auditing a supplied set.

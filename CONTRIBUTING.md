@@ -45,7 +45,9 @@ Fixture metadata must record producer/version, creation instructions, digest,
 expected contents, provenance, and redistribution rights using the manifest contract
 in `tests/fixtures/README.md`. Keep binary fixtures as small as possible. Malformed
 fixtures should document the exact byte mutation. Validate a supplied fixture set
-with `python tools/validate_fixtures.py --require-manifests`.
+with `python tools/validate_fixtures.py --require-manifests`, then verify its declared
+native version and movie count with
+`python tools/verify_fixtures.py --require-expectations`.
 
 ## Acquiring upstream source
 

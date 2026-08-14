@@ -467,6 +467,11 @@ class CatalogService:
     def can_redo(self) -> bool:
         return bool(self._redo)
 
+    @property
+    def is_writable(self) -> bool:
+        """Return whether the active path is an internal, mutable catalog."""
+        return self.path.suffix.casefold() not in _READ_ONLY_INTERCHANGE_SUFFIXES
+
     def undo(self) -> None:
         """Atomically restore the catalog state before the last mutation."""
         if not self._undo:

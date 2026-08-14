@@ -29,6 +29,7 @@ def test_native_catalog_is_read_only_until_saved_as_json(tmp_path: Path):
     write_native_catalog(Catalog([Movie(original_title="Alien")]), native_path)
     original_bytes = native_path.read_bytes()
     service = CatalogService(native_path)
+    assert service.is_writable is False
 
     with pytest.raises(ValueError, match="read-only.*save as"):
         service.replace(1, Movie(original_title="Aliens"))
@@ -41,6 +42,7 @@ def test_native_catalog_is_read_only_until_saved_as_json(tmp_path: Path):
     assert service.catalog.get(1).original_title == "Alien"
 
     service.save_as(json_path)
+    assert service.is_writable is True
     service.replace(1, Movie(original_title="Aliens"))
     assert load(json_path).get(1).original_title == "Aliens"
     assert native_path.read_bytes() == original_bytes

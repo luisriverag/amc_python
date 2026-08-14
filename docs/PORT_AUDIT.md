@@ -30,7 +30,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 14 functional package modules, 4 repository tools, 317 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 14 functional package modules, 5 repository tools, 344 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 

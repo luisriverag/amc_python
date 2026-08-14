@@ -40,6 +40,10 @@ The packaging check verifies that an isolated wheel installation can import both
   status and retains a visible selection across refreshes. Clicking a column heading
   sorts ascending; clicking it again sorts descending. An arrow shows the active
   direction, and missing numeric values remain at the end in either direction.
+- Use Ctrl+F to move directly to search and Escape to clear the current query and
+  return to the movie table. Selection-dependent actions are disabled until they
+  can succeed, and mutation controls remain disabled while an interchange catalog
+  is open read-only. Undo and redo also reflect whether history is available.
 - Select a movie to review titles, director, category, actors, borrower, URL,
   description, and comments in a read-only details pane.
 - Switch between table-only, combined poster/details, and poster-focused layouts.
@@ -53,14 +57,22 @@ The packaging check verifies that an isolated wheel installation can import both
   valid linked poster.
 - Check one movie or an extended selection out to one borrower, or check the
   selection back in. The whole loan batch is validated and persisted atomically;
-  one conflicting or unavailable movie leaves every selected loan unchanged.
+  one conflicting or unavailable movie leaves every selected loan unchanged. The
+  borrower field offers managed and currently active borrower names while remaining
+  editable for a new name. Check-in is enabled only when every selected movie is
+  currently loaned.
+- Review retained check-out and check-in events in a dedicated loan-history table.
+  Newest events appear first, Escape closes the history window, and **Export
+  History** writes the source-shaped tab-separated history accepted by spreadsheet
+  applications.
 - Toggle checked/reviewed state for one movie or the extended selection with the
   toolbar or Space. A mixed selection becomes checked; an entirely checked
   selection becomes unchecked. The complete selection is persisted atomically.
 - Review aggregate statistics and normalized title/year duplicate groups.
 - Open the selected movie's absolute HTTP or HTTPS URL in the system browser with
   **Open URL** or Ctrl+U. Empty, relative, `file:`, and other non-web URLs are
-  rejected rather than passed to the operating system.
+  rejected rather than passed to the operating system, and the action remains
+  disabled when the selected movie has no safe web URL.
 - Reload the active catalog from disk with F5.
 - Undo and redo persisted mutations with the toolbar, Ctrl+Z, and Ctrl+Y. Undo and
   redo are themselves failure-atomic: a write error leaves both the visible catalog
@@ -71,9 +83,11 @@ File, search/view, and catalog actions use separate toolbar rows so controls rem
 reachable at the supported 760-pixel minimum window width. The desktop opens at
 1100×720 by default and remains resizable down to 760×480.
 
-Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+N for a
-new movie, Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked
-state, Delete for removal, and F5 for reload.
+Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
+search, Escape to clear search, Ctrl+N for a new movie, Ctrl+Z/Ctrl+Y for undo/redo,
+Ctrl+U for the movie URL, Space for checked state, Delete for removal, and F5 for
+reload. Action shortcuts follow the same enabled/disabled state as their toolbar
+buttons, so they cannot bypass read-only, selection, URL-safety, or history checks.
 Destructive removal, restore, and renumber workflows require confirmation.
 Native `.amc` export also requires confirmation because writer output has not been
 verified in upstream AMC. The dialog advises retaining the AMC Python JSON catalog
@@ -102,7 +116,7 @@ upstream fixtures.
 ## Known limitations
 
 The GUI remains a prototype. Mutations currently save immediately, so there is no
-unsaved dirty state to prompt about. It does not yet provide undo, progress or
+unsaved dirty state to prompt about. It does not yet provide progress or
 cancellation, batch picture management, image cropping,
 accessibility verification, localization, or automated real-display widget tests.
 Current GUI tests are headless adapter tests with mocked dialogs.

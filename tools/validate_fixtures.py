@@ -93,6 +93,52 @@ def validate_manifest(path: Path) -> dict[str, object]:
             raise ManifestError(
                 f"{prefix}.sha256 mismatch for {relative}: expected {expected}, got {actual}"
             )
+    verification = document.get("verification", [])
+    if not isinstance(verification, list):
+        raise ManifestError(f"{path}: verification must be an array")
+    file_names = {str(item) for item in seen}
+    for index, entry in enumerate(verification):
+        prefix = f"{path}: verification[{index}]"
+        if not isinstance(entry, dict):
+            raise ManifestError(f"{prefix} must be an object")
+        relative = _safe_relative_path(entry.get("path"), f"{prefix}.path")
+        if str(relative) not in file_names:
+            raise ManifestError(f"{prefix}.path is not listed in files: {relative}")
+        if entry.get("format") != "amc-native":
+            raise ManifestError(f"{prefix}.format must be 'amc-native'")
+        header = entry.get("header")
+        if (
+            not isinstance(header, str)
+            or not header.isascii()
+            or len(header.encode("ascii")) != 65
+            or not header.startswith(" AMC_")
+        ):
+            raise ManifestError(f"{prefix}.header must be a 65-byte ASCII AMC header")
+        if not isinstance(entry.get("version"), str) or not entry["version"]:
+            raise ManifestError(f"{prefix}.version must be a non-empty string")
+        movies = entry.get("movies")
+        if isinstance(movies, bool) or not isinstance(movies, int) or movies < 0:
+            raise ManifestError(f"{prefix}.movies must be a non-negative integer")
+        metadata = entry.get("metadata", {})
+        if not isinstance(metadata, dict) or any(
+            not isinstance(key, str)
+            or not isinstance(value, (str, int, bool, type(None)))
+            for key, value in metadata.items()
+        ):
+            raise ManifestError(f"{prefix}.metadata must contain scalar expectations")
+        movie_fields = entry.get("movie_fields", [])
+        if not isinstance(movie_fields, list) or any(
+            not isinstance(fields, dict)
+            or any(
+                not isinstance(key, str)
+                or not isinstance(value, (str, int, float, bool, type(None)))
+                for key, value in fields.items()
+            )
+            for fields in movie_fields
+        ):
+            raise ManifestError(f"{prefix}.movie_fields must be an array of scalar objects")
+        if len(movie_fields) > movies:
+            raise ManifestError(f"{prefix}.movie_fields exceeds declared movie count")
     return document
 
 

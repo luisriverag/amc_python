@@ -21,7 +21,8 @@ def test_check_tool_runs_documented_checks_in_order(monkeypatch):
     assert calls[2][0][1:] == ["-m", "coverage", "report"]
     assert calls[3][0][1:] == ["-m", "compileall", "-q", "src", "tests", "tools"]
     assert calls[4][0][1:] == ["tools/validate_fixtures.py"]
-    assert calls[5][0][1:] == ["-m", "amc.cli", "--help"]
-    assert calls[5][1]["PYTHONPATH"].split(MODULE.os.pathsep)[0] == str(MODULE.ROOT / "src")
-    assert calls[6][0] == ["git", "diff", "--check"]
-    assert calls[7][0] == ["git", "diff", "--cached", "--check"]
+    assert calls[5][0][1:] == ["tools/verify_fixtures.py"]
+    assert calls[6][0][1:] == ["-m", "amc.cli", "--help"]
+    assert calls[6][1]["PYTHONPATH"].split(MODULE.os.pathsep)[0] == str(MODULE.ROOT / "src")
+    assert calls[7][0] == ["git", "diff", "--check"]
+    assert calls[8][0] == ["git", "diff", "--cached", "--check"]

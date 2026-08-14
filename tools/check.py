@@ -29,6 +29,7 @@ def main() -> int:
     environment["PYTHONPATH"] = os.pathsep.join(
         item for item in (source, environment.get("PYTHONPATH", "")) if item
     )
+    run([sys.executable, "tools/verify_fixtures.py"], environment=environment)
     run(
         [sys.executable, "-m", "amc.cli", "--help"],
         environment=environment,

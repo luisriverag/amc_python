@@ -16,6 +16,7 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 
 from .application import CatalogService
 from .errors import CatalogError
+from .loans import LoanEvent
 from .model import Movie
 from .presentation import filter_movies, poster_source
 
@@ -102,6 +103,18 @@ def movie_row(movie: Movie) -> tuple[object, ...]:
     )
 
 
+def loan_event_row(event: LoanEvent) -> tuple[object, ...]:
+    """Return concise display values for a retained loan event."""
+    action = "Checked out" if event.action == "out" else "Checked in"
+    return (
+        event.timestamp.replace("T", " ", 1),
+        action,
+        event.movie_number,
+        event.title,
+        event.borrower,
+    )
+
+
 def poster_size(width: int, height: int, *, maximum: tuple[int, int] = (320, 420)) -> tuple[int, int]:
     """Fit an image within the poster pane without changing its aspect ratio."""
     if width < 1 or height < 1:
@@ -149,10 +162,12 @@ class CatalogWindow(ttk.Frame):
         files.pack(fill="x", pady=(0, 8))
         ttk.Button(files, text="Open", command=self.open_catalog).pack(side="left")
         ttk.Button(files, text="Save As", command=self.save_as).pack(side="left", padx=4)
-        ttk.Button(files, text="Import", command=self.import_catalog).pack(side="left")
+        self.import_button = ttk.Button(files, text="Import", command=self.import_catalog)
+        self.import_button.pack(side="left")
         ttk.Button(files, text="Export", command=self.export_catalog).pack(side="left", padx=4)
         ttk.Button(files, text="Backup", command=self.backup_catalog).pack(side="left")
-        ttk.Button(files, text="Restore", command=self.restore_catalog).pack(side="left", padx=4)
+        self.restore_button = ttk.Button(files, text="Restore", command=self.restore_catalog)
+        self.restore_button.pack(side="left", padx=4)
         self.location = ttk.Label(files, text=str(path))
         self.location.pack(side="left", fill="x", expand=True, padx=8)
 
@@ -187,6 +202,7 @@ class CatalogWindow(ttk.Frame):
         # search field clipped the right-most controls on common 760px displays.
         actions = ttk.Frame(self)
         actions.pack(fill="x", pady=(0, 8))
+        self.action_buttons: dict[str, ttk.Button] = {}
         for text, command, padding in (
             ("Add", self.add, 0),
             ("Edit", self.edit, 4),
@@ -198,12 +214,13 @@ class CatalogWindow(ttk.Frame):
             ("Redo", self.redo, 4),
             ("Open URL", self.open_url, 12),
             ("Stats", self.show_statistics, 12),
+            ("Loan History", self.show_loan_history, 4),
             ("Duplicates", self.show_duplicates, 4),
             ("Renumber", self.renumber, 0),
         ):
-            ttk.Button(actions, text=text, command=command).pack(
-                side="left", padx=(padding, 0)
-            )
+            button = ttk.Button(actions, text=text, command=command)
+            button.pack(side="left", padx=(padding, 0))
+            self.action_buttons[text] = button
 
         self.table = ttk.Treeview(
             self,
@@ -223,7 +240,7 @@ class CatalogWindow(ttk.Frame):
             self.table.column(key, width=width, anchor="e" if key in {"number", "year"} else "w")
         self.table.pack(fill="both", expand=True)
         self.table.bind("<Double-1>", lambda _event: self.edit())
-        self.table.bind("<<TreeviewSelect>>", lambda _event: self.show_selected())
+        self.table.bind("<<TreeviewSelect>>", lambda _event: self.selection_changed())
         details_frame = ttk.LabelFrame(self, text="Movie details", padding=6)
         self.details_frame = details_frame
         details_frame.pack(fill="x", pady=(8, 0))
@@ -264,18 +281,70 @@ class CatalogWindow(ttk.Frame):
         root.bind("<Control-o>", lambda _event: self.open_catalog())
         root.bind("<Control-Shift-S>", lambda _event: self.save_as())
         root.bind("<Control-f>", lambda _event: self.focus_search())
-        root.bind("<Control-n>", lambda _event: self.add())
-        root.bind("<Delete>", lambda _event: self.remove())
-        root.bind("<space>", lambda _event: self.toggle_checked())
+        root.bind("<Escape>", lambda _event: self.clear_search())
+        root.bind("<Control-n>", lambda _event: self.invoke_action("Add"))
+        root.bind("<Delete>", lambda _event: self.invoke_action("Remove"))
+        root.bind("<space>", lambda _event: self.invoke_action("Toggle Checked"))
         root.bind("<F5>", lambda _event: self.reload_catalog())
-        root.bind("<Control-z>", lambda _event: self.undo())
-        root.bind("<Control-y>", lambda _event: self.redo())
-        root.bind("<Control-u>", lambda _event: self.open_url())
+        root.bind("<Control-z>", lambda _event: self.invoke_action("Undo"))
+        root.bind("<Control-y>", lambda _event: self.invoke_action("Redo"))
+        root.bind("<Control-u>", lambda _event: self.invoke_action("Open URL"))
+
+    def invoke_action(self, name: str) -> str:
+        """Invoke a toolbar action while respecting its disabled state."""
+        self.action_buttons[name].invoke()
+        return "break"
 
     def focus_search(self) -> None:
         """Focus and select the search text for keyboard-driven filtering."""
         self.search_entry.focus_set()
         self.search_entry.selection_range(0, tk.END)
+
+    def clear_search(self) -> None:
+        """Clear filtering and return keyboard focus to the movie table."""
+        self.search_text.set("")
+        self.table.focus_set()
+
+    def selection_changed(self) -> None:
+        """Refresh selection-dependent details and action availability."""
+        self.show_selected()
+        self.update_action_states()
+
+    def update_action_states(self) -> None:
+        """Disable actions that cannot succeed in the current GUI state."""
+        movies = self.selected_movies()
+        selected = len(movies)
+        writable = self.service.is_writable
+        can_open_url = False
+        if selected == 1:
+            try:
+                movie_web_url(movies[0])
+            except ValueError:
+                pass
+            else:
+                can_open_url = True
+        selection_actions = {
+            "Edit": selected == 1 and writable,
+            "Remove": selected > 0 and writable,
+            "Loan Out": selected > 0 and writable,
+            "Loan In": selected > 0 and all(movie.borrower for movie in movies) and writable,
+            "Toggle Checked": selected > 0 and writable,
+            "Open URL": can_open_url,
+        }
+        for name, enabled in selection_actions.items():
+            self.action_buttons[name].configure(state="normal" if enabled else "disabled")
+        self.action_buttons["Add"].configure(state="normal" if writable else "disabled")
+        self.import_button.configure(state="normal" if writable else "disabled")
+        self.restore_button.configure(state="normal" if writable else "disabled")
+        self.action_buttons["Renumber"].configure(
+            state="normal" if writable and len(self.service.catalog) else "disabled"
+        )
+        self.action_buttons["Undo"].configure(
+            state="normal" if writable and self.service.can_undo else "disabled"
+        )
+        self.action_buttons["Redo"].configure(
+            state="normal" if writable and self.service.can_redo else "disabled"
+        )
 
     def refresh(self) -> None:
         selection = self.table.selection()
@@ -294,7 +363,9 @@ class CatalogWindow(ttk.Frame):
         mode = self.view_filter.get().lower()
         self.status.configure(
             text=f"Showing {len(movies)} of {total} movie(s) — {mode} view"
+            + (" — read-only; use Save As to edit" if not self.service.is_writable else "")
         )
+        self.update_action_states()
 
     def selected(self) -> Movie | None:
         selection = self.table.selection()
@@ -548,7 +619,12 @@ class CatalogWindow(ttk.Frame):
         existing = {movie.borrower for movie in movies if movie.borrower}
         borrower = tk.StringVar(value=existing.pop() if len(existing) == 1 else "")
         ttk.Label(dialog, text="Borrower").grid(row=0, column=0, padx=8, pady=8)
-        entry = ttk.Entry(dialog, textvariable=borrower, width=36)
+        entry = ttk.Combobox(
+            dialog,
+            textvariable=borrower,
+            values=tuple(self.service.borrowers()),
+            width=34,
+        )
         entry.grid(row=0, column=1, padx=8, pady=8)
 
         def accept() -> None:
@@ -640,6 +716,72 @@ class CatalogWindow(ttk.Frame):
         ]
         lines.append(f"Duplicate groups: {len(duplicates)}")
         messagebox.showinfo("Catalog statistics", "\n".join(lines), parent=self)
+
+    def show_loan_history(self) -> None:
+        """Show retained check-out and check-in events in a scrollable table."""
+        try:
+            events = self.service.loan_history()
+        except (TypeError, ValueError) as error:
+            messagebox.showerror("Could not read loan history", str(error), parent=self)
+            return
+        dialog = tk.Toplevel(self)
+        dialog.title("Loan history")
+        dialog.transient(self.winfo_toplevel())
+        dialog.geometry("900x420")
+        frame = ttk.Frame(dialog, padding=10)
+        frame.pack(fill="both", expand=True)
+        footer = ttk.Frame(dialog, padding=(10, 0, 10, 10))
+        footer.pack(fill="x")
+        ttk.Button(
+            footer, text="Export History", command=self.export_loan_history
+        ).pack(side="left")
+        ttk.Button(footer, text="Close", command=dialog.destroy).pack(side="right")
+        table = ttk.Treeview(
+            frame,
+            columns=("timestamp", "action", "number", "title", "borrower"),
+            show="headings",
+        )
+        for name, label, width in (
+            ("timestamp", "Date and time", 190),
+            ("action", "Action", 100),
+            ("number", "#", 55),
+            ("title", "Movie", 300),
+            ("borrower", "Borrower", 180),
+        ):
+            table.heading(name, text=label)
+            table.column(name, width=width, anchor="e" if name == "number" else "w")
+        for event in reversed(events):
+            table.insert("", "end", values=loan_event_row(event))
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=table.yview)
+        table.configure(yscrollcommand=scrollbar.set)
+        table.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        if not events:
+            self.status.configure(text="No loan history has been recorded.")
+        dialog.bind("<Escape>", lambda _event: dialog.destroy())
+        table.focus_set()
+
+    def export_loan_history(self) -> None:
+        """Export retained loan events using the upstream-compatible TSV shape."""
+        selected = filedialog.asksaveasfilename(
+            parent=self.winfo_toplevel(),
+            title="Export loan history",
+            defaultextension=".csv",
+            initialfile=f"{self.service.path.stem} loan history.csv",
+            filetypes=(("Tab-separated history", "*.csv"), ("All files", "*")),
+        )
+        if not selected:
+            return
+        try:
+            self.service.export_loan_history(selected)
+        except (OSError, TypeError, ValueError) as error:
+            messagebox.showerror(
+                "Could not export loan history", str(error), parent=self
+            )
+            return
+        messagebox.showinfo(
+            "Loan history exported", f"Exported to {selected}.", parent=self
+        )
 
     def show_duplicates(self) -> None:
         groups = self.service.duplicates()

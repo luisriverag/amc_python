@@ -254,6 +254,12 @@ format feature**:
 3. Cross-check header, metadata offsets, movie count, and native → JSON output.
 4. Correct parser assumptions exposed by those fixtures and update this audit.
 
+The manifest contract and canonical checks now support exact 65-byte native headers,
+declared native versions, movie counts, metadata, and indexed movie-field expectations through
+`tools/verify_fixtures.py`. This makes fixture
+intake reproducible, but does not advance the items above: no genuine upstream
+fixture or redistribution decision has yet been supplied.
+
 Do not add unrelated UI, CRUD, native writing, or further legacy parsing until this
 slice passes. A source-derived synthetic test is implementation evidence, not
 compatibility evidence.

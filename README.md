@@ -1,9 +1,33 @@
 # AMC Python
 
-A dependency-free, cross-platform Python catalog inspired by Ant Movie Catalog.
-It provides a reusable model, JSON persistence, import of AMC XML exports, and a
-command-line interface. The original Delphi `.amc` binary format is not portable;
-export an existing catalog as XML in Ant Movie Catalog before importing it here.
+A cross-platform Python catalog inspired by Ant Movie Catalog. It provides a
+reusable model, JSON persistence, import and export tools, command-line and desktop
+interfaces, and a read-only web view.
+
+## Quick start
+
+AMC Python requires Python 3.10 or newer. Install it in a virtual environment, then
+create a catalog and add your first movie:
+
+```console
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -e .
+amc -c movies.json add "The Apartment" --year 1960 --director "Billy Wilder"
+amc -c movies.json list
+```
+
+The first modifying command creates `movies.json`; later commands load and update
+that file. Use `amc COMMAND --help` for command-specific options. For importing an
+existing collection, choosing a format, and running the graphical interfaces, see
+the [getting-started guide](docs/getting-started.md). The
+[documentation index](docs/README.md) links the user, contributor, and compatibility
+references.
+
+> [!CAUTION]
+> This project is a prototype. Keep the source catalog and a separate backup while
+> evaluating it. Native `.amc` writing is experimental; XML export from Ant Movie
+> Catalog is the safer migration path until native compatibility is verified.
 
 > **Project status: prototype.** This is currently a clean-room partial
 > reimplementation, not yet a feature-complete port. Native `.amc` files, upstream

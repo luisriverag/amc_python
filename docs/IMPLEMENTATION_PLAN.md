@@ -34,10 +34,12 @@ Every feature change must include:
 - [x] Support pre-installation verification against an independently supplied
   archive SHA-256; no authoritative published digest has yet been located.
 - [ ] Confirm snapshot/archive equivalence and complete application/dependency
-  license review.
+  license review (archive/tree equality is verified and the retained `Common` and
+  `antcomponents` files now have a check-enforced per-file inventory; ElTree and
+  the unlicensed `ComboBoxAutoWidth.pas` remain blockers).
 - [ ] Add the applicable license and attribution files (root GPLv2 text and an
-  initial notice inventory are present; ElTree redistribution and per-file
-  component review remain blockers).
+  initial notice inventory are present; ElTree redistribution and the absent
+  `ComboBoxAutoWidth.pas` license grant remain blockers).
 - [ ] Inventory every source unit, form, resource, script, and file
   format (952 files counted; initial subsystem map recorded).
 - [ ] Map each unit to a Python subsystem or an explicit omission
@@ -93,8 +95,11 @@ all omitted or opaque data is reported.
 ## Milestone 3: lossless interchange
 
 - [ ] Replace synthetic XML/CSV assumptions with upstream-generated fixtures.
-- [ ] Model all known catalog and movie fields (catalog properties and custom-field
-  definitions are retained for native and XML inputs).
+- [ ] Model all known catalog and movie fields (AMC 4.2 writer, composer,
+  certification, file path, user rating, and color tag are typed across
+  native/JSON/XML/CSV and desktop editing; catalog properties and custom-field
+  definitions are retained for native and XML inputs, while the remaining upstream
+  fields still need typed coverage).
 - [ ] Preserve duplicate custom fields, ordering, types, and attributes.
 - [ ] Verify Python XML output by importing it into upstream AMC.
 - [x] Add configurable movie collision policies: `error`, `skip`, `replace`, and
@@ -149,7 +154,9 @@ all omitted or opaque data is reported.
   settings are implemented, but they do not reproduce upstream's INI cache, license
   acceptance, static state, compiler, or runtime).
 - [ ] Define a provider interface with timeouts, caching, rate limits, and safe
-  field-level merge previews.
+  field-level merge previews (isolated validated previews now enforce script-declared
+  movie, picture, and extra-field permissions; execution, timeouts, caching, and
+  rate limits remain intentionally absent).
 - [ ] Add image download and full media-file analysis as optional capabilities
   (portable file facts and PCM WAV analysis are available without dependencies).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
@@ -160,7 +167,10 @@ all omitted or opaque data is reported.
 
 - [ ] Complete package metadata, licenses, attribution, migration, backup, and
   recovery documentation.
-- [ ] Build and install wheels and source distributions in clean environments.
+- [ ] Build and install wheels and source distributions in clean environments
+  (the package check now builds and inspects an sdist, rejects retained historical
+  evidence trees, and installs/smoke-tests the wheel; clean OS/Python matrix runs
+  remain pending).
 - [ ] Produce cross-platform release artifacts and a compatibility report.
 - [ ] Complete performance, fuzz, corrupt-input, and large-catalog testing.
 
@@ -174,9 +184,10 @@ unblock earlier evidence gates.
 
 1. Reacquire and checksum the published source archive; compare its deterministic
    inventory with both checked-in source trees.
-2. Resolve the ElTree source-redistribution blocker and finish the `Common` and
-   `antcomponents` per-file review recorded in `THIRD_PARTY_NOTICES.md`; root-level
-   GPLv2 and initial attribution files are now present.
+2. Resolve the ElTree source-redistribution blocker and the absent license grant
+   for `Common/ComboBoxAutoWidth.pas`; the check-enforced `Common` and
+   `antcomponents` per-file inventory, root-level GPLv2, and initial attribution
+   files are now present.
 3. Generate AMC 4.2.3.2 empty, one-movie, all-fields, custom-field, embedded-picture,
    linked-picture, supplementary-record, Unicode/code-page, and corrupt catalogs.
 4. Record producer version, creation steps, SHA-256, expected contents, mutations,
@@ -190,7 +201,8 @@ reviewable provenance. Until then, native support stays **investigating**.
 1. Cross-check every parsed 4.2 field and byte offset against fixtures and upstream
    XML exports; then repeat for one fixture per claimed older version.
 2. Determine encoding from upstream behavior instead of treating CP-1252 as a
-   universal default; cover undecodable bytes and locale differences.
+   universal default; CLI native import now accepts an explicit codec, but automatic
+   locale behavior and genuine undecodable-byte coverage remain pending.
 3. [Partial] Strictly reject truncated final records instead of copying upstream's
    silent stop; exhaustive byte-boundary truncation tests cover an empty 4.2 catalog
    and populated records for 1.0, 1.1, 2.1, 3.0, and 4.2. Repeat with genuine
@@ -201,7 +213,8 @@ reviewable provenance. Until then, native support stays **investigating**.
    and file-size text and negative native movie numbers are retained opaquely rather
    than discarded; repeat with genuine fixtures before claiming compatibility.
 5. [Partial] File size, movie, picture, string, custom-field/list-value, and
-   supplementary-record limits are implemented. Exhaustive 4.2 truncation checks
+   supplementary-record limits are implemented, and native CLI import exposes each
+   applicable parser budget. Exhaustive 4.2 truncation checks
    cover parser termination and bounded offsets; a deterministic byte-mutation
    corpus checks bounded public outcomes, while property-framework and genuine
    fixture mutation coverage remain pending.
@@ -252,13 +265,18 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 
 ## Immediate next slice
 
-The next change should contain **fixtures and verification, not another inferred
-format feature**:
+Execution is now organized into four gated sprints in
+[`NEXT_SPRINTS.md`](NEXT_SPRINTS.md):
 
-1. Finish P0 archive identity/license tasks.
-2. Add provenance manifests plus genuine AMC 4.2.3.2 empty and one-movie fixtures.
-3. Cross-check header, metadata offsets, movie count, and native → JSON output.
-4. Correct parser assumptions exposed by those fixtures and update this audit.
+1. obtain trustworthy archives, redistribution decisions, and genuine AMC 4.2.3.2
+   empty/one-movie fixtures;
+2. verify and correct the 4.2 codec against an expanded genuine fixture set;
+3. prove lossless native/XML/JSON interchange and document CSV losses; then
+4. complete engineering and release gates for the evidence-backed subset.
+
+The immediate change should contain **Sprint 1 fixtures and verification, not
+another inferred format feature**. Sprint exit checks are blocking criteria rather
+than suggestions; work from later sprints does not advance an earlier gate.
 
 The manifest contract and canonical checks now support exact 65-byte native headers,
 declared native versions, movie counts, metadata, and indexed movie-field expectations through

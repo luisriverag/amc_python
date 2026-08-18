@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 14 functional package modules, 5 repository tools, 356 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 14 functional package modules, 6 repository tools, 367 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -195,10 +195,12 @@ confidence.
 24. The script reader bounds the first read to 1 MiB, but currently rejects any
     script whose file prefix exceeds that size even when its metadata comment ends
     earlier. It does not compile Pascal, implement IFPS APIs, perform HTTP requests,
-    or preview field-level merge results.
+    or perform HTTP requests; it can validate isolated field-level merge previews.
 25. The read-only web server, its poster table, and retained-file-path display are
-    Python extensions. They must not be counted as upstream UI parity; the file path
-    remains an opaque `native_file_path` extra rather than a typed movie field.
+    Python extensions. They must not be counted as upstream UI parity. AMC 4.2 file
+    path, writer, composer, certification, user-rating, and color-tag values are now
+    typed movie fields;
+    genuine XML/native fixture comparison remains pending.
 
 ## Gap matrix against the original application
 
@@ -241,19 +243,13 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 ## Next audited milestone
 
-Do not claim additional AMC compatibility without fixture evidence. The next
-implementation milestone is:
-
-1. Produce empty and one-movie catalogs with upstream 4.2.3.2, register their
-   producer/version/creation provenance and hashes, and obtain redistribution
-   permission for the fixture bytes.
-2. Cross-check native header, metadata offsets, movie count, reader output, and the
-   explicit 4.2 writer against those fixtures; document every normalized or
-   unsupported field.
-3. Add broader malformed-metadata/property tests to the native writer.
-4. Resolve the documented ElTree redistribution blocker and complete the
-   per-file `Common` and `antcomponents` license review.
-5. Only after those evidence gates, continue format behavior or claim compatibility.
+Do not claim additional AMC compatibility without fixture evidence. The ordered
+near-term roadmap is maintained in [`NEXT_SPRINTS.md`](NEXT_SPRINTS.md). Its first
+gate requires independently recorded source acquisition, resolution or exclusion of
+the remaining redistribution blockers, and provenance manifests for genuine AMC
+4.2.3.2 empty and one-movie catalogs plus their XML exports. Codec correction,
+lossless interchange work, and release hardening follow only after their preceding
+sprint exit checks pass.
 
 ## Audit reproduction
 
@@ -269,8 +265,8 @@ Observed for this audit:
 
 | Command/check | Result |
 |---|---|
-| `python tools/check.py` | 356 tests passed; 82% aggregate branch coverage; Ruff, compilation, fixture-manifest validation, native-expectation verification, and source CLI help passed |
-| `python tools/check_package.py` | Wheel built and installed into an isolated environment; module and `amc`, `amc-gui`, and `amc-web` entry-point smoke checks passed |
+| `python tools/check.py` | 367 tests passed; 82% aggregate branch coverage; Ruff, compilation, fixture-manifest validation, license-inventory validation, native-expectation verification, and source CLI help passed |
+| `python tools/check_package.py` | Source distribution built and checked to exclude historical evidence trees; wheel built and installed into an isolated environment; module and `amc`, `amc-gui`, and `amc-web` entry-point smoke checks passed |
 | `python tools/validate_fixtures.py` | 0 manifests validated, confirming the compatibility-fixture gap rather than compatibility |
 | `git diff --check` | Passed |
 

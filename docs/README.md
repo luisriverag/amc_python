@@ -27,6 +27,8 @@ and compatibility material first.
 - [Contribution guide](../CONTRIBUTING.md) — development setup, checks, fixtures,
   and change expectations.
 - [Implementation plan](IMPLEMENTATION_PLAN.md) — milestones and prioritized work.
+- [Critical port sprints](NEXT_SPRINTS.md) — ordered near-term work, exit checks,
+  and deferred non-critical features.
 - [Upstream archive provenance](upstream/archive-provenance.md) — source snapshot
   origin, digests, and authentication limitations.
 - [Upstream source inventory](upstream/source-inventory.md) — Delphi-to-Python source

@@ -6,11 +6,18 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import venv
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+FORBIDDEN_SDIST_PARTS = {
+    ("src", "original"),
+    ("src", "original_compressed"),
+    ("src", "antcomponents"),
+    ("src", "components_compressed"),
+}
 
 
 def run(command: list[str], *, environment: dict[str, str] | None = None) -> None:
@@ -52,13 +59,54 @@ def environment_script(environment: Path, name: str) -> Path:
     return environment / directory / executable
 
 
+def validate_sdist(path: Path) -> None:
+    """Reject source distributions containing retained historical evidence trees."""
+    with tarfile.open(path, "r:gz") as archive:
+        members = archive.getmembers()
+    if not members:
+        raise RuntimeError("source distribution is empty")
+    roots = {Path(member.name).parts[0] for member in members if member.name}
+    if len(roots) != 1:
+        raise RuntimeError("source distribution must have one top-level directory")
+    root = next(iter(roots))
+    relative_names = []
+    for member in members:
+        parts = Path(member.name).parts
+        if not parts or parts[0] != root or ".." in parts or Path(member.name).is_absolute():
+            raise RuntimeError(f"unsafe source-distribution member: {member.name}")
+        relative = parts[1:]
+        relative_names.append(relative)
+        if any(relative[:len(prefix)] == prefix for prefix in FORBIDDEN_SDIST_PARTS):
+            raise RuntimeError(
+                f"source distribution contains historical evidence: {member.name}"
+            )
+    required = {("LICENSE",), ("README.md",), ("pyproject.toml",), ("src", "amc")}
+    missing = sorted(
+        "/".join(prefix)
+        for prefix in required
+        if not any(name[:len(prefix)] == prefix for name in relative_names)
+    )
+    if missing:
+        raise RuntimeError(f"source distribution is missing: {', '.join(missing)}")
+
+
 def main() -> int:
     """Build a wheel, install it without dependencies, and run its CLI entry point."""
     with tempfile.TemporaryDirectory(prefix="amc-package-check-") as temporary:
         workspace = Path(temporary)
         wheelhouse = workspace / "wheelhouse"
+        dist = workspace / "dist"
         environment = workspace / "venv"
         wheelhouse.mkdir()
+        run([
+            sys.executable, "-m", "build", "--sdist", "--outdir", str(dist), "."
+        ])
+        sdists = list(dist.glob("amc_python-*.tar.gz"))
+        if len(sdists) != 1:
+            raise RuntimeError(
+                f"expected one AMC Python source distribution, found {len(sdists)}"
+            )
+        validate_sdist(sdists[0])
         run([
             sys.executable,
             "-m",

@@ -18,6 +18,7 @@ from .model import Movie
 from .native import (
     NATIVE_HEADER_SIZE,
     NATIVE_HEADERS,
+    NativeReadLimits,
     NativeWriteLimits,
     read_native_catalog,
     write_native_catalog,
@@ -26,8 +27,11 @@ from .native import (
 _XML_FIELDS = {
     "OriginalTitle": "original_title", "TranslatedTitle": "translated_title",
     "FormattedTitle": "title", "Director": "director", "Producer": "producer",
-    "Country": "country", "Category": "category", "Year": "year", "Length": "length",
-    "Rating": "rating", "Date": "date", "Borrower": "borrower",
+    "Writer": "writer", "Composer": "composer", "Country": "country",
+    "Category": "category", "Certification": "certification", "Year": "year",
+    "Length": "length", "FilePath": "file_path",
+    "Rating": "rating", "UserRating": "user_rating", "ColorTag": "color_tag",
+    "Date": "date", "Borrower": "borrower",
     "MediaLabel": "media_label", "MediaType": "media_type", "MediaCount": "media_count",
     "Source": "source", "URL": "url", "Description": "description", "Comments": "comments",
     "Actors": "actors", "Languages": "languages", "Subtitles": "subtitles",
@@ -37,8 +41,11 @@ _XML_FIELDS = {
     "Picture": "picture",
 }
 _PYTHON_TO_XML = {value: key for key, value in _XML_FIELDS.items()}
-_INTEGER_FIELDS = {"year", "length", "media_count", "video_bitrate", "audio_bitrate", "file_size"}
-_FLOAT_FIELDS = {"rating", "framerate"}
+_INTEGER_FIELDS = {
+    "year", "length", "media_count", "video_bitrate", "audio_bitrate",
+    "file_size", "color_tag",
+}
+_FLOAT_FIELDS = {"rating", "user_rating", "framerate"}
 
 
 @contextmanager
@@ -56,16 +63,21 @@ def _atomic_text(path: Path, *, encoding: str = "utf-8", newline: str | None = N
         temporary.unlink(missing_ok=True)
 
 
-def load(path: str | Path) -> Catalog:
+def load(
+    path: str | Path,
+    *,
+    native_encoding: str = "cp1252",
+    native_limits: NativeReadLimits | None = None,
+) -> Catalog:
     path = Path(path)
     has_native_header = _has_native_header(path)
     if has_native_header:
-        return _load_native(path)
+        return _load_native(path, native_encoding, native_limits)
     if path.suffix.casefold() == ".amc" and not _has_json_header(path):
         # Keep reporting useful native-header errors for malformed native files,
         # while retaining compatibility with JSON catalogs that older releases
         # allowed users to save with an .amc filename.
-        return _load_native(path)
+        return _load_native(path, native_encoding, native_limits)
     if path.suffix.casefold() == ".xml":
         return load_xml(path)
     if path.suffix.casefold() == ".csv":
@@ -128,8 +140,10 @@ def _has_json_header(path: Path) -> bool:
     return prefix.lstrip().startswith((b"{", b"["))
 
 
-def _load_native(path: Path) -> Catalog:
-    native = read_native_catalog(path)
+def _load_native(
+    path: Path, encoding: str, limits: NativeReadLimits | None
+) -> Catalog:
+    native = read_native_catalog(path, encoding=encoding, limits=limits)
     metadata = {
         "native": {
             "version": native.properties.version,

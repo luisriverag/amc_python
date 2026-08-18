@@ -709,20 +709,8 @@ def _read_movie(
         extras["native_date"] = date
     if date_watched:
         extras["native_date_watched"] = date_watched
-    if user_rating_raw >= 0:
-        extras["native_user_rating"] = user_rating_raw / 10
-    if writer:
-        extras["native_writer"] = writer
-    if composer:
-        extras["native_composer"] = composer
-    if certification:
-        extras["native_certification"] = certification
-    if file_path:
-        extras["native_file_path"] = file_path
     if picture_data:
         extras["native_picture_base64"] = base64.b64encode(picture_data).decode("ascii")
-    if color_tag is not None:
-        extras["native_color_tag"] = color_tag
     framerate = _parse_native_float(framerate_text)
     file_size = _parse_native_int(file_size_text)
     if framerate is None and framerate_text.strip():
@@ -753,16 +741,22 @@ def _read_movie(
             translated_title=translated_title,
             director=director,
             producer=producer,
+            writer=writer,
+            composer=composer,
             country=country,
             category=category,
+            certification=certification,
             year=year or None,
             length=length or None,
             rating=None if rating_raw < 0 else rating_raw / 10,
+            user_rating=None if user_rating_raw < 0 else user_rating_raw / 10,
+            color_tag=color_tag or 0,
             borrower=borrower,
             media_label=media_label,
             media_type=media_type,
             media_count=media_count or None,
             source=source,
+            file_path=file_path,
             languages=languages,
             subtitles=subtitles,
             video_format=video_format,
@@ -1017,9 +1011,13 @@ def _retained_int(extras: dict[str, object], key: str, default: int) -> int:
     return value
 
 
-def _retained_rating(extras: dict[str, object]) -> int:
+def _retained_rating(movie: "Movie") -> int:
     """Return the retained user rating as a finite native tenths integer."""
-    value = extras.get("native_user_rating", -0.1)
+    value = (
+        movie.user_rating
+        if movie.user_rating is not None
+        else movie.extras.get("native_user_rating", -0.1)
+    )
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise TypeError("movie extra native_user_rating must be a number")
     if not math.isfinite(value):
@@ -1044,10 +1042,14 @@ def _write_movie_42(stream: BinaryIO, movie: "Movie", tags: list[str], encoding:
         _retained_int(extras, "native_movie_number", movie.number),
         _retained_int(extras, "native_date", 0),
         _retained_int(extras, "native_date_watched", 0),
-        _retained_rating(extras),
+        _retained_rating(movie),
         rating, movie.year or 0, movie.length or 0, movie.video_bitrate or 0,
         movie.audio_bitrate or 0, movie.media_count or 0,
-        _retained_int(extras, "native_color_tag", 0),
+        (
+            movie.color_tag
+            if movie.color_tag is not None
+            else _retained_int(extras, "native_color_tag", 0)
+        ),
     )
     for value in integers:
         _write_int(stream, value)
@@ -1055,10 +1057,13 @@ def _write_movie_42(stream: BinaryIO, movie: "Movie", tags: list[str], encoding:
     strings = (
         movie.media_label, movie.media_type, movie.source, movie.borrower,
         movie.original_title, movie.translated_title, movie.director, movie.producer,
-        extras.get("native_writer", ""), extras.get("native_composer", ""),
-        movie.country, movie.category, extras.get("native_certification", ""),
+        movie.writer or extras.get("native_writer", ""),
+        movie.composer or extras.get("native_composer", ""),
+        movie.country, movie.category,
+        movie.certification or extras.get("native_certification", ""),
         movie.actors, movie.url, movie.description, movie.comments,
-        extras.get("native_file_path", ""), movie.video_format, movie.audio_format,
+        movie.file_path or extras.get("native_file_path", ""),
+        movie.video_format, movie.audio_format,
         movie.resolution,
         extras.get("native_framerate_text", "") if movie.framerate is None else str(movie.framerate),
         movie.languages, movie.subtitles,

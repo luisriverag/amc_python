@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, fields as dataclass_fields, replace
 from pathlib import Path
 from typing import Callable, Iterable, TypeVar
+
+from .model import Movie
 
 MAX_SCRIPT_HEADER_BYTES = 1024 * 1024
 T = TypeVar("T")
@@ -57,6 +59,95 @@ class ScriptParameter:
     value: str
     default: str
     description: str
+
+
+@dataclass(frozen=True, slots=True)
+class ScriptFieldChange:
+    """One validated provider proposal, before it is applied to a catalog."""
+
+    field: str
+    before: object
+    after: object
+
+
+@dataclass(frozen=True, slots=True)
+class ScriptMergePreview:
+    """An isolated candidate movie and its stable field-level change list."""
+
+    movie: Movie
+    changes: tuple[ScriptFieldChange, ...]
+
+
+def preview_script_merge(
+    script: ScriptInfo,
+    movie: Movie,
+    *,
+    fields: dict[str, object] | None = None,
+    extras: dict[str, object | None] | None = None,
+) -> ScriptMergePreview:
+    """Validate an untrusted provider result without mutating the source movie.
+
+    This is deliberately only the field-level merge boundary. It does not execute
+    Pascal, perform network access, or import pictures.
+    """
+    candidate = movie.to_dict()
+    known = {
+        item.name.casefold(): item.name
+        for item in dataclass_fields(Movie)
+        if item.name not in {"number", "extras"}
+    }
+    excluded = {_field_key(name) for name in script.excluded_fields}
+    changes: list[ScriptFieldChange] = []
+    seen: set[str] = set()
+    for supplied_name, value in (fields or {}).items():
+        if not isinstance(supplied_name, str):
+            raise TypeError("script field names must be strings")
+        name = known.get(supplied_name.strip().casefold())
+        if name is None:
+            raise ValueError(f"unknown script field: {supplied_name!r}")
+        if name in seen:
+            raise ValueError(f"duplicate script field: {supplied_name!r}")
+        seen.add(name)
+        if _field_key(name) in excluded:
+            raise ValueError(f"script is not permitted to modify field {name!r}")
+        if name == "picture" and not script.picture:
+            raise ValueError("script is not permitted to modify the movie picture")
+        before = candidate[name]
+        candidate[name] = value
+        if before != value:
+            changes.append(ScriptFieldChange(name, before, value))
+
+    candidate_extras = candidate["extras"]
+    assert isinstance(candidate_extras, dict)
+    excluded_extras = {_field_key(name) for name in script.excluded_extra_fields}
+    for supplied_name, value in (extras or {}).items():
+        if not isinstance(supplied_name, str) or not supplied_name.strip():
+            raise TypeError("script extra names must be non-empty strings")
+        name = supplied_name.strip()
+        if _field_key(name) in excluded_extras:
+            raise ValueError(f"script is not permitted to modify extra {name!r}")
+        exists = name in candidate_extras
+        before = candidate_extras.get(name)
+        if value is None:
+            if exists and not script.delete_extras:
+                raise ValueError("script is not permitted to delete extras")
+            if exists:
+                del candidate_extras[name]
+                changes.append(ScriptFieldChange(f"extras.{name}", before, None))
+        else:
+            if exists and not script.modify_extras:
+                raise ValueError("script is not permitted to modify extras")
+            if not exists and not script.add_extras:
+                raise ValueError("script is not permitted to add extras")
+            candidate_extras[name] = value
+            if before != value:
+                changes.append(ScriptFieldChange(f"extras.{name}", before, value))
+
+    return ScriptMergePreview(Movie.from_dict(candidate), tuple(changes))
+
+
+def _field_key(name: str) -> str:
+    return "".join(character for character in name.casefold() if character.isalnum())
 
 
 def _option(line: str) -> ScriptOption:

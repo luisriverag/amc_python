@@ -88,6 +88,8 @@ amc -c movies.json import-xml MyCatalog.xml
 amc -c movies.json import additional.csv
 amc -c movies.json import additional.json --collision skip --metadata keep
 amc -c movies.json import legacy.amc  # read-only conversion; source is untouched
+amc -c movies.json import legacy.amc --native-encoding cp1251
+amc -c movies.json import legacy.amc --max-input-bytes 1073741824 --max-movies 100000
 amc -c movies.json import-media Movie.mkv Trailer.wav
 amc -c movies.json import-media MediaFolder/ --recursive
 amc -c movies.json import-media MediaFolder/ --recursive --extensions mkv,mp4,wav
@@ -145,6 +147,8 @@ Unknown XML attributes and elements are retained in each movie's `extras` mappin
 Catalog owner/contact properties and custom-field definitions are also retained, so
 these supported structures are not discarded during XML/JSON conversion. Structured
 movie extras that XML cannot represent losslessly are rejected instead of flattened.
+AMC 4.2 writer, composer, certification, media file path, user rating, and color
+tag values are modeled directly and round-trip through native, JSON, XML, and CSV.
 The internal JSON v1 contract and compatibility policy are documented in
 [`docs/data-formats/json-v1.md`](docs/data-formats/json-v1.md).
 
@@ -171,7 +175,10 @@ opt-in recursive, optionally extension-filtered, and bounded to 100,000 files pe
 invocation.
 Legacy `.ifs` script metadata can be inspected and inventoried without executing
 Pascal code. Script execution and network providers remain intentionally disabled
-until a sandboxed, timeout-bound provider boundary is implemented.
+until a sandboxed, timeout-bound provider boundary is implemented. Integrators can
+validate provider-produced movie and extra-field proposals with
+`amc.scripts.preview_script_merge`; it returns an isolated candidate plus a
+field-level change list and enforces the permissions declared in the script header.
 
 `list`, `search`, `stats`, and `duplicates` accept `--json` for stable
 machine-readable output. Duplicate groups use normalized display title plus year;
@@ -209,7 +216,8 @@ Work is source-driven and test-first. The next milestone is provenance recovery,
 detailed native-format analysis, and read-only native-format inspection—not
 additional unrelated CRUD features. See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for checks, fixture requirements, and the
-definition of an acceptable compatibility change.
+definition of an acceptable compatibility change. The ordered near-term work and
+blocking exit criteria are in the [critical port sprints](docs/NEXT_SPRINTS.md).
 
 Install the project together with its development checks, then run both canonical
 commands from the repository root:
@@ -223,6 +231,8 @@ python tools/check_package.py
 `check.py` runs the focused Ruff rule set, the complete test suite with branch
 coverage (minimum 80%), bytecode compilation, fixture-manifest validation, a
 source-tree CLI smoke test, and whitespace checks. `check_package.py` separately
-builds a wheel, installs it into an isolated virtual environment, and exercises the
-installed console entry points. Formatting and static type checking are not yet
-canonical gates; see the engineering baseline in the implementation plan.
+builds and inspects a source distribution, rejects accidental inclusion of retained
+historical evidence trees, builds and installs a wheel in an isolated virtual
+environment, and exercises the installed console entry points. Formatting and
+static type checking are not yet canonical gates; see the engineering baseline in
+the implementation plan.

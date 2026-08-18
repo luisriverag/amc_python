@@ -16,6 +16,14 @@ followed by a newline.
 
 Import policy failures use status 2 and do not save the destination. Output files
 are atomically replaced only after successful serialization.
+For native input, `import SOURCE --native-encoding CODEC` selects the Python codec
+used for AMC strings (default `cp1252`) without modifying the source. The option has
+no effect on JSON, XML, or CSV input.
+Native import also accepts `--max-input-bytes`, `--max-movies`,
+`--max-picture-bytes`, `--max-total-picture-bytes`, `--max-string-bytes`,
+`--max-custom-fields`, `--max-list-values`, `--max-extras-per-movie`, and
+`--max-total-extras`. These options can lower the default parser budgets; an
+exceeded or invalid budget returns status 2 before the destination is changed.
 Catalogs opened directly from `.amc`, `.xml`, or `.csv` are read-only working
 inputs: mutation commands fail with status 2 rather than overwriting interchange
 bytes with JSON. Use `import-xml` or another conversion workflow to create a JSON

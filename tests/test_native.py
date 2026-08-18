@@ -238,10 +238,10 @@ def test_read_amc_41_movie_record(tmp_path: Path):
     assert movie.extras == {
         "Inventory": "A-42",
         "native_custom_values": [{"tag": "Inventory", "value": "A-42"}],
-        "native_color_tag": 3,
         "native_movie_number": 7,
         "native_picture_base64": "aW1n",
     }
+    assert movie.color_tag == 3
 
 
 def test_native_movie_reader_rejects_truncated_picture_and_amc_42(tmp_path: Path):
@@ -290,9 +290,11 @@ def test_read_amc_42_movie_and_extra(tmp_path: Path):
 
     movie = result.movies[0]
     assert (movie.number, movie.original_title, movie.rating) == (8, "Title", 9.1)
-    assert movie.extras["native_user_rating"] == 7.5
-    assert movie.extras["native_writer"] == "Writer"
-    assert movie.extras["native_file_path"] == "/movie.mkv"
+    assert (movie.user_rating, movie.color_tag) == (7.5, 2)
+    assert (movie.writer, movie.composer, movie.certification) == (
+        "Writer", "Composer", "PG"
+    )
+    assert movie.file_path == "/movie.mkv"
     assert len(result.movie_extras[0]) == 1
     extra = result.movie_extras[0][0]
     assert (extra.tag, extra.title, extra.category, extra.picture_path, extra.picture_size) == (
@@ -486,8 +488,10 @@ def test_native_reader_retains_custom_value_that_collides_with_reserved_key(
 
     from amc.native import read_native_catalog
 
-    extras = read_native_catalog(target).movies[0].extras
-    assert extras["native_writer"] == "Writer"
+    parsed = read_native_catalog(target).movies[0]
+    extras = parsed.extras
+    assert parsed.writer == "Writer"
+    assert extras["native_writer"] == "custom writer"
     assert extras["native_custom_values"] == [
         {"tag": "native_writer", "value": "custom writer"}
     ]
@@ -821,10 +825,14 @@ def test_write_native_42_round_trip_retained_data(tmp_path: Path):
     }
     movie = Movie(
         number=4, original_title="Brazil", year=1985, rating=8.5,
+        user_rating=7.5, color_tag=0,
         framerate=24.0, file_size=123, checked=True, picture="cover.jpg",
+        writer="Tom Stoppard", composer="Michael Kamen",
+        certification="R", file_path="/movies/brazil.mkv",
         extras={
-            "native_date": 730000, "native_writer": "Tom Stoppard",
-            "native_color_tag": 3, "native_picture_base64": "aW1n",
+            "native_date": 730000,
+            "native_color_tag": 3,
+            "native_picture_base64": "aW1n",
             "native_custom_values": [{"tag": "Mood", "value": "Tense"}],
             "native_supplementary_records": [{
                 "checked": True, "tag": "Bonus", "title": "Interview",
@@ -851,6 +859,11 @@ def test_write_native_42_round_trip_retained_data(tmp_path: Path):
     assert (restored.original_title, restored.rating, restored.extras["Mood"]) == (
         "Brazil", 8.5, "Tense"
     )
+    assert (restored.writer, restored.composer, restored.certification) == (
+        "Tom Stoppard", "Michael Kamen", "R"
+    )
+    assert restored.file_path == "/movies/brazil.mkv"
+    assert (restored.user_rating, restored.color_tag) == (7.5, 0)
     assert restored.extras["native_picture_base64"] == "aW1n"
     assert result.movie_extras[0][0].title == "Interview"
     assert result.movie_extras[0][0].picture_data == b"x"

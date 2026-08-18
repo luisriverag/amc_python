@@ -22,7 +22,7 @@ from .loans import (
     remove_borrower,
 )
 from .model import Movie
-from .native import NativeWriteLimits
+from .native import NativeReadLimits, NativeWriteLimits
 from .storage import (
     copy_catalog,
     load,
@@ -139,10 +139,18 @@ class CatalogService:
         *,
         collision: str = "renumber",
         metadata: str = "error",
+        native_encoding: str = "cp1252",
+        native_limits: NativeReadLimits | None = None,
     ) -> int:
         """Load and atomically merge an interchange catalog."""
         return self.merge(
-            load(source), collision=collision, metadata=metadata
+            load(
+                source,
+                native_encoding=native_encoding,
+                native_limits=native_limits,
+            ),
+            collision=collision,
+            metadata=metadata,
         )
 
     def renumber(self, start: int = 1) -> None:

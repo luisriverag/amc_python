@@ -80,10 +80,17 @@ def extract(archive: Path, destination: Path) -> str:
         ("7z", ["7z", "x", "-y", f"-o{destination}", str(archive)]),
         ("bsdtar", ["bsdtar", "-xf", str(archive), "-C", str(destination)]),
     )
+    failures = []
     for executable, command in commands:
         if shutil.which(executable):
-            subprocess.run(command, check=True)
+            try:
+                subprocess.run(command, check=True)
+            except subprocess.CalledProcessError as error:
+                failures.append(f"{executable} exited with status {error.returncode}")
+                continue
             return executable
+    if failures:
+        raise RuntimeError(f"RAR extraction failed: {'; '.join(failures)}")
     raise RuntimeError("RAR extraction requires unrar, unar, 7z, or bsdtar")
 
 

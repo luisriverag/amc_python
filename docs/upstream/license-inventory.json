@@ -1,0 +1,519 @@
+{
+  "schema_version": 1,
+  "scope": [
+    "src/original/Common",
+    "src/antcomponents"
+  ],
+  "files": [
+    {
+      "path": "src/antcomponents/Ant.bat",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant.inc",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntAutoHintLabel.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntAutoHintLabel.pas",
+      "status": "notice",
+      "basis": "Ant component copyright header; Ant__Licence.txt states Mozilla Public License 1.1."
+    },
+    {
+      "path": "src/antcomponents/AntButtonEdit.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntButtonEdit.pas",
+      "status": "notice",
+      "basis": "Ant component copyright header; Ant__Licence.txt states Mozilla Public License 1.1."
+    },
+    {
+      "path": "src/antcomponents/AntCommon.pas",
+      "status": "notice",
+      "basis": "Ant component copyright header; Ant__Licence.txt states Mozilla Public License 1.1."
+    },
+    {
+      "path": "src/antcomponents/AntCorelButton.dcr",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntCorelButton.pas",
+      "status": "notice",
+      "basis": "File copyright header and separate AntCorelButton permission text apply."
+    },
+    {
+      "path": "src/antcomponents/AntCorelButton.txt",
+      "status": "notice",
+      "basis": "Bundled license or component permission text retained verbatim."
+    },
+    {
+      "path": "src/antcomponents/AntIcons.RES",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntIcons.rc",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvDragDrop.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvEdit.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvExControls.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvFixedEditPopup.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvGIF.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvGraph.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvGroupHeader.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvGroupHeader.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvHotLink.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvHotLink.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvLabel.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvLabel.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvLinkLabel.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvLinkLabel.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvLinkLabelParser.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvLinkLabelRenderer.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvLinkLabelTextHandler.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvLinkLabelTools.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvLinkLabelTree.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvListView.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvListView.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvResSPINDOWN.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvResSPINDOWNPOLE.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvResSPINUP.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvResSPINUPPOLE.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvScrollText.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvScrollText.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvSpecialProgress.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvSpecialProgress.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvSpeedButton.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvSpin.RES",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvSpin.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvSpin.rc",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvSpinEdit.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvTheme.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvToolEdit.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvToolEdit.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvTranslator.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvTranslator.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvTrayIcon.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvTrayIcon.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvTypes.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvVCLUtils.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvWndProcHook.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntJvZoom.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntJvZoom.pas",
+      "status": "notice",
+      "basis": "File header states Mozilla Public License 1.1 and JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/AntRegister.pas",
+      "status": "notice",
+      "basis": "Ant component copyright header; Ant__Licence.txt states Mozilla Public License 1.1."
+    },
+    {
+      "path": "src/antcomponents/AntSpinEdit.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntSpinEdit.pas",
+      "status": "notice",
+      "basis": "Ant component copyright header; Ant__Licence.txt states Mozilla Public License 1.1."
+    },
+    {
+      "path": "src/antcomponents/AntSplitter.pas",
+      "status": "notice",
+      "basis": "Ant component copyright header; Ant__Licence.txt states Mozilla Public License 1.1."
+    },
+    {
+      "path": "src/antcomponents/AntStringList.bmp",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/AntStringList.pas",
+      "status": "notice",
+      "basis": "Ant component copyright header; Ant__Licence.txt states Mozilla Public License 1.1."
+    },
+    {
+      "path": "src/antcomponents/Ant_D6.cfg",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant_D6.dof",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant_D6.dpk",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant_D6.res",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant_D7.cfg",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant_D7.dof",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant_D7.dpk",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant_D7.res",
+      "status": "companion",
+      "basis": "Build configuration or binary/resource companion to the reviewed Ant component sources."
+    },
+    {
+      "path": "src/antcomponents/Ant__Licence.txt",
+      "status": "notice",
+      "basis": "Bundled license or component permission text retained verbatim."
+    },
+    {
+      "path": "src/antcomponents/xml/ClassStringListEx.pas",
+      "status": "notice",
+      "basis": "File header states GNU GPL terms and identifies Akretio/JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/xml/JvSimpleXml.pas",
+      "status": "notice",
+      "basis": "File header states GNU GPL terms and identifies Akretio/JVCL provenance."
+    },
+    {
+      "path": "src/antcomponents/xml/jvcl.inc",
+      "status": "companion",
+      "basis": "Compiler include used only by the reviewed GPL-header XML units."
+    },
+    {
+      "path": "src/original/Common/AntTranslator.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/ComboBoxAutoWidth.pas",
+      "status": "unresolved",
+      "basis": "Source comment links to a Google Groups post but states no license."
+    },
+    {
+      "path": "src/original/Common/FileManager.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/MediaInfo.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/base.dfm",
+      "status": "companion",
+      "basis": "Delphi form resource paired with the same-basename reviewed Pascal unit."
+    },
+    {
+      "path": "src/original/Common/base.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/frameLanguage.dfm",
+      "status": "companion",
+      "basis": "Delphi form resource paired with the same-basename reviewed Pascal unit."
+    },
+    {
+      "path": "src/original/Common/frameLanguage.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_files.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_gui.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_html.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_img.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_str.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_strformat.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_sys.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_tbx.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_video.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/functions_xml.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/inputform.dfm",
+      "status": "companion",
+      "basis": "Delphi form resource paired with the same-basename reviewed Pascal unit."
+    },
+    {
+      "path": "src/original/Common/inputform.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/listform.dfm",
+      "status": "companion",
+      "basis": "Delphi form resource paired with the same-basename reviewed Pascal unit."
+    },
+    {
+      "path": "src/original/Common/listform.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/memoform.dfm",
+      "status": "companion",
+      "basis": "Delphi form resource paired with the same-basename reviewed Pascal unit."
+    },
+    {
+      "path": "src/original/Common/memoform.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    },
+    {
+      "path": "src/original/Common/messageform.dfm",
+      "status": "companion",
+      "basis": "Delphi form resource paired with the same-basename reviewed Pascal unit."
+    },
+    {
+      "path": "src/original/Common/messageform.pas",
+      "status": "notice",
+      "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
+    }
+  ]
+}

@@ -607,7 +607,10 @@ def test_movie_form_parses_all_scalar_field_kinds():
         Movie(number=7, extras={"kept": True}),
         _form_values(
             title=" Moon ", year="2009", length="97", rating="8.5",
-            framerate="23.976", director=" Duncan Jones ",
+            user_rating="9", color_tag="2", framerate="23.976",
+            director=" Duncan Jones ",
+            writer=" Nathan Parker ", composer=" Clint Mansell ",
+            certification=" R ", file_path=" Media/Moon.mkv ",
             description="  A lunar mystery.\nSecond paragraph.  ",
             comments="  Restored edition.  ",
         ),
@@ -617,6 +620,10 @@ def test_movie_form_parses_all_scalar_field_kinds():
     assert (movie.number, movie.title, movie.year, movie.length) == (7, "Moon", 2009, 97)
     assert (movie.rating, movie.framerate, movie.director, movie.checked) == (
         8.5, 23.976, "Duncan Jones", True
+    )
+    assert (movie.user_rating, movie.color_tag) == (9, 2)
+    assert (movie.writer, movie.composer, movie.certification, movie.file_path) == (
+        "Nathan Parker", "Clint Mansell", "R", "Media/Moon.mkv"
     )
     assert movie.extras == {"kept": True}
     assert movie.description == "A lunar mystery.\nSecond paragraph."

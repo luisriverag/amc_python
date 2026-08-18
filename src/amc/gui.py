@@ -26,12 +26,16 @@ _EDIT_TEXT_FIELDS = (
     "translated_title",
     "director",
     "producer",
+    "writer",
+    "composer",
     "country",
     "category",
+    "certification",
     "date",
     "media_label",
     "media_type",
     "source",
+    "file_path",
     "languages",
     "subtitles",
     "video_format",
@@ -45,6 +49,7 @@ _EDIT_TEXT_FIELDS = (
 )
 _EDIT_MULTILINE_FIELDS = {"description", "comments"}
 _EDIT_INTEGER_FIELDS = (
+    "color_tag",
     "year",
     "length",
     "media_count",
@@ -52,7 +57,7 @@ _EDIT_INTEGER_FIELDS = (
     "audio_bitrate",
     "file_size",
 )
-_EDIT_FLOAT_FIELDS = ("rating", "framerate")
+_EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
 
 
 def movie_from_form(movie: Movie, values: dict[str, str], *, checked: bool) -> Movie:

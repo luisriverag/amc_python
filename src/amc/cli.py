@@ -12,7 +12,7 @@ from .application import CatalogService
 from .errors import CatalogError
 from .inspection import inspect_catalog, validate_catalog
 from .model import Movie
-from .native import NativeWriteLimits
+from .native import NativeReadLimits, NativeWriteLimits
 from .media import discover_media, movie_from_media
 from .scripts import (
     configure_script,
@@ -21,7 +21,6 @@ from .scripts import (
     load_script_configuration,
     save_script_configuration,
 )
-from .storage import load
 
 EXIT_SUCCESS = 0
 EXIT_INVALID_CATALOG = 1
@@ -99,6 +98,20 @@ def parser() -> argparse.ArgumentParser:
     convert.add_argument("source", type=Path)
     merge = commands.add_parser("import", help="merge a JSON, XML, or CSV catalog")
     merge.add_argument("source", type=Path)
+    merge.add_argument(
+        "--native-encoding",
+        default="cp1252",
+        help="codec for native AMC strings (default: cp1252)",
+    )
+    merge.add_argument("--max-input-bytes", type=int)
+    merge.add_argument("--max-movies", type=int)
+    merge.add_argument("--max-picture-bytes", type=int)
+    merge.add_argument("--max-total-picture-bytes", type=int)
+    merge.add_argument("--max-string-bytes", type=int)
+    merge.add_argument("--max-custom-fields", type=int)
+    merge.add_argument("--max-list-values", type=int)
+    merge.add_argument("--max-extras-per-movie", type=int)
+    merge.add_argument("--max-total-extras", type=int)
     merge.add_argument(
         "--collision",
         choices=("error", "skip", "replace", "renumber"),
@@ -187,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         return _run(args)
-    except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+    except (CatalogError, OSError, TypeError, ValueError, LookupError) as error:
         print(f"amc: {error}", file=sys.stderr)
         return EXIT_ERROR
 
@@ -255,8 +268,51 @@ def _run(args: argparse.Namespace) -> int:
     service = CatalogService(args.catalog)
     catalog = service.catalog
     if args.command == "import":
-        count = service.merge(
-            load(args.source), collision=args.collision, metadata=args.metadata
+        defaults = NativeReadLimits()
+        count = service.import_from(
+            args.source,
+            collision=args.collision,
+            metadata=args.metadata,
+            native_encoding=args.native_encoding,
+            native_limits=NativeReadLimits(
+                max_file_bytes=(
+                    defaults.max_file_bytes
+                    if args.max_input_bytes is None else args.max_input_bytes
+                ),
+                max_movies=(
+                    defaults.max_movies if args.max_movies is None else args.max_movies
+                ),
+                max_picture_bytes=(
+                    defaults.max_picture_bytes
+                    if args.max_picture_bytes is None else args.max_picture_bytes
+                ),
+                max_total_picture_bytes=(
+                    defaults.max_total_picture_bytes
+                    if args.max_total_picture_bytes is None
+                    else args.max_total_picture_bytes
+                ),
+                max_total_string_bytes=(
+                    defaults.max_total_string_bytes
+                    if args.max_string_bytes is None else args.max_string_bytes
+                ),
+                max_custom_fields=(
+                    defaults.max_custom_fields
+                    if args.max_custom_fields is None else args.max_custom_fields
+                ),
+                max_list_values_per_field=(
+                    defaults.max_list_values_per_field
+                    if args.max_list_values is None else args.max_list_values
+                ),
+                max_extras_per_movie=(
+                    defaults.max_extras_per_movie
+                    if args.max_extras_per_movie is None
+                    else args.max_extras_per_movie
+                ),
+                max_total_extras=(
+                    defaults.max_total_extras
+                    if args.max_total_extras is None else args.max_total_extras
+                ),
+            ),
         )
         print(f"Imported {count} movie(s)")
     elif args.command == "import-media":

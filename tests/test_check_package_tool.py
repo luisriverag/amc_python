@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import tarfile
 
 
 SPEC = importlib.util.spec_from_file_location(
@@ -47,6 +48,14 @@ def test_package_check_builds_installs_and_smoke_tests(monkeypatch, tmp_path):
 
     def record(command, *, environment=None):
         calls.append((command, environment))
+        if command[1:4] == ["-m", "build", "--sdist"]:
+            dist = tmp_path / "dist"
+            dist.mkdir()
+            with tarfile.open(dist / "amc_python-0.1.0.tar.gz", "w:gz") as archive:
+                for name in ("LICENSE", "README.md", "pyproject.toml", "src/amc/model.py"):
+                    source = tmp_path / name.replace("/", "_")
+                    source.write_text(name, encoding="utf-8")
+                    archive.add(source, arcname=f"amc_python-0.1.0/{name}")
         if command[1:4] == ["-m", "pip", "wheel"]:
             (tmp_path / "wheelhouse" / "amc_python-0.1.0-py3-none-any.whl").touch()
 
@@ -61,21 +70,22 @@ def test_package_check_builds_installs_and_smoke_tests(monkeypatch, tmp_path):
     monkeypatch.setenv("PYTHONPATH", "should-not-leak")
 
     assert MODULE.main() == 0
-    assert calls[0][0][1:4] == ["-m", "pip", "wheel"]
-    assert calls[1][0][1:4] == ["-m", "pip", "install"]
-    assert "--no-deps" not in calls[1][0]
-    assert calls[2][0][1:] == ["-m", "amc.cli", "--help"]
-    assert "PYTHONPATH" not in calls[2][1]
-    assert calls[3][0][-1] == "--help"
-    assert calls[3][0][0].endswith("/venv/bin/amc")
+    assert calls[0][0][1:4] == ["-m", "build", "--sdist"]
+    assert calls[1][0][1:4] == ["-m", "pip", "wheel"]
+    assert calls[2][0][1:4] == ["-m", "pip", "install"]
+    assert "--no-deps" not in calls[2][0]
+    assert calls[3][0][1:] == ["-m", "amc.cli", "--help"]
     assert "PYTHONPATH" not in calls[3][1]
-    assert calls[4][0][-1] == "import tkinter; import amc.gui"
-    assert "amc-gui" in calls[5][0][-1]
-    assert calls[6][0][0].endswith("/venv/bin/amc-gui")
-    assert calls[6][0][-1] == "--help"
-    assert calls[7][0][0].endswith("/venv/bin/amc-web")
+    assert calls[4][0][-1] == "--help"
+    assert calls[4][0][0].endswith("/venv/bin/amc")
+    assert "PYTHONPATH" not in calls[4][1]
+    assert calls[5][0][-1] == "import tkinter; import amc.gui"
+    assert "amc-gui" in calls[6][0][-1]
+    assert calls[7][0][0].endswith("/venv/bin/amc-gui")
     assert calls[7][0][-1] == "--help"
-    assert all("PYTHONPATH" not in environment for _, environment in calls[2:])
+    assert calls[8][0][0].endswith("/venv/bin/amc-web")
+    assert calls[8][0][-1] == "--help"
+    assert all("PYTHONPATH" not in environment for _, environment in calls[3:])
     assert output_calls[0][0][-2:] == ["list", "--json"]
     assert output_calls[0][1] == "[]\n"
     assert "PYTHONPATH" not in output_calls[0][2]
@@ -92,3 +102,21 @@ def test_run_with_output_rejects_unexpected_stdout(monkeypatch):
         assert "unexpected output" in str(error)
     else:
         raise AssertionError("package check accepted unexpected console output")
+
+
+def test_validate_sdist_rejects_historical_evidence(tmp_path):
+    archive = tmp_path / "amc_python-0.1.0.tar.gz"
+    source = tmp_path / "evidence.pas"
+    source.write_text("unit Evidence;", encoding="utf-8")
+    with tarfile.open(archive, "w:gz") as stream:
+        stream.add(
+            source,
+            arcname="amc_python-0.1.0/src/original/Common/evidence.pas",
+        )
+
+    try:
+        MODULE.validate_sdist(archive)
+    except RuntimeError as error:
+        assert "historical evidence" in str(error)
+    else:
+        raise AssertionError("package check accepted historical evidence")

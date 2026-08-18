@@ -199,7 +199,9 @@ def render_movie(service: CatalogService, movie: Movie) -> str:
         ("Audio bitrate", movie.audio_bitrate),
         ("Resolution", movie.resolution), ("Framerate", movie.framerate),
         ("File size", movie.file_size),
-        ("File path", movie.extras.get("native_file_path", "")),
+        ("User rating", movie.user_rating),
+        ("Color tag", movie.color_tag),
+        ("File path", movie.file_path or movie.extras.get("native_file_path", "")),
         ("Actors", movie.actors), ("Description", movie.description),
         ("Comments", movie.comments),
     )

@@ -7,8 +7,10 @@ from amc.scripts import (
     discover_scripts,
     inspect_script,
     load_script_configuration,
+    preview_script_merge,
     save_script_configuration,
 )
+from amc.model import Movie
 from amc.cli import main
 import json
 
@@ -225,3 +227,61 @@ def test_cli_loads_overrides_and_saves_script_configuration(tmp_path: Path, caps
     assert output["options"][0]["value"] == 1
     assert output["parameters"][0]["value"] == "Arrival"
     assert saved["parameters"] == {"Query": "Arrival"}
+
+
+def test_script_merge_preview_is_validated_isolated_and_field_level(tmp_path: Path):
+    target = tmp_path / "provider.ifs"
+    target.write_text("(*\n[Infos]\nTitle=Provider\n*)", encoding="utf-8")
+    original = Movie(number=4, title="Alien", year=1979, extras={"Source": "old"})
+
+    preview = preview_script_merge(
+        inspect_script(target), original,
+        fields={"TITLE": "Aliens", "year": 1986},
+        extras={"Source": "provider", "Score": 9},
+    )
+
+    assert (original.title, original.year, original.extras) == (
+        "Alien", 1979, {"Source": "old"}
+    )
+    assert (preview.movie.title, preview.movie.year) == ("Aliens", 1986)
+    assert preview.movie.extras == {"Source": "provider", "Score": 9}
+    assert [change.field for change in preview.changes] == [
+        "title", "year", "extras.Source", "extras.Score"
+    ]
+
+
+def test_script_merge_preview_enforces_declared_permissions(tmp_path: Path):
+    target = tmp_path / "restricted.ifs"
+    target.write_text(
+        "(*\n[Fields]\nExcluded=Comments|URL\nPicture=0\n"
+        "[ExtraFields]\nAddExtras=0\nDeleteExtras=0\nModifyExtras=0\n"
+        "Excluded=Secret\n*)",
+        encoding="utf-8",
+    )
+    script = inspect_script(target)
+    movie = Movie(number=1, extras={"Existing": "old", "Secret": "kept"})
+
+    for fields in ({"comments": "no"}, {"Url": "no"}, {"picture": "no.jpg"}):
+        with pytest.raises(ValueError, match="not permitted"):
+            preview_script_merge(script, movie, fields=fields)
+    for extras in (
+        {"New": "no"}, {"Existing": "no"}, {"Existing": None}, {"Secret": "no"}
+    ):
+        with pytest.raises(ValueError, match="not permitted"):
+            preview_script_merge(script, movie, extras=extras)
+
+
+def test_script_merge_preview_rejects_invalid_or_ambiguous_results(tmp_path: Path):
+    target = tmp_path / "provider.ifs"
+    target.write_text("(*\n*)", encoding="utf-8")
+    script = inspect_script(target)
+    movie = Movie(number=1)
+
+    with pytest.raises(ValueError, match="unknown script field"):
+        preview_script_merge(script, movie, fields={"missing": "value"})
+    with pytest.raises(ValueError, match="duplicate script field"):
+        preview_script_merge(script, movie, fields={"title": "A", "TITLE": "B"})
+    with pytest.raises(TypeError, match="year must be"):
+        preview_script_merge(script, movie, fields={"year": "invalid"})
+    with pytest.raises(TypeError, match="extra names"):
+        preview_script_merge(script, movie, extras={"": "invalid"})

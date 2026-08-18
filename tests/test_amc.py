@@ -135,10 +135,21 @@ def test_cli_can_include_movies_with_same_retained_native_number(tmp_path: Path)
 
 def test_xml_roundtrip_preserves_supported_and_custom_fields(tmp_path: Path):
     target = tmp_path / "export.xml"
-    original = Movie(number=7, title="Moon", year=2009, checked=True, extras={"CustomField": "kept"})
+    original = Movie(
+        number=7, title="Moon", year=2009, checked=True,
+        user_rating=8.5, color_tag=2,
+        writer="Duncan Jones", composer="Clint Mansell",
+        certification="R", file_path="Media/Moon.mkv",
+        extras={"CustomField": "kept"},
+    )
     save_xml(Catalog([original]), target)
     restored = next(iter(load_xml(target)))
     assert (restored.number, restored.title, restored.year, restored.checked) == (7, "Moon", 2009, True)
+    assert (restored.writer, restored.composer, restored.certification) == (
+        "Duncan Jones", "Clint Mansell", "R"
+    )
+    assert restored.file_path == "Media/Moon.mkv"
+    assert (restored.user_rating, restored.color_tag) == (8.5, 2)
     assert restored.extras == {"CustomField": "kept"}
 
 
@@ -495,6 +506,58 @@ def test_cli_import_exposes_collision_policy(tmp_path: Path, capsys):
     assert main(["-c", str(destination), "import", str(source), "--collision", "skip"]) == 0
     assert "Imported 0 movie(s)" in capsys.readouterr().out
     assert [(movie.number, movie.title) for movie in load(destination)] == [(1, "Existing")]
+
+
+def test_cli_import_accepts_explicit_native_string_encoding(tmp_path: Path):
+    from amc.native import write_native_catalog
+
+    source = tmp_path / "utf8.amc"
+    destination = tmp_path / "catalog.json"
+    write_native_catalog(
+        Catalog([Movie(number=1, original_title="千と千尋")]),
+        source,
+        encoding="utf-8",
+    )
+
+    assert main([
+        "-c", str(destination), "import", str(source),
+        "--native-encoding", "utf-8",
+    ]) == 0
+
+    assert load(destination).get(1).original_title == "千と千尋"
+
+
+def test_cli_import_rejects_unknown_native_string_encoding(tmp_path: Path, capsys):
+    from amc.native import write_native_catalog
+
+    source = tmp_path / "source.amc"
+    destination = tmp_path / "catalog.json"
+    write_native_catalog(Catalog([Movie(original_title="Alien")]), source)
+
+    assert main([
+        "-c", str(destination), "import", str(source),
+        "--native-encoding", "not-a-codec",
+    ]) == 2
+
+    assert "unknown encoding" in capsys.readouterr().err
+    assert not destination.exists()
+
+
+def test_cli_import_enforces_native_read_limits_before_merge(tmp_path: Path, capsys):
+    from amc.native import write_native_catalog
+
+    source = tmp_path / "source.amc"
+    destination = tmp_path / "catalog.json"
+    write_native_catalog(Catalog([Movie(number=1, original_title="Alien")]), source)
+    save(Catalog([Movie(number=9, title="Existing")]), destination)
+    original = destination.read_bytes()
+
+    assert main([
+        "-c", str(destination), "import", str(source), "--max-movies", "0"
+    ]) == 2
+
+    assert "exceeds movie-count limit" in capsys.readouterr().err
+    assert destination.read_bytes() == original
 
 
 def test_cli_import_exposes_metadata_namespace_policy(tmp_path: Path):

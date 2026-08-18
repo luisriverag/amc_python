@@ -10,14 +10,17 @@ from typing import Any
 
 _STRING_FIELDS = {
     "title", "original_title", "translated_title", "director", "producer",
+    "writer", "composer",
     "country", "category", "date", "borrower", "media_label", "media_type",
     "source", "languages", "subtitles", "video_format", "audio_format",
     "resolution", "url", "description", "comments", "actors", "picture",
+    "certification", "file_path",
 }
 _OPTIONAL_INTEGER_FIELDS = {
     "year", "length", "media_count", "video_bitrate", "audio_bitrate", "file_size",
+    "color_tag",
 }
-_OPTIONAL_NUMBER_FIELDS = {"rating", "framerate"}
+_OPTIONAL_NUMBER_FIELDS = {"rating", "user_rating", "framerate"}
 
 
 @dataclass(slots=True)
@@ -30,17 +33,23 @@ class Movie:
     translated_title: str = ""
     director: str = ""
     producer: str = ""
+    writer: str = ""
+    composer: str = ""
     country: str = ""
     category: str = ""
+    certification: str = ""
     year: int | None = None
     length: int | None = None
     rating: float | None = None
+    user_rating: float | None = None
+    color_tag: int | None = None
     date: str = ""
     borrower: str = ""
     media_label: str = ""
     media_type: str = ""
     media_count: int | None = None
     source: str = ""
+    file_path: str = ""
     languages: str = ""
     subtitles: str = ""
     video_format: str = ""
@@ -96,6 +105,8 @@ class Movie:
         self.extras = json.loads(encoded_extras)
         if self.rating is not None and not 0 <= self.rating <= 10:
             raise ValueError("rating must be between 0 and 10")
+        if self.user_rating is not None and not 0 <= self.user_rating <= 10:
+            raise ValueError("user_rating must be between 0 and 10")
 
     def display_title(self) -> str:
         return self.title or self.translated_title or self.original_title or "(untitled)"

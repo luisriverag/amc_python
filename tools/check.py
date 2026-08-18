@@ -24,6 +24,7 @@ def main() -> int:
     run([sys.executable, "-m", "coverage", "report"])
     run([sys.executable, "-m", "compileall", "-q", "src", "tests", "tools"])
     run([sys.executable, "tools/validate_fixtures.py"])
+    run([sys.executable, "tools/check_license_inventory.py"])
     environment = os.environ.copy()
     source = str(ROOT / "src")
     environment["PYTHONPATH"] = os.pathsep.join(

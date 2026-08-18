@@ -146,7 +146,7 @@ def test_movie_page_includes_extended_media_fields_and_native_file_path(tmp_path
     movie = Movie(
         number=3, title="Media", producer="Producer", media_type="Blu-ray",
         video_format="HEVC", resolution="3840x2160", file_size=123456,
-        extras={"native_file_path": r"D:\\Movies\\Media.mkv"},
+        file_path=r"D:\\Movies\\Media.mkv",
     )
 
     page = render_movie(service, movie)

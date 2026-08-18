@@ -105,6 +105,40 @@ def test_extract_zip_rejects_path_traversal(tmp_path: Path):
     assert not (tmp_path / "escaped.pas").exists()
 
 
+def test_extract_rar_tries_next_available_tool_after_failure(tmp_path: Path, monkeypatch):
+    archive = tmp_path / "source.rar"
+    archive.write_bytes(b"not a zip")
+    calls = []
+
+    monkeypatch.setattr(MODULE.shutil, "which", lambda executable: f"/bin/{executable}")
+
+    def run(command, *, check):
+        calls.append(command[0])
+        if command[0] == "unrar":
+            raise MODULE.subprocess.CalledProcessError(2, command)
+
+    monkeypatch.setattr(MODULE.subprocess, "run", run)
+
+    assert MODULE.extract(archive, tmp_path / "expanded") == "unar"
+    assert calls == ["unrar", "unar"]
+
+
+def test_extract_rar_reports_all_available_tool_failures(tmp_path: Path, monkeypatch):
+    archive = tmp_path / "source.rar"
+    archive.write_bytes(b"not a zip")
+    monkeypatch.setattr(
+        MODULE.shutil, "which", lambda executable: f"/bin/{executable}"
+    )
+
+    def fail(command, *, check):
+        raise MODULE.subprocess.CalledProcessError(2, command)
+
+    monkeypatch.setattr(MODULE.subprocess, "run", fail)
+
+    with pytest.raises(RuntimeError, match="unrar exited.*bsdtar exited"):
+        MODULE.extract(archive, tmp_path / "expanded")
+
+
 def test_strip_root_requires_one_wrapper_directory(tmp_path: Path):
     (tmp_path / "one").mkdir()
     (tmp_path / "two").mkdir()

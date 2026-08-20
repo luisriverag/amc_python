@@ -50,7 +50,7 @@ unchanged. When genuine fixtures become available, work reverts to the P1–P3
 sequence below before any new compatibility claim is made.
 
 The concrete, ordered form of this backlog is the **Downstream execution
-backlog (D0–D3)** further down this document, alongside the upstream P0–P3
+backlog (D0–D4)** further down this document, alongside the upstream P0–P3
 backlog it runs in parallel with.
 
 ## Milestone 0: authoritative upstream baseline
@@ -304,7 +304,7 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.
 
-## Downstream execution backlog (D0–D3)
+## Downstream execution backlog (D0–D4)
 
 While Sprint 1 (below) stays externally blocked on genuine fixtures, this is
 the ordered, concrete backlog for the "Execution priority" track above. Unlike
@@ -397,8 +397,9 @@ both a CLI and a desktop entry point.
 
 D2's progress/cancellation item, including folder-based GUI import, is now
 complete. A verified accessibility pass beyond the keyboard-focus
-improvements already shipped remains the only open item in D2 — and in the
-entire D0–D3 downstream execution backlog.
+improvements already shipped remains the only open item in D2; it stays open
+because it requires a real display and screen reader this environment does
+not have, unlike the D4 items below.
 
 ### D3 — catalog/GUI preferences
 
@@ -420,6 +421,47 @@ entire D0–D3 downstream execution backlog.
 D3 is now complete: every planned Python-owned preference is persisted
 separately from catalog data and editable from the desktop.
 
+### D4 — engineering/quality debt from the port audit
+
+While D0–D3 exhausted the application-feature backlog, `PORT_AUDIT.md`'s
+"Design and quality debt" list still names concrete, fixture-independent gaps.
+This tier works through those, oldest-numbered first, the same way D0–D3
+worked through feature gaps: pick the next unchecked item, fix it, add tests,
+update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
+
+  - [x] Bound `inspect_catalog`/`validate_catalog` file size before JSON/native
+    parsing (`--max-input-bytes` on the CLI `inspect`/`validate` commands),
+    matching the `NativeReadLimits`/`inspect_media` precedent. True streaming
+    JSON record counting remains out of scope (Python's stdlib `json` module
+    has no incremental parser). PORT_AUDIT design-debt item 6.
+  - [x] Reject duplicate CSV headers (exact-duplicate extras headers, or two
+    headers that normalize to the same known movie field) instead of letting
+    `csv.DictReader` silently discard one column's data, mirroring the JSON v1
+    decoder's duplicate-member rejection. PORT_AUDIT design-debt item 5
+    (partial: CSV dialect/locale/empty-value behavior is still undefined from
+    upstream evidence).
+  - [x] Fsync the destination directory entry after every atomic file
+    replacement in the package, not just the file contents. The native `.amc`
+    writer already did this; JSON/CSV/XML/HTML saves, `copy_catalog`, picture
+    export, TSV loan-history export, GUI preferences, and script settings did
+    not, so a crash immediately after rename could still lose the rename on
+    some filesystems even though the new file's own bytes were durable.
+    `native.py`'s `replace_and_sync_directory` helper is now shared by every
+    writer in the package. PORT_AUDIT design-debt item 7 (partial: permission
+    errors and concurrent writers remain untested).
+  - [ ] Define and test explicit behavior for a permission-denied or read-only
+    destination directory across the atomic writers above — currently an
+    `OSError` propagates from the temp-file `open()`/`mkdir()` call with no
+    documented, stable diagnostic shape. PORT_AUDIT design-debt item 7
+    (remaining part).
+  - [ ] Consolidate the error model: expected failures are currently reported
+    partly through the public `CatalogError` hierarchy and partly through bare
+    `ValueError`/`TypeError`/`KeyError`, and the split is undocumented. Define
+    which built-in exceptions are part of the stable contract (if any) versus
+    which call sites should raise a public `CatalogError` subclass instead,
+    then document it in `docs/cli.md` or a new error-model reference.
+    PORT_AUDIT design-debt item 8.
+
 ## Immediate next slice
 
 Execution is organized into four gated sprints in
@@ -437,7 +479,7 @@ contributor supplying fixtures, not on further coding here. Sprint exit checks
 remain blocking criteria — no later sprint's work advances an earlier gate, and
 no compatibility status may be upgraded without registered evidence — but with
 Sprint 1 externally blocked, the immediate change should draw from the
-**Downstream execution backlog (D0–D3)** above rather than sitting idle or
+**Downstream execution backlog (D0–D4)** above rather than sitting idle or
 inferring more unverified format behavior. A downstream slice still needs its
 own tests and documentation; it simply makes no upstream-compatibility claim,
 so it does not require a fixture.

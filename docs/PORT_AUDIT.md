@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 367 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 15 functional package modules, 6 repository tools, 457 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -83,7 +83,7 @@ confidence.
 | Installed CLI | Wheel console script and module entry point smoke-tested; empty JSON list exact output checked | Broader installed command contracts remain missing |
 | Packaging | Wheel build, isolated install, license inclusion, and smoke checks | Source-distribution build/install remains missing |
 | CI | Workflow configured for Linux/Windows and Python 3.10–3.13 | No run result is stored in the repository |
-| Atomic CSV/XML | Shared atomic writer | Injected codec-failure preservation tests cover both formats |
+| Atomic CSV/XML | Shared atomic writer, now with destination directory-entry fsync matching the native writer | Injected codec-failure preservation tests cover both formats; permission errors and concurrent writers remain untested |
 | Large-file behavior | XML uses iterative inspection | No resource-limit or performance tests |
 
 ### Not ported
@@ -152,9 +152,20 @@ confidence.
    elsewhere; the previously-undefined resource bound is now defined and
    configurable (default 1 TiB). True streaming JSON record counting remains
    undone.
-7. Atomic replacement now has injected serialization-failure coverage for JSON,
-   CSV, and XML. Directory durability, permission errors, and concurrent writers remain
-   untested. A generic injected replacement failure is covered.
+7. [Partially resolved] Atomic replacement has injected serialization-failure
+   coverage for JSON, CSV, and XML, and a generic injected replacement failure is
+   covered. Directory durability was a real gap, not just an untested one: the
+   native `.amc` writer already fsynced its destination directory entry after
+   `os.replace` (so a crash right after rename cannot lose the rename on a
+   durable filesystem), but every other atomic writer in the package — JSON/CSV/
+   XML/HTML saves and `copy_catalog` in `storage.py`, picture export in
+   `application.py`, TSV loan-history export in `loans.py`, GUI preferences in
+   `preferences.py`, and script settings in `scripts.py` — only fsynced the file
+   contents and skipped the directory entry. `native.py`'s
+   `replace_and_sync_directory` helper (made a shared, non-private name for this)
+   is now used by every one of those call sites, each with a regression test
+   confirming the directory descriptor is fsynced. Permission errors and
+   concurrent writers remain untested.
 8. Expected errors are partly represented by public exceptions and partly by built-in
    `ValueError`, `TypeError`, and `KeyError`; the documented error model is incomplete.
 9. The Python native reader deliberately reports truncated records, unlike upstream

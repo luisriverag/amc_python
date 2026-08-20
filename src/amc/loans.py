@@ -10,6 +10,7 @@ from typing import Literal
 
 from .catalog import Catalog
 from .model import Movie
+from .native import replace_and_sync_directory
 
 METADATA_KEY = "amc_python_loan_history"
 BORROWERS_KEY = "amc_python_borrowers"
@@ -168,7 +169,7 @@ def export_legacy_history(
             stream.write("\r\n".join(rows) + "\r\n")
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        replace_and_sync_directory(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
 

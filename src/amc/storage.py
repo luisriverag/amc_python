@@ -21,6 +21,7 @@ from .native import (
     NativeReadLimits,
     NativeWriteLimits,
     read_native_catalog,
+    replace_and_sync_directory,
     write_native_catalog,
 )
 
@@ -58,7 +59,7 @@ def _atomic_text(path: Path, *, encoding: str = "utf-8", newline: str | None = N
             yield stream
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        replace_and_sync_directory(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -196,7 +197,7 @@ def copy_catalog(source: str | Path, destination: str | Path) -> None:
         # Validate the bytes that will actually be installed, rather than opening
         # the source a second time and permitting a check/use race.
         load(temporary)
-        temporary.replace(destination)
+        replace_and_sync_directory(temporary, destination)
     finally:
         temporary.unlink(missing_ok=True)
 

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, Iterable, TypeVar
 
 from .model import Movie
+from .native import replace_and_sync_directory
 
 MAX_SCRIPT_HEADER_BYTES = 1024 * 1024
 T = TypeVar("T")
@@ -325,7 +326,7 @@ def save_script_configuration(script: ScriptInfo, path: str | Path) -> None:
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        replace_and_sync_directory(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
 

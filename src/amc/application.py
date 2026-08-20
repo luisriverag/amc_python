@@ -22,7 +22,7 @@ from .loans import (
     remove_borrower,
 )
 from .model import Movie
-from .native import NativeReadLimits, NativeWriteLimits
+from .native import NativeReadLimits, NativeWriteLimits, replace_and_sync_directory
 from .storage import (
     copy_catalog,
     load,
@@ -499,7 +499,7 @@ class CatalogService:
                 stream.write(data)
                 stream.flush()
                 os.fsync(stream.fileno())
-            temporary.replace(destination)
+            replace_and_sync_directory(temporary, destination)
         finally:
             temporary.unlink(missing_ok=True)
 

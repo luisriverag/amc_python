@@ -1,5 +1,9 @@
 import json
+import os
+import stat
 from pathlib import Path
+
+import pytest
 
 from amc.preferences import (
     GuiPreferences,
@@ -31,6 +35,26 @@ def test_save_preferences_creates_parent_directories(tmp_path: Path):
     save_preferences(GuiPreferences(), path)
 
     assert path.exists()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows cannot fsync directory handles")
+def test_save_preferences_fsyncs_destination_directory_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    path = tmp_path / "gui-preferences.json"
+    original_fsync = os.fsync
+    directory_syncs = 0
+
+    def count_directory_syncs(descriptor: int) -> None:
+        nonlocal directory_syncs
+        if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            directory_syncs += 1
+        original_fsync(descriptor)
+
+    monkeypatch.setattr("amc.native.os.fsync", count_directory_syncs)
+    save_preferences(GuiPreferences(), path)
+
+    assert directory_syncs == 1
 
 
 def test_load_preferences_falls_back_to_defaults_for_corrupt_or_unreadable_file(

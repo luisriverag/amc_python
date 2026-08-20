@@ -912,7 +912,7 @@ def write_native_catalog(
             os.fsync(stream.fileno())
         if path.exists():
             _backup_native_destination(path)
-        _replace_and_sync_directory(temporary, path)
+        replace_and_sync_directory(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -928,12 +928,12 @@ def _backup_native_destination(path: Path) -> None:
             shutil.copyfileobj(source, destination)
             destination.flush()
             os.fsync(destination.fileno())
-        _replace_and_sync_directory(temporary, backup)
+        replace_and_sync_directory(temporary, backup)
     finally:
         temporary.unlink(missing_ok=True)
 
 
-def _replace_and_sync_directory(source: Path, destination: Path) -> None:
+def replace_and_sync_directory(source: Path, destination: Path) -> None:
     """Replace a file and persist its directory entry where the OS supports it."""
     source.replace(destination)
     if os.name == "nt":

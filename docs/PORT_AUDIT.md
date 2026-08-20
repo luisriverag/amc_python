@@ -179,8 +179,16 @@ confidence.
     divergence is documented but not an upstream-parity behavior.
 19. `storage.py` combines JSON, CSV, XML, native dispatch, metadata translation,
     and atomic writes. Codec separation is urgent once genuine fixtures lock contracts.
-20. Review fixed native validation so structural parse failures return diagnostics
-    instead of escaping `validate_catalog` and becoming CLI usage errors.
+20. [Resolved] Fixed-record (1.0–3.0) native movie construction now wraps
+    `Movie` value errors as `CorruptCatalogError` the same way the modern
+    (3.1–4.2) reader already did, so a structural parse failure returns a
+    `validate_catalog` diagnostic instead of escaping as an unwrapped
+    exception and becoming a generic CLI usage error. Verified with tests
+    that force the failure on both readers and confirm the diagnostic
+    reaches `validate_catalog`; no currently constructible fixed-record byte
+    sequence was found to trigger it under the present `Movie` validation
+    rules, so this closes the defensive gap rather than a demonstrated
+    exploit.
 21. Pre-3.0 picture and borrower sidecars are implemented from
     `TMovieList.ReadPictures`/`ReadBorrowers`, but `ConfigParser` has not been shown
     equivalent to Delphi `TMemIniFile` for duplicate keys, comments, malformed INI,

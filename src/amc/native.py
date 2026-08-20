@@ -549,23 +549,29 @@ def _read_legacy_catalog(
                 extras["native_file_size_text"] = file_size_text
             raw_number = int(get("number"))
             extras["native_movie_number"] = raw_number
-            movies.append(Movie(
-                number=max(raw_number, 0),
-                original_title=str(get("original_title")),
-                translated_title=str(get("translated_title")),
-                director=str(get("director")), producer=str(get("producer")),
-                country=str(get("country")), year=int(get("year")) or None,
-                category=str(get("category")), length=int(get("length")) or None,
-                actors=str(get("actors")), url=str(get("url")),
-                description=str(get("description")), comments=str(get("comments")),
-                video_format=str(get("video_format")), file_size=file_size_value,
-                resolution=str(get("resolution")), languages=str(get("languages")),
-                subtitles=str(get("subtitles")), rating=rating,
-                checked=bool(get("checked")) if "checked" in layout else True,
-                picture=str(get("picture")) if "picture" in layout else "",
-                borrower=str(get("borrower")) if "borrower" in layout else "",
-                extras=extras,
-            ))
+            try:
+                movie = Movie(
+                    number=max(raw_number, 0),
+                    original_title=str(get("original_title")),
+                    translated_title=str(get("translated_title")),
+                    director=str(get("director")), producer=str(get("producer")),
+                    country=str(get("country")), year=int(get("year")) or None,
+                    category=str(get("category")), length=int(get("length")) or None,
+                    actors=str(get("actors")), url=str(get("url")),
+                    description=str(get("description")), comments=str(get("comments")),
+                    video_format=str(get("video_format")), file_size=file_size_value,
+                    resolution=str(get("resolution")), languages=str(get("languages")),
+                    subtitles=str(get("subtitles")), rating=rating,
+                    checked=bool(get("checked")) if "checked" in layout else True,
+                    picture=str(get("picture")) if "picture" in layout else "",
+                    borrower=str(get("borrower")) if "borrower" in layout else "",
+                    extras=extras,
+                )
+            except (TypeError, ValueError) as error:
+                raise CorruptCatalogError(
+                    f"invalid legacy native movie value: {error}", offset=offset
+                ) from error
+            movies.append(movie)
     if version in {"1.0", "1.1", "2.1"}:
         _read_legacy_sidecars(path, movies, encoding, limits)
     return NativeCatalog(properties, tuple(movies), tuple(() for _ in movies))

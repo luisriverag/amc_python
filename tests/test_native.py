@@ -83,6 +83,26 @@ def test_legacy_catalog_applies_picture_and_borrower_sidecars(tmp_path: Path):
     )
 
 
+def test_legacy_movie_reader_wraps_invalid_movie_values_as_corrupt_catalog_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A structural parse failure while building the Movie value must return a
+    CorruptCatalogError diagnostic, not an unwrapped exception escaping
+    validate_catalog and becoming a generic CLI usage error."""
+    target = tmp_path / "movies.amc"
+    header = next(key for key, value in NATIVE_HEADERS.items() if value == "1.0")
+    _, size = _legacy_layout("1.0")
+    target.write_bytes(header + bytes(size))
+
+    def fail(*_args: object, **_kwargs: object) -> None:
+        raise ValueError("rating must be between 0 and 10")
+
+    monkeypatch.setattr("amc.model.Movie", fail)
+
+    with pytest.raises(CorruptCatalogError, match="invalid legacy native movie value"):
+        read_native_catalog(target)
+
+
 def test_legacy_catalog_rejects_invalid_borrower_sidecar_number(tmp_path: Path):
     target = tmp_path / "movies.amc"
     header = next(key for key, value in NATIVE_HEADERS.items() if value == "1.0")
@@ -257,6 +277,26 @@ def test_native_movie_reader_rejects_truncated_picture_and_amc_42(tmp_path: Path
     version_42 = tmp_path / "42.amc"
     version_42.write_bytes(_catalog("4.2", "", "", "", "", "", "") + _integer(0))
     assert read_native_catalog(version_42).movies == ()
+
+
+def test_modern_movie_reader_wraps_invalid_movie_values_as_corrupt_catalog_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Same guarantee as the legacy reader: a structural parse failure while
+    building the Movie value returns a CorruptCatalogError diagnostic rather
+    than an unwrapped exception escaping validate_catalog."""
+    target = tmp_path / "movie.amc"
+    target.write_bytes(
+        _catalog("4.2", "", "", "", "", "", "") + _integer(0) + _movie_42()
+    )
+
+    def fail(*_args: object, **_kwargs: object) -> None:
+        raise ValueError("rating must be between 0 and 10")
+
+    monkeypatch.setattr("amc.model.Movie", fail)
+
+    with pytest.raises(CorruptCatalogError, match="invalid native movie value"):
+        read_native_catalog(target)
 
 
 def _movie_42() -> bytes:

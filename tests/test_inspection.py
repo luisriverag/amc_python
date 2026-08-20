@@ -165,6 +165,30 @@ def test_native_validation_returns_corruption_diagnostic_instead_of_raising(tmp_
     assert "truncated native string length" in diagnostic.message
 
 
+def test_native_validation_reports_invalid_movie_value_as_diagnostic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A structural parse failure while building a movie's value must reach
+    validate_catalog as a Diagnostic, not escape as an unwrapped exception
+    that becomes a generic CLI usage error."""
+    from amc.native import _legacy_layout
+
+    target = tmp_path / "broken.amc"
+    _, size = _legacy_layout("1.0")
+    target.write_bytes(_NATIVE_HEADERS["1.0"] + bytes(size))
+
+    def fail(*_args: object, **_kwargs: object) -> None:
+        raise ValueError("rating must be between 0 and 10")
+
+    monkeypatch.setattr("amc.model.Movie", fail)
+
+    diagnostic = validate_catalog(target)[0]
+
+    assert diagnostic.code == "corrupt_catalog"
+    assert diagnostic.severity == "error"
+    assert "invalid legacy native movie value" in diagnostic.message
+
+
 def test_validate_parses_fixed_record_native_structure(tmp_path: Path):
     from amc.native import _legacy_layout
 

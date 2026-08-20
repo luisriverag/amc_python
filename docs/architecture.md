@@ -19,6 +19,7 @@
 | `storage.py` | JSON, CSV, XML, static HTML, dispatch, and atomic persistence | User interaction |
 | `native.py` | Native AMC parsing, resource limits, and explicit experimental 4.2 serialization | UI behavior or compatibility claims without upstream fixtures |
 | `media.py` | Bounded media discovery and dependency-free file/WAV/FLAC/AIFF/MP3 facts | Network access or UI behavior |
+| `html_template.py` | Renders upstream's own `$$TAG_NAME` HTML export template syntax against `Movie`/`Catalog` | Reading/writing files (done via `storage._atomic_text`) |
 | `scripts.py` | Bounded legacy script metadata inspection | Script execution or network access |
 | `preferences.py` | Atomic per-user desktop GUI preferences, separate from any catalog | Catalog data or format-specific rules |
 | `cli.py` | Argument parsing and terminal presentation | Domain policy |
@@ -113,7 +114,14 @@ whether redistribution is permitted. Synthetic fixtures must be clearly labeled.
   a missing, corrupt, or unwritable file as "use the defaults" rather than a
   reportable error. It stores no catalog data, so silently falling back
   never causes data loss the way it would in `storage.py`.
-- Static HTML export escapes every modeled value and accepts only bounded,
-  allow-listed templates. It does not claim AMC template-language compatibility.
+- Static HTML export (`storage.save_html`) escapes every modeled value and
+  accepts only bounded, allow-listed `{{MOVIES}}`-style templates. It is
+  AMC Python's own template syntax and does not claim AMC template-language
+  compatibility. `html_template.py` is the separate module that does render
+  AMC's own `$$TAG_NAME` syntax; even there, tag *values* are computed from
+  `Movie`/`Catalog`, not cross-checked against genuine upstream output, and
+  several behaviors are explicitly out of scope (see its module docstring) —
+  picture/rating-icon file copying and the `$$ITEM_EXTRA_*`
+  supplementary-record loop, most notably.
 - `storage.py` remains too broad; codec separation should follow genuine fixture
   contracts rather than moving unverified behavior between modules prematurely.

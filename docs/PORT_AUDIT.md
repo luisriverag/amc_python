@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 491 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 16 functional package modules, 6 repository tools, 503 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -99,7 +99,9 @@ confidence.
 - Full media analysis and codec mapping (portable facts and PCM WAV/FLAC/AIFF/MP3 only; MP4 and OGG remain unimplemented).
 - Upstream verification of grouped-loan and TSV history encoding/consumption.
 - Localization resources.
-- Printing and reports.
+- Printing and reports (FreeReport's own report designer/renderer — distinct
+  from HTML export, which does render upstream's `$$TAG_NAME` template syntax;
+  see the HTML export row below).
 - Full desktop workflows and upstream UI parity.
 
 ## Findings requiring correction
@@ -300,6 +302,28 @@ confidence.
     through `load_xml`/`save_xml` with zero field mismatches after these three fixes.
     This is not upgraded to `verified` in `compatibility.md`: no provenance-tracked
     fixture is registered in the repository for this file.
+27. `amc.html_template` (new) renders Ant Movie Catalog's own `$$TAG_NAME` HTML
+    export template syntax — `export.pas`'s `ReplaceTagsGeneral`/`ReplaceTagsMovie`
+    placeholders — against `Movie`/`Catalog`, so a template a user already has for
+    real AMC's HTML export keeps working. `Movie Catalog/fields.pas`'s `strTagFields`
+    table is the source of the general/item tag names; general, item, rating
+    (including the exact `0..29/30..49/50..69/70..89/90..100` appreciation-bucket
+    ranges, not an approximation of them), picture, and custom-field tags are
+    implemented, plus the `$$ITEM_BEGIN`/`$$ITEM_END` repeat loop for both the
+    "full" (all-movies) and "individual" (one page per movie) documents upstream
+    supports. Validated locally against the same genuine AMC 4.2.2 export as finding
+    26 and that export's own real full/individual templates: both rendered with zero
+    leftover `$$` placeholders across all 7161 movies. Explicitly out of scope, and
+    documented as such in the module docstring: `$$ITEM_FORMATTEDTITLE`'s
+    user-configured display-preference variants (uses `Movie.title` — the same value
+    upstream itself calls "FormattedTitle" — instead), `$$ITEM_COLORHTML`'s
+    user-configured palette, actually copying picture/rating-icon files, and the
+    `$$ITEM_EXTRA_*` supplementary-record loop (its category/checked/range filter
+    syntax is a separate, non-trivial parser; any such block is stripped from the
+    output rather than left as broken template syntax, matching upstream's own
+    behavior for a movie with no supplementary records). Wired into the CLI as
+    `export-html-template`, distinct from AMC Python's own `{{MOVIES}}`-template
+    `export-html`. Not registered as `verified`, for the same reason as finding 26.
 
 ## Gap matrix against the original application
 
@@ -316,7 +340,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
 | Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings | IFPS compiler/runtime, complete API inventory, HTTP/browser interactions, license acceptance, debugger, results UI, safe merge preview, timeouts/cache/rate limits, and recorded provider tests |
 | Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3 analysis (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec) | MediaInfo integration/version checks, MP4/OGG parsing, the full tag map, stream selection, filters, and field merge behavior |
-| HTML export | `export.pas`, template units | Safe bounded Python table/templates | Upstream template tags, multi-file output, extra/custom-field semantics, and fixture comparison |
+| HTML export | `export.pas`, `ConstValues.pas` (`strTagFields`/`TAG_*`), `fields.pas` | Safe bounded Python table/templates, plus `amc.html_template` rendering upstream's own `$$TAG_NAME` general/item/rating/picture/custom-field tags and the `$$ITEM_BEGIN`/`$$ITEM_END` full+individual document loop, validated locally against a genuine AMC 4.2.2 export's own real templates | The `$$ITEM_EXTRA_*` supplementary-record loop (with its category/checked/range filter syntax), upstream picture/rating-icon file copying, multi-file/SQL export, and fixture comparison of rendered tag values against genuine upstream output |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
 | Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |
 | Desktop presentation | `main.pas` and `.dfm` forms | Broad Tk prototype with headless adapter tests plus real-display smoke tests under Xvfb | Form/workflow parity, accessibility verification, localization, and platform packaging |

@@ -99,6 +99,21 @@ readers. An exceeded budget is reported as a `validate` diagnostic and as an
   static/session values are never written to the settings file.
 - `export-html` escapes modeled movie values. Document and row templates are
   bounded and unknown row markers are rejected before destination replacement.
+  This is AMC Python's own `{{MOVIES}}`-marker template syntax, distinct from
+  `export-html-template` below.
+- `export-html-template FULL_CATALOG_PAGE_PATH --full-template FILE
+  --individual-template FILE` renders Ant Movie Catalog's own `$$TAG_NAME`
+  HTML export templates — the same syntax and placeholders real AMC's HTML
+  export uses — so a template a user already has keeps working without the
+  original Windows application. At least one of `--full-template`/
+  `--individual-template` is required; `--individual-dir` sets where
+  per-movie pages go (default: the full page's own directory) and
+  `--individual-filename` sets their naming pattern (default
+  `{number}.html`). See `amc.html_template`'s module docstring for the exact
+  tag coverage and documented scope boundaries (no upstream-verified parity
+  claim; picture files and rating-icon images are not copied; the
+  supplementary-record `$$ITEM_EXTRA_*` loop is not implemented and any such
+  block is stripped rather than left as literal template syntax).
 - `export-amc` atomically writes the source-derived AMC 4.2 layout. It preserves
   supported native metadata retained during import, but remains fixture-unverified
   and does not modify the JSON catalog unless explicitly requested.

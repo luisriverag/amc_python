@@ -224,6 +224,28 @@ def parser() -> argparse.ArgumentParser:
     html_export.add_argument("destination", type=Path)
     html_export.add_argument("--template", type=Path)
     html_export.add_argument("--row-template", type=Path)
+    ant_html_export = commands.add_parser(
+        "export-html-template",
+        help="render Ant Movie Catalog's own $$TAG_NAME HTML export templates",
+        description=(
+            "Render a template written for real Ant Movie Catalog's HTML export "
+            "($$ITEM_TITLE-style placeholders), not AMC Python's own {{MOVIES}} "
+            "template (see 'export-html'). At least one of --full-template/"
+            "--individual-template is required."
+        ),
+    )
+    ant_html_export.add_argument("destination", type=Path, help="path for the full-catalog page")
+    ant_html_export.add_argument("--full-template", type=Path)
+    ant_html_export.add_argument("--individual-template", type=Path)
+    ant_html_export.add_argument(
+        "--individual-dir", type=Path,
+        help="directory for one page per movie (default: destination's own directory)",
+    )
+    ant_html_export.add_argument(
+        "--individual-filename", default="{number}.html",
+        help="filename pattern for individual pages, e.g. '{number}.html' (default)",
+    )
+    ant_html_export.add_argument("--line-break", default="<br>")
     native_export = commands.add_parser(
         "export-amc",
         help="write an experimental, source-derived AMC 4.2 native catalog",
@@ -541,6 +563,16 @@ def _run(args: argparse.Namespace) -> int:
             template=args.template,
             row_template=args.row_template,
         )
+    elif args.command == "export-html-template":
+        written = service.export_html_template(
+            args.destination,
+            full_template=args.full_template,
+            individual_template=args.individual_template,
+            individual_dir=args.individual_dir,
+            individual_filename=args.individual_filename,
+            line_break=args.line_break,
+        )
+        print(f"Wrote {len(written)} file(s)")
     elif args.command == "export-amc":
         defaults = NativeWriteLimits()
         service.export(

@@ -582,6 +582,35 @@ treating them as one uniform backlog.
     MP4 and OGG remain unimplemented; each needs its own container-walking
     parser (ISOBMFF box tree for MP4, page-granule-position scanning for
     OGG) following the same pattern.
+  - [x] Two real bugs found and fixed against a genuine AMC 4.2.2 XML export
+    a user contributed for local debugging (7161 movies, not committed to
+    the repository — the first genuine upstream-generated data used to
+    validate this port): `_XML_FIELDS` used invented attribute names
+    `"MediaCount"`/`"FileSize"` that appear nowhere in the Delphi source;
+    the real names, confirmed against `fields.pas`'s `strTagFields` table
+    and present on every one of the 7161 real movies, are `"Disks"`/
+    `"Size"`. Fixing the name alone would have introduced a second bug:
+    `Size` is free-form text upstream (a multi-part release is
+    `"+"`-joined, e.g. a real `"698+696"`), which the existing lenient
+    number parser would have silently truncated; `load_xml`/`save_xml` now
+    preserve the exact original text through `extras` when it isn't a
+    plain integer. A third, unrelated encoding-corruption issue in the same
+    file (raw UTF-8 bytes inside a document declared `windows-1252`) is now
+    recovered from with a tolerant retry instead of failing the whole load.
+    See PORT_AUDIT.md finding 26.
+  - [x] HTML export templates: `amc.html_template` (new module) renders
+    upstream's own `$$TAG_NAME` HTML export template syntax — the same
+    placeholders `export.pas`'s `ReplaceTagsGeneral`/`ReplaceTagsMovie` use
+    — so a template a user already has for real AMC's HTML export keeps
+    working, wired into the CLI as `export-html-template`. Validated
+    locally against the same genuine 4.2.2 export above and that export's
+    own real full/individual templates: both rendered with zero leftover
+    `$$` placeholders across all 7161 movies. The `$$ITEM_EXTRA_*`
+    supplementary-record loop and upstream picture/rating-icon file
+    copying are explicitly out of scope (documented in the module
+    docstring). This is distinct from — and does not reduce the scope of
+    — the FreeReport report-designer item below. See PORT_AUDIT.md
+    finding 27.
   - [ ] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a

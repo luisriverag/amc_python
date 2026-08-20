@@ -12,6 +12,7 @@ from typing import TypeVar
 from PIL import Image, UnidentifiedImageError
 
 from .catalog import Catalog
+from .html_template import export_html_template
 from .loans import (
     LoanEvent,
     add_borrower,
@@ -646,6 +647,34 @@ class CatalogService:
         except KeyError as error:
             raise ValueError(f"unsupported export format: {format}") from error
         exporter(self.catalog, destination)
+
+    def export_html_template(
+        self,
+        destination: str | Path,
+        *,
+        full_template: str | Path | None = None,
+        individual_template: str | Path | None = None,
+        individual_dir: str | Path | None = None,
+        individual_filename: str = "{number}.html",
+        line_break: str = "<br>",
+    ) -> list[Path]:
+        """Render Ant Movie Catalog's own `$$TAG_NAME` HTML templates.
+
+        Distinct from `export(..., format="html")`'s Python-owned
+        `{{MOVIES}}` template: this loads a template written for real Ant
+        Movie Catalog, using its placeholder syntax, so a template a user
+        already has keeps working. See `amc.html_template` for scope notes.
+        """
+        return export_html_template(
+            self.catalog,
+            destination,
+            full_template=full_template,
+            individual_template=individual_template,
+            individual_dir=individual_dir,
+            individual_filename=individual_filename,
+            source_name=self.path.name,
+            line_break=line_break,
+        )
 
     def _persist(self, mutation: Callable[[Catalog], _Result]) -> _Result:
         """Save a mutation before publishing it as current application state."""

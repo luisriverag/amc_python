@@ -19,6 +19,18 @@ def test_inspect_json_xml_and_csv(tmp_path: Path):
     xml_path.write_text('<AntMovieCatalog Format="4.2"><Catalog><Movie/><Movie/></Catalog></AntMovieCatalog>', encoding="utf-8")
     assert (inspect_catalog(xml_path).format, inspect_catalog(xml_path).version, inspect_catalog(xml_path).movies) == ("amc-xml", "4.2", 2)
 
+
+def test_inspect_json_accepts_a_leading_utf8_bom(tmp_path: Path):
+    bom_path = tmp_path / "catalog.json"
+    bom_path.write_bytes(
+        b"\xef\xbb\xbf"
+        + b'{"format":"amc-python","version":1,"movies":[{}]}'
+    )
+
+    info = inspect_catalog(bom_path)
+
+    assert (info.format, info.version, info.movies) == ("amc-python", 1, 1)
+
     csv_path = tmp_path / "catalog.csv"
     csv_path.write_text("Title,Year\nAlien,1979\n\nAliens,1986\n", encoding="utf-8")
     assert (inspect_catalog(csv_path).format, inspect_catalog(csv_path).movies) == ("csv", 2)

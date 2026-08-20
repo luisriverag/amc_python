@@ -86,7 +86,7 @@ def validate_catalog(path: str | Path) -> list[Diagnostic]:
 
 def _inspect_json(path: Path, size: int) -> CatalogInfo:
     try:
-        with path.open(encoding="utf-8") as stream:
+        with path.open(encoding="utf-8-sig") as stream:
             value = json.load(stream)
     except (UnicodeError, json.JSONDecodeError) as error:
         raise CorruptCatalogError(f"invalid JSON catalog: {error}", offset=getattr(error, "pos", None)) from error

@@ -193,10 +193,19 @@ confidence.
     `TMovieList.ReadPictures`/`ReadBorrowers`, but `ConfigParser` has not been shown
     equivalent to Delphi `TMemIniFile` for duplicate keys, comments, malformed INI,
     or locale-specific decoding. No genuine sidecar fixture exists.
-22. JSON content saved under an `.amc` suffix is accepted for compatibility with
-    earlier AMC Python releases. This is an internal migration behavior, not an Ant
-    Movie Catalog format feature, and content probing still performs multiple file
-    opens.
+22. [Resolved] JSON content saved under an `.amc` suffix is accepted for
+    compatibility with earlier AMC Python releases. This is an internal
+    migration behavior, not an Ant Movie Catalog format feature.
+    `storage.load()`'s native/JSON content probe now reads the file prefix
+    once and reuses it for both the native-header and JSON-start-byte
+    checks, instead of opening the file twice. Fixing this also surfaced and
+    closed a related bug: a leading UTF-8 BOM was recognized by the JSON
+    probe but not stripped before the actual `json.load()` call, so a
+    BOM-prefixed JSON catalog (under `.amc` or `.json`) failed to open with a
+    confusing `JSONDecodeError` instead of loading; both `storage.load()` and
+    `inspection._inspect_json()` now open JSON with `utf-8-sig`, which
+    transparently strips a BOM when present and is otherwise identical to
+    plain `utf-8`.
 23. Script settings use an AMC Python JSON document and basename identity. Upstream
     caches script metadata, license acceptance, options, parameters, and static
     values in its settings INI. Python deliberately excludes license acceptance and

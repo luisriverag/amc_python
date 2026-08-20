@@ -32,6 +32,28 @@ def test_json_catalog_with_legacy_amc_extension_still_opens(tmp_path: Path):
     ]
 
 
+def test_bom_prefixed_json_catalog_with_legacy_amc_extension_still_opens(
+    tmp_path: Path,
+):
+    target = tmp_path / "legacy-working-catalog.amc"
+    document = json.dumps(
+        {"format": "amc-python", "version": 1, "movies": [], "metadata": {}}
+    )
+    target.write_bytes(b"\xef\xbb\xbf" + document.encode("utf-8"))
+
+    assert len(load(target)) == 0
+
+
+def test_bom_prefixed_json_catalog_opens(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    document = json.dumps(
+        {"format": "amc-python", "version": 1, "movies": [], "metadata": {}}
+    )
+    target.write_bytes(b"\xef\xbb\xbf" + document.encode("utf-8"))
+
+    assert len(load(target)) == 0
+
+
 def test_import_ant_xml(tmp_path: Path):
     source = tmp_path / "catalog.xml"
     source.write_text('''<?xml version="1.0"?><AntMovieCatalog><Catalog><Contents>

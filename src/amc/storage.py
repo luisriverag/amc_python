@@ -70,10 +70,10 @@ def load(
     native_limits: NativeReadLimits | None = None,
 ) -> Catalog:
     path = Path(path)
-    has_native_header = _has_native_header(path)
-    if has_native_header:
+    prefix = _read_prefix(path)
+    if prefix[:NATIVE_HEADER_SIZE] in NATIVE_HEADERS:
         return _load_native(path, native_encoding, native_limits)
-    if path.suffix.casefold() == ".amc" and not _has_json_header(path):
+    if path.suffix.casefold() == ".amc" and not _looks_like_json(prefix):
         # Keep reporting useful native-header errors for malformed native files,
         # while retaining compatibility with JSON catalogs that older releases
         # allowed users to save with an .amc filename.
@@ -82,7 +82,7 @@ def load(
         return load_xml(path)
     if path.suffix.casefold() == ".csv":
         return load_csv(path)
-    with path.open(encoding="utf-8") as stream:
+    with path.open(encoding="utf-8-sig") as stream:
         document = json.load(
             stream,
             object_pairs_hook=_json_object,
@@ -125,16 +125,19 @@ def _reject_json_constant(value: str) -> object:
     raise ValueError(f"invalid non-finite JSON number: {value}")
 
 
-def _has_native_header(path: Path) -> bool:
-    """Detect exact native headers without interpreting arbitrary binary files."""
+def _read_prefix(path: Path, size: int = 4096) -> bytes:
+    """Read a bounded prefix once for cheap multi-format content probing.
+
+    A native header is at most `NATIVE_HEADER_SIZE` bytes and a JSON/UTF-8-BOM
+    prefix check only needs a small lookahead, so both checks share a single
+    file open and read instead of probing the same file twice.
+    """
     with path.open("rb") as stream:
-        return stream.read(NATIVE_HEADER_SIZE) in NATIVE_HEADERS
+        return stream.read(size)
 
 
-def _has_json_header(path: Path) -> bool:
-    """Recognize a JSON object or array without decoding an entire catalog."""
-    with path.open("rb") as stream:
-        prefix = stream.read(4096)
+def _looks_like_json(prefix: bytes) -> bool:
+    """Recognize a JSON object or array from an already-read file prefix."""
     if prefix.startswith(b"\xef\xbb\xbf"):
         prefix = prefix[3:]
     return prefix.lstrip().startswith((b"{", b"["))

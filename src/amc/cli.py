@@ -27,6 +27,53 @@ EXIT_INVALID_CATALOG = 1
 EXIT_ERROR = 2
 
 
+def _parse_crop(text: str | None) -> tuple[int, int, int, int] | None:
+    """Parse a ``--crop X,Y,WIDTH,HEIGHT`` option into four integers."""
+    if text is None:
+        return None
+    try:
+        parts = tuple(int(value) for value in text.split(","))
+    except ValueError as error:
+        raise ValueError("crop must be X,Y,WIDTH,HEIGHT integers") from error
+    if len(parts) != 4:
+        raise ValueError("crop must be X,Y,WIDTH,HEIGHT integers")
+    return parts
+
+
+def _parse_picture_assignments(assignments: list[str]) -> dict[int, Path]:
+    """Parse repeated ``--assign NUMBER=PATH`` options into a mapping."""
+    parsed: dict[int, Path] = {}
+    for assignment in assignments:
+        if "=" not in assignment:
+            raise ValueError(f"invalid picture assignment: {assignment!r}")
+        number_text, path_text = assignment.split("=", 1)
+        try:
+            number = int(number_text)
+        except ValueError as error:
+            raise ValueError(f"invalid movie number: {number_text!r}") from error
+        if number in parsed:
+            raise ValueError(f"movie number assigned more than once: {number}")
+        parsed[number] = Path(path_text)
+    return parsed
+
+
+def _parse_picture_crops(crops: list[str]) -> dict[int, tuple[int, int, int, int]]:
+    """Parse repeated ``--crop-for NUMBER=X,Y,WIDTH,HEIGHT`` options."""
+    parsed: dict[int, tuple[int, int, int, int]] = {}
+    for entry in crops:
+        if "=" not in entry:
+            raise ValueError(f"invalid crop assignment: {entry!r}")
+        number_text, crop_text = entry.split("=", 1)
+        try:
+            number = int(number_text)
+        except ValueError as error:
+            raise ValueError(f"invalid movie number: {number_text!r}") from error
+        if number in parsed:
+            raise ValueError(f"movie number cropped more than once: {number}")
+        parsed[number] = _parse_crop(crop_text)
+    return parsed
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="amc", description="Portable Ant Movie Catalog")
     result.add_argument("--catalog", "-c", type=Path, default=Path("catalog.json"))
@@ -77,8 +124,39 @@ def parser() -> argparse.ArgumentParser:
         metavar="X,Y,WIDTH,HEIGHT",
         help="crop an embedded picture before storing it",
     )
-    picture_clear = commands.add_parser("picture-clear", help="remove a movie picture")
-    picture_clear.add_argument("number", type=int)
+    picture_set_many = commands.add_parser(
+        "picture-set-many",
+        help="link or embed pictures for multiple movies in one atomic write",
+    )
+    picture_set_many.add_argument(
+        "--assign",
+        action="append",
+        default=[],
+        required=True,
+        metavar="NUMBER=PATH",
+        help="assign a picture source to a movie number; may be repeated",
+    )
+    picture_set_many.add_argument("--embed", action="store_true")
+    picture_set_many.add_argument("--max-bytes", type=int, default=64 * 1024 * 1024)
+    picture_set_many.add_argument("--max-pixels", type=int, default=40_000_000)
+    picture_set_many.add_argument(
+        "--crop",
+        metavar="X,Y,WIDTH,HEIGHT",
+        help="crop every embedded picture using the same rectangle, unless "
+        "overridden per movie with --crop-for",
+    )
+    picture_set_many.add_argument(
+        "--crop-for",
+        action="append",
+        default=[],
+        metavar="NUMBER=X,Y,WIDTH,HEIGHT",
+        help="crop one movie's embedded picture with its own rectangle, "
+        "overriding --crop for that movie; may be repeated",
+    )
+    picture_clear = commands.add_parser(
+        "picture-clear", help="remove one or more movie pictures"
+    )
+    picture_clear.add_argument("numbers", type=int, nargs="+")
     picture_export = commands.add_parser("picture-export", help="export a movie picture")
     picture_export.add_argument("number", type=int)
     picture_export.add_argument("destination", type=Path)
@@ -374,27 +452,30 @@ def _run(args: argparse.Namespace) -> int:
     elif args.command == "borrower-remove":
         print(f"Removed borrower: {service.remove_borrower(args.name)}")
     elif args.command == "picture-set":
-        crop = None
-        if args.crop is not None:
-            try:
-                parts = tuple(int(value) for value in args.crop.split(","))
-            except ValueError as error:
-                raise ValueError("crop must be X,Y,WIDTH,HEIGHT integers") from error
-            if len(parts) != 4:
-                raise ValueError("crop must be X,Y,WIDTH,HEIGHT integers")
-            crop = parts
         movie = service.set_picture(
             args.number,
             args.source,
             embed=args.embed,
             max_bytes=args.max_bytes,
             max_pixels=args.max_pixels,
-            crop=crop,
+            crop=_parse_crop(args.crop),
         )
         print(f"Updated picture for #{movie.number}: {movie.picture}")
+    elif args.command == "picture-set-many":
+        movies = service.set_picture_many(
+            _parse_picture_assignments(args.assign),
+            embed=args.embed,
+            max_bytes=args.max_bytes,
+            max_pixels=args.max_pixels,
+            crop=_parse_crop(args.crop),
+            crops=_parse_picture_crops(args.crop_for),
+        )
+        for movie in movies:
+            print(f"Updated picture for #{movie.number}: {movie.picture}")
     elif args.command == "picture-clear":
-        movie = service.clear_picture(args.number)
-        print(f"Cleared picture for #{movie.number}")
+        movies = service.clear_picture_many(args.numbers)
+        for movie in movies:
+            print(f"Cleared picture for #{movie.number}")
     elif args.command == "picture-export":
         service.export_picture(args.number, args.destination)
     elif args.command == "edit":

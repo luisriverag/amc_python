@@ -21,6 +21,38 @@ Every feature change must include:
 6. No unexplained data loss. Unsupported data must produce a diagnostic or be
    retained opaquely.
 
+## Execution priority: downstream features while fixtures are unavailable
+
+Milestone 0 and the P0 evidence gate below require running the genuine,
+licensed Ant Movie Catalog Windows application to produce upstream-generated
+catalogs. That application cannot be installed or executed in this
+repository's automated development environment, so fixture acquisition is
+**externally blocked** rather than a coding gap: it can only proceed when a
+contributor with a real AMC 4.2.3.2 installation supplies fixtures and their
+provenance records. This does not relax the compatibility bar. It remains
+true, unchanged, that no native/XML/CSV subsystem may be marked
+`verified` — and no format-compatibility checkbox in this document may be
+checked — without registered upstream-generated evidence.
+
+Given that block, day-to-day execution focuses on **downstream
+features**: Milestone 5 (application services and interfaces) and
+Milestone 6 (scripts, metadata, and media) items that improve
+`CatalogService`, the CLI, the desktop GUI, and the web interface without
+making any upstream-compatibility claim. These items are evidence-independent
+because they describe AMC Python's own contract, not Ant Movie Catalog's.
+Each still needs the full "definition of done" above (tests, documentation,
+a `docs/compatibility.md` update when it changes a status row) — only the
+upstream-unit citation is inapplicable to purely Python-owned behavior.
+
+This reprioritization changes execution order, not the milestone list or
+the evidence bar: Milestones 5 and 6 already existed and their gates are
+unchanged. When genuine fixtures become available, work reverts to the P1–P3
+sequence below before any new compatibility claim is made.
+
+The concrete, ordered form of this backlog is the **Downstream execution
+backlog (D0–D3)** further down this document, alongside the upstream P0–P3
+backlog it runs in parallel with.
+
 ## Milestone 0: authoritative upstream baseline
 
 - [ ] Reacquire `amc_sources.rar` and record URL, retrieval date, byte size, and
@@ -137,8 +169,15 @@ all omitted or opaque data is reported.
   linked/size-bounded embedded picture set/clear/export, validated cropping, and
   native retention are complete; unverified native export is confirmation-gated
   and reports its replacement backup; native/XML/CSV sources are protected as
-  read-only until saved as JSON; batch picture management, progress, cancellation,
-  accessibility, and dirty-state prompting remain pending).
+  read-only until saved as JSON; batch picture set/assign/clear across an
+  extended table selection is complete from both the CLI (`picture-set-many
+  --crop`/`--crop-for`) and the desktop toolbar (Set/Assign/Clear Pictures),
+  covering a shared picture across the selection, a distinct picture per
+  movie, and clearing; interactive drag-to-select crop is complete for both
+  the single-movie edit dialog and each row of the batch Assign Pictures
+  dialog; progress, cancellation, and accessibility remain pending; every
+  mutation persists immediately, so there
+  is no unsaved dirty state left to prompt about).
 - [ ] Add loan management and catalog preferences if confirmed upstream features
   (atomic single/multi-movie check-out/check-in and validated JSON-retained loan
   history, managed borrower lists, and source-shaped TSV history export are
@@ -158,7 +197,9 @@ all omitted or opaque data is reported.
   movie, picture, and extra-field permissions; execution, timeouts, caching, and
   rate limits remain intentionally absent).
 - [ ] Add image download and full media-file analysis as optional capabilities
-  (portable file facts and PCM WAV analysis are available without dependencies).
+  (portable file facts and PCM WAV/FLAC analysis are available without
+  dependencies; compressed/lossy formats such as MP3, MP4, and OGG still need
+  either bounded dependency-free parsing or an optional codec provider).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
 - [ ] Reproduce upstream HTML template/tag semantics (safe static HTML table export
   is available as a non-compatible baseline).
@@ -263,9 +304,68 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.
 
+## Downstream execution backlog (D0–D3)
+
+While Sprint 1 (below) stays externally blocked on genuine fixtures, this is
+the ordered, concrete backlog for the "Execution priority" track above. Unlike
+P0–P3, items here carry no fixture dependency and no ordering gate between
+tiers — pick the next unchecked item in the lowest tier with unchecked work.
+Each item still needs its own tests and a `docs/compatibility.md` update per
+the "definition of done." These are sub-items of the Milestone 5/6 checklist
+entries above, not new top-level checklist entries, so they intentionally use
+indented, non-canonical checkbox markers that the port-progress count in
+`README.md` does not scan.
+
+### D0 — media analysis completeness
+
+  - [x] Dependency-free PCM WAV duration/bitrate.
+  - [x] Dependency-free FLAC duration/average bitrate, parsed from the
+    mandatory leading STREAMINFO metadata block.
+  - [ ] Evaluate whether further fixed-header formats (e.g., AIFF) are worth
+    dependency-free support versus designing the optional bounded
+    codec-provider interface for compressed/lossy formats (MP3, MP4, OGG)
+    that `getmedia.pas` covers via MediaInfo.
+
+### D1 — picture workflow completion
+
+  - [x] Atomic batch picture clear across an extended selection (CLI and GUI).
+  - [x] Atomic batch picture set — one shared picture across a selection (CLI
+    and GUI).
+  - [x] Atomic batch picture assignment — a distinct picture per movie in one
+    write (CLI `picture-set-many`; GUI **Assign Pictures** dialog).
+  - [x] Interactive crop selection (a draggable rectangle over the poster
+    preview) in the edit dialog's **Crop** button, replacing the CLI-only
+    `--crop X,Y,WIDTH,HEIGHT` numeric entry for the single-movie case.
+  - [x] Per-movie crop rectangles in a batch assignment: `CatalogService.
+    set_picture_many` accepts a `crops` mapping of movie number to rectangle,
+    overriding the shared `crop` for that movie only (validated as
+    embed-only, and rejecting crop entries for movie numbers outside the
+    assignment set); CLI `picture-set-many --crop-for NUMBER=X,Y,WIDTH,HEIGHT`
+    and a per-row **Crop** button in the **Assign Pictures** dialog (reusing
+    the edit dialog's interactive selector) expose it.
+
+D1 is now complete: every planned picture set/assign/clear/crop workflow has
+both a CLI and a desktop entry point.
+
+### D2 — bulk-operation UX
+
+  - [ ] Progress reporting and cancellation for long-running `CatalogService`
+    bulk operations (`import-media` over large trees, `merge`, batch picture
+    operations), surfaced through the CLI and the GUI toolbar.
+  - [ ] Desktop accessibility pass: keyboard navigation coverage and
+    screen-reader labels for toolbar actions and dialogs.
+
+### D3 — catalog/GUI preferences
+
+  - [ ] Persist Python-owned GUI preferences (last-used view filter, layout,
+    window geometry) separately from catalog data, so they are not confused
+    with retained upstream catalog properties.
+  - [ ] Make the retained undo/redo history depth (`_HISTORY_LIMIT`) and any
+    future retention limits configurable instead of a fixed constant.
+
 ## Immediate next slice
 
-Execution is now organized into four gated sprints in
+Execution is organized into four gated sprints in
 [`NEXT_SPRINTS.md`](NEXT_SPRINTS.md):
 
 1. obtain trustworthy archives, redistribution decisions, and genuine AMC 4.2.3.2
@@ -274,9 +374,16 @@ Execution is now organized into four gated sprints in
 3. prove lossless native/XML/JSON interchange and document CSV losses; then
 4. complete engineering and release gates for the evidence-backed subset.
 
-The immediate change should contain **Sprint 1 fixtures and verification, not
-another inferred format feature**. Sprint exit checks are blocking criteria rather
-than suggestions; work from later sprints does not advance an earlier gate.
+Sprint 1 requires a genuine Windows AMC 4.2.3.2 installation this repository's
+automated environment does not have, so it is currently blocked on an external
+contributor supplying fixtures, not on further coding here. Sprint exit checks
+remain blocking criteria — no later sprint's work advances an earlier gate, and
+no compatibility status may be upgraded without registered evidence — but with
+Sprint 1 externally blocked, the immediate change should draw from the
+**Downstream execution backlog (D0–D3)** above rather than sitting idle or
+inferring more unverified format behavior. A downstream slice still needs its
+own tests and documentation; it simply makes no upstream-compatibility claim,
+so it does not require a fixture.
 
 The manifest contract and canonical checks now support exact 65-byte native headers,
 declared native versions, movie counts, metadata, and indexed movie-field expectations through

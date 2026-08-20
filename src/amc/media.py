@@ -25,7 +25,7 @@ class MediaInfo:
 
 
 def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaInfo:
-    """Inspect safe filesystem facts and WAV metadata when applicable."""
+    """Inspect safe filesystem facts and WAV/FLAC metadata when applicable."""
     path = Path(path)
     if not path.is_file():
         raise ValueError(f"media path is not a file: {path}")
@@ -34,7 +34,8 @@ def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaIn
         raise ValueError(f"media file exceeds size limit: {size} > {max_file_bytes}")
     length = bitrate = None
     audio_format = ""
-    if path.suffix.casefold() == ".wav":
+    suffix = path.suffix.casefold()
+    if suffix == ".wav":
         try:
             with wave.open(str(path), "rb") as stream:
                 rate = stream.getframerate()
@@ -44,9 +45,43 @@ def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaIn
                 audio_format = "PCM"
         except (EOFError, wave.Error) as error:
             raise ValueError(f"invalid WAV media file: {error}") from error
+    elif suffix == ".flac":
+        length, bitrate = _inspect_flac_stream_info(path, size)
+        audio_format = "FLAC"
     return MediaInfo(
         str(path), path.stem, path.suffix, size, length, audio_format, bitrate
     )
+
+
+def _inspect_flac_stream_info(path: Path, size: int) -> tuple[int | None, int | None]:
+    """Read the mandatory leading STREAMINFO block for duration and bitrate.
+
+    See the FLAC format reference: a file begins with the four-byte magic
+    ``fLaC`` followed by one or more metadata blocks; the first is always a
+    34-byte STREAMINFO block carrying the sample rate, channel count, bit
+    depth, and total sample count needed to compute duration.
+    """
+    with path.open("rb") as stream:
+        if stream.read(4) != b"fLaC":
+            raise ValueError("invalid FLAC media file: missing fLaC marker")
+        header = stream.read(4)
+        if len(header) != 4:
+            raise ValueError("invalid FLAC media file: truncated metadata block header")
+        block_type = header[0] & 0x7F
+        block_length = int.from_bytes(header[1:4], "big")
+        if block_type != 0 or block_length != 34:
+            raise ValueError("invalid FLAC media file: missing STREAMINFO block")
+        info = stream.read(34)
+        if len(info) != 34:
+            raise ValueError("invalid FLAC media file: truncated STREAMINFO block")
+    packed = int.from_bytes(info[10:18], "big")
+    sample_rate = packed >> 44
+    total_samples = packed & 0xF_FFFF_FFFF
+    if sample_rate == 0 or total_samples == 0:
+        return None, None
+    length = round(total_samples / sample_rate)
+    bitrate = round(size * 8 / total_samples * sample_rate / 1000)
+    return length, bitrate
 
 
 def movie_from_media(path: str | Path) -> Movie:

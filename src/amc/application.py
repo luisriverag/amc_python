@@ -351,54 +351,120 @@ class CatalogService:
         crop: tuple[int, int, int, int] | None = None,
     ) -> Movie:
         """Link or embed a movie picture in one atomic catalog mutation."""
+        updated = self.set_picture_many(
+            {number: source},
+            embed=embed,
+            max_bytes=max_bytes,
+            max_pixels=max_pixels,
+            crop=crop,
+        )
+        return updated[0]
+
+    def set_picture_many(
+        self,
+        assignments: dict[int, str | Path] | Iterable[tuple[int, str | Path]],
+        *,
+        embed: bool = False,
+        max_bytes: int = _MAX_PICTURE_BYTES,
+        max_pixels: int = _MAX_PICTURE_PIXELS,
+        crop: tuple[int, int, int, int] | None = None,
+        crops: dict[int, tuple[int, int, int, int]] | None = None,
+    ) -> list[Movie]:
+        """Link or embed pictures for distinct movies in one atomic write.
+
+        Every movie shares the same *embed*, *max_bytes*, and *max_pixels*
+        settings; each movie number has its own picture source. *crop* is
+        applied to every embedded picture unless a movie number has its own
+        entry in *crops*, which takes precedence for that movie only.
+        """
+        pairs = list(assignments.items() if isinstance(assignments, dict) else assignments)
+        requested = self._movie_numbers(number for number, _ in pairs)
         if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 0:
             raise ValueError("max_bytes must be a non-negative integer")
         if isinstance(max_pixels, bool) or not isinstance(max_pixels, int) or max_pixels < 1:
             raise ValueError("max_pixels must be a positive integer")
-        source_path = Path(source)
-        encoded = ""
-        if embed:
-            size = source_path.stat().st_size
-            if size > max_bytes:
-                raise ValueError(f"picture exceeds size limit: {size} > {max_bytes}")
-            data = source_path.read_bytes()
-            if len(data) > max_bytes:
-                raise ValueError(f"picture exceeds size limit: {len(data)} > {max_bytes}")
-            data = self._prepare_picture(data, max_pixels=max_pixels, crop=crop)
-            if len(data) > max_bytes:
-                raise ValueError(
-                    f"cropped picture exceeds size limit: {len(data)} > {max_bytes}"
-                )
-            encoded = base64.b64encode(data).decode("ascii")
-        elif crop is not None:
+        crops = dict(crops) if crops else {}
+        unknown_crop_numbers = sorted(set(crops) - set(requested))
+        if unknown_crop_numbers:
+            raise ValueError(
+                f"crops references movie numbers not in assignments: "
+                f"{unknown_crop_numbers}"
+            )
+        if not embed and (crop is not None or crops):
             raise ValueError("crop is only supported for embedded pictures")
+        if not requested:
+            return []
 
-        def update(catalog: Catalog) -> Movie:
-            movie = catalog.get(number)
-            values = movie.to_dict()
-            values["picture"] = source_path.name if embed else str(source_path)
-            extras = dict(values["extras"])
+        prepared: dict[int, tuple[Path, str]] = {}
+        for number, source in pairs:
+            source_path = Path(source)
+            encoded = ""
             if embed:
-                extras["native_picture_base64"] = encoded
-            else:
-                extras.pop("native_picture_base64", None)
-            values["extras"] = extras
-            return catalog.replace(number, Movie.from_dict(values))
+                movie_crop = crops.get(number, crop)
+                size = source_path.stat().st_size
+                if size > max_bytes:
+                    raise ValueError(
+                        f"picture exceeds size limit for movie {number}: "
+                        f"{size} > {max_bytes}"
+                    )
+                data = source_path.read_bytes()
+                if len(data) > max_bytes:
+                    raise ValueError(
+                        f"picture exceeds size limit for movie {number}: "
+                        f"{len(data)} > {max_bytes}"
+                    )
+                data = self._prepare_picture(data, max_pixels=max_pixels, crop=movie_crop)
+                if len(data) > max_bytes:
+                    raise ValueError(
+                        f"cropped picture exceeds size limit for movie {number}: "
+                        f"{len(data)} > {max_bytes}"
+                    )
+                encoded = base64.b64encode(data).decode("ascii")
+            prepared[number] = (source_path, encoded)
 
-        return self._persist(update)
+        def update_all(catalog: Catalog) -> list[Movie]:
+            updated = []
+            for number in requested:
+                source_path, encoded = prepared[number]
+                movie = catalog.get(number)
+                values = movie.to_dict()
+                values["picture"] = source_path.name if embed else str(source_path)
+                extras = dict(values["extras"])
+                if embed:
+                    extras["native_picture_base64"] = encoded
+                else:
+                    extras.pop("native_picture_base64", None)
+                values["extras"] = extras
+                updated.append(catalog.replace(number, Movie.from_dict(values)))
+            return updated
+
+        return self._persist(update_all)
 
     def clear_picture(self, number: int) -> Movie:
         """Remove both linked and embedded picture state atomically."""
-        def clear(catalog: Catalog) -> Movie:
-            movie = catalog.get(number)
-            values = movie.to_dict()
-            values["picture"] = ""
-            extras = dict(values["extras"])
-            extras.pop("native_picture_base64", None)
-            values["extras"] = extras
-            return catalog.replace(number, Movie.from_dict(values))
+        updated = self.clear_picture_many([number])
+        return updated[0]
 
-        return self._persist(clear)
+    def clear_picture_many(self, numbers: Iterable[int]) -> list[Movie]:
+        """Remove linked and embedded picture state from distinct movies
+        in one atomic write."""
+        requested = self._movie_numbers(numbers)
+        if not requested:
+            return []
+
+        def clear_all(catalog: Catalog) -> list[Movie]:
+            updated = []
+            for number in requested:
+                movie = catalog.get(number)
+                values = movie.to_dict()
+                values["picture"] = ""
+                extras = dict(values["extras"])
+                extras.pop("native_picture_base64", None)
+                values["extras"] = extras
+                updated.append(catalog.replace(number, Movie.from_dict(values)))
+            return updated
+
+        return self._persist(clear_all)
 
     def export_picture(self, number: int, destination: str | Path) -> None:
         """Atomically copy an embedded or linked picture to *destination*."""

@@ -240,6 +240,112 @@ def test_cli_embeds_exports_and_clears_picture(tmp_path: Path):
     assert load(catalog).get(1).picture == ""
 
 
+def test_cli_sets_pictures_for_multiple_movies_in_one_invocation(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    cover_one = tmp_path / "one.jpg"
+    cover_one.write_bytes(b"image one")
+    cover_two = tmp_path / "two.jpg"
+    cover_two.write_bytes(b"image two")
+    save(
+        Catalog([Movie(number=1, title="One"), Movie(number=2, title="Two")]),
+        catalog,
+    )
+
+    assert main([
+        "-c", str(catalog), "picture-set-many",
+        "--assign", f"1={cover_one}",
+        "--assign", f"2={cover_two}",
+    ]) == 0
+
+    assert load(catalog).get(1).picture == str(cover_one)
+    assert load(catalog).get(2).picture == str(cover_two)
+
+
+def test_cli_rejects_malformed_picture_set_many_assignments(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    save(Catalog([Movie(number=1, title="One")]), catalog)
+
+    assert main([
+        "-c", str(catalog), "picture-set-many", "--assign", "not-an-assignment",
+    ]) == 2
+    assert main([
+        "-c", str(catalog), "picture-set-many", "--assign", "x=cover.jpg",
+    ]) == 2
+
+
+def test_cli_applies_per_movie_crop_rectangles_in_picture_set_many(tmp_path: Path):
+    from PIL import Image
+
+    catalog = tmp_path / "movies.json"
+    cover_one = tmp_path / "one.png"
+    image_one = Image.new("RGB", (4, 4), "red")
+    image_one.putpixel((1, 1), (0, 255, 0))
+    image_one.save(cover_one)
+    cover_two = tmp_path / "two.png"
+    image_two = Image.new("RGB", (4, 4), "blue")
+    image_two.putpixel((0, 0), (255, 255, 0))
+    image_two.save(cover_two)
+    save(
+        Catalog([Movie(number=1, title="One"), Movie(number=2, title="Two")]),
+        catalog,
+    )
+
+    assert main([
+        "-c", str(catalog), "picture-set-many",
+        "--assign", f"1={cover_one}",
+        "--assign", f"2={cover_two}",
+        "--embed",
+        "--crop", "0,0,1,1",
+        "--crop-for", "1=1,1,1,1",
+    ]) == 0
+
+    exported_one = tmp_path / "exported-one.png"
+    assert main([
+        "-c", str(catalog), "picture-export", "1", str(exported_one),
+    ]) == 0
+    with Image.open(exported_one) as cropped:
+        assert cropped.getpixel((0, 0)) == (0, 255, 0)
+
+    exported_two = tmp_path / "exported-two.png"
+    assert main([
+        "-c", str(catalog), "picture-export", "2", str(exported_two),
+    ]) == 0
+    with Image.open(exported_two) as cropped:
+        assert cropped.getpixel((0, 0)) == (255, 255, 0)
+
+
+def test_cli_rejects_malformed_or_unknown_crop_for_entries(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    cover = tmp_path / "cover.jpg"
+    cover.write_bytes(b"image")
+    save(Catalog([Movie(number=1, title="One")]), catalog)
+
+    assert main([
+        "-c", str(catalog), "picture-set-many",
+        "--assign", f"1={cover}", "--embed", "--crop-for", "not-an-entry",
+    ]) == 2
+    assert main([
+        "-c", str(catalog), "picture-set-many",
+        "--assign", f"1={cover}", "--embed", "--crop-for", "9=0,0,1,1",
+    ]) == 2
+
+
+def test_cli_clears_pictures_for_multiple_movies_in_one_invocation(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    save(
+        Catalog([
+            Movie(number=1, title="One", picture="one.jpg"),
+            Movie(number=2, title="Two", picture="two.jpg"),
+        ]),
+        catalog,
+    )
+
+    assert main(["-c", str(catalog), "picture-clear", "1", "2"]) == 0
+
+    assert load(catalog).get(1).picture == ""
+    assert load(catalog).get(2).picture == ""
+
+
 def test_cli_crops_embedded_picture(tmp_path: Path):
     from PIL import Image
 

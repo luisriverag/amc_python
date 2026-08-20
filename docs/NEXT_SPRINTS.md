@@ -5,6 +5,17 @@ bounded sprints. The ordering is mandatory: completing prototype features does n
 substitute for upstream evidence, and a later sprint cannot advance a compatibility
 claim while an earlier gate is open.
 
+**Current status: Sprint 1 is externally blocked.** Its required work — using a
+genuine, licensed Ant Movie Catalog 4.2.3.2 Windows installation to produce
+upstream catalogs — cannot be performed inside this repository's automated
+development environment. Sprints 2–4 stay gated behind Sprint 1's exit checks
+exactly as written below; none of their compatibility claims may be advanced
+without registered fixtures. While Sprint 1 waits on an external contributor,
+execution proceeds on the ordered, fixture-independent
+[**Downstream execution backlog (D0–D3)**](IMPLEMENTATION_PLAN.md#downstream-execution-backlog-d0d3)
+in `IMPLEMENTATION_PLAN.md` (Milestones 5 and 6). That work never substitutes
+for Sprint 1 and must not be described as compatibility progress.
+
 ## Priority rules
 
 1. **Compatibility evidence before more inferred format behavior.** Native and XML

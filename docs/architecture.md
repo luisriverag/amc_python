@@ -18,7 +18,7 @@
 | `application.py` | Persistent, failure-atomic user-interface mutations | Presentation or format-specific rules |
 | `storage.py` | JSON, CSV, XML, static HTML, dispatch, and atomic persistence | User interaction |
 | `native.py` | Native AMC parsing, resource limits, and explicit experimental 4.2 serialization | UI behavior or compatibility claims without upstream fixtures |
-| `media.py` | Bounded media discovery and dependency-free file/WAV facts | Network access or UI behavior |
+| `media.py` | Bounded media discovery and dependency-free file/WAV/FLAC facts | Network access or UI behavior |
 | `scripts.py` | Bounded legacy script metadata inspection | Script execution or network access |
 | `cli.py` | Argument parsing and terminal presentation | Domain policy |
 | `gui.py` | Tk widgets and interaction | Format-specific rules |
@@ -98,8 +98,10 @@ whether redistribution is permitted. Synthetic fixtures must be clearly labeled.
 
 - `scripts.py` reads leading metadata comments only. It never invokes IFPS or
   executes Pascal source, and static values are deliberately omitted.
-- `media.py` provides portable filesystem facts and PCM WAV metadata. Full codec
-  inspection belongs behind a future optional provider with timeouts and bounds.
+- `media.py` provides portable filesystem facts and PCM WAV/FLAC metadata,
+  parsed directly from each format's mandatory header using only the standard
+  library. Full codec inspection for compressed/lossy formats belongs behind a
+  future optional provider with timeouts and bounds.
 - Static HTML export escapes every modeled value and accepts only bounded,
   allow-listed templates. It does not claim AMC template-language compatibility.
 - `storage.py` remains too broad; codec separation should follow genuine fixture

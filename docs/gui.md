@@ -28,13 +28,31 @@ The packaging check verifies that an isolated wheel installation can import both
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;
   remove one movie or an extended table selection in a single atomic operation,
-  sort, and renumber movies. The Picture row includes Browse and Clear
+  sort, and renumber movies. The Picture row includes Browse, Crop, and Clear
   controls. Browse validates the selected image, stores a catalog-relative link
   when possible, and can retain the image bytes in the catalog when **Embed** is
-  selected. Clearing a picture removes both its link and embedded bytes when the
-  movie is saved. Description and comments use multiline editors so paragraphs are
-  not forced through single-line fields; borrower changes remain in the dedicated
-  loan controls.
+  selected. **Crop** opens a modal preview of the chosen picture; dragging a
+  rectangle over it and choosing **Apply Crop** replaces the in-memory picture
+  bytes with the cropped, re-encoded image (same source format) before the
+  movie is saved — no numeric coordinates required, unlike the CLI's `--crop
+  X,Y,WIDTH,HEIGHT`. Clearing a picture removes both its link and embedded
+  bytes when the movie is saved. The toolbar **Set Pictures**, **Assign
+  Pictures**, and **Clear
+  Pictures** actions apply to one movie or an extended table selection in a
+  single atomic write, mirroring the batch Remove, Loan, and Toggle Checked
+  actions: **Set Pictures** prompts for one image file and an Embed/Link choice,
+  then applies that same picture to every selected movie (for a shared cover
+  across a boxed set or series); **Assign Pictures** opens a scrollable per-movie
+  list with its own Browse and Crop buttons for each selected movie, so every
+  movie can receive its own picture file — and, when Embed is checked, its own
+  interactively selected crop rectangle — in one atomic write, applying a shared
+  Embed/Link choice to whichever movies were assigned a file (movies left
+  unassigned keep their current picture); **Clear Pictures** removes linked and
+  embedded picture
+  state from the selection. Description and comments use multiline editors so
+  paragraphs are not forced
+  through single-line fields; borrower changes remain in the dedicated loan
+  controls.
 - Search the visible list; filter all, loaned, available, checked, or unchecked
   movies; and review displayed/total counts. The table includes borrower and checked
   status and retains a visible selection across refreshes. Clicking a column heading
@@ -117,6 +135,11 @@ upstream fixtures.
 
 The GUI remains a prototype. Mutations currently save immediately, so there is no
 unsaved dirty state to prompt about. It does not yet provide progress or
-cancellation, batch picture management, image cropping,
-accessibility verification, localization, or automated real-display widget tests.
-Current GUI tests are headless adapter tests with mocked dialogs.
+cancellation, accessibility verification, localization, or automated
+real-display widget tests. The batch **Set Pictures**, **Assign Pictures**, and
+**Clear Pictures** toolbar actions cover sharing one picture, assigning a
+distinct picture per movie, and clearing pictures across an extended
+selection; the edit dialog's **Crop** button and each row's **Crop** button in
+**Assign Pictures** provide interactive rectangle selection, and CLI
+`picture-set-many --crop-for` sets a per-movie crop rectangle from the command
+line. Current GUI tests are headless adapter tests with mocked dialogs.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from collections.abc import Callable
 import io
 import tkinter as tk
 import webbrowser
@@ -58,6 +59,10 @@ _EDIT_INTEGER_FIELDS = (
     "file_size",
 )
 _EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
+_IMAGE_FILETYPES = (
+    ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
+    ("All files", "*"),
+)
 
 
 def movie_from_form(movie: Movie, values: dict[str, str], *, checked: bool) -> Movie:
@@ -135,6 +140,132 @@ def make_modal(dialog: tk.Toplevel, *, focus: tk.Widget | None = None) -> None:
     if focus is not None:
         focus.focus_set()
     dialog.grab_set()
+
+
+def crop_box_from_canvas(
+    rectangle: tuple[float, float, float, float],
+    display_size: tuple[int, int],
+    image_size: tuple[int, int],
+) -> tuple[int, int, int, int]:
+    """Map a dragged canvas rectangle to a clamped, ordered image-pixel crop box.
+
+    *rectangle* is a possibly unordered, possibly out-of-bounds ``(x1, y1, x2,
+    y2)`` in canvas coordinates, as produced while dragging a selection over a
+    scaled preview of *display_size* showing an image of *image_size*.
+    """
+    display_width, display_height = display_size
+    image_width, image_height = image_size
+    if display_width < 1 or display_height < 1:
+        raise ValueError("display dimensions must be positive")
+    if image_width < 1 or image_height < 1:
+        raise ValueError("image dimensions must be positive")
+    x1, y1, x2, y2 = rectangle
+    left, right = sorted((x1, x2))
+    top, bottom = sorted((y1, y2))
+    left = min(max(left, 0.0), display_width)
+    right = min(max(right, 0.0), display_width)
+    top = min(max(top, 0.0), display_height)
+    bottom = min(max(bottom, 0.0), display_height)
+    scale_x = image_width / display_width
+    scale_y = image_height / display_height
+    box = (
+        max(0, min(image_width, round(left * scale_x))),
+        max(0, min(image_height, round(top * scale_y))),
+        max(0, min(image_width, round(right * scale_x))),
+        max(0, min(image_height, round(bottom * scale_y))),
+    )
+    if box[2] <= box[0] or box[3] <= box[1]:
+        raise ValueError("the crop selection is empty")
+    return box
+
+
+def crop_image_bytes(image_bytes: bytes, box: tuple[int, int, int, int]) -> bytes:
+    """Crop encoded image bytes to *box*, re-encoding in the source format."""
+    with Image.open(io.BytesIO(image_bytes)) as source:
+        image_format = source.format or "PNG"
+        cropped = source.crop(box)
+        output = io.BytesIO()
+        cropped.save(output, format=image_format)
+        return output.getvalue()
+
+
+def open_crop_dialog(
+    parent: tk.Widget,
+    image_bytes: bytes,
+    *,
+    on_apply: Callable[[tuple[int, int, int, int]], None],
+) -> None:
+    """Show a draggable-rectangle crop editor over *image_bytes*.
+
+    Calls *on_apply* with the selected crop box, in the source image's own
+    pixel coordinates, only when the user drags a selection and accepts it.
+    The caller decides what to do with the box — e.g. crop bytes immediately
+    with `crop_image_bytes`, or keep it to pass into a later batch operation.
+    """
+    with Image.open(io.BytesIO(image_bytes)) as source:
+        source.load()
+        image_size = source.size
+        display_size = poster_size(*image_size, maximum=(480, 480))
+        preview = source.copy()
+        preview.thumbnail(display_size, Image.Resampling.LANCZOS)
+        photo = ImageTk.PhotoImage(preview)
+
+    dialog = tk.Toplevel(parent)
+    dialog.title("Crop picture")
+    dialog.transient(parent.winfo_toplevel())
+    ttk.Label(
+        dialog, text="Drag a rectangle over the picture, then Apply Crop.",
+        padding=(8, 8, 8, 0),
+    ).pack()
+    canvas = tk.Canvas(
+        dialog, width=display_size[0], height=display_size[1],
+        highlightthickness=0, cursor="crosshair",
+    )
+    canvas.pack(padx=8, pady=8)
+    canvas.create_image(0, 0, anchor="nw", image=photo)
+    canvas.image = photo
+    selection = {"start": (0.0, 0.0), "rect": None}
+
+    def begin(event: tk.Event) -> None:
+        selection["start"] = (event.x, event.y)
+        if selection["rect"] is not None:
+            canvas.delete(selection["rect"])
+        selection["rect"] = canvas.create_rectangle(
+            event.x, event.y, event.x, event.y, outline="red", width=2
+        )
+
+    def drag(event: tk.Event) -> None:
+        if selection["rect"] is not None:
+            start_x, start_y = selection["start"]
+            canvas.coords(selection["rect"], start_x, start_y, event.x, event.y)
+
+    canvas.bind("<ButtonPress-1>", begin)
+    canvas.bind("<B1-Motion>", drag)
+
+    def accept() -> None:
+        if selection["rect"] is None:
+            messagebox.showerror(
+                "Crop picture", "Drag a rectangle to select a crop area.",
+                parent=dialog,
+            )
+            return
+        try:
+            box = crop_box_from_canvas(
+                canvas.coords(selection["rect"]), display_size, image_size
+            )
+        except ValueError as error:
+            messagebox.showerror("Crop picture", str(error), parent=dialog)
+            return
+        dialog.destroy()
+        on_apply(box)
+
+    buttons = ttk.Frame(dialog)
+    buttons.pack(fill="x", padx=8, pady=(0, 8))
+    ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="right")
+    ttk.Button(buttons, text="Apply Crop", command=accept).pack(
+        side="right", padx=(0, 4)
+    )
+    make_modal(dialog)
 
 
 def movie_web_url(movie: Movie) -> str:
@@ -215,6 +346,9 @@ class CatalogWindow(ttk.Frame):
             ("Loan Out", self.loan_out, 12),
             ("Loan In", self.loan_in, 4),
             ("Toggle Checked", self.toggle_checked, 12),
+            ("Set Pictures", self.set_pictures, 12),
+            ("Assign Pictures", self.assign_pictures, 4),
+            ("Clear Pictures", self.clear_pictures, 4),
             ("Undo", self.undo, 12),
             ("Redo", self.redo, 4),
             ("Open URL", self.open_url, 12),
@@ -334,6 +468,9 @@ class CatalogWindow(ttk.Frame):
             "Loan Out": selected > 0 and writable,
             "Loan In": selected > 0 and all(movie.borrower for movie in movies) and writable,
             "Toggle Checked": selected > 0 and writable,
+            "Set Pictures": selected > 0 and writable,
+            "Assign Pictures": selected > 0 and writable,
+            "Clear Pictures": selected > 0 and writable,
             "Open URL": can_open_url,
         }
         for name, enabled in selection_actions.items():
@@ -676,6 +813,176 @@ class CatalogWindow(ttk.Frame):
             return
         self.refresh()
 
+    def set_pictures(self) -> None:
+        """Link or embed one chosen picture for every selected movie."""
+        movies = self.selected_movies()
+        if not movies:
+            return
+        selected = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title="Choose poster",
+            filetypes=_IMAGE_FILETYPES,
+        )
+        if not selected:
+            return
+        description = (
+            movies[0].display_title()
+            if len(movies) == 1
+            else f"these {len(movies)} selected movies"
+        )
+        embed = messagebox.askyesno(
+            "Set pictures",
+            f"Embed this picture in the catalog for {description}? Choose "
+            "No to store a linked path instead.",
+            parent=self,
+        )
+        try:
+            self.service.set_picture_many(
+                {movie.number: selected for movie in movies}, embed=embed
+            )
+        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            messagebox.showerror("Could not set pictures", str(error), parent=self)
+            return
+        self.refresh()
+
+    def assign_pictures(self) -> None:
+        """Assign a distinct picture file to each selected movie in one write."""
+        movies = self.selected_movies()
+        if not movies:
+            return
+        dialog = tk.Toplevel(self)
+        dialog.title("Assign pictures")
+        dialog.transient(self.winfo_toplevel())
+        ttk.Label(
+            dialog,
+            text="Browse a picture for each movie below, then Apply. Movies "
+            "left unassigned keep their current picture. Crop is optional and "
+            "only applies to embedded pictures.",
+            wraplength=520,
+            justify="left",
+        ).grid(row=0, column=0, sticky="w", padx=8, pady=(8, 4))
+
+        canvas = tk.Canvas(
+            dialog, highlightthickness=0, width=520, height=min(320, 32 * len(movies) + 8)
+        )
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        rows_frame = ttk.Frame(canvas)
+        rows_frame.bind(
+            "<Configure>",
+            lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.create_window((0, 0), window=rows_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.grid(row=1, column=0, sticky="nsew", padx=(8, 0), pady=4)
+        scrollbar.grid(row=1, column=1, sticky="ns", pady=4)
+        dialog.rowconfigure(1, weight=1)
+        dialog.columnconfigure(0, weight=1)
+
+        assignments: dict[int, str] = {}
+        crops: dict[int, tuple[int, int, int, int]] = {}
+        for row, movie in enumerate(movies):
+            ttk.Label(rows_frame, text=movie.display_title(), width=30, anchor="w").grid(
+                row=row, column=0, sticky="w", pady=2
+            )
+            status = ttk.Label(rows_frame, text="(unassigned)", width=24, anchor="w")
+            status.grid(row=row, column=1, sticky="w", padx=(4, 4))
+
+            def describe(number: int, status: ttk.Label = status) -> None:
+                name = Path(assignments[number]).name
+                status.configure(
+                    text=f"{name} (cropped)" if number in crops else name
+                )
+
+            def choose(number: int = movie.number, status: ttk.Label = status) -> None:
+                selected = filedialog.askopenfilename(
+                    parent=dialog, title="Choose poster", filetypes=_IMAGE_FILETYPES,
+                )
+                if not selected:
+                    return
+                assignments[number] = selected
+                crops.pop(number, None)
+                describe(number, status)
+
+            def crop(number: int = movie.number, status: ttk.Label = status) -> None:
+                if number not in assignments:
+                    messagebox.showerror(
+                        "Crop picture",
+                        "Choose a picture for this movie before cropping.",
+                        parent=dialog,
+                    )
+                    return
+
+                def apply_crop(box: tuple[int, int, int, int]) -> None:
+                    crops[number] = box
+                    describe(number, status)
+
+                try:
+                    image_bytes = Path(assignments[number]).read_bytes()
+                    open_crop_dialog(dialog, image_bytes, on_apply=apply_crop)
+                except (OSError, UnidentifiedImageError) as error:
+                    messagebox.showerror("Crop picture", str(error), parent=dialog)
+
+            ttk.Button(rows_frame, text="Browse", command=choose).grid(
+                row=row, column=2, padx=(0, 4)
+            )
+            ttk.Button(rows_frame, text="Crop", command=crop).grid(
+                row=row, column=3, padx=(0, 8)
+            )
+
+        embed = tk.BooleanVar(value=False)
+        ttk.Checkbutton(dialog, text="Embed", variable=embed).grid(
+            row=2, column=0, sticky="w", padx=8, pady=(4, 0)
+        )
+
+        def accept() -> None:
+            if not assignments:
+                messagebox.showerror(
+                    "Assign pictures",
+                    "Choose a picture for at least one movie.",
+                    parent=dialog,
+                )
+                return
+            try:
+                self.service.set_picture_many(
+                    assignments, embed=embed.get(), crops=crops
+                )
+            except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+                messagebox.showerror(
+                    "Could not assign pictures", str(error), parent=dialog
+                )
+                return
+            dialog.destroy()
+            self.refresh()
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=3, column=0, sticky="e", padx=8, pady=8)
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(
+            side="left", padx=(0, 4)
+        )
+        ttk.Button(buttons, text="Apply", command=accept).pack(side="left")
+        make_modal(dialog)
+
+    def clear_pictures(self) -> None:
+        """Remove linked and embedded pictures from every selected movie."""
+        movies = self.selected_movies()
+        if not movies:
+            return
+        description = (
+            movies[0].display_title()
+            if len(movies) == 1
+            else f"these {len(movies)} selected movies"
+        )
+        if not messagebox.askyesno(
+            "Clear pictures", f"Remove the picture for {description}?"
+        ):
+            return
+        try:
+            self.service.clear_picture_many(movie.number for movie in movies)
+        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            messagebox.showerror("Could not clear pictures", str(error), parent=self)
+            return
+        self.refresh()
+
     def undo(self) -> None:
         try:
             self.service.undo()
@@ -898,13 +1205,7 @@ class CatalogWindow(ttk.Frame):
                     selected = filedialog.askopenfilename(
                         parent=dialog,
                         title="Choose poster",
-                        filetypes=(
-                            (
-                                "Images",
-                                "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp",
-                            ),
-                            ("All files", "*"),
-                        ),
+                        filetypes=_IMAGE_FILETYPES,
                     )
                     if not selected:
                         return
@@ -930,11 +1231,33 @@ class CatalogWindow(ttk.Frame):
                     embed_picture.set(False)
                     picture_value.set("")
 
+                def crop_picture() -> None:
+                    if picture_bytes is None:
+                        messagebox.showerror(
+                            "Crop picture", "Choose a poster before cropping.",
+                            parent=dialog,
+                        )
+                        return
+
+                    def apply_crop(box: tuple[int, int, int, int]) -> None:
+                        nonlocal picture_bytes
+                        picture_bytes = crop_image_bytes(picture_bytes, box)
+
+                    try:
+                        open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)
+                    except (OSError, UnidentifiedImageError) as error:
+                        messagebox.showerror(
+                            "Crop picture", str(error), parent=dialog
+                        )
+
                 controls = ttk.Frame(fields_frame)
                 controls.grid(row=row, column=2, sticky="w", padx=(0, 8))
                 ttk.Button(
                     controls, text="Browse", command=choose_picture
                 ).pack(side="left")
+                ttk.Button(
+                    controls, text="Crop", command=crop_picture
+                ).pack(side="left", padx=4)
                 ttk.Button(
                     controls, text="Clear", command=clear_picture
                 ).pack(side="left", padx=4)

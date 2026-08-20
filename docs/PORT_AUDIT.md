@@ -72,7 +72,7 @@ confidence.
 | Application service | Failure-atomic CRUD, merge, media import, loans, undo/redo, backup/restore, and export orchestration | Mutation-failure, persistence, history, and adapter tests | High for tested internal workflows |
 | Loan prototype | Single/batch, media-label, and retained-native-number group transitions; managed borrowers; JSON history; source-shaped TSV export | Unit/service/CLI/GUI tests, including atomic conflicts and output preservation | Moderate internally; upstream encoding/behavior unverified |
 | Web prototype | Read-only poster table/gallery, expanded details, bounded posters, pagination, search, and safe links | HTTP, escaping, reload, MIME, bounds, and security-header tests | Moderate for stated Python extension; upstream has no corresponding web server |
-| Picture prototype | Linked and byte/pixel-bounded validated embedded set/clear/crop, atomic batch set/clear across an extended selection (distinct or shared picture per movie), JSON/native retention, and atomic export | Service/CLI/GUI/native tests, including malformed image, crop/bounds, batch set/clear atomicity, and failure preservation | Moderate internally; upstream path/conversion semantics unverified |
+| Picture prototype | Linked and byte/pixel-bounded validated embedded set/clear/crop, interactive drag-to-select cropping in the desktop edit dialog, atomic batch set/clear across an extended selection (distinct or shared picture per movie), JSON/native retention, and atomic export | Service/CLI/GUI/native tests, including malformed image, crop/bounds, batch set/clear atomicity, and failure preservation | Moderate internally; upstream path/conversion semantics unverified |
 
 ### Present but inadequately tested
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from collections.abc import Callable
 import io
 import tkinter as tk
 import webbrowser
@@ -139,6 +140,129 @@ def make_modal(dialog: tk.Toplevel, *, focus: tk.Widget | None = None) -> None:
     if focus is not None:
         focus.focus_set()
     dialog.grab_set()
+
+
+def crop_box_from_canvas(
+    rectangle: tuple[float, float, float, float],
+    display_size: tuple[int, int],
+    image_size: tuple[int, int],
+) -> tuple[int, int, int, int]:
+    """Map a dragged canvas rectangle to a clamped, ordered image-pixel crop box.
+
+    *rectangle* is a possibly unordered, possibly out-of-bounds ``(x1, y1, x2,
+    y2)`` in canvas coordinates, as produced while dragging a selection over a
+    scaled preview of *display_size* showing an image of *image_size*.
+    """
+    display_width, display_height = display_size
+    image_width, image_height = image_size
+    if display_width < 1 or display_height < 1:
+        raise ValueError("display dimensions must be positive")
+    if image_width < 1 or image_height < 1:
+        raise ValueError("image dimensions must be positive")
+    x1, y1, x2, y2 = rectangle
+    left, right = sorted((x1, x2))
+    top, bottom = sorted((y1, y2))
+    left = min(max(left, 0.0), display_width)
+    right = min(max(right, 0.0), display_width)
+    top = min(max(top, 0.0), display_height)
+    bottom = min(max(bottom, 0.0), display_height)
+    scale_x = image_width / display_width
+    scale_y = image_height / display_height
+    box = (
+        max(0, min(image_width, round(left * scale_x))),
+        max(0, min(image_height, round(top * scale_y))),
+        max(0, min(image_width, round(right * scale_x))),
+        max(0, min(image_height, round(bottom * scale_y))),
+    )
+    if box[2] <= box[0] or box[3] <= box[1]:
+        raise ValueError("the crop selection is empty")
+    return box
+
+
+def crop_image_bytes(image_bytes: bytes, box: tuple[int, int, int, int]) -> bytes:
+    """Crop encoded image bytes to *box*, re-encoding in the source format."""
+    with Image.open(io.BytesIO(image_bytes)) as source:
+        image_format = source.format or "PNG"
+        cropped = source.crop(box)
+        output = io.BytesIO()
+        cropped.save(output, format=image_format)
+        return output.getvalue()
+
+
+def open_crop_dialog(
+    parent: tk.Widget, image_bytes: bytes, *, on_apply: Callable[[bytes], None]
+) -> None:
+    """Show a draggable-rectangle crop editor over *image_bytes*.
+
+    Calls *on_apply* with the cropped, re-encoded image bytes only when the
+    user drags a selection and accepts it; the source bytes are left
+    untouched on Cancel.
+    """
+    with Image.open(io.BytesIO(image_bytes)) as source:
+        source.load()
+        image_size = source.size
+        display_size = poster_size(*image_size, maximum=(480, 480))
+        preview = source.copy()
+        preview.thumbnail(display_size, Image.Resampling.LANCZOS)
+        photo = ImageTk.PhotoImage(preview)
+
+    dialog = tk.Toplevel(parent)
+    dialog.title("Crop picture")
+    dialog.transient(parent.winfo_toplevel())
+    ttk.Label(
+        dialog, text="Drag a rectangle over the picture, then Apply Crop.",
+        padding=(8, 8, 8, 0),
+    ).pack()
+    canvas = tk.Canvas(
+        dialog, width=display_size[0], height=display_size[1],
+        highlightthickness=0, cursor="crosshair",
+    )
+    canvas.pack(padx=8, pady=8)
+    canvas.create_image(0, 0, anchor="nw", image=photo)
+    canvas.image = photo
+    selection = {"start": (0.0, 0.0), "rect": None}
+
+    def begin(event: tk.Event) -> None:
+        selection["start"] = (event.x, event.y)
+        if selection["rect"] is not None:
+            canvas.delete(selection["rect"])
+        selection["rect"] = canvas.create_rectangle(
+            event.x, event.y, event.x, event.y, outline="red", width=2
+        )
+
+    def drag(event: tk.Event) -> None:
+        if selection["rect"] is not None:
+            start_x, start_y = selection["start"]
+            canvas.coords(selection["rect"], start_x, start_y, event.x, event.y)
+
+    canvas.bind("<ButtonPress-1>", begin)
+    canvas.bind("<B1-Motion>", drag)
+
+    def accept() -> None:
+        if selection["rect"] is None:
+            messagebox.showerror(
+                "Crop picture", "Drag a rectangle to select a crop area.",
+                parent=dialog,
+            )
+            return
+        try:
+            box = crop_box_from_canvas(
+                canvas.coords(selection["rect"]), display_size, image_size
+            )
+            cropped_bytes = crop_image_bytes(image_bytes, box)
+        except (OSError, ValueError, UnidentifiedImageError) as error:
+            messagebox.showerror("Crop picture", str(error), parent=dialog)
+            return
+        dialog.destroy()
+        on_apply(cropped_bytes)
+
+    buttons = ttk.Frame(dialog)
+    buttons.pack(fill="x", padx=8, pady=(0, 8))
+    ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="right")
+    ttk.Button(buttons, text="Apply Crop", command=accept).pack(
+        side="right", padx=(0, 4)
+    )
+    make_modal(dialog)
 
 
 def movie_web_url(movie: Movie) -> str:
@@ -1071,11 +1195,33 @@ class CatalogWindow(ttk.Frame):
                     embed_picture.set(False)
                     picture_value.set("")
 
+                def crop_picture() -> None:
+                    if picture_bytes is None:
+                        messagebox.showerror(
+                            "Crop picture", "Choose a poster before cropping.",
+                            parent=dialog,
+                        )
+                        return
+
+                    def apply_crop(cropped: bytes) -> None:
+                        nonlocal picture_bytes
+                        picture_bytes = cropped
+
+                    try:
+                        open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)
+                    except (OSError, UnidentifiedImageError) as error:
+                        messagebox.showerror(
+                            "Crop picture", str(error), parent=dialog
+                        )
+
                 controls = ttk.Frame(fields_frame)
                 controls.grid(row=row, column=2, sticky="w", padx=(0, 8))
                 ttk.Button(
                     controls, text="Browse", command=choose_picture
                 ).pack(side="left")
+                ttk.Button(
+                    controls, text="Crop", command=crop_picture
+                ).pack(side="left", padx=4)
                 ttk.Button(
                     controls, text="Clear", command=clear_picture
                 ).pack(side="left", padx=4)

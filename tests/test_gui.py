@@ -2,13 +2,17 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import base64
+import io
 import pytest
+from PIL import Image, UnidentifiedImageError
 
 from amc.gui import (
     _EDIT_FLOAT_FIELDS,
     _EDIT_INTEGER_FIELDS,
     _EDIT_TEXT_FIELDS,
     CatalogWindow,
+    crop_box_from_canvas,
+    crop_image_bytes,
     filter_movies,
     main,
     make_modal,
@@ -17,6 +21,7 @@ from amc.gui import (
     loan_event_row,
     movie_with_picture,
     movie_web_url,
+    open_crop_dialog,
     poster_size,
     poster_source,
     run,
@@ -897,6 +902,59 @@ def test_poster_size_preserves_aspect_ratio_without_upscaling():
     assert poster_size(100, 200) == (100, 200)
     with pytest.raises(ValueError, match="dimensions must be positive"):
         poster_size(0, 100)
+
+
+def test_crop_box_from_canvas_scales_to_image_pixels():
+    # A 200x100 preview of a 400x200 image scales by exactly 2x.
+    assert crop_box_from_canvas((10, 20, 110, 70), (200, 100), (400, 200)) == (
+        20, 40, 220, 140,
+    )
+
+
+def test_crop_box_from_canvas_normalizes_reversed_drag_direction():
+    # Dragging from bottom-right to top-left still yields an ordered box.
+    assert crop_box_from_canvas((110, 70, 10, 20), (200, 100), (400, 200)) == (
+        20, 40, 220, 140,
+    )
+
+
+def test_crop_box_from_canvas_clamps_out_of_bounds_coordinates():
+    assert crop_box_from_canvas((-50, -50, 250, 150), (200, 100), (200, 100)) == (
+        0, 0, 200, 100,
+    )
+
+
+def test_crop_box_from_canvas_rejects_empty_selection():
+    with pytest.raises(ValueError, match="crop selection is empty"):
+        crop_box_from_canvas((10, 10, 10, 40), (200, 100), (200, 100))
+    with pytest.raises(ValueError, match="crop selection is empty"):
+        crop_box_from_canvas((-5, 10, 0, 40), (200, 100), (200, 100))
+
+
+def test_crop_box_from_canvas_rejects_non_positive_dimensions():
+    with pytest.raises(ValueError, match="display dimensions must be positive"):
+        crop_box_from_canvas((0, 0, 10, 10), (0, 100), (200, 100))
+    with pytest.raises(ValueError, match="image dimensions must be positive"):
+        crop_box_from_canvas((0, 0, 10, 10), (200, 100), (200, 0))
+
+
+def test_crop_image_bytes_crops_and_preserves_source_format():
+    image = Image.new("RGB", (400, 200), "red")
+    image.putpixel((300, 150), (0, 0, 255))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+
+    cropped_bytes = crop_image_bytes(buffer.getvalue(), (150, 100, 350, 200))
+
+    with Image.open(io.BytesIO(cropped_bytes)) as cropped:
+        assert cropped.format == "PNG"
+        assert cropped.size == (200, 100)
+        assert cropped.getpixel((150, 50)) == (0, 0, 255)
+
+
+def test_open_crop_dialog_rejects_invalid_image_bytes_before_opening_any_window():
+    with pytest.raises(UnidentifiedImageError):
+        open_crop_dialog(Mock(), b"not an image", on_apply=Mock())
 
 
 def test_window_reports_missing_linked_poster():

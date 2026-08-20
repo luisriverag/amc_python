@@ -28,11 +28,16 @@ The packaging check verifies that an isolated wheel installation can import both
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;
   remove one movie or an extended table selection in a single atomic operation,
-  sort, and renumber movies. The Picture row includes Browse and Clear
+  sort, and renumber movies. The Picture row includes Browse, Crop, and Clear
   controls. Browse validates the selected image, stores a catalog-relative link
   when possible, and can retain the image bytes in the catalog when **Embed** is
-  selected. Clearing a picture removes both its link and embedded bytes when the
-  movie is saved. The toolbar **Set Pictures**, **Assign Pictures**, and **Clear
+  selected. **Crop** opens a modal preview of the chosen picture; dragging a
+  rectangle over it and choosing **Apply Crop** replaces the in-memory picture
+  bytes with the cropped, re-encoded image (same source format) before the
+  movie is saved — no numeric coordinates required, unlike the CLI's `--crop
+  X,Y,WIDTH,HEIGHT`. Clearing a picture removes both its link and embedded
+  bytes when the movie is saved. The toolbar **Set Pictures**, **Assign
+  Pictures**, and **Clear
   Pictures** actions apply to one movie or an extended table selection in a
   single atomic write, mirroring the batch Remove, Loan, and Toggle Checked
   actions: **Set Pictures** prompts for one image file and an Embed/Link choice,
@@ -128,12 +133,14 @@ upstream fixtures.
 
 The GUI remains a prototype. Mutations currently save immediately, so there is no
 unsaved dirty state to prompt about. It does not yet provide progress or
-cancellation, interactive crop selection, accessibility verification,
-localization, or automated real-display widget tests. The batch **Set
-Pictures**, **Assign Pictures**, and **Clear Pictures** toolbar actions cover
-sharing one picture, assigning a distinct picture per movie, and clearing
-pictures across an extended selection; per-movie batch cropping is still
-unavailable from either the CLI or the desktop (a shared crop rectangle can be
+cancellation, accessibility verification, localization, or automated
+real-display widget tests. The batch **Set Pictures**, **Assign Pictures**, and
+**Clear Pictures** toolbar actions cover sharing one picture, assigning a
+distinct picture per movie, and clearing pictures across an extended
+selection; the edit dialog's **Crop** button provides interactive rectangle
+selection for one movie's picture. Per-movie batch cropping is still
+unavailable from either the CLI or the desktop: a shared crop rectangle can be
 supplied to `picture-set-many`, but each embedded image gets the same
-coordinates). Current GUI tests are headless adapter tests with
+coordinates, and the **Assign Pictures** batch dialog has no crop step yet.
+Current GUI tests are headless adapter tests with
 mocked dialogs.

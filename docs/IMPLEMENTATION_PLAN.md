@@ -173,8 +173,10 @@ all omitted or opaque data is reported.
   extended table selection is complete from both the CLI (`picture-set-many`)
   and the desktop toolbar (Set/Assign/Clear Pictures), covering a shared
   picture across the selection, a distinct picture per movie, and clearing;
-  interactive crop selection in the edit dialog, progress, cancellation, and
-  accessibility remain pending; every mutation persists immediately, so there
+  interactive drag-to-select crop is complete for a single movie's picture in
+  the edit dialog; per-movie crop within a batch assignment, progress,
+  cancellation, and accessibility remain pending; every mutation persists
+  immediately, so there
   is no unsaved dirty state left to prompt about).
 - [ ] Add loan management and catalog preferences if confirmed upstream features
   (atomic single/multi-movie check-out/check-in and validated JSON-retained loan
@@ -331,12 +333,14 @@ indented, non-canonical checkbox markers that the port-progress count in
     and GUI).
   - [x] Atomic batch picture assignment — a distinct picture per movie in one
     write (CLI `picture-set-many`; GUI **Assign Pictures** dialog).
-  - [ ] Interactive crop selection (a draggable rectangle over the poster
-    preview) in the edit and Assign Pictures dialogs, replacing the CLI-only
-    `--crop X,Y,WIDTH,HEIGHT` numeric entry.
-  - [ ] Per-movie crop rectangles in a batch assignment; today one shared
-    `--crop` applies the same coordinates to every embedded image in the
-    batch.
+  - [x] Interactive crop selection (a draggable rectangle over the poster
+    preview) in the edit dialog's **Crop** button, replacing the CLI-only
+    `--crop X,Y,WIDTH,HEIGHT` numeric entry for the single-movie case.
+  - [ ] Per-movie crop rectangles in a batch assignment: today `set_picture_many`
+    and CLI `picture-set-many --crop` apply one shared rectangle to every
+    embedded image; extend the service to accept a crop per movie number, then
+    add a per-row Crop button to the **Assign Pictures** dialog using the same
+    interactive selector as the edit dialog.
 
 ### D2 — bulk-operation UX
 

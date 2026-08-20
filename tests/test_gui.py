@@ -125,6 +125,31 @@ def test_window_removes_all_selected_movies_atomically():
     window.refresh.assert_called_once_with()
 
 
+def test_window_clears_pictures_for_all_selected_movies_atomically():
+    window = _window()
+    movies = [Movie(number=2, title="Two"), Movie(number=4, title="Four")]
+    window.selected_movies = Mock(return_value=movies)
+    with patch("amc.gui.messagebox.askyesno", return_value=True) as confirm:
+        window.clear_pictures()
+
+    window.service.clear_picture_many.assert_called_once()
+    assert list(window.service.clear_picture_many.call_args.args[0]) == [2, 4]
+    assert "2 selected movies" in confirm.call_args.args[1]
+    window.refresh.assert_called_once_with()
+
+
+def test_window_clear_pictures_ignores_missing_selection_and_declined_confirmation():
+    window = _window()
+    window.selected_movies = Mock(return_value=[])
+    window.clear_pictures()
+    window.service.clear_picture_many.assert_not_called()
+
+    window.selected_movies = Mock(return_value=[Movie(number=2, title="Two")])
+    with patch("amc.gui.messagebox.askyesno", return_value=False):
+        window.clear_pictures()
+    window.service.clear_picture_many.assert_not_called()
+
+
 def test_window_save_as_ignores_cancel_and_saves_selection():
     window = _window()
     with patch("amc.gui.filedialog.asksaveasfilename", return_value=""):
@@ -496,7 +521,7 @@ def test_window_action_states_follow_selection_history_and_format():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Undo", "Redo", "Open URL", "Renumber",
+        "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -524,7 +549,7 @@ def test_window_disables_mutations_for_interchange_catalog():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Undo", "Redo", "Open URL", "Renumber",
+        "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -548,7 +573,7 @@ def test_window_disables_actions_when_selection_lacks_required_data():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Undo", "Redo", "Open URL", "Renumber",
+        "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()

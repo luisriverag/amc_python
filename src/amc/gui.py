@@ -215,6 +215,7 @@ class CatalogWindow(ttk.Frame):
             ("Loan Out", self.loan_out, 12),
             ("Loan In", self.loan_in, 4),
             ("Toggle Checked", self.toggle_checked, 12),
+            ("Clear Pictures", self.clear_pictures, 4),
             ("Undo", self.undo, 12),
             ("Redo", self.redo, 4),
             ("Open URL", self.open_url, 12),
@@ -334,6 +335,7 @@ class CatalogWindow(ttk.Frame):
             "Loan Out": selected > 0 and writable,
             "Loan In": selected > 0 and all(movie.borrower for movie in movies) and writable,
             "Toggle Checked": selected > 0 and writable,
+            "Clear Pictures": selected > 0 and writable,
             "Open URL": can_open_url,
         }
         for name, enabled in selection_actions.items():
@@ -673,6 +675,27 @@ class CatalogWindow(ttk.Frame):
             messagebox.showerror(
                 "Could not update checked state", str(error), parent=self
             )
+            return
+        self.refresh()
+
+    def clear_pictures(self) -> None:
+        """Remove linked and embedded pictures from every selected movie."""
+        movies = self.selected_movies()
+        if not movies:
+            return
+        description = (
+            movies[0].display_title()
+            if len(movies) == 1
+            else f"these {len(movies)} selected movies"
+        )
+        if not messagebox.askyesno(
+            "Clear pictures", f"Remove the picture for {description}?"
+        ):
+            return
+        try:
+            self.service.clear_picture_many(movie.number for movie in movies)
+        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            messagebox.showerror("Could not clear pictures", str(error), parent=self)
             return
         self.refresh()
 

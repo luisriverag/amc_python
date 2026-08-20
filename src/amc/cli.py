@@ -77,8 +77,10 @@ def parser() -> argparse.ArgumentParser:
         metavar="X,Y,WIDTH,HEIGHT",
         help="crop an embedded picture before storing it",
     )
-    picture_clear = commands.add_parser("picture-clear", help="remove a movie picture")
-    picture_clear.add_argument("number", type=int)
+    picture_clear = commands.add_parser(
+        "picture-clear", help="remove one or more movie pictures"
+    )
+    picture_clear.add_argument("numbers", type=int, nargs="+")
     picture_export = commands.add_parser("picture-export", help="export a movie picture")
     picture_export.add_argument("number", type=int)
     picture_export.add_argument("destination", type=Path)
@@ -393,8 +395,9 @@ def _run(args: argparse.Namespace) -> int:
         )
         print(f"Updated picture for #{movie.number}: {movie.picture}")
     elif args.command == "picture-clear":
-        movie = service.clear_picture(args.number)
-        print(f"Cleared picture for #{movie.number}")
+        movies = service.clear_picture_many(args.numbers)
+        for movie in movies:
+            print(f"Cleared picture for #{movie.number}")
     elif args.command == "picture-export":
         service.export_picture(args.number, args.destination)
     elif args.command == "edit":

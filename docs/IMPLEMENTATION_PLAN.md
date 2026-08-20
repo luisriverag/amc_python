@@ -21,6 +21,34 @@ Every feature change must include:
 6. No unexplained data loss. Unsupported data must produce a diagnostic or be
    retained opaquely.
 
+## Execution priority: downstream features while fixtures are unavailable
+
+Milestone 0 and the P0 evidence gate below require running the genuine,
+licensed Ant Movie Catalog Windows application to produce upstream-generated
+catalogs. That application cannot be installed or executed in this
+repository's automated development environment, so fixture acquisition is
+**externally blocked** rather than a coding gap: it can only proceed when a
+contributor with a real AMC 4.2.3.2 installation supplies fixtures and their
+provenance records. This does not relax the compatibility bar. It remains
+true, unchanged, that no native/XML/CSV subsystem may be marked
+`verified` — and no format-compatibility checkbox in this document may be
+checked — without registered upstream-generated evidence.
+
+Given that block, day-to-day execution focuses on **downstream
+features**: Milestone 5 (application services and interfaces) and
+Milestone 6 (scripts, metadata, and media) items that improve
+`CatalogService`, the CLI, the desktop GUI, and the web interface without
+making any upstream-compatibility claim. These items are evidence-independent
+because they describe AMC Python's own contract, not Ant Movie Catalog's.
+Each still needs the full "definition of done" above (tests, documentation,
+a `docs/compatibility.md` update when it changes a status row) — only the
+upstream-unit citation is inapplicable to purely Python-owned behavior.
+
+This reprioritization changes execution order, not the milestone list or
+the evidence bar: Milestones 5 and 6 already existed and their gates are
+unchanged. When genuine fixtures become available, work reverts to the P1–P3
+sequence below before any new compatibility claim is made.
+
 ## Milestone 0: authoritative upstream baseline
 
 - [ ] Reacquire `amc_sources.rar` and record URL, retrieval date, byte size, and
@@ -137,8 +165,11 @@ all omitted or opaque data is reported.
   linked/size-bounded embedded picture set/clear/export, validated cropping, and
   native retention are complete; unverified native export is confirmation-gated
   and reports its replacement backup; native/XML/CSV sources are protected as
-  read-only until saved as JSON; batch picture management, progress, cancellation,
-  accessibility, and dirty-state prompting remain pending).
+  read-only until saved as JSON; batch picture clearing across an extended table
+  selection is complete; batch picture embedding/linking (one source image per
+  movie), interactive crop selection in the edit dialog, progress, cancellation,
+  and accessibility remain pending; every mutation persists immediately, so there
+  is no unsaved dirty state left to prompt about).
 - [ ] Add loan management and catalog preferences if confirmed upstream features
   (atomic single/multi-movie check-out/check-in and validated JSON-retained loan
   history, managed borrower lists, and source-shaped TSV history export are
@@ -265,7 +296,7 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 
 ## Immediate next slice
 
-Execution is now organized into four gated sprints in
+Execution is organized into four gated sprints in
 [`NEXT_SPRINTS.md`](NEXT_SPRINTS.md):
 
 1. obtain trustworthy archives, redistribution decisions, and genuine AMC 4.2.3.2
@@ -274,9 +305,16 @@ Execution is now organized into four gated sprints in
 3. prove lossless native/XML/JSON interchange and document CSV losses; then
 4. complete engineering and release gates for the evidence-backed subset.
 
-The immediate change should contain **Sprint 1 fixtures and verification, not
-another inferred format feature**. Sprint exit checks are blocking criteria rather
-than suggestions; work from later sprints does not advance an earlier gate.
+Sprint 1 requires a genuine Windows AMC 4.2.3.2 installation this repository's
+automated environment does not have, so it is currently blocked on an external
+contributor supplying fixtures, not on further coding here. Sprint exit checks
+remain blocking criteria — no later sprint's work advances an earlier gate, and
+no compatibility status may be upgraded without registered evidence — but with
+Sprint 1 externally blocked, the immediate change should draw from **Milestone 5
+or 6's downstream application-feature backlog** (see "Execution priority" above)
+rather than sitting idle or inferring more unverified format behavior. A
+downstream slice still needs its own tests and documentation; it simply makes no
+upstream-compatibility claim, so it does not require a fixture.
 
 The manifest contract and canonical checks now support exact 65-byte native headers,
 declared native versions, movie counts, metadata, and indexed movie-field expectations through

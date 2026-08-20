@@ -389,16 +389,29 @@ class CatalogService:
 
     def clear_picture(self, number: int) -> Movie:
         """Remove both linked and embedded picture state atomically."""
-        def clear(catalog: Catalog) -> Movie:
-            movie = catalog.get(number)
-            values = movie.to_dict()
-            values["picture"] = ""
-            extras = dict(values["extras"])
-            extras.pop("native_picture_base64", None)
-            values["extras"] = extras
-            return catalog.replace(number, Movie.from_dict(values))
+        updated = self.clear_picture_many([number])
+        return updated[0]
 
-        return self._persist(clear)
+    def clear_picture_many(self, numbers: Iterable[int]) -> list[Movie]:
+        """Remove linked and embedded picture state from distinct movies
+        in one atomic write."""
+        requested = self._movie_numbers(numbers)
+        if not requested:
+            return []
+
+        def clear_all(catalog: Catalog) -> list[Movie]:
+            updated = []
+            for number in requested:
+                movie = catalog.get(number)
+                values = movie.to_dict()
+                values["picture"] = ""
+                extras = dict(values["extras"])
+                extras.pop("native_picture_base64", None)
+                values["extras"] = extras
+                updated.append(catalog.replace(number, Movie.from_dict(values)))
+            return updated
+
+        return self._persist(clear_all)
 
     def export_picture(self, number: int, destination: str | Path) -> None:
         """Atomically copy an embedded or linked picture to *destination*."""

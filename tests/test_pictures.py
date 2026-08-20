@@ -44,6 +44,46 @@ def test_service_embeds_exports_and_clears_picture(tmp_path: Path):
     assert "native_picture_base64" not in cleared.extras
 
 
+def test_service_clears_pictures_for_many_movies_in_one_persisted_mutation(
+    tmp_path: Path,
+):
+    catalog_path = tmp_path / "catalog.json"
+    save(
+        Catalog([
+            Movie(number=1, title="One", picture="one.jpg"),
+            Movie(number=2, title="Two", picture="two.jpg"),
+            Movie(number=3, title="Three", picture="three.jpg"),
+        ]),
+        catalog_path,
+    )
+    service = CatalogService(catalog_path)
+
+    cleared = service.clear_picture_many([1, 3])
+
+    assert [movie.picture for movie in cleared] == ["", ""]
+    assert load(catalog_path).get(1).picture == ""
+    assert load(catalog_path).get(2).picture == "two.jpg"
+    assert load(catalog_path).get(3).picture == ""
+
+
+def test_service_clear_picture_many_is_atomic_for_missing_or_duplicate_numbers(
+    tmp_path: Path,
+):
+    catalog_path = tmp_path / "catalog.json"
+    save(
+        Catalog([Movie(number=1, title="One", picture="one.jpg")]),
+        catalog_path,
+    )
+    service = CatalogService(catalog_path)
+
+    with pytest.raises(KeyError, match="movie 9"):
+        service.clear_picture_many([1, 9])
+    with pytest.raises(ValueError, match="must be unique"):
+        service.clear_picture_many([1, 1])
+
+    assert load(catalog_path).get(1).picture == "one.jpg"
+
+
 def test_picture_size_limit_does_not_mutate_catalog(tmp_path: Path):
     catalog_path = tmp_path / "catalog.json"
     picture = tmp_path / "large.jpg"

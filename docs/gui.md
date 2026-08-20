@@ -32,9 +32,11 @@ The packaging check verifies that an isolated wheel installation can import both
   controls. Browse validates the selected image, stores a catalog-relative link
   when possible, and can retain the image bytes in the catalog when **Embed** is
   selected. Clearing a picture removes both its link and embedded bytes when the
-  movie is saved. Description and comments use multiline editors so paragraphs are
-  not forced through single-line fields; borrower changes remain in the dedicated
-  loan controls.
+  movie is saved. The toolbar **Clear Pictures** action removes linked and embedded
+  picture state from one movie or an extended table selection in a single atomic
+  write, mirroring the batch Remove, Loan, and Toggle Checked actions. Description
+  and comments use multiline editors so paragraphs are not forced through
+  single-line fields; borrower changes remain in the dedicated loan controls.
 - Search the visible list; filter all, loaned, available, checked, or unchecked
   movies; and review displayed/total counts. The table includes borrower and checked
   status and retains a visible selection across refreshes. Clicking a column heading
@@ -117,6 +119,8 @@ upstream fixtures.
 
 The GUI remains a prototype. Mutations currently save immediately, so there is no
 unsaved dirty state to prompt about. It does not yet provide progress or
-cancellation, batch picture management, image cropping,
+cancellation, batch picture embedding/linking or interactive crop selection,
 accessibility verification, localization, or automated real-display widget tests.
+Batch picture clearing is implemented; batch embed/link import still requires one
+source image per movie and remains a single-movie workflow.
 Current GUI tests are headless adapter tests with mocked dialogs.

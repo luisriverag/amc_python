@@ -102,4 +102,5 @@ The JSON shapes are part of the CLI contract:
   validated in-bounds crop using the source image format. Cropping requires `--embed`.
   `picture-export NUMBER DESTINATION` atomically
   writes embedded bytes or copies a linked picture, resolving relative links beside
-  the catalog. `picture-clear NUMBER` removes both linked and embedded state.
+  the catalog. `picture-clear NUMBER [NUMBER ...]` removes both linked and embedded
+  state for one or more distinct movie numbers in a single atomic write.

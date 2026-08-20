@@ -240,6 +240,22 @@ def test_cli_embeds_exports_and_clears_picture(tmp_path: Path):
     assert load(catalog).get(1).picture == ""
 
 
+def test_cli_clears_pictures_for_multiple_movies_in_one_invocation(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    save(
+        Catalog([
+            Movie(number=1, title="One", picture="one.jpg"),
+            Movie(number=2, title="Two", picture="two.jpg"),
+        ]),
+        catalog,
+    )
+
+    assert main(["-c", str(catalog), "picture-clear", "1", "2"]) == 0
+
+    assert load(catalog).get(1).picture == ""
+    assert load(catalog).get(2).picture == ""
+
+
 def test_cli_crops_embedded_picture(tmp_path: Path):
     from PIL import Image
 

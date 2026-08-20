@@ -362,9 +362,22 @@ both a CLI and a desktop entry point.
 
 ### D2 — bulk-operation UX
 
-  - [ ] Progress reporting and cancellation for long-running `CatalogService`
-    bulk operations (`import-media` over large trees, `merge`, batch picture
-    operations), surfaced through the CLI and the GUI toolbar.
+  - [x] CLI `import-media --progress` prints `Inspected N/TOTAL file(s)` to
+    stderr while scanning a large tree, the case explicitly named in this
+    item as the one worth it (a directory can hold thousands of files;
+    `merge` and batch picture operations are typically a handful of movies
+    per call, so they do not get dedicated progress reporting here).
+    Explicit cancellation support turned out to be unnecessary to build:
+    every `CatalogService` bulk operation already only writes the catalog
+    once, after building its complete result, so interrupting any of
+    them — Ctrl+C during `import-media`'s scan included — leaves the
+    destination catalog completely untouched by construction. This is now a
+    documented, tested guarantee (`docs/cli.md`, `test_media.py`) rather
+    than an unstated side effect.
+  - [ ] The GUI has no media-import workflow at all yet (`import-media` is
+    CLI-only), so GUI-side progress reporting for it has a prerequisite:
+    add the workflow (folder/file picker, recursive/extension options, then
+    `CatalogService.add_many`) before progress display is meaningful there.
   - [ ] Desktop accessibility pass: keyboard navigation coverage and
     screen-reader labels for toolbar actions and dialogs.
 

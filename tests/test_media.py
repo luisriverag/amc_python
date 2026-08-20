@@ -275,6 +275,69 @@ def test_cli_import_media_is_atomic_before_save(tmp_path: Path):
     assert catalog.read_bytes() == previous
 
 
+def test_cli_import_media_progress_reports_to_stderr(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    catalog = tmp_path / "catalog.json"
+    first = tmp_path / "first.mkv"
+    first.write_bytes(b"one")
+    second = tmp_path / "second.mkv"
+    second.write_bytes(b"two")
+
+    assert main([
+        "-c", str(catalog), "import-media", str(first), str(second), "--progress",
+    ]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.err.splitlines() == [
+        "Inspected 1/2 file(s)", "Inspected 2/2 file(s)",
+    ]
+    assert captured.out.strip() == "Imported 2 media file(s)"
+    assert load(catalog).get(1).title == "first"
+    assert load(catalog).get(2).title == "second"
+
+
+def test_cli_import_media_without_progress_flag_is_silent_on_stderr(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    catalog = tmp_path / "catalog.json"
+    media = tmp_path / "movie.mkv"
+    media.write_bytes(b"data")
+
+    assert main(["-c", str(catalog), "import-media", str(media)]) == 0
+
+    assert capsys.readouterr().err == ""
+
+
+def test_cli_import_media_interrupted_during_inspection_leaves_catalog_untouched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """An import-media scan is only committed after every file is inspected,
+    so interrupting the scan (Ctrl+C, or any exception) never partially
+    writes the catalog — the same atomic-or-nothing guarantee as every other
+    CatalogService bulk mutation."""
+    catalog = tmp_path / "catalog.json"
+    first = tmp_path / "first.mkv"
+    first.write_bytes(b"one")
+    second = tmp_path / "second.mkv"
+    second.write_bytes(b"two")
+    inspected = []
+
+    def interrupt_on_second_file(path):
+        inspected.append(path)
+        if len(inspected) == 2:
+            raise KeyboardInterrupt
+        return movie_from_media(path)
+
+    monkeypatch.setattr("amc.cli.movie_from_media", interrupt_on_second_file)
+
+    with pytest.raises(KeyboardInterrupt):
+        main(["-c", str(catalog), "import-media", str(first), str(second)])
+
+    assert inspected == [first, second]
+    assert not catalog.exists()
+
+
 def test_discover_media_expands_directories_deterministically_and_bounds_count(
     tmp_path: Path,
 ):

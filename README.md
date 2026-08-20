@@ -93,6 +93,7 @@ amc -c movies.json import legacy.amc --max-input-bytes 1073741824 --max-movies 1
 amc -c movies.json import-media Movie.mkv Trailer.wav
 amc -c movies.json import-media MediaFolder/ --recursive
 amc -c movies.json import-media MediaFolder/ --recursive --extensions mkv,mp4,wav
+amc -c movies.json import-media MediaFolder/ --recursive --progress
 amc -c movies.json add "The Apartment" --year 1960 --director "Billy Wilder"
 amc -c movies.json list
 amc -c movies.json list --json
@@ -180,8 +181,9 @@ float without the deprecated, Python-3.13-removed `aifc` module. Broader
 codec inspection (MP3, MP4, OGG, and similar compressed/lossy formats)
 remains an optional-provider gap. Directory expansion is deterministic,
 opt-in recursive, optionally extension-filtered, and bounded to 100,000 files
-per
-invocation.
+per invocation. `--progress` reports inspection progress to stderr for large
+trees; the catalog is only written after every file is inspected, so
+interrupting the command at any point leaves it untouched.
 Legacy `.ifs` script metadata can be inspected and inventoried without executing
 Pascal code. Script execution and network providers remain intentionally disabled
 until a sandboxed, timeout-bound provider boundary is implemented. Integrators can

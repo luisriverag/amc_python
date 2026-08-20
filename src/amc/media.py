@@ -25,7 +25,7 @@ class MediaInfo:
 
 
 def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaInfo:
-    """Inspect safe filesystem facts and WAV/FLAC/AIFF metadata when applicable."""
+    """Inspect safe filesystem facts and WAV/FLAC/AIFF/MP3 metadata when applicable."""
     path = Path(path)
     if not path.is_file():
         raise ValueError(f"media path is not a file: {path}")
@@ -51,6 +51,9 @@ def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaIn
     elif suffix in {".aif", ".aiff", ".aifc"}:
         length, bitrate = _inspect_aiff_common_chunk(path, size)
         audio_format = "AIFF"
+    elif suffix == ".mp3":
+        length, bitrate = _inspect_mp3(path, size)
+        audio_format = "MP3"
     return MediaInfo(
         str(path), path.stem, path.suffix, size, length, audio_format, bitrate
     )
@@ -153,6 +156,116 @@ def _inspect_aiff_common_chunk(path: Path, size: int) -> tuple[int | None, int |
     else:
         bitrate = round(size * 8 / total_samples * sample_rate / 1000)
     return length, bitrate
+
+
+_MP3_BITRATES_KBPS = {
+    # Keyed by (version_index, layer_index); see ISO/IEC 11172-3 frame header.
+    # version_index: 0=MPEG2.5, 2=MPEG2, 3=MPEG1 (1 is reserved).
+    # layer_index: 1=Layer III, 2=Layer II, 3=Layer I (0 is reserved).
+    (3, 3): (0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, -1),
+    (3, 2): (0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, -1),
+    (3, 1): (0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1),
+    (2, 3): (0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, -1),
+    (2, 2): (0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, -1),
+    (2, 1): (0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, -1),
+}
+_MP3_BITRATES_KBPS[(0, 3)] = _MP3_BITRATES_KBPS[(2, 3)]
+_MP3_BITRATES_KBPS[(0, 2)] = _MP3_BITRATES_KBPS[(2, 2)]
+_MP3_BITRATES_KBPS[(0, 1)] = _MP3_BITRATES_KBPS[(2, 1)]
+_MP3_SAMPLE_RATES = {
+    3: (44100, 48000, 32000),  # MPEG1
+    2: (22050, 24000, 16000),  # MPEG2
+    0: (11025, 12000, 8000),  # MPEG2.5
+}
+_MP3_SEARCH_WINDOW_BYTES = 65536
+
+
+def _mp3_tag_size(path: Path) -> int:
+    """Return the byte size of a leading ID3v2 tag, or 0 when there is none.
+
+    The 10-byte header holds a syncsafe (7 bits per byte) body size; when the
+    footer-present flag is set, an identical 10-byte footer follows the body.
+    """
+    with path.open("rb") as stream:
+        header = stream.read(10)
+    if len(header) != 10 or header[0:3] != b"ID3":
+        return 0
+    flags = header[5]
+    body = header[6:10]
+    if any(byte & 0x80 for byte in body):
+        return 0
+    body_size = (body[0] << 21) | (body[1] << 14) | (body[2] << 7) | body[3]
+    return 10 + body_size + (10 if flags & 0x10 else 0)
+
+
+def _mp3_frame_header(word: int) -> tuple[int, int, int, int, int, int] | None:
+    """Decode one 4-byte MPEG audio frame header, or None if not a valid sync."""
+    if word & 0xFFE0_0000 != 0xFFE0_0000:
+        return None
+    version_index = (word >> 19) & 0x3
+    layer_index = (word >> 17) & 0x3
+    bitrate_index = (word >> 12) & 0xF
+    sample_rate_index = (word >> 10) & 0x3
+    padding = (word >> 9) & 0x1
+    if version_index == 1 or layer_index == 0 or sample_rate_index == 3:
+        return None
+    table = _MP3_BITRATES_KBPS.get((version_index, layer_index))
+    if table is None or not (0 < bitrate_index < 15):
+        return None
+    bitrate_kbps = table[bitrate_index]
+    if bitrate_kbps <= 0:
+        return None
+    sample_rate = _MP3_SAMPLE_RATES[version_index][sample_rate_index]
+    if layer_index == 3:
+        frame_length = (12 * bitrate_kbps * 1000 // sample_rate + padding) * 4
+    elif layer_index == 1 and version_index != 3:
+        frame_length = 72 * bitrate_kbps * 1000 // sample_rate + padding
+    else:
+        frame_length = 144 * bitrate_kbps * 1000 // sample_rate + padding
+    if frame_length <= 4:
+        return None
+    return version_index, layer_index, bitrate_kbps, sample_rate, padding, frame_length
+
+
+def _inspect_mp3(path: Path, size: int) -> tuple[int | None, int | None]:
+    """Estimate duration and bitrate from the first valid MPEG audio frame.
+
+    MP3 has no mandatory duration field: unlike FLAC's STREAMINFO or AIFF's
+    COMM chunk, only an optional Xing/Info/VBRI side header (not parsed here)
+    declares an exact frame count. This computes a constant-bitrate estimate
+    from the first frame's declared bitrate and the remaining audio byte
+    count instead, which is exact for CBR files — the common case — and an
+    approximation for variable-bitrate files, the same documented trade-off
+    already made for AIFF-C's non-PCM branch.
+    """
+    offset = _mp3_tag_size(path)
+    with path.open("rb") as stream:
+        stream.seek(offset)
+        window = stream.read(min(_MP3_SEARCH_WINDOW_BYTES, max(0, size - offset)))
+    header = None
+    frame_offset = None
+    limit = len(window) - 3
+    index = 0
+    while index < limit:
+        word = int.from_bytes(window[index:index + 4], "big")
+        header = _mp3_frame_header(word)
+        if header is not None:
+            frame_offset = offset + index
+            break
+        index += 1
+    if header is None or frame_offset is None:
+        raise ValueError("invalid MP3 media file: no MPEG audio frame sync found")
+    _version_index, _layer_index, bitrate_kbps, _sample_rate, _padding, _frame_length = header
+    audio_bytes = size - frame_offset
+    if size >= 128:
+        with path.open("rb") as stream:
+            stream.seek(size - 128)
+            if stream.read(3) == b"TAG":
+                audio_bytes -= 128
+    if audio_bytes <= 0:
+        return None, bitrate_kbps
+    length = round(audio_bytes * 8 / (bitrate_kbps * 1000))
+    return length, bitrate_kbps
 
 
 def movie_from_media(path: str | Path) -> Movie:

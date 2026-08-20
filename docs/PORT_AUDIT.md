@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 482 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 15 functional package modules, 6 repository tools, 488 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -67,7 +67,7 @@ confidence.
 | Source acquisition tool | Streaming download, digest, extraction selection, inventory | Local HTTP and synthetic inventory tests | High for tested behavior |
 | Engineering checks | Canonical tests/compile/fixture checks plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
 | HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
-| Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF duration/bitrate; CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
+| Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF/MP3 duration/bitrate (MP3 via a hand-decoded MPEG frame header, not upstream's MediaInfo.dll); CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, MP3 (CBR, ID3v2/ID3v1 tag handling, reserved-header rejection, Layer I/II/III frame-length formulas), bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
 | Script inventory/settings | Bounded non-executing Infos/options/parameters/permissions/static-name parser; validated option/parameter overrides; atomic Python JSON settings | Synthetic metadata, malformed-entry, configuration, persistence, and CLI tests | Moderate for the stated non-executing subset; no runtime parity |
 | Application service | Failure-atomic CRUD, merge, media import, loans, undo/redo, backup/restore, and export orchestration | Mutation-failure, persistence, history, and adapter tests | High for tested internal workflows |
 | Loan prototype | Single/batch, media-label, and retained-native-number group transitions; managed borrowers; JSON history; source-shaped TSV export | Unit/service/CLI/GUI tests, including atomic conflicts and output preservation | Moderate internally; upstream encoding/behavior unverified |
@@ -96,7 +96,7 @@ confidence.
 - Upstream website script compilation/execution, network/provider APIs, result
   selection and merge, license-acceptance workflow, debugging, and static session
   state (metadata and public settings only).
-- Full media analysis and codec mapping (portable facts and PCM WAV/FLAC/AIFF only).
+- Full media analysis and codec mapping (portable facts and PCM WAV/FLAC/AIFF/MP3 only; MP4 and OGG remain unimplemented).
 - Upstream verification of grouped-loan and TSV history encoding/consumption.
 - Localization resources.
 - Printing and reports.
@@ -286,7 +286,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop, bounded poster display, and atomic batch set/clear | Upstream import modes, naming/copy/move rules, conversion options, and genuine embedded/linked fixtures |
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
 | Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings | IFPS compiler/runtime, complete API inventory, HTTP/browser interactions, license acceptance, debugger, results UI, safe merge preview, timeouts/cache/rate limits, and recorded provider tests |
-| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF analysis | MediaInfo integration/version checks, the full tag map, stream selection, filters, and field merge behavior |
+| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3 analysis (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec) | MediaInfo integration/version checks, MP4/OGG parsing, the full tag map, stream selection, filters, and field merge behavior |
 | HTML export | `export.pas`, template units | Safe bounded Python table/templates | Upstream template tags, multi-file output, extra/custom-field semantics, and fixture comparison |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
 | Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |

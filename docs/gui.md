@@ -26,7 +26,7 @@ The packaging check verifies that an isolated wheel installation can import both
 - Merge another catalog using safe default collision policies.
 - **Import Media** first asks whether to import from a folder or choose
   individual files, then adds a movie entry per file from portable facts and,
-  for WAV/FLAC/AIFF, duration and bitrate — the desktop equivalent of the
+  for WAV/FLAC/AIFF/MP3, duration and bitrate — the desktop equivalent of the
   CLI's `import-media`. Choosing a folder also asks whether to include
   subfolders, mirroring `--recursive`, and then offers an optional
   comma-separated extension filter (e.g. `mkv,mp4,wav`) that narrows the

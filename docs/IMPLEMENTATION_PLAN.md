@@ -59,7 +59,7 @@ form of this priority is the **D5 — GUI parity** tier below; pick its next
 unchecked item before further D4 items.
 
 The concrete, ordered form of the wider backlog is the **Downstream execution
-backlog (D0–D5)** further down this document, alongside the upstream P0–P3
+backlog (D0–D6)** further down this document, alongside the upstream P0–P3
 backlog it runs in parallel with.
 
 ## Milestone 0: authoritative upstream baseline
@@ -206,9 +206,11 @@ all omitted or opaque data is reported.
   movie, picture, and extra-field permissions; execution, timeouts, caching, and
   rate limits remain intentionally absent).
 - [ ] Add image download and full media-file analysis as optional capabilities
-  (portable file facts and PCM WAV/FLAC analysis are available without
-  dependencies; compressed/lossy formats such as MP3, MP4, and OGG still need
-  either bounded dependency-free parsing or an optional codec provider).
+  (portable file facts and dependency-free PCM WAV/FLAC/AIFF/MP3 analysis are
+  available; MP3 duration/bitrate come from the first MPEG audio frame header
+  and file size, exact for CBR and approximate for VBR files without a parsed
+  Xing/VBRI header; MP4 and OGG still need either bounded dependency-free
+  parsing or an optional codec provider).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
 - [ ] Reproduce upstream HTML template/tag semantics (safe static HTML table export
   is available as a non-compatible baseline).
@@ -313,7 +315,7 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.
 
-## Downstream execution backlog (D0–D5)
+## Downstream execution backlog (D0–D6)
 
 While Sprint 1 (below) stays externally blocked on genuine fixtures, this is
 the ordered, concrete backlog for the "Execution priority" track above. Unlike
@@ -556,6 +558,71 @@ tier's next unchecked item before returning to D4.
     platform where Tk's accessibility support is meaningful (Windows/macOS
     native widgets) or a contributor can verify it directly.
 
+### D6 — remaining "not ported at all" subsystems
+
+Four subsystems in `PORT_AUDIT.md`'s "Not ported" list have no code at all:
+website script execution, localization, printing/reports, and compressed
+media codecs (MP3/MP4/OGG). They are not comparable in size or in what
+"proceeding" means for each — this tier records that per item rather than
+treating them as one uniform backlog.
+
+  - [x] MP3 duration/bitrate, the most tractable of the four: a
+    dependency-free MPEG audio frame header parser (`amc.media._inspect_mp3`)
+    computes duration from the first frame's declared bitrate and the
+    remaining audio byte count — exact for CBR files, an approximate for VBR
+    files without a parsed Xing/VBRI header (not implemented; documented
+    limitation). Handles a leading ID3v2 tag (syncsafe size, optional
+    footer) and a trailing 128-byte ID3v1 tag. Like WAV/FLAC/AIFF, this is
+    parsed from MP3's own public specification, not upstream's actual
+    mechanism: `Common/MediaInfo.pas` shows upstream delegates *all* media
+    analysis, including WAV, to a dynamically-loaded third-party
+    `MediaInfo.dll` (version 22.12) via `LoadLibrary`/`GetProcAddress` — there
+    is no Delphi-native codec parser to port even in principle, so "verified
+    upstream parity" was never achievable here and isn't being claimed.
+    MP4 and OGG remain unimplemented; each needs its own container-walking
+    parser (ISOBMFF box tree for MP4, page-granule-position scanning for
+    OGG) following the same pattern.
+  - [ ] Localization turns out not to be a portable-format problem: reading
+    `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
+    file itself is present in the checked-in source snapshot to treat as a
+    fixture) shows the mechanism is a runtime Delphi RTTI object-graph
+    patcher — each line is a dotted VCL property path (e.g.
+    `Button1.Caption=Fermer`, including indexed collection/list/tree items)
+    resolved and assigned live via `GetPropInfo`/`SetStrProp` against actual
+    form/frame/component instances. That mechanism is structurally tied to
+    VCL forms and has no Tk equivalent to receive it; "parity" with the
+    `.lng` format is not a coherent target for a Tk GUI regardless of effort
+    spent. A localized Python GUI is possible, but only as a wholly
+    Python-owned feature (externalize `gui.py`'s hardcoded English strings
+    behind a key→string lookup, add a loader), and there is no actual
+    translated content available anywhere in this repository to load even if
+    that scaffolding existed — building it now would ship empty
+    infrastructure with no translations behind it. Left open pending a
+    decision on whether that scaffolding is worth building ahead of having
+    translations to put in it.
+  - [ ] Printing/reports' license blocker is resolved but its effort is not:
+    `src/original/FreeReport/license.txt` is LGPL v2, which is redistributable
+    under this repository's existing GPLv2 posture — contrary to the
+    "decide port/omission after ... license review" framing, there is no
+    remaining license question. What remains is that FreeReport is a
+    complete Delphi report designer and renderer (its own binary report
+    definition format, a design-time UI, print preview, and a large source
+    tree under `src/original/FreeReport/SOURCE/`) — porting it is a
+    standalone-application-sized effort, not a bounded slice, and AMC Python
+    already has static HTML export as a non-compatible baseline export path.
+    Whether a report designer/renderer is a wanted feature at all — as
+    opposed to, say, richer HTML/PDF export — is a product-scope decision
+    left open here rather than assumed.
+  - [ ] Website script execution needs an IFPS (Innerfuse Pascal Script)
+    bytecode compiler and sandboxed VM with timeouts, rate limits, and a
+    result-merge UI before any script can actually run — `amc.scripts`
+    deliberately reads only leading metadata comments today and never
+    executes script bodies. This is comparable in scope to printing: a
+    standalone interpreter project, not a bounded slice, and it additionally
+    carries real security exposure (executing arbitrary scripts sourced from
+    the web) that deserves an explicit decision before any execution path is
+    built, not silent implementation. Left open pending that decision.
+
 ## Immediate next slice
 
 Execution is organized into four gated sprints in
@@ -573,7 +640,7 @@ contributor supplying fixtures, not on further coding here. Sprint exit checks
 remain blocking criteria — no later sprint's work advances an earlier gate, and
 no compatibility status may be upgraded without registered evidence — but with
 Sprint 1 externally blocked, the immediate change should draw from the
-**Downstream execution backlog (D0–D5)** above rather than sitting idle or
+**Downstream execution backlog (D0–D6)** above rather than sitting idle or
 inferring more unverified format behavior. A downstream slice still needs its
 own tests and documentation; it simply makes no upstream-compatibility claim,
 so it does not require a fixture.

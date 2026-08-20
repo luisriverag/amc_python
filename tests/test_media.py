@@ -262,6 +262,115 @@ def test_inspect_media_rejects_malformed_aiff_files(tmp_path: Path):
         inspect_media(missing_comm)
 
 
+def _mp3_frame(*, bitrate_kbps: int = 128, sample_rate: int = 44100, padding: int = 0) -> bytes:
+    """Build one zero-padded MPEG1 Layer III frame at the given bitrate/rate."""
+    bitrate_table = (0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1)
+    bitrate_index = bitrate_table.index(bitrate_kbps)
+    sample_rate_index = {44100: 0, 48000: 1, 32000: 2}[sample_rate]
+    word = 0xFFE00000
+    word |= 0b11 << 19  # MPEG1
+    word |= 0b01 << 17  # Layer III
+    word |= 0b1 << 16  # protection bit set (no CRC), unused by the parser
+    word |= bitrate_index << 12
+    word |= sample_rate_index << 10
+    word |= padding << 9
+    frame_length = 144 * bitrate_kbps * 1000 // sample_rate + padding
+    header = word.to_bytes(4, "big")
+    return header + b"\0" * (frame_length - len(header))
+
+
+def _write_mp3(
+    target: Path, *, frames: int, bitrate_kbps: int = 128, sample_rate: int = 44100,
+) -> None:
+    frame = _mp3_frame(bitrate_kbps=bitrate_kbps, sample_rate=sample_rate)
+    target.write_bytes(frame * frames)
+
+
+def test_inspect_media_reads_mp3_cbr_duration_and_bitrate(tmp_path: Path):
+    target = tmp_path / "audio.mp3"
+    _write_mp3(target, frames=50, bitrate_kbps=128, sample_rate=44100)
+
+    info = inspect_media(target)
+
+    assert info.audio_format == "MP3"
+    assert info.audio_bitrate == 128
+    expected_length = round(target.stat().st_size * 8 / (128 * 1000))
+    assert info.length_seconds == expected_length
+
+
+def test_inspect_media_mp3_skips_a_leading_id3v2_tag(tmp_path: Path):
+    target = tmp_path / "tagged.mp3"
+    tag_body = b"\0" * 100
+    tag = b"ID3" + bytes([4, 0, 0]) + bytes([
+        (len(tag_body) >> 21) & 0x7F, (len(tag_body) >> 14) & 0x7F,
+        (len(tag_body) >> 7) & 0x7F, len(tag_body) & 0x7F,
+    ]) + tag_body
+    frame = _mp3_frame(bitrate_kbps=192, sample_rate=48000)
+    target.write_bytes(tag + frame * 20)
+
+    info = inspect_media(target)
+
+    assert info.audio_format == "MP3"
+    assert info.audio_bitrate == 192
+
+
+def test_inspect_media_mp3_ignores_a_trailing_id3v1_tag(tmp_path: Path):
+    target = tmp_path / "id3v1.mp3"
+    _write_mp3(target, frames=30, bitrate_kbps=128, sample_rate=44100)
+    audio_only_size = target.stat().st_size
+    with target.open("ab") as stream:
+        stream.write(b"TAG" + b"\0" * 125)
+
+    info = inspect_media(target)
+
+    assert info.audio_bitrate == 128
+    assert info.length_seconds == round(audio_only_size * 8 / (128 * 1000))
+
+
+def test_inspect_media_rejects_files_with_no_mp3_frame_sync(tmp_path: Path):
+    target = tmp_path / "not-really.mp3"
+    target.write_bytes(b"not an mp3 file" * 100)
+    with pytest.raises(ValueError, match="no MPEG audio frame sync found"):
+        inspect_media(target)
+
+
+def test_inspect_media_mp3_layer1_frame_length_formula(tmp_path: Path):
+    """Exercise the Layer I ((coefficient * bitrate / rate + padding) * 4)
+    frame-length formula, distinct from the Layer II/III formula every other
+    MP3 test uses."""
+    bitrate_kbps, sample_rate = 256, 44100
+    word = 0xFFE00000
+    word |= 0b11 << 19  # MPEG1
+    word |= 0b11 << 17  # Layer I
+    bitrate_table = (0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, -1)
+    word |= bitrate_table.index(bitrate_kbps) << 12
+    word |= 0 << 10  # 44100
+    frame_length = (12 * bitrate_kbps * 1000 // sample_rate) * 4
+    frame = word.to_bytes(4, "big") + b"\0" * (frame_length - 4)
+    target = tmp_path / "layer1.mp3"
+    target.write_bytes(frame * 10)
+
+    info = inspect_media(target)
+
+    assert info.audio_bitrate == bitrate_kbps
+    assert info.length_seconds == round(target.stat().st_size * 8 / (bitrate_kbps * 1000))
+
+
+def test_inspect_media_mp3_scans_past_a_false_sync_before_a_real_frame(tmp_path: Path):
+    """A byte sequence that starts a valid 11-bit sync but decodes to a
+    reserved/invalid header (bitrate index 15, "bad") must be skipped rather
+    than rejecting the whole file, as long as a real frame follows."""
+    invalid = bytes([0xFF, 0xFB, 0xF0, 0x00])  # sync + reserved bitrate index 15
+    frame = _mp3_frame(bitrate_kbps=128, sample_rate=44100)
+    target = tmp_path / "false-sync.mp3"
+    target.write_bytes(invalid + frame * 5)
+
+    info = inspect_media(target)
+
+    assert info.audio_format == "MP3"
+    assert info.audio_bitrate == 128
+
+
 def test_cli_import_media_is_atomic_before_save(tmp_path: Path):
     catalog = tmp_path / "catalog.json"
     good = tmp_path / "good.mkv"

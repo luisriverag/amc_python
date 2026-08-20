@@ -355,6 +355,98 @@ def test_window_imports_and_refreshes():
     showinfo.assert_called_once()
 
 
+def test_window_import_media_ignores_cancelled_file_dialog():
+    window = _window()
+
+    with (
+        patch("amc.gui.filedialog.askopenfilenames", return_value=()),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+
+
+def test_window_import_media_inspects_selected_files_and_adds_them():
+    window = _window()
+    dialog = Mock()
+    movies = [Movie(title="One"), Movie(title="Two")]
+
+    with (
+        patch(
+            "amc.gui.filedialog.askopenfilenames",
+            return_value=["one.mkv", "two.mkv"],
+        ),
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button", return_value=Mock()),
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=movies),
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.import_media()
+
+    window.service.add_many.assert_called_once_with(movies)
+    window.refresh.assert_called_once_with()
+    dialog.destroy.assert_called_once_with()
+    showinfo.assert_called_once()
+
+
+def test_window_import_media_can_be_cancelled_mid_scan():
+    window = _window()
+    dialog = Mock()
+    paths = [Path("a.mkv"), Path("b.mkv"), Path("c.mkv")]
+    inspected = []
+
+    def fake_movie_from_media(path):
+        inspected.append(path)
+        if path == paths[0]:
+            button.call_args_list[0].kwargs["command"]()
+        return Movie(title=path.name)
+
+    with (
+        patch(
+            "amc.gui.filedialog.askopenfilenames",
+            return_value=[str(item) for item in paths],
+        ),
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=fake_movie_from_media),
+    ):
+        window.import_media()
+
+    assert inspected == [paths[0]]
+    window.service.add_many.assert_not_called()
+    window.refresh.assert_not_called()
+    dialog.destroy.assert_called_once_with()
+
+
+def test_window_import_media_reports_invalid_media_without_mutating_catalog():
+    window = _window()
+    dialog = Mock()
+
+    with (
+        patch(
+            "amc.gui.filedialog.askopenfilenames", return_value=["broken.mkv"],
+        ),
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button", return_value=Mock()),
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=ValueError("bad media")),
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.import_media()
+
+    window.service.add_many.assert_not_called()
+    window.refresh.assert_not_called()
+    dialog.destroy.assert_called_once_with()
+    showerror.assert_called_once()
+
+
 def test_window_exports_using_destination_extension():
     window = _window()
     with (
@@ -694,6 +786,7 @@ def test_window_action_states_follow_selection_history_and_format():
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
+    window.import_media_button = Mock()
     window.restore_button = Mock()
     window.table.selection.return_value = ("7", "8")
     window.service.is_writable = True
@@ -723,6 +816,7 @@ def test_window_disables_mutations_for_interchange_catalog():
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
+    window.import_media_button = Mock()
     window.restore_button = Mock()
     window.table.selection.return_value = ("7",)
     window.service.is_writable = False
@@ -748,6 +842,7 @@ def test_window_disables_actions_when_selection_lacks_required_data():
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
+    window.import_media_button = Mock()
     window.restore_button = Mock()
     window.table.selection.return_value = ("7",)
     window.service.is_writable = True

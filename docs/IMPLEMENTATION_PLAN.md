@@ -374,12 +374,23 @@ both a CLI and a desktop entry point.
     destination catalog completely untouched by construction. This is now a
     documented, tested guarantee (`docs/cli.md`, `test_media.py`) rather
     than an unstated side effect.
-  - [ ] The GUI has no media-import workflow at all yet (`import-media` is
-    CLI-only), so GUI-side progress reporting for it has a prerequisite:
-    add the workflow (folder/file picker, recursive/extension options, then
-    `CatalogService.add_many`) before progress display is meaningful there.
+  - [x] Added the prerequisite GUI media-import workflow the previous audit
+    found missing: a toolbar **Import Media** action opens a multi-file
+    picker, then a modal dialog that reports which file is being inspected
+    and can be cancelled mid-scan, mirroring the CLI's atomic-after-inspection
+    guarantee (nothing is added unless every selected file is inspected
+    without cancelling or hitting an error). It intentionally does not yet
+    match the CLI's folder/`--recursive`/`--extensions` mode — only explicit
+    multi-file selection — so it is not itself a source of GUI progress
+    reporting for a folder scan; that remains future work if a folder mode
+    is added.
   - [ ] Desktop accessibility pass: keyboard navigation coverage and
     screen-reader labels for toolbar actions and dialogs.
+
+D2's progress/cancellation item is complete for the case it named as worth
+it (CLI large-tree scanning) and its GUI prerequisite (a media-import
+workflow existing at all); folder-based GUI import and the accessibility
+pass remain open.
 
 ### D3 — catalog/GUI preferences
 

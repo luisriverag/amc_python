@@ -24,6 +24,14 @@ The packaging check verifies that an isolated wheel installation can import both
 - Open an existing JSON, XML, CSV, or native AMC catalog.
 - Save the active catalog under a new JSON path.
 - Merge another catalog using safe default collision policies.
+- **Import Media** picks one or more media files and adds a movie entry per
+  file from portable facts and, for WAV/FLAC/AIFF, duration and bitrate — the
+  desktop equivalent of the CLI's `import-media`. A modal progress dialog
+  reports which file is being inspected and can be cancelled mid-scan; like
+  the CLI, the catalog is only mutated once, after every selected file has
+  been inspected, so cancelling or hitting an invalid file leaves it
+  untouched. Unlike the CLI, there is no folder/recursive/extension-filter
+  mode yet — only an explicit multi-file selection.
 - Export XML, CSV, static HTML, or experimental native AMC 4.2 output.
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;

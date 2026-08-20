@@ -18,6 +18,7 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 from .application import CatalogService
 from .errors import CatalogError
 from .loans import LoanEvent
+from .media import movie_from_media
 from .model import Movie
 from .preferences import (
     MAX_HISTORY_LIMIT,
@@ -328,6 +329,10 @@ class CatalogWindow(ttk.Frame):
         ttk.Button(files, text="Save As", command=self.save_as).pack(side="left", padx=4)
         self.import_button = ttk.Button(files, text="Import", command=self.import_catalog)
         self.import_button.pack(side="left")
+        self.import_media_button = ttk.Button(
+            files, text="Import Media", command=self.import_media
+        )
+        self.import_media_button.pack(side="left", padx=4)
         ttk.Button(files, text="Export", command=self.export_catalog).pack(side="left", padx=4)
         ttk.Button(files, text="Backup", command=self.backup_catalog).pack(side="left")
         self.restore_button = ttk.Button(files, text="Restore", command=self.restore_catalog)
@@ -578,6 +583,7 @@ class CatalogWindow(ttk.Frame):
             self.action_buttons[name].configure(state="normal" if enabled else "disabled")
         self.action_buttons["Add"].configure(state="normal" if writable else "disabled")
         self.import_button.configure(state="normal" if writable else "disabled")
+        self.import_media_button.configure(state="normal" if writable else "disabled")
         self.restore_button.configure(state="normal" if writable else "disabled")
         self.action_buttons["Renumber"].configure(
             state="normal" if writable and len(self.service.catalog) else "disabled"
@@ -734,6 +740,63 @@ class CatalogWindow(ttk.Frame):
         self.refresh()
         messagebox.showinfo(
             "Import complete", f"Imported {count} movie(s).", parent=self
+        )
+
+    def import_media(self) -> None:
+        """Batch-add movies from chosen media files, with progress and cancel.
+
+        Unlike the CLI's ``import-media --recursive``, this picks individual
+        files rather than expanding a folder; see docs/gui.md for the gap.
+        """
+        selected = filedialog.askopenfilenames(
+            parent=self.winfo_toplevel(), title="Choose media files",
+        )
+        if not selected:
+            return
+        paths = [Path(item) for item in selected]
+        total = len(paths)
+
+        dialog = tk.Toplevel(self)
+        dialog.title("Import media")
+        dialog.transient(self.winfo_toplevel())
+        status = ttk.Label(
+            dialog, text=f"Ready to inspect {total} file(s).",
+            width=48, anchor="w",
+        )
+        status.grid(row=0, column=0, padx=8, pady=8)
+        cancelled = {"value": False}
+        ttk.Button(
+            dialog, text="Cancel", command=lambda: cancelled.__setitem__("value", True)
+        ).grid(row=1, column=0, sticky="e", padx=8, pady=(0, 8))
+        make_modal(dialog)
+
+        movies: list[Movie] = []
+        for index, path in enumerate(paths, start=1):
+            if cancelled["value"]:
+                break
+            status.configure(text=f"Inspecting {index}/{total}: {path.name}")
+            dialog.update()
+            try:
+                movies.append(movie_from_media(path))
+            except ValueError as error:
+                messagebox.showerror(
+                    "Could not import media", str(error), parent=dialog
+                )
+                dialog.destroy()
+                return
+        if cancelled["value"]:
+            dialog.destroy()
+            return
+        try:
+            self.service.add_many(movies)
+        except (CatalogError, OSError, TypeError, ValueError) as error:
+            messagebox.showerror("Could not import media", str(error), parent=dialog)
+            dialog.destroy()
+            return
+        dialog.destroy()
+        self.refresh()
+        messagebox.showinfo(
+            "Import complete", f"Imported {len(movies)} media file(s).", parent=self
         )
 
     def export_catalog(self) -> None:

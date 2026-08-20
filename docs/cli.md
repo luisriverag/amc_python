@@ -48,7 +48,13 @@ The JSON shapes are part of the CLI contract:
 - `backup` and `restore` copy to a same-directory temporary file, fsync it,
   validate the copied bytes, and replace the destination only after validation.
 - `import-media` fully discovers and inspects its bounded input set before saving;
-  directory recursion is opt-in and extension filters are explicit.
+  directory recursion is opt-in and extension filters are explicit. `--progress`
+  prints `Inspected N/TOTAL file(s)` to stderr as each file is inspected, useful
+  for a large tree where inspection itself takes noticeable time. Because the
+  catalog is only written once, after every file has been inspected, interrupting
+  the command at any point during discovery or inspection — Ctrl+C or any other
+  exception — leaves the destination catalog completely untouched; there is
+  nothing to explicitly cancel or roll back.
 - `loan-out` rejects an empty borrower or a movie loaned to a different borrower;
   `loan-in` rejects a movie that is not currently loaned. Both changes are saved
   atomically. Successful state transitions append an immutable timestamped event

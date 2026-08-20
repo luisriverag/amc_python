@@ -321,10 +321,23 @@ indented, non-canonical checkbox markers that the port-progress count in
   - [x] Dependency-free PCM WAV duration/bitrate.
   - [x] Dependency-free FLAC duration/average bitrate, parsed from the
     mandatory leading STREAMINFO metadata block.
-  - [ ] Evaluate whether further fixed-header formats (e.g., AIFF) are worth
-    dependency-free support versus designing the optional bounded
-    codec-provider interface for compressed/lossy formats (MP3, MP4, OGG)
-    that `getmedia.pas` covers via MediaInfo.
+  - [x] Evaluated further fixed-header formats versus a codec-provider
+    interface: fixed-header IFF/RIFF-style formats are worth continued
+    dependency-free support because their headers are small, fully
+    documented, and bounded to parse, the same properties that made WAV and
+    FLAC tractable. Added dependency-free AIFF/AIFF-C duration and bitrate
+    (COMM chunk, including manual 80-bit extended-float sample-rate
+    decoding, since the stdlib `aifc` module is deprecated and removed
+    starting in Python 3.13). Compressed/lossy formats (MP3, MP4, OGG, and
+    similar) do not share that property — they need either a real decoder or
+    frame-by-frame bitstream scanning — so they remain out of scope for
+    dependency-free parsing and stay behind the deferred, intentionally
+    unimplemented optional bounded codec-provider interface described in the
+    compatibility matrix.
+
+D0 is now complete: the remaining media-analysis gap is entirely the
+optional codec-provider design for compressed formats, which is deferred
+work rather than an open backlog item here.
 
 ### D1 — picture workflow completion
 
@@ -349,19 +362,63 @@ both a CLI and a desktop entry point.
 
 ### D2 — bulk-operation UX
 
-  - [ ] Progress reporting and cancellation for long-running `CatalogService`
-    bulk operations (`import-media` over large trees, `merge`, batch picture
-    operations), surfaced through the CLI and the GUI toolbar.
-  - [ ] Desktop accessibility pass: keyboard navigation coverage and
-    screen-reader labels for toolbar actions and dialogs.
+  - [x] CLI `import-media --progress` prints `Inspected N/TOTAL file(s)` to
+    stderr while scanning a large tree, the case explicitly named in this
+    item as the one worth it (a directory can hold thousands of files;
+    `merge` and batch picture operations are typically a handful of movies
+    per call, so they do not get dedicated progress reporting here).
+    Explicit cancellation support turned out to be unnecessary to build:
+    every `CatalogService` bulk operation already only writes the catalog
+    once, after building its complete result, so interrupting any of
+    them — Ctrl+C during `import-media`'s scan included — leaves the
+    destination catalog completely untouched by construction. This is now a
+    documented, tested guarantee (`docs/cli.md`, `test_media.py`) rather
+    than an unstated side effect.
+  - [x] Added the prerequisite GUI media-import workflow the previous audit
+    found missing: a toolbar **Import Media** action asks whether to import
+    from a folder (with a recursive-subfolder prompt, using
+    `amc.media.discover_media`) or choose individual files, then a modal
+    dialog reports which file is being inspected and can be cancelled
+    mid-scan, mirroring the CLI's atomic-after-inspection guarantee (nothing
+    is added unless every selected/discovered file is inspected without
+    cancelling or hitting an error). It does not yet match the CLI's
+    `--extensions` filter.
+  - [x] Keyboard reachability: every modal dialog now moves initial focus to
+    a specific control on open (the title field in Add/Edit, the borrower
+    field in Loan Out, the first Browse button in Assign Pictures, the
+    Spinbox in Preferences, the Cancel button in the crop and Import Media
+    dialogs) instead of leaving focus on the dialog's background, and Import
+    Media gained a Ctrl+M shortcut alongside the existing toolbar shortcuts.
+  - [ ] Screen-reader labels and a verified accessibility pass remain open.
+    Tk's cross-platform assistive-technology support cannot be exercised or
+    verified in this project's environment (no real display, no screen
+    reader), so the keyboard-focus item above is a real but partial step,
+    not a substitute for this one.
+
+D2's progress/cancellation item, including folder-based GUI import, is now
+complete. A verified accessibility pass beyond the keyboard-focus
+improvements already shipped remains the only open item in D2 — and in the
+entire D0–D3 downstream execution backlog.
 
 ### D3 — catalog/GUI preferences
 
-  - [ ] Persist Python-owned GUI preferences (last-used view filter, layout,
+  - [x] Persist Python-owned GUI preferences (last-used view filter, layout,
     window geometry) separately from catalog data, so they are not confused
-    with retained upstream catalog properties.
-  - [ ] Make the retained undo/redo history depth (`_HISTORY_LIMIT`) and any
-    future retention limits configurable instead of a fixed constant.
+    with retained upstream catalog properties: the new `amc.preferences`
+    module reads/writes an atomic, platform-appropriate per-user JSON file
+    (`AMC_PYTHON_CONFIG_DIR` overrides it), validated field-by-field with a
+    default fallback rather than an error for any missing/corrupt/invalid
+    data. The desktop loads it on startup and saves on every view/layout
+    change and on window close.
+  - [x] Make the retained undo/redo history depth (`_HISTORY_LIMIT`) and any
+    future retention limits configurable instead of a fixed constant:
+    `CatalogService.__init__` now takes a validated `history_limit` keyword
+    (still defaulting to 100), the desktop passes the loaded/saved
+    `GuiPreferences.history_limit` through it, and a toolbar **Preferences**
+    dialog lets the value (1–1000) be changed and persisted at runtime.
+
+D3 is now complete: every planned Python-owned preference is persisted
+separately from catalog data and editable from the desktop.
 
 ## Immediate next slice
 

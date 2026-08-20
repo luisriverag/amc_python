@@ -22,6 +22,7 @@ from amc.gui import (
     movie_with_picture,
     movie_web_url,
     open_crop_dialog,
+    parse_history_limit,
     poster_size,
     poster_source,
     run,
@@ -30,6 +31,7 @@ from amc.errors import CorruptCatalogError
 from amc.catalog import Catalog
 from amc.model import Movie
 from amc.loans import LoanEvent
+from amc.preferences import GuiPreferences
 
 
 def test_window_sort_delegates_to_application_service():
@@ -59,6 +61,116 @@ def test_window_repeated_column_sort_toggles_direction():
     window.service.sort.assert_called_once_with("year", reverse=True)
     assert window.sort_reverse is True
     assert window.table.heading.call_args_list[2].kwargs["text"] == "Year ▼"
+
+
+def test_window_view_filter_change_refreshes_and_saves_preferences():
+    window = object.__new__(CatalogWindow)
+    window.refresh = Mock()
+    window._save_preferences = Mock()
+
+    window._view_filter_changed()
+
+    window.refresh.assert_called_once_with()
+    window._save_preferences.assert_called_once_with()
+
+
+def test_window_layout_change_applies_layout_and_saves_preferences():
+    window = object.__new__(CatalogWindow)
+    window.apply_layout = Mock()
+    window._save_preferences = Mock()
+
+    window._layout_changed()
+
+    window.apply_layout.assert_called_once_with()
+    window._save_preferences.assert_called_once_with()
+
+
+def test_window_saves_current_view_layout_and_window_size():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="Checked"))
+    window.layout = Mock(get=Mock(return_value="Poster"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences()
+    window.service = Mock(history_limit=100)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1280
+    window.winfo_toplevel.return_value.winfo_height.return_value = 800
+
+    with patch("amc.gui.save_preferences") as save:
+        window._save_preferences()
+
+    save.assert_called_once_with(
+        GuiPreferences(
+            view_filter="Checked", layout="Poster",
+            window_width=1280, window_height=800, history_limit=100,
+        ),
+        Path("prefs.json"),
+    )
+    assert (window._preferences.window_width, window._preferences.window_height) == (
+        1280, 800,
+    )
+
+
+def test_window_save_preferences_keeps_previous_size_when_window_not_yet_drawn():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="All"))
+    window.layout = Mock(get=Mock(return_value="Details"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences(window_width=999, window_height=555)
+    window.service = Mock(history_limit=100)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1
+    window.winfo_toplevel.return_value.winfo_height.return_value = 1
+
+    with patch("amc.gui.save_preferences") as save:
+        window._save_preferences()
+
+    saved = save.call_args.args[0]
+    assert (saved.window_width, saved.window_height) == (999, 555)
+
+
+def test_window_save_preferences_includes_the_current_history_limit():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="All"))
+    window.layout = Mock(get=Mock(return_value="Details"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences()
+    window.service = Mock(history_limit=250)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1100
+    window.winfo_toplevel.return_value.winfo_height.return_value = 720
+
+    with patch("amc.gui.save_preferences") as save:
+        window._save_preferences()
+
+    assert save.call_args.args[0].history_limit == 250
+    assert window._preferences.history_limit == 250
+
+
+def test_window_save_preferences_ignores_write_failures():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="All"))
+    window.layout = Mock(get=Mock(return_value="Details"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences()
+    window.service = Mock(history_limit=100)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1100
+    window.winfo_toplevel.return_value.winfo_height.return_value = 720
+
+    with patch("amc.gui.save_preferences", side_effect=OSError("disk full")):
+        window._save_preferences()
+
+
+def test_window_close_saves_preferences_then_destroys():
+    window = object.__new__(CatalogWindow)
+    window._save_preferences = Mock()
+    window.winfo_toplevel = Mock(return_value=Mock())
+
+    window._on_close()
+
+    window._save_preferences.assert_called_once_with()
+    window.winfo_toplevel.return_value.destroy.assert_called_once_with()
 
 
 def _window() -> CatalogWindow:
@@ -241,6 +353,199 @@ def test_window_imports_and_refreshes():
     window.service.import_from.assert_called_once_with("incoming.xml")
     window.refresh.assert_called_once_with()
     showinfo.assert_called_once()
+
+
+def test_window_import_media_ignores_cancelled_mode_prompt():
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=None),
+        patch("amc.gui.filedialog.askopenfilenames") as ask_files,
+        patch("amc.gui.filedialog.askdirectory") as ask_folder,
+    ):
+        window.import_media()
+
+    ask_files.assert_not_called()
+    ask_folder.assert_not_called()
+    window.service.add_many.assert_not_called()
+
+
+def test_window_import_media_ignores_cancelled_file_dialog():
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
+        patch("amc.gui.filedialog.askopenfilenames", return_value=()),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+
+
+def test_window_import_media_ignores_cancelled_folder_dialog():
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch("amc.gui.filedialog.askdirectory", return_value=""),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+
+
+def test_window_import_media_inspects_selected_files_and_adds_them():
+    window = _window()
+    dialog = Mock()
+    movies = [Movie(title="One"), Movie(title="Two")]
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
+        patch(
+            "amc.gui.filedialog.askopenfilenames",
+            return_value=["one.mkv", "two.mkv"],
+        ),
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button", return_value=Mock()),
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=movies),
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.import_media()
+
+    window.service.add_many.assert_called_once_with(movies)
+    window.refresh.assert_called_once_with()
+    dialog.destroy.assert_called_once_with()
+    showinfo.assert_called_once()
+
+
+def test_window_import_media_expands_a_chosen_folder():
+    window = _window()
+    dialog = Mock()
+    discovered = [Path("folder/one.mkv"), Path("folder/two.mkv")]
+    movies = [Movie(title="One"), Movie(title="Two")]
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch("amc.gui.filedialog.askdirectory", return_value="folder"),
+        patch("amc.gui.messagebox.askyesno", return_value=True) as recurse_prompt,
+        patch("amc.gui.discover_media", return_value=discovered) as discover,
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button", return_value=Mock()),
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=movies),
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.import_media()
+
+    discover.assert_called_once_with([Path("folder")], recursive=True)
+    recurse_prompt.assert_called_once()
+    window.service.add_many.assert_called_once_with(movies)
+    showinfo.assert_called_once()
+
+
+def test_window_import_media_reports_no_files_found_in_folder():
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch("amc.gui.filedialog.askdirectory", return_value="empty-folder"),
+        patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch("amc.gui.discover_media", return_value=[]),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+    showinfo.assert_called_once()
+
+
+def test_window_import_media_reports_invalid_folder(tmp_path: Path):
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch(
+            "amc.gui.filedialog.askdirectory",
+            return_value=str(tmp_path / "missing"),
+        ),
+        patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch(
+            "amc.gui.discover_media",
+            side_effect=ValueError("media path does not exist"),
+        ),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+    showerror.assert_called_once()
+
+
+def test_window_import_media_can_be_cancelled_mid_scan():
+    window = _window()
+    dialog = Mock()
+    paths = [Path("a.mkv"), Path("b.mkv"), Path("c.mkv")]
+    inspected = []
+
+    def fake_movie_from_media(path):
+        inspected.append(path)
+        if path == paths[0]:
+            button.call_args_list[0].kwargs["command"]()
+        return Movie(title=path.name)
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
+        patch(
+            "amc.gui.filedialog.askopenfilenames",
+            return_value=[str(item) for item in paths],
+        ),
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=fake_movie_from_media),
+    ):
+        window.import_media()
+
+    assert inspected == [paths[0]]
+    window.service.add_many.assert_not_called()
+    window.refresh.assert_not_called()
+    dialog.destroy.assert_called_once_with()
+
+
+def test_window_import_media_reports_invalid_media_without_mutating_catalog():
+    window = _window()
+    dialog = Mock()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
+        patch(
+            "amc.gui.filedialog.askopenfilenames", return_value=["broken.mkv"],
+        ),
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button", return_value=Mock()),
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=ValueError("bad media")),
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.import_media()
+
+    window.service.add_many.assert_not_called()
+    window.refresh.assert_not_called()
+    dialog.destroy.assert_called_once_with()
+    showerror.assert_called_once()
 
 
 def test_window_exports_using_destination_extension():
@@ -529,7 +834,7 @@ def test_gui_entry_point_defaults_to_catalog_json():
     run.assert_called_once_with(Path("catalog.json"))
 
 
-def test_run_sets_readable_resizable_window_geometry():
+def test_run_sets_title_and_resizable_minimum_size():
     root = Mock()
     with (
         patch("amc.gui.tk.Tk", return_value=root),
@@ -538,7 +843,6 @@ def test_run_sets_readable_resizable_window_geometry():
         run(Path("movies.amc"))
 
     root.title.assert_called_once_with("AMC Python — movies.amc")
-    root.geometry.assert_called_once_with("1100x720")
     root.minsize.assert_called_once_with(760, 480)
     window.assert_called_once_with(root, Path("movies.amc"))
     root.mainloop.assert_called_once_with()
@@ -583,6 +887,7 @@ def test_window_action_states_follow_selection_history_and_format():
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
+    window.import_media_button = Mock()
     window.restore_button = Mock()
     window.table.selection.return_value = ("7", "8")
     window.service.is_writable = True
@@ -612,6 +917,7 @@ def test_window_disables_mutations_for_interchange_catalog():
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
+    window.import_media_button = Mock()
     window.restore_button = Mock()
     window.table.selection.return_value = ("7",)
     window.service.is_writable = False
@@ -637,6 +943,7 @@ def test_window_disables_actions_when_selection_lacks_required_data():
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
+    window.import_media_button = Mock()
     window.restore_button = Mock()
     window.table.selection.return_value = ("7",)
     window.service.is_writable = True
@@ -894,6 +1201,52 @@ def test_poster_source_recovers_windows_path_beside_catalog(tmp_path: Path):
     assert poster_source(
         Movie(picture=r"C:\Movies\Posters\cover.jpg"), tmp_path / "movies.amc"
     ) == ("file", str(poster))
+
+
+def test_parse_history_limit_accepts_in_range_values():
+    assert parse_history_limit(1) == 1
+    assert parse_history_limit(1000) == 1000
+    assert parse_history_limit(250) == 250
+
+
+def test_parse_history_limit_rejects_out_of_range_or_non_integer_values():
+    with pytest.raises(ValueError, match="between 1 and 1000"):
+        parse_history_limit(0)
+    with pytest.raises(ValueError, match="between 1 and 1000"):
+        parse_history_limit(1001)
+    with pytest.raises(ValueError, match="whole number"):
+        parse_history_limit(True)
+    with pytest.raises(ValueError, match="whole number"):
+        parse_history_limit(5.5)
+
+
+def test_window_preferences_dialog_updates_service_history_limit():
+    window = object.__new__(CatalogWindow)
+    window.service = Mock(history_limit=100)
+    window._save_preferences = Mock()
+    dialog = Mock()
+    limit = Mock(get=Mock(return_value=250))
+    spinbox = Mock()
+
+    with (
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.tk.IntVar", return_value=limit),
+        patch("amc.gui.ttk.Spinbox", return_value=spinbox),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.winfo_toplevel = Mock(return_value=Mock())
+        window.open_preferences()
+        accept = button.call_args_list[1].kwargs["command"]
+        accept()
+
+    showerror.assert_not_called()
+    assert window.service.history_limit == 250
+    window._save_preferences.assert_called_once_with()
+    dialog.destroy.assert_called_once_with()
 
 
 def test_poster_size_preserves_aspect_ratio_without_upscaling():

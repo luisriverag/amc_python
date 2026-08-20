@@ -205,6 +205,11 @@ def parser() -> argparse.ArgumentParser:
         "--extensions",
         help="comma-separated extensions to include, for example mkv,mp4,wav",
     )
+    media_import.add_argument(
+        "--progress",
+        action="store_true",
+        help="print 'Inspected N/TOTAL file(s)' to stderr while scanning a large tree",
+    )
     merge.add_argument(
         "--metadata",
         choices=("error", "keep", "replace", "namespace"),
@@ -402,7 +407,12 @@ def _run(args: argparse.Namespace) -> int:
         paths = discover_media(
             args.paths, recursive=args.recursive, extensions=extensions
         )
-        movies = [movie_from_media(path) for path in paths]
+        total = len(paths)
+        movies = []
+        for index, media_path in enumerate(paths, start=1):
+            movies.append(movie_from_media(media_path))
+            if args.progress:
+                print(f"Inspected {index}/{total} file(s)", file=sys.stderr)
         service.add_many(movies)
         print(f"Imported {len(movies)} media file(s)")
     elif args.command == "add":

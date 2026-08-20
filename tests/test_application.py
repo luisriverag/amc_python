@@ -154,6 +154,45 @@ def test_service_failed_undo_preserves_state_and_history(
     assert service.can_undo
 
 
+def test_service_rejects_invalid_history_limit(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    with pytest.raises(ValueError, match="history_limit must be a positive integer"):
+        CatalogService(path, history_limit=0)
+    with pytest.raises(ValueError, match="history_limit must be a positive integer"):
+        CatalogService(path, history_limit=-1)
+    with pytest.raises(ValueError, match="history_limit must be a positive integer"):
+        CatalogService(path, history_limit=True)
+    with pytest.raises(ValueError, match="history_limit must be a positive integer"):
+        CatalogService(path, history_limit="5")
+
+
+def test_service_configured_history_limit_bounds_undo_depth(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path, history_limit=2)
+    assert service.history_limit == 2
+
+    service.add(Movie(title="One"))
+    service.add(Movie(title="Two"))
+    service.add(Movie(title="Three"))
+
+    assert len(service._undo) == 2
+    service.undo()
+    service.undo()
+    assert not service.can_undo
+    assert [movie.title for movie in service.catalog] == ["One"]
+
+
+def test_service_configured_history_limit_bounds_redo_depth(tmp_path: Path):
+    path = tmp_path / "catalog.json"
+    service = CatalogService(path, history_limit=1)
+    service.add(Movie(title="One"))
+    service.add(Movie(title="Two"))
+
+    service.undo()
+    assert service.can_undo is False
+    assert service.can_redo is True
+
+
 def test_service_new_mutation_clears_redo_history(tmp_path: Path):
     service = CatalogService(tmp_path / "catalog.json")
     service.add(Movie(title="Alien"))

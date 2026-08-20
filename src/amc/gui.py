@@ -18,7 +18,16 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 from .application import CatalogService
 from .errors import CatalogError
 from .loans import LoanEvent
+from .media import discover_media, movie_from_media
 from .model import Movie
+from .preferences import (
+    MAX_HISTORY_LIMIT,
+    MIN_HISTORY_LIMIT,
+    GuiPreferences,
+    default_preferences_path,
+    load_preferences,
+    save_preferences,
+)
 from .presentation import filter_movies, poster_source
 
 _EDIT_TEXT_FIELDS = (
@@ -131,6 +140,17 @@ def poster_size(width: int, height: int, *, maximum: tuple[int, int] = (320, 420
         raise ValueError("poster dimensions must be positive")
     scale = min(maximum[0] / width, maximum[1] / height, 1.0)
     return max(1, round(width * scale)), max(1, round(height * scale))
+
+
+def parse_history_limit(value: int) -> int:
+    """Validate a Preferences dialog undo/redo history-limit entry."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError("history limit must be a whole number")
+    if not MIN_HISTORY_LIMIT <= value <= MAX_HISTORY_LIMIT:
+        raise ValueError(
+            f"history limit must be between {MIN_HISTORY_LIMIT} and {MAX_HISTORY_LIMIT}"
+        )
+    return value
 
 
 def make_modal(dialog: tk.Toplevel, *, focus: tk.Widget | None = None) -> None:
@@ -261,11 +281,12 @@ def open_crop_dialog(
 
     buttons = ttk.Frame(dialog)
     buttons.pack(fill="x", padx=8, pady=(0, 8))
-    ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="right")
+    cancel_button = ttk.Button(buttons, text="Cancel", command=dialog.destroy)
+    cancel_button.pack(side="right")
     ttk.Button(buttons, text="Apply Crop", command=accept).pack(
         side="right", padx=(0, 4)
     )
-    make_modal(dialog)
+    make_modal(dialog, focus=cancel_button)
 
 
 def movie_web_url(movie: Movie) -> str:
@@ -282,15 +303,24 @@ def movie_web_url(movie: Movie) -> str:
 class CatalogWindow(ttk.Frame):
     """Browse and edit a catalog without third-party GUI dependencies."""
 
-    def __init__(self, master: tk.Tk, path: Path) -> None:
+    def __init__(
+        self, master: tk.Tk, path: Path, *, preferences_path: Path | None = None
+    ) -> None:
         super().__init__(master, padding=10)
         self.path = path
-        self.service = CatalogService(path)
+        self.preferences_path = (
+            default_preferences_path() if preferences_path is None else preferences_path
+        )
+        self._preferences = load_preferences(self.preferences_path)
+        self.service = CatalogService(path, history_limit=self._preferences.history_limit)
         self.search_text = tk.StringVar()
-        self.view_filter = tk.StringVar(value="All")
-        self.layout = tk.StringVar(value="Details")
+        self.view_filter = tk.StringVar(value=self._preferences.view_filter)
+        self.layout = tk.StringVar(value=self._preferences.layout)
         self.sort_field: str | None = None
         self.sort_reverse = False
+        master.geometry(
+            f"{self._preferences.window_width}x{self._preferences.window_height}"
+        )
         self.pack(fill="both", expand=True)
         self._configure_style()
 
@@ -300,10 +330,17 @@ class CatalogWindow(ttk.Frame):
         ttk.Button(files, text="Save As", command=self.save_as).pack(side="left", padx=4)
         self.import_button = ttk.Button(files, text="Import", command=self.import_catalog)
         self.import_button.pack(side="left")
+        self.import_media_button = ttk.Button(
+            files, text="Import Media", command=self.import_media
+        )
+        self.import_media_button.pack(side="left", padx=4)
         ttk.Button(files, text="Export", command=self.export_catalog).pack(side="left", padx=4)
         ttk.Button(files, text="Backup", command=self.backup_catalog).pack(side="left")
         self.restore_button = ttk.Button(files, text="Restore", command=self.restore_catalog)
         self.restore_button.pack(side="left", padx=4)
+        ttk.Button(
+            files, text="Preferences", command=self.open_preferences
+        ).pack(side="right")
         self.location = ttk.Label(files, text=str(path))
         self.location.pack(side="left", fill="x", expand=True, padx=8)
 
@@ -322,7 +359,7 @@ class CatalogWindow(ttk.Frame):
             width=10,
         )
         view.pack(side="left", padx=(0, 6))
-        view.bind("<<ComboboxSelected>>", lambda _event: self.refresh())
+        view.bind("<<ComboboxSelected>>", lambda _event: self._view_filter_changed())
         ttk.Label(bar, text="Layout:").pack(side="left")
         layout = ttk.Combobox(
             bar,
@@ -332,7 +369,7 @@ class CatalogWindow(ttk.Frame):
             width=8,
         )
         layout.pack(side="left", padx=(0, 6))
-        layout.bind("<<ComboboxSelected>>", lambda _event: self.apply_layout())
+        layout.bind("<<ComboboxSelected>>", lambda _event: self._layout_changed())
 
         # Keep catalog actions on their own row. Putting every action beside the
         # search field clipped the right-most controls on common 760px displays.
@@ -393,6 +430,7 @@ class CatalogWindow(ttk.Frame):
         self._bind_shortcuts()
         self.refresh()
         self.apply_layout()
+        master.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _configure_style(self) -> None:
         """Use a readable Treeview row height derived from the active Tk font."""
@@ -415,6 +453,75 @@ class CatalogWindow(ttk.Frame):
                 self.details.pack(side="left", fill="both", expand=True)
         self.show_selected()
 
+    def _view_filter_changed(self) -> None:
+        self.refresh()
+        self._save_preferences()
+
+    def _layout_changed(self) -> None:
+        self.apply_layout()
+        self._save_preferences()
+
+    def _save_preferences(self) -> None:
+        """Persist the current view/layout and window size, best-effort.
+
+        A write failure here must not block using or closing the window, so
+        it is deliberately swallowed rather than shown to the user; the
+        catalog itself is unaffected either way.
+        """
+        toplevel = self.winfo_toplevel()
+        width = toplevel.winfo_width()
+        height = toplevel.winfo_height()
+        preferences = GuiPreferences(
+            view_filter=self.view_filter.get(),
+            layout=self.layout.get(),
+            window_width=width if width > 1 else self._preferences.window_width,
+            window_height=height if height > 1 else self._preferences.window_height,
+            history_limit=self.service.history_limit,
+        )
+        self._preferences = preferences
+        try:
+            save_preferences(preferences, self.preferences_path)
+        except OSError:
+            pass
+
+    def _on_close(self) -> None:
+        self._save_preferences()
+        self.winfo_toplevel().destroy()
+
+    def open_preferences(self) -> None:
+        """Edit Python-owned desktop preferences (currently: undo/redo depth)."""
+        dialog = tk.Toplevel(self)
+        dialog.title("Preferences")
+        dialog.transient(self.winfo_toplevel())
+        ttk.Label(dialog, text="Undo/redo history limit").grid(
+            row=0, column=0, sticky="w", padx=8, pady=8
+        )
+        limit = tk.IntVar(value=self.service.history_limit)
+        spinbox = ttk.Spinbox(
+            dialog, from_=MIN_HISTORY_LIMIT, to=MAX_HISTORY_LIMIT,
+            textvariable=limit, width=8,
+        )
+        spinbox.grid(row=0, column=1, padx=8, pady=8)
+
+        def accept() -> None:
+            try:
+                value = parse_history_limit(limit.get())
+            except (ValueError, tk.TclError) as error:
+                messagebox.showerror("Preferences", str(error), parent=dialog)
+                return
+            self.service.history_limit = value
+            self._save_preferences()
+            dialog.destroy()
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=1, column=0, columnspan=2, sticky="e", padx=8, pady=(0, 8))
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(
+            side="left", padx=(0, 4)
+        )
+        ttk.Button(buttons, text="Save", command=accept).pack(side="left")
+        dialog.bind("<Return>", lambda _event: accept())
+        make_modal(dialog, focus=spinbox)
+
     def _bind_shortcuts(self) -> None:
         root = self.winfo_toplevel()
         root.bind("<Control-o>", lambda _event: self.open_catalog())
@@ -422,6 +529,7 @@ class CatalogWindow(ttk.Frame):
         root.bind("<Control-f>", lambda _event: self.focus_search())
         root.bind("<Escape>", lambda _event: self.clear_search())
         root.bind("<Control-n>", lambda _event: self.invoke_action("Add"))
+        root.bind("<Control-m>", lambda _event: self.import_media_button.invoke())
         root.bind("<Delete>", lambda _event: self.invoke_action("Remove"))
         root.bind("<space>", lambda _event: self.invoke_action("Toggle Checked"))
         root.bind("<F5>", lambda _event: self.reload_catalog())
@@ -477,6 +585,7 @@ class CatalogWindow(ttk.Frame):
             self.action_buttons[name].configure(state="normal" if enabled else "disabled")
         self.action_buttons["Add"].configure(state="normal" if writable else "disabled")
         self.import_button.configure(state="normal" if writable else "disabled")
+        self.import_media_button.configure(state="normal" if writable else "disabled")
         self.restore_button.configure(state="normal" if writable else "disabled")
         self.action_buttons["Renumber"].configure(
             state="normal" if writable and len(self.service.catalog) else "disabled"
@@ -633,6 +742,97 @@ class CatalogWindow(ttk.Frame):
         self.refresh()
         messagebox.showinfo(
             "Import complete", f"Imported {count} movie(s).", parent=self
+        )
+
+    def import_media(self) -> None:
+        """Batch-add movies from chosen media files or a folder.
+
+        Mirrors the CLI's ``import-media``/``--recursive``, including its
+        folder-expansion bound (see `amc.media.discover_media`).
+        """
+        from_folder = messagebox.askyesnocancel(
+            "Import media",
+            "Import from a folder (Yes) or choose individual files (No)?",
+            parent=self.winfo_toplevel(),
+        )
+        if from_folder is None:
+            return
+        if from_folder:
+            selected_folder = filedialog.askdirectory(
+                parent=self.winfo_toplevel(), title="Choose a media folder",
+            )
+            if not selected_folder:
+                return
+            recursive = messagebox.askyesno(
+                "Import media", "Include files in subfolders?",
+                parent=self.winfo_toplevel(),
+            )
+            try:
+                paths = discover_media([Path(selected_folder)], recursive=recursive)
+            except ValueError as error:
+                messagebox.showerror(
+                    "Could not import media", str(error), parent=self
+                )
+                return
+            if not paths:
+                messagebox.showinfo(
+                    "Import media", "No media files were found.", parent=self
+                )
+                return
+        else:
+            selected = filedialog.askopenfilenames(
+                parent=self.winfo_toplevel(), title="Choose media files",
+            )
+            if not selected:
+                return
+            paths = [Path(item) for item in selected]
+        self._import_media_paths(paths)
+
+    def _import_media_paths(self, paths: list[Path]) -> None:
+        """Inspect resolved media paths with progress/cancel, then add atomically."""
+        total = len(paths)
+        dialog = tk.Toplevel(self)
+        dialog.title("Import media")
+        dialog.transient(self.winfo_toplevel())
+        status = ttk.Label(
+            dialog, text=f"Ready to inspect {total} file(s).",
+            width=48, anchor="w",
+        )
+        status.grid(row=0, column=0, padx=8, pady=8)
+        cancelled = {"value": False}
+        cancel_button = ttk.Button(
+            dialog, text="Cancel", command=lambda: cancelled.__setitem__("value", True)
+        )
+        cancel_button.grid(row=1, column=0, sticky="e", padx=8, pady=(0, 8))
+        make_modal(dialog, focus=cancel_button)
+
+        movies: list[Movie] = []
+        for index, path in enumerate(paths, start=1):
+            if cancelled["value"]:
+                break
+            status.configure(text=f"Inspecting {index}/{total}: {path.name}")
+            dialog.update()
+            try:
+                movies.append(movie_from_media(path))
+            except ValueError as error:
+                messagebox.showerror(
+                    "Could not import media", str(error), parent=dialog
+                )
+                dialog.destroy()
+                return
+        if cancelled["value"]:
+            dialog.destroy()
+            return
+        try:
+            self.service.add_many(movies)
+        except (CatalogError, OSError, TypeError, ValueError) as error:
+            messagebox.showerror("Could not import media", str(error), parent=dialog)
+            dialog.destroy()
+            return
+        dialog.destroy()
+        self.refresh()
+        messagebox.showinfo(
+            "Import complete", f"Imported {len(movies)} media file(s).", parent=self
         )
 
     def export_catalog(self) -> None:
@@ -880,6 +1080,7 @@ class CatalogWindow(ttk.Frame):
 
         assignments: dict[int, str] = {}
         crops: dict[int, tuple[int, int, int, int]] = {}
+        first_browse_button: ttk.Button | None = None
         for row, movie in enumerate(movies):
             ttk.Label(rows_frame, text=movie.display_title(), width=30, anchor="w").grid(
                 row=row, column=0, sticky="w", pady=2
@@ -922,9 +1123,10 @@ class CatalogWindow(ttk.Frame):
                 except (OSError, UnidentifiedImageError) as error:
                     messagebox.showerror("Crop picture", str(error), parent=dialog)
 
-            ttk.Button(rows_frame, text="Browse", command=choose).grid(
-                row=row, column=2, padx=(0, 4)
-            )
+            browse_button = ttk.Button(rows_frame, text="Browse", command=choose)
+            browse_button.grid(row=row, column=2, padx=(0, 4))
+            if first_browse_button is None:
+                first_browse_button = browse_button
             ttk.Button(rows_frame, text="Crop", command=crop).grid(
                 row=row, column=3, padx=(0, 8)
             )
@@ -960,7 +1162,7 @@ class CatalogWindow(ttk.Frame):
             side="left", padx=(0, 4)
         )
         ttk.Button(buttons, text="Apply", command=accept).pack(side="left")
-        make_modal(dialog)
+        make_modal(dialog, focus=first_browse_button)
 
     def clear_pictures(self) -> None:
         """Remove linked and embedded pictures from every selected movie."""
@@ -1187,6 +1389,7 @@ class CatalogWindow(ttk.Frame):
         scrollbar.grid(row=0, column=2, sticky="ns")
         dialog.rowconfigure(0, weight=1)
         dialog.columnconfigure(0, weight=1)
+        title_entry: ttk.Entry | None = None
         for row, (name, value) in enumerate(values.items()):
             ttk.Label(fields_frame, text=name.replace("_", " ").title()).grid(row=row, column=0, sticky="w", padx=8, pady=4)
             if name in _EDIT_MULTILINE_FIELDS:
@@ -1197,6 +1400,8 @@ class CatalogWindow(ttk.Frame):
             else:
                 entry = ttk.Entry(fields_frame, textvariable=value, width=48)
                 entry.grid(row=row, column=1, padx=8, pady=4)
+                if name == "title":
+                    title_entry = entry
             if name == "picture":
                 picture_value = value
 
@@ -1306,13 +1511,12 @@ class CatalogWindow(ttk.Frame):
 
         ttk.Button(dialog, text="Save", command=accept).grid(row=1, column=1, sticky="e", padx=8, pady=10)
         dialog.bind("<Return>", lambda _event: accept())
-        make_modal(dialog)
+        make_modal(dialog, focus=title_entry)
 
 
 def run(path: Path) -> None:
     root = tk.Tk()
     root.title(f"AMC Python — {path.name}")
-    root.geometry("1100x720")
     root.minsize(760, 480)
     CatalogWindow(root, path)
     root.mainloop()

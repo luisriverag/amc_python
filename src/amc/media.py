@@ -25,7 +25,7 @@ class MediaInfo:
 
 
 def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaInfo:
-    """Inspect safe filesystem facts and WAV/FLAC metadata when applicable."""
+    """Inspect safe filesystem facts and WAV/FLAC/AIFF metadata when applicable."""
     path = Path(path)
     if not path.is_file():
         raise ValueError(f"media path is not a file: {path}")
@@ -48,6 +48,9 @@ def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaIn
     elif suffix == ".flac":
         length, bitrate = _inspect_flac_stream_info(path, size)
         audio_format = "FLAC"
+    elif suffix in {".aif", ".aiff", ".aifc"}:
+        length, bitrate = _inspect_aiff_common_chunk(path, size)
+        audio_format = "AIFF"
     return MediaInfo(
         str(path), path.stem, path.suffix, size, length, audio_format, bitrate
     )
@@ -81,6 +84,74 @@ def _inspect_flac_stream_info(path: Path, size: int) -> tuple[int | None, int | 
         return None, None
     length = round(total_samples / sample_rate)
     bitrate = round(size * 8 / total_samples * sample_rate / 1000)
+    return length, bitrate
+
+
+_AIFF_MAX_CHUNKS = 64
+_AIFF_PCM_COMPRESSION_TYPES = {b"NONE", b"sowt", b"twos", b"in24", b"in32"}
+
+
+def _read_extended_be(data: bytes) -> float:
+    """Decode a 10-byte big-endian IEEE 754 80-bit extended-precision float.
+
+    AIFF stores its sample rate this way. Unlike double precision, the
+    80-bit format has no implicit leading mantissa bit, so the value is the
+    64-bit mantissa scaled directly by the unbiased exponent.
+    """
+    exponent = int.from_bytes(data[0:2], "big") & 0x7FFF
+    mantissa = int.from_bytes(data[2:10], "big")
+    if exponent == 0 and mantissa == 0:
+        return 0.0
+    return mantissa * (2.0 ** (exponent - 16383 - 63))
+
+
+def _inspect_aiff_common_chunk(path: Path, size: int) -> tuple[int | None, int | None]:
+    """Read the mandatory COMM chunk for duration and bitrate.
+
+    AIFF/AIFF-C files are IFF containers: a four-byte ``FORM`` magic, a
+    big-endian chunk size, and a form type (``AIFF`` is always uncompressed
+    PCM; ``AIFF-C`` carries a four-character compression type that may or may
+    not be PCM), followed by a sequence of chunks. Duration, channel count,
+    and bit depth come from the mandatory ``COMM`` chunk, which may appear
+    anywhere in the chunk sequence. Python's ``aifc`` module is deliberately
+    not used: it is deprecated and removed starting in Python 3.13.
+    """
+    with path.open("rb") as stream:
+        header = stream.read(12)
+        if len(header) != 12 or header[0:4] != b"FORM" or header[8:12] not in (
+            b"AIFF", b"AIFC",
+        ):
+            raise ValueError("invalid AIFF media file: missing FORM/AIFF marker")
+        form_type = header[8:12]
+        common = None
+        for _ in range(_AIFF_MAX_CHUNKS):
+            chunk_header = stream.read(8)
+            if len(chunk_header) != 8:
+                break
+            chunk_id = chunk_header[0:4]
+            chunk_size = int.from_bytes(chunk_header[4:8], "big")
+            data = stream.read(chunk_size)
+            if len(data) != chunk_size:
+                raise ValueError("invalid AIFF media file: truncated chunk")
+            if chunk_id == b"COMM":
+                common = data
+                break
+            if chunk_size % 2:
+                stream.read(1)
+        if common is None or len(common) < 18:
+            raise ValueError("invalid AIFF media file: missing COMM chunk")
+    channels = int.from_bytes(common[0:2], "big")
+    total_samples = int.from_bytes(common[2:6], "big")
+    bits_per_sample = int.from_bytes(common[6:8], "big")
+    sample_rate = _read_extended_be(common[8:18])
+    if sample_rate <= 0 or total_samples == 0:
+        return None, None
+    length = round(total_samples / sample_rate)
+    is_pcm = form_type == b"AIFF" or common[18:22] in _AIFF_PCM_COMPRESSION_TYPES
+    if is_pcm:
+        bitrate = round(sample_rate * bits_per_sample * channels / 1000)
+    else:
+        bitrate = round(size * 8 / total_samples * sample_rate / 1000)
     return length, bitrate
 
 

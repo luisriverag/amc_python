@@ -93,6 +93,7 @@ amc -c movies.json import legacy.amc --max-input-bytes 1073741824 --max-movies 1
 amc -c movies.json import-media Movie.mkv Trailer.wav
 amc -c movies.json import-media MediaFolder/ --recursive
 amc -c movies.json import-media MediaFolder/ --recursive --extensions mkv,mp4,wav
+amc -c movies.json import-media MediaFolder/ --recursive --progress
 amc -c movies.json add "The Apartment" --year 1960 --director "Billy Wilder"
 amc -c movies.json list
 amc -c movies.json list --json
@@ -171,14 +172,18 @@ catalog text. A bounded UTF-8 template may contain exactly one `{{MOVIES}}` mark
 a bounded row template supports escaped uppercase modeled-field markers such as
 `{{NUMBER}}`, `{{ORIGINAL_TITLE}}`, and `{{DESCRIPTION}}`, plus
 `{{DISPLAY_TITLE}}`. Upstream AMC's full template/tag compatibility remains pending.
-`import-media` records portable path/name/extension/size facts. PCM WAV and FLAC
-files also provide duration and audio bitrate using only Python's standard
-library — WAV bitrate is computed from the PCM format, FLAC duration and
-average bitrate from the mandatory leading STREAMINFO metadata block; broader
-codec inspection remains an optional-provider gap. Directory expansion is
-deterministic, opt-in recursive, optionally extension-filtered, and bounded to
-100,000 files per
-invocation.
+`import-media` records portable path/name/extension/size facts. PCM WAV, FLAC,
+and AIFF/AIFF-C files also provide duration and audio bitrate using only
+Python's standard library — WAV and uncompressed AIFF bitrate come from the
+PCM format; FLAC and compressed AIFF-C use an average bitrate computed from
+file size and duration; AIFF's sample rate is decoded from its 80-bit extended
+float without the deprecated, Python-3.13-removed `aifc` module. Broader
+codec inspection (MP3, MP4, OGG, and similar compressed/lossy formats)
+remains an optional-provider gap. Directory expansion is deterministic,
+opt-in recursive, optionally extension-filtered, and bounded to 100,000 files
+per invocation. `--progress` reports inspection progress to stderr for large
+trees; the catalog is only written after every file is inspected, so
+interrupting the command at any point leaves it untouched.
 Legacy `.ifs` script metadata can be inspected and inventoried without executing
 Pascal code. Script execution and network providers remain intentionally disabled
 until a sandboxed, timeout-bound provider boundary is implemented. Integrators can

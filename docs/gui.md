@@ -24,6 +24,16 @@ The packaging check verifies that an isolated wheel installation can import both
 - Open an existing JSON, XML, CSV, or native AMC catalog.
 - Save the active catalog under a new JSON path.
 - Merge another catalog using safe default collision policies.
+- **Import Media** first asks whether to import from a folder or choose
+  individual files, then adds a movie entry per file from portable facts and,
+  for WAV/FLAC/AIFF, duration and bitrate — the desktop equivalent of the
+  CLI's `import-media`. Choosing a folder also asks whether to include
+  subfolders, mirroring `--recursive`; there is no extension-filter option
+  yet, unlike the CLI's `--extensions`. A modal progress dialog reports which
+  file is being inspected and can be cancelled mid-scan; like the CLI, the
+  catalog is only mutated once, after every selected file has been
+  inspected, so cancelling, an empty folder, or an invalid file leaves it
+  untouched.
 - Export XML, CSV, static HTML, or experimental native AMC 4.2 output.
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;
@@ -58,6 +68,9 @@ The packaging check verifies that an isolated wheel installation can import both
   status and retains a visible selection across refreshes. Clicking a column heading
   sorts ascending; clicking it again sorts descending. An arrow shows the active
   direction, and missing numeric values remain at the end in either direction.
+  The active view filter, layout, and window size are remembered across
+  restarts (see **Preferences** below); this does not affect sorting, which
+  always starts unsorted for a freshly opened catalog.
 - Use Ctrl+F to move directly to search and Escape to clear the current query and
   return to the movie table. Selection-dependent actions are disabled until they
   can succeed, and mutation controls remain disabled while an interchange catalog
@@ -94,7 +107,8 @@ The packaging check verifies that an isolated wheel installation can import both
 - Reload the active catalog from disk with F5.
 - Undo and redo persisted mutations with the toolbar, Ctrl+Z, and Ctrl+Y. Undo and
   redo are themselves failure-atomic: a write error leaves both the visible catalog
-  and history position unchanged. The most recent 100 states are retained; opening
+  and history position unchanged. The most recent states are retained up to the
+  configurable history limit (100 by default; see **Preferences** below); opening
   or reloading a catalog starts new history.
 
 File, search/view, and catalog actions use separate toolbar rows so controls remain
@@ -102,10 +116,11 @@ reachable at the supported 760-pixel minimum window width. The desktop opens at
 1100×720 by default and remains resizable down to 760×480.
 
 Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
-search, Escape to clear search, Ctrl+N for a new movie, Ctrl+Z/Ctrl+Y for undo/redo,
-Ctrl+U for the movie URL, Space for checked state, Delete for removal, and F5 for
-reload. Action shortcuts follow the same enabled/disabled state as their toolbar
-buttons, so they cannot bypass read-only, selection, URL-safety, or history checks.
+search, Escape to clear search, Ctrl+N for a new movie, Ctrl+M for Import Media,
+Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked state,
+Delete for removal, and F5 for reload. Action shortcuts follow the same
+enabled/disabled state as their toolbar buttons, so they cannot bypass read-only,
+selection, URL-safety, or history checks.
 Destructive removal, restore, and renumber workflows require confirmation.
 Native `.amc` export also requires confirmation because writer output has not been
 verified in upstream AMC. The dialog advises retaining the AMC Python JSON catalog
@@ -118,7 +133,14 @@ prevents the JSON persistence layer from replacing interchange bytes in place.
 
 Editor and loan dialogs wait until the window manager has made them viewable before
 taking a modal input grab. This avoids the `grab failed: window not viewable` error
-seen with some Linux window managers.
+seen with some Linux window managers. Every modal dialog also moves initial keyboard
+focus to a specific control when it opens — the title field in Add/Edit, the
+borrower field in Loan Out, the first Browse button in Assign Pictures, the Spinbox
+in Preferences, and the Cancel button in the crop and Import Media dialogs — so a
+keyboard-only user is never left with focus on the dialog's background. This is a
+targeted, tested improvement to keyboard reachability, not a verified accessibility
+pass: Tk's cross-platform screen-reader support cannot be exercised or verified in
+this project's environment, so no assistive-technology compatibility claim is made.
 
 Mutations go through `CatalogService`. A failed persistent mutation is reported in
 a dialog and the table is not refreshed with unpublished state. Restore and
@@ -131,12 +153,39 @@ the reader preserves those values as matching control codes instead of refusing 
 open the catalog. Locale-specific code-page verification still requires genuine
 upstream fixtures.
 
+## Preferences
+
+The desktop remembers the last-used view filter, layout, window size, and
+undo/redo history depth across restarts. This is an AMC Python convenience with
+no upstream counterpart, so it is deliberately stored outside any catalog file —
+never in the JSON catalog, and never confused with a retained Ant Movie Catalog
+property — in a small per-user JSON file (`amc.preferences`):
+`%APPDATA%\amc-python\gui-preferences.json` on Windows,
+`~/Library/Application Support/amc-python/gui-preferences.json` on macOS, and
+`$XDG_CONFIG_HOME/amc-python/gui-preferences.json` (or `~/.config/amc-python/...`)
+elsewhere. Set `AMC_PYTHON_CONFIG_DIR` to use a different location, such as in
+tests or portable installs. Preferences are written atomically whenever the view
+filter or layout changes, once when the **Preferences** toolbar button's history
+limit is saved, and once more when the window closes to capture its final size.
+A missing, corrupt, or invalid preferences file — or a failed write — is never
+treated as an error: the desktop falls back to built-in defaults (view All,
+layout Details, 1100×720, 100-entry history) rather than failing to start or
+blocking a close.
+
+The toolbar **Preferences** button opens a dialog to change how many undo/redo
+states (1–1000) the desktop keeps in memory and writes to the JSON catalog on
+each undo/redo. The new limit takes effect immediately and does not retroactively
+grow or shrink already-retained history.
+
 ## Known limitations
 
 The GUI remains a prototype. Mutations currently save immediately, so there is no
-unsaved dirty state to prompt about. It does not yet provide progress or
-cancellation, accessibility verification, localization, or automated
-real-display widget tests. The batch **Set Pictures**, **Assign Pictures**, and
+unsaved dirty state to prompt about. Import Media has cancellable progress
+reporting, but bulk `merge` and batch picture operations do not; there is no
+verified accessibility pass (only the keyboard-focus improvements described
+above — no screen-reader labels, and no automated or human verification with
+assistive technology), no localization, and no automated real-display widget
+tests. The batch **Set Pictures**, **Assign Pictures**, and
 **Clear Pictures** toolbar actions cover sharing one picture, assigning a
 distinct picture per movie, and clearing pictures across an extended
 selection; the edit dialog's **Crop** button and each row's **Crop** button in

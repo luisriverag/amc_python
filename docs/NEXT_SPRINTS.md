@@ -11,10 +11,10 @@ upstream catalogs — cannot be performed inside this repository's automated
 development environment. Sprints 2–4 stay gated behind Sprint 1's exit checks
 exactly as written below; none of their compatibility claims may be advanced
 without registered fixtures. While Sprint 1 waits on an external contributor,
-execution proceeds on the downstream, fixture-independent application-feature
-backlog described in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md#execution-priority-downstream-features-while-fixtures-are-unavailable)
-(Milestones 5 and 6). That work never substitutes for Sprint 1 and must not be
-described as compatibility progress.
+execution proceeds on the ordered, fixture-independent
+[**Downstream execution backlog (D0–D3)**](IMPLEMENTATION_PLAN.md#downstream-execution-backlog-d0d3)
+in `IMPLEMENTATION_PLAN.md` (Milestones 5 and 6). That work never substitutes
+for Sprint 1 and must not be described as compatibility progress.
 
 ## Priority rules
 

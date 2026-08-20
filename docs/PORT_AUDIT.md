@@ -20,8 +20,8 @@ drop-in Ant Movie Catalog port. Internal JSON behavior, catalog operations, the
 application service, and guarded CLI workflows have useful automated coverage.
 Native `.amc` parsing/writing, XML, CSV, metadata, and embedded-picture retention
 are implemented from source or synthetic examples but lack genuine upstream
-fixtures. Safe subsets also exist for HTML export, media discovery, PCM WAV
-inspection, non-executing script metadata and public settings, desktop/web
+fixtures. Safe subsets also exist for HTML export, media discovery, PCM WAV and
+FLAC inspection, non-executing script metadata and public settings, desktop/web
 presentation, and loans.
 Script execution, localization, printing, and full
 upstream desktop workflows are not ported. Python-owned borrower/history metadata
@@ -67,7 +67,7 @@ confidence.
 | Source acquisition tool | Streaming download, digest, extraction selection, inventory | Local HTTP and synthetic inventory tests | High for tested behavior |
 | Engineering checks | Canonical tests/compile/fixture checks plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
 | HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
-| Media prototype | File discovery/facts and PCM WAV duration/bitrate | File, WAV, bounds, filtering, recursive, and atomic CLI tests | Moderate for stated subset |
+| Media prototype | File discovery/facts and PCM WAV/FLAC duration/bitrate | File, WAV, FLAC, bounds, filtering, recursive, and atomic CLI tests | Moderate for stated subset |
 | Script inventory/settings | Bounded non-executing Infos/options/parameters/permissions/static-name parser; validated option/parameter overrides; atomic Python JSON settings | Synthetic metadata, malformed-entry, configuration, persistence, and CLI tests | Moderate for the stated non-executing subset; no runtime parity |
 | Application service | Failure-atomic CRUD, merge, media import, loans, undo/redo, backup/restore, and export orchestration | Mutation-failure, persistence, history, and adapter tests | High for tested internal workflows |
 | Loan prototype | Single/batch, media-label, and retained-native-number group transitions; managed borrowers; JSON history; source-shaped TSV export | Unit/service/CLI/GUI tests, including atomic conflicts and output preservation | Moderate internally; upstream encoding/behavior unverified |
@@ -95,7 +95,7 @@ confidence.
 - Upstream website script compilation/execution, network/provider APIs, result
   selection and merge, license-acceptance workflow, debugging, and static session
   state (metadata and public settings only).
-- Full media analysis and codec mapping (portable facts and PCM WAV only).
+- Full media analysis and codec mapping (portable facts and PCM WAV/FLAC only).
 - Upstream verification of grouped-loan and TSV history encoding/consumption.
 - Localization resources.
 - Printing and reports.
@@ -216,7 +216,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop, bounded poster display, and atomic batch set/clear | Upstream import modes, naming/copy/move rules, conversion options, and genuine embedded/linked fixtures |
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
 | Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings | IFPS compiler/runtime, complete API inventory, HTTP/browser interactions, license acceptance, debugger, results UI, safe merge preview, timeouts/cache/rate limits, and recorded provider tests |
-| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV analysis | MediaInfo integration/version checks, the full tag map, stream selection, filters, and field merge behavior |
+| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC analysis | MediaInfo integration/version checks, the full tag map, stream selection, filters, and field merge behavior |
 | HTML export | `export.pas`, template units | Safe bounded Python table/templates | Upstream template tags, multi-file output, extra/custom-field semantics, and fixture comparison |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
 | Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |

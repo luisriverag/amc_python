@@ -49,6 +49,10 @@ the evidence bar: Milestones 5 and 6 already existed and their gates are
 unchanged. When genuine fixtures become available, work reverts to the P1–P3
 sequence below before any new compatibility claim is made.
 
+The concrete, ordered form of this backlog is the **Downstream execution
+backlog (D0–D3)** further down this document, alongside the upstream P0–P3
+backlog it runs in parallel with.
+
 ## Milestone 0: authoritative upstream baseline
 
 - [ ] Reacquire `amc_sources.rar` and record URL, retrieval date, byte size, and
@@ -191,7 +195,9 @@ all omitted or opaque data is reported.
   movie, picture, and extra-field permissions; execution, timeouts, caching, and
   rate limits remain intentionally absent).
 - [ ] Add image download and full media-file analysis as optional capabilities
-  (portable file facts and PCM WAV analysis are available without dependencies).
+  (portable file facts and PCM WAV/FLAC analysis are available without
+  dependencies; compressed/lossy formats such as MP3, MP4, and OGG still need
+  either bounded dependency-free parsing or an optional codec provider).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
 - [ ] Reproduce upstream HTML template/tag semantics (safe static HTML table export
   is available as a non-compatible baseline).
@@ -296,6 +302,58 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.
 
+## Downstream execution backlog (D0–D3)
+
+While Sprint 1 (below) stays externally blocked on genuine fixtures, this is
+the ordered, concrete backlog for the "Execution priority" track above. Unlike
+P0–P3, items here carry no fixture dependency and no ordering gate between
+tiers — pick the next unchecked item in the lowest tier with unchecked work.
+Each item still needs its own tests and a `docs/compatibility.md` update per
+the "definition of done." These are sub-items of the Milestone 5/6 checklist
+entries above, not new top-level checklist entries, so they intentionally use
+indented, non-canonical checkbox markers that the port-progress count in
+`README.md` does not scan.
+
+### D0 — media analysis completeness
+
+  - [x] Dependency-free PCM WAV duration/bitrate.
+  - [x] Dependency-free FLAC duration/average bitrate, parsed from the
+    mandatory leading STREAMINFO metadata block.
+  - [ ] Evaluate whether further fixed-header formats (e.g., AIFF) are worth
+    dependency-free support versus designing the optional bounded
+    codec-provider interface for compressed/lossy formats (MP3, MP4, OGG)
+    that `getmedia.pas` covers via MediaInfo.
+
+### D1 — picture workflow completion
+
+  - [x] Atomic batch picture clear across an extended selection (CLI and GUI).
+  - [x] Atomic batch picture set — one shared picture across a selection (CLI
+    and GUI).
+  - [x] Atomic batch picture assignment — a distinct picture per movie in one
+    write (CLI `picture-set-many`; GUI **Assign Pictures** dialog).
+  - [ ] Interactive crop selection (a draggable rectangle over the poster
+    preview) in the edit and Assign Pictures dialogs, replacing the CLI-only
+    `--crop X,Y,WIDTH,HEIGHT` numeric entry.
+  - [ ] Per-movie crop rectangles in a batch assignment; today one shared
+    `--crop` applies the same coordinates to every embedded image in the
+    batch.
+
+### D2 — bulk-operation UX
+
+  - [ ] Progress reporting and cancellation for long-running `CatalogService`
+    bulk operations (`import-media` over large trees, `merge`, batch picture
+    operations), surfaced through the CLI and the GUI toolbar.
+  - [ ] Desktop accessibility pass: keyboard navigation coverage and
+    screen-reader labels for toolbar actions and dialogs.
+
+### D3 — catalog/GUI preferences
+
+  - [ ] Persist Python-owned GUI preferences (last-used view filter, layout,
+    window geometry) separately from catalog data, so they are not confused
+    with retained upstream catalog properties.
+  - [ ] Make the retained undo/redo history depth (`_HISTORY_LIMIT`) and any
+    future retention limits configurable instead of a fixed constant.
+
 ## Immediate next slice
 
 Execution is organized into four gated sprints in
@@ -312,11 +370,11 @@ automated environment does not have, so it is currently blocked on an external
 contributor supplying fixtures, not on further coding here. Sprint exit checks
 remain blocking criteria — no later sprint's work advances an earlier gate, and
 no compatibility status may be upgraded without registered evidence — but with
-Sprint 1 externally blocked, the immediate change should draw from **Milestone 5
-or 6's downstream application-feature backlog** (see "Execution priority" above)
-rather than sitting idle or inferring more unverified format behavior. A
-downstream slice still needs its own tests and documentation; it simply makes no
-upstream-compatibility claim, so it does not require a fixture.
+Sprint 1 externally blocked, the immediate change should draw from the
+**Downstream execution backlog (D0–D3)** above rather than sitting idle or
+inferring more unverified format behavior. A downstream slice still needs its
+own tests and documentation; it simply makes no upstream-compatibility claim,
+so it does not require a fixture.
 
 The manifest contract and canonical checks now support exact 65-byte native headers,
 declared native versions, movie counts, metadata, and indexed movie-field expectations through

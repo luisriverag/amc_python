@@ -43,10 +43,17 @@ _READ_ONLY_INTERCHANGE_SUFFIXES = {".amc", ".xml", ".csv"}
 class CatalogService:
     """Own a catalog and persist mutations without exposing partial changes."""
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(self, path: str | Path, *, history_limit: int = _HISTORY_LIMIT) -> None:
+        if (
+            isinstance(history_limit, bool)
+            or not isinstance(history_limit, int)
+            or history_limit < 1
+        ):
+            raise ValueError("history_limit must be a positive integer")
         self.path = Path(path)
         self.catalog = load(self.path) if self.path.exists() else Catalog()
         self.dirty = False
+        self.history_limit = history_limit
         self._undo: list[Catalog] = []
         self._redo: list[Catalog] = []
 
@@ -555,7 +562,7 @@ class CatalogService:
         save(previous, self.path)
         self._undo.pop()
         self._redo.append(self._clone(self.catalog))
-        del self._redo[:-_HISTORY_LIMIT]
+        del self._redo[:-self.history_limit]
         self.catalog = previous
 
     def redo(self) -> None:
@@ -567,7 +574,7 @@ class CatalogService:
         save(following, self.path)
         self._redo.pop()
         self._undo.append(self._clone(self.catalog))
-        del self._undo[:-_HISTORY_LIMIT]
+        del self._undo[:-self.history_limit]
         self.catalog = following
 
     def backup(self, destination: str | Path) -> None:
@@ -654,7 +661,7 @@ class CatalogService:
             raise
         self.catalog = candidate
         self._undo.append(previous)
-        del self._undo[:-_HISTORY_LIMIT]
+        del self._undo[:-self.history_limit]
         self._redo.clear()
         self.dirty = False
         return result

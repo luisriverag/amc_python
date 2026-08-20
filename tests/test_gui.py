@@ -22,6 +22,7 @@ from amc.gui import (
     movie_with_picture,
     movie_web_url,
     open_crop_dialog,
+    parse_history_limit,
     poster_size,
     poster_source,
     run,
@@ -90,6 +91,7 @@ def test_window_saves_current_view_layout_and_window_size():
     window.layout = Mock(get=Mock(return_value="Poster"))
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
+    window.service = Mock(history_limit=100)
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1280
     window.winfo_toplevel.return_value.winfo_height.return_value = 800
@@ -100,7 +102,7 @@ def test_window_saves_current_view_layout_and_window_size():
     save.assert_called_once_with(
         GuiPreferences(
             view_filter="Checked", layout="Poster",
-            window_width=1280, window_height=800,
+            window_width=1280, window_height=800, history_limit=100,
         ),
         Path("prefs.json"),
     )
@@ -115,6 +117,7 @@ def test_window_save_preferences_keeps_previous_size_when_window_not_yet_drawn()
     window.layout = Mock(get=Mock(return_value="Details"))
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences(window_width=999, window_height=555)
+    window.service = Mock(history_limit=100)
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1
     window.winfo_toplevel.return_value.winfo_height.return_value = 1
@@ -126,12 +129,31 @@ def test_window_save_preferences_keeps_previous_size_when_window_not_yet_drawn()
     assert (saved.window_width, saved.window_height) == (999, 555)
 
 
+def test_window_save_preferences_includes_the_current_history_limit():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="All"))
+    window.layout = Mock(get=Mock(return_value="Details"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences()
+    window.service = Mock(history_limit=250)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1100
+    window.winfo_toplevel.return_value.winfo_height.return_value = 720
+
+    with patch("amc.gui.save_preferences") as save:
+        window._save_preferences()
+
+    assert save.call_args.args[0].history_limit == 250
+    assert window._preferences.history_limit == 250
+
+
 def test_window_save_preferences_ignores_write_failures():
     window = object.__new__(CatalogWindow)
     window.view_filter = Mock(get=Mock(return_value="All"))
     window.layout = Mock(get=Mock(return_value="Details"))
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
+    window.service = Mock(history_limit=100)
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1100
     window.winfo_toplevel.return_value.winfo_height.return_value = 720
@@ -983,6 +1005,52 @@ def test_poster_source_recovers_windows_path_beside_catalog(tmp_path: Path):
     assert poster_source(
         Movie(picture=r"C:\Movies\Posters\cover.jpg"), tmp_path / "movies.amc"
     ) == ("file", str(poster))
+
+
+def test_parse_history_limit_accepts_in_range_values():
+    assert parse_history_limit(1) == 1
+    assert parse_history_limit(1000) == 1000
+    assert parse_history_limit(250) == 250
+
+
+def test_parse_history_limit_rejects_out_of_range_or_non_integer_values():
+    with pytest.raises(ValueError, match="between 1 and 1000"):
+        parse_history_limit(0)
+    with pytest.raises(ValueError, match="between 1 and 1000"):
+        parse_history_limit(1001)
+    with pytest.raises(ValueError, match="whole number"):
+        parse_history_limit(True)
+    with pytest.raises(ValueError, match="whole number"):
+        parse_history_limit(5.5)
+
+
+def test_window_preferences_dialog_updates_service_history_limit():
+    window = object.__new__(CatalogWindow)
+    window.service = Mock(history_limit=100)
+    window._save_preferences = Mock()
+    dialog = Mock()
+    limit = Mock(get=Mock(return_value=250))
+    spinbox = Mock()
+
+    with (
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.tk.IntVar", return_value=limit),
+        patch("amc.gui.ttk.Spinbox", return_value=spinbox),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.winfo_toplevel = Mock(return_value=Mock())
+        window.open_preferences()
+        accept = button.call_args_list[1].kwargs["command"]
+        accept()
+
+    showerror.assert_not_called()
+    assert window.service.history_limit == 250
+    window._save_preferences.assert_called_once_with()
+    dialog.destroy.assert_called_once_with()
 
 
 def test_poster_size_preserves_aspect_ratio_without_upscaling():

@@ -20,6 +20,8 @@ from .errors import CatalogError
 from .loans import LoanEvent
 from .model import Movie
 from .preferences import (
+    MAX_HISTORY_LIMIT,
+    MIN_HISTORY_LIMIT,
     GuiPreferences,
     default_preferences_path,
     load_preferences,
@@ -137,6 +139,17 @@ def poster_size(width: int, height: int, *, maximum: tuple[int, int] = (320, 420
         raise ValueError("poster dimensions must be positive")
     scale = min(maximum[0] / width, maximum[1] / height, 1.0)
     return max(1, round(width * scale)), max(1, round(height * scale))
+
+
+def parse_history_limit(value: int) -> int:
+    """Validate a Preferences dialog undo/redo history-limit entry."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError("history limit must be a whole number")
+    if not MIN_HISTORY_LIMIT <= value <= MAX_HISTORY_LIMIT:
+        raise ValueError(
+            f"history limit must be between {MIN_HISTORY_LIMIT} and {MAX_HISTORY_LIMIT}"
+        )
+    return value
 
 
 def make_modal(dialog: tk.Toplevel, *, focus: tk.Widget | None = None) -> None:
@@ -293,11 +306,11 @@ class CatalogWindow(ttk.Frame):
     ) -> None:
         super().__init__(master, padding=10)
         self.path = path
-        self.service = CatalogService(path)
         self.preferences_path = (
             default_preferences_path() if preferences_path is None else preferences_path
         )
         self._preferences = load_preferences(self.preferences_path)
+        self.service = CatalogService(path, history_limit=self._preferences.history_limit)
         self.search_text = tk.StringVar()
         self.view_filter = tk.StringVar(value=self._preferences.view_filter)
         self.layout = tk.StringVar(value=self._preferences.layout)
@@ -319,6 +332,9 @@ class CatalogWindow(ttk.Frame):
         ttk.Button(files, text="Backup", command=self.backup_catalog).pack(side="left")
         self.restore_button = ttk.Button(files, text="Restore", command=self.restore_catalog)
         self.restore_button.pack(side="left", padx=4)
+        ttk.Button(
+            files, text="Preferences", command=self.open_preferences
+        ).pack(side="right")
         self.location = ttk.Label(files, text=str(path))
         self.location.pack(side="left", fill="x", expand=True, padx=8)
 
@@ -454,6 +470,7 @@ class CatalogWindow(ttk.Frame):
             layout=self.layout.get(),
             window_width=width if width > 1 else self._preferences.window_width,
             window_height=height if height > 1 else self._preferences.window_height,
+            history_limit=self.service.history_limit,
         )
         self._preferences = preferences
         try:
@@ -464,6 +481,40 @@ class CatalogWindow(ttk.Frame):
     def _on_close(self) -> None:
         self._save_preferences()
         self.winfo_toplevel().destroy()
+
+    def open_preferences(self) -> None:
+        """Edit Python-owned desktop preferences (currently: undo/redo depth)."""
+        dialog = tk.Toplevel(self)
+        dialog.title("Preferences")
+        dialog.transient(self.winfo_toplevel())
+        ttk.Label(dialog, text="Undo/redo history limit").grid(
+            row=0, column=0, sticky="w", padx=8, pady=8
+        )
+        limit = tk.IntVar(value=self.service.history_limit)
+        spinbox = ttk.Spinbox(
+            dialog, from_=MIN_HISTORY_LIMIT, to=MAX_HISTORY_LIMIT,
+            textvariable=limit, width=8,
+        )
+        spinbox.grid(row=0, column=1, padx=8, pady=8)
+
+        def accept() -> None:
+            try:
+                value = parse_history_limit(limit.get())
+            except (ValueError, tk.TclError) as error:
+                messagebox.showerror("Preferences", str(error), parent=dialog)
+                return
+            self.service.history_limit = value
+            self._save_preferences()
+            dialog.destroy()
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=1, column=0, columnspan=2, sticky="e", padx=8, pady=(0, 8))
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(
+            side="left", padx=(0, 4)
+        )
+        ttk.Button(buttons, text="Save", command=accept).pack(side="left")
+        dialog.bind("<Return>", lambda _event: accept())
+        make_modal(dialog, focus=spinbox)
 
     def _bind_shortcuts(self) -> None:
         root = self.winfo_toplevel()

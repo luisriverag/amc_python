@@ -17,6 +17,7 @@ def test_save_and_load_preferences_round_trip(tmp_path: Path):
     path = tmp_path / "gui-preferences.json"
     preferences = GuiPreferences(
         view_filter="Checked", layout="Poster", window_width=1280, window_height=800,
+        history_limit=250,
     )
 
     save_preferences(preferences, path)
@@ -74,6 +75,37 @@ def test_load_preferences_falls_back_field_by_field_for_invalid_values(
     )
 
     assert load_preferences(path) == GuiPreferences()
+
+
+def test_load_preferences_rejects_out_of_range_or_boolean_history_limit(
+    tmp_path: Path,
+):
+    too_low = tmp_path / "too-low.json"
+    too_low.write_text(
+        json.dumps({
+            "format": "amc-python-gui-preferences", "version": 1, "history_limit": 0,
+        }),
+        encoding="utf-8",
+    )
+    assert load_preferences(too_low).history_limit == GuiPreferences().history_limit
+
+    too_high = tmp_path / "too-high.json"
+    too_high.write_text(
+        json.dumps({
+            "format": "amc-python-gui-preferences", "version": 1, "history_limit": 1001,
+        }),
+        encoding="utf-8",
+    )
+    assert load_preferences(too_high).history_limit == GuiPreferences().history_limit
+
+    boolean = tmp_path / "boolean.json"
+    boolean.write_text(
+        json.dumps({
+            "format": "amc-python-gui-preferences", "version": 1, "history_limit": True,
+        }),
+        encoding="utf-8",
+    )
+    assert load_preferences(boolean).history_limit == GuiPreferences().history_limit
 
 
 def test_load_preferences_rejects_boolean_window_dimensions(tmp_path: Path):

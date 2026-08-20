@@ -1,12 +1,12 @@
 """Python-owned desktop GUI preferences, stored separately from catalog data.
 
-These preferences (last-used view filter, layout, and window geometry) are
-an AMC Python convenience with no upstream counterpart. They are
-deliberately kept out of the catalog JSON so they are never confused with
-retained Ant Movie Catalog properties, and a missing or corrupt preferences
-file is treated as "use the defaults" rather than an error: unlike catalog
-data, losing a saved window size is not data loss worth blocking the
-desktop interface over.
+These preferences (last-used view filter, layout, window geometry, and the
+undo/redo history depth) are an AMC Python convenience with no upstream
+counterpart. They are deliberately kept out of the catalog JSON so they are
+never confused with retained Ant Movie Catalog properties, and a missing or
+corrupt preferences file is treated as "use the defaults" rather than an
+error: unlike catalog data, losing a saved window size is not data loss
+worth blocking the desktop interface over.
 """
 
 from __future__ import annotations
@@ -22,6 +22,8 @@ _VERSION = 1
 VALID_VIEW_FILTERS = ("All", "Loaned", "Available", "Checked", "Unchecked")
 VALID_LAYOUTS = ("Table", "Details", "Poster")
 MIN_WINDOW_SIZE = (760, 480)
+MIN_HISTORY_LIMIT = 1
+MAX_HISTORY_LIMIT = 1000
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +34,7 @@ class GuiPreferences:
     layout: str = "Details"
     window_width: int = 1100
     window_height: int = 720
+    history_limit: int = 100
 
 
 def default_preferences_path() -> Path:
@@ -81,6 +84,7 @@ def load_preferences(path: str | Path) -> GuiPreferences:
     layout = document.get("layout")
     width = document.get("window_width")
     height = document.get("window_height")
+    history_limit = document.get("history_limit")
     return GuiPreferences(
         view_filter=(
             view_filter if view_filter in VALID_VIEW_FILTERS else defaults.view_filter
@@ -100,6 +104,13 @@ def load_preferences(path: str | Path) -> GuiPreferences:
             and height >= MIN_WINDOW_SIZE[1]
             else defaults.window_height
         ),
+        history_limit=(
+            history_limit
+            if isinstance(history_limit, int)
+            and not isinstance(history_limit, bool)
+            and MIN_HISTORY_LIMIT <= history_limit <= MAX_HISTORY_LIMIT
+            else defaults.history_limit
+        ),
     )
 
 
@@ -114,6 +125,7 @@ def save_preferences(preferences: GuiPreferences, path: str | Path) -> None:
         "layout": preferences.layout,
         "window_width": preferences.window_width,
         "window_height": preferences.window_height,
+        "history_limit": preferences.history_limit,
     }
     temporary = path.with_name(f".{path.name}.tmp")
     try:

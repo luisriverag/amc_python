@@ -97,7 +97,8 @@ The packaging check verifies that an isolated wheel installation can import both
 - Reload the active catalog from disk with F5.
 - Undo and redo persisted mutations with the toolbar, Ctrl+Z, and Ctrl+Y. Undo and
   redo are themselves failure-atomic: a write error leaves both the visible catalog
-  and history position unchanged. The most recent 100 states are retained; opening
+  and history position unchanged. The most recent states are retained up to the
+  configurable history limit (100 by default; see **Preferences** below); opening
   or reloading a catalog starts new history.
 
 File, search/view, and catalog actions use separate toolbar rows so controls remain
@@ -136,19 +137,27 @@ upstream fixtures.
 
 ## Preferences
 
-The desktop remembers the last-used view filter, layout, and window size across
-restarts. This is an AMC Python convenience with no upstream counterpart, so it is
-deliberately stored outside any catalog file — never in the JSON catalog, and never
-confused with a retained Ant Movie Catalog property — in a small per-user JSON
-file (`amc.preferences`): `%APPDATA%\amc-python\gui-preferences.json` on Windows,
+The desktop remembers the last-used view filter, layout, window size, and
+undo/redo history depth across restarts. This is an AMC Python convenience with
+no upstream counterpart, so it is deliberately stored outside any catalog file —
+never in the JSON catalog, and never confused with a retained Ant Movie Catalog
+property — in a small per-user JSON file (`amc.preferences`):
+`%APPDATA%\amc-python\gui-preferences.json` on Windows,
 `~/Library/Application Support/amc-python/gui-preferences.json` on macOS, and
 `$XDG_CONFIG_HOME/amc-python/gui-preferences.json` (or `~/.config/amc-python/...`)
 elsewhere. Set `AMC_PYTHON_CONFIG_DIR` to use a different location, such as in
 tests or portable installs. Preferences are written atomically whenever the view
-filter or layout changes, and once more when the window closes to capture its
-final size. A missing, corrupt, or invalid preferences file — or a failed write —
-is never treated as an error: the desktop falls back to built-in defaults (view
-All, layout Details, 1100×720) rather than failing to start or blocking a close.
+filter or layout changes, once when the **Preferences** toolbar button's history
+limit is saved, and once more when the window closes to capture its final size.
+A missing, corrupt, or invalid preferences file — or a failed write — is never
+treated as an error: the desktop falls back to built-in defaults (view All,
+layout Details, 1100×720, 100-entry history) rather than failing to start or
+blocking a close.
+
+The toolbar **Preferences** button opens a dialog to change how many undo/redo
+states (1–1000) the desktop keeps in memory and writes to the JSON catalog on
+each undo/redo. The new limit takes effect immediately and does not retroactively
+grow or shrink already-retained history.
 
 ## Known limitations
 

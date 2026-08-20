@@ -378,8 +378,15 @@ both a CLI and a desktop entry point.
     default fallback rather than an error for any missing/corrupt/invalid
     data. The desktop loads it on startup and saves on every view/layout
     change and on window close.
-  - [ ] Make the retained undo/redo history depth (`_HISTORY_LIMIT`) and any
-    future retention limits configurable instead of a fixed constant.
+  - [x] Make the retained undo/redo history depth (`_HISTORY_LIMIT`) and any
+    future retention limits configurable instead of a fixed constant:
+    `CatalogService.__init__` now takes a validated `history_limit` keyword
+    (still defaulting to 100), the desktop passes the loaded/saved
+    `GuiPreferences.history_limit` through it, and a toolbar **Preferences**
+    dialog lets the value (1–1000) be changed and persisted at runtime.
+
+D3 is now complete: every planned Python-owned preference is persisted
+separately from catalog data and editable from the desktop.
 
 ## Immediate next slice
 

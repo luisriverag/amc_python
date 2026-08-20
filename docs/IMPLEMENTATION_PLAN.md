@@ -568,6 +568,28 @@ tier's next unchecked item before returning to D4.
     toolbar state staying in sync on selection, and invoking a menu command
     end-to-end (Add Movie via the **Edit** menu opens the same dialog the
     toolbar button does).
+  - [x] Right-click table context menu: the table had no context menu at
+    all — the only per-row interaction outside the toolbar/menu bar/
+    keyboard shortcuts was double-click-to-edit. Added
+    `_build_context_menu`, a right-click (`<Button-3>`) menu on `self.table`
+    with the row-scoped actions most useful there (Add/Edit/Remove Movie,
+    Toggle Checked, Loan Out, Loan In, Open URL). Right-clicking a row
+    outside the current selection selects just that row first, matching
+    common file-manager UX; right-clicking within an existing selection or
+    on empty space below the last row leaves the selection unchanged.
+    Reused rather than duplicated the menu-bar's tracking: `add_action`/
+    `add_tracked` became instance methods (`_add_menu_action`,
+    `_add_tracked_menu_command`), and `_menu_entries` changed from
+    `dict[str, tuple[Menu, int]]` to `dict[str, list[tuple[Menu, int]]]`
+    so one action name can back entries in more than one menu —
+    `_set_menu_state` now grays out every tracked entry for a name, so
+    selecting a movie enables **Remove Movie** in the context menu, the
+    **Edit** menu, and the toolbar button together, not just whichever one
+    happens to be open. New real-display tests cover the context menu's
+    structure, its shared state-sync with the Edit menu, an actual
+    synthetic right-click selecting the clicked row and opening the Edit
+    dialog through it, and a right-click on empty space leaving an
+    existing selection untouched.
   - [ ] Further real-display coverage remains available (statistics/
     duplicates/loan-history review dialogs, table sort/selection, and the
     edit dialog's other validation paths — an out-of-range rating, an

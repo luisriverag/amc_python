@@ -455,6 +455,7 @@ class CatalogWindow(ttk.Frame):
         self.status.pack(fill="x", pady=(6, 0))
         self._bind_shortcuts()
         self._build_menu_bar(master)
+        self._build_context_menu()
         self.refresh()
         self.apply_layout()
         master.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -572,25 +573,15 @@ class CatalogWindow(ttk.Frame):
         method the toolbar buttons and keyboard shortcuts already use — for
         actions backed by `action_buttons`, through `invoke_action` so a
         menu click respects the same disabled state a toolbar click would.
-        `_menu_entries` records each such entry's `(menu, index)` so
-        `update_action_states` can gray them out the same way it already
-        grays out `action_buttons`.
+        `_menu_entries` records each such entry's `(menu, index)` pairs —
+        a name can back more than one entry now that the right-click
+        context menu (`_build_context_menu`) tracks some of the same
+        action names — so `update_action_states` can gray them all out
+        the same way it already grays out `action_buttons`.
         """
-        self._menu_entries: dict[str, tuple[tk.Menu, int]] = {}
-
-        def add_action(menu: tk.Menu, label: str, name: str, accelerator: str = "") -> None:
-            menu.add_command(
-                label=label, accelerator=accelerator,
-                command=lambda: self.invoke_action(name),
-            )
-            self._menu_entries[name] = (menu, menu.index("end"))
-
-        def add_tracked(
-            menu: tk.Menu, label: str, name: str, command: Callable[[], None],
-            accelerator: str = "",
-        ) -> None:
-            menu.add_command(label=label, accelerator=accelerator, command=command)
-            self._menu_entries[name] = (menu, menu.index("end"))
+        self._menu_entries: dict[str, list[tuple[tk.Menu, int]]] = {}
+        add_action = self._add_menu_action
+        add_tracked = self._add_tracked_menu_command
 
         menubar = tk.Menu(master, tearoff=False)
 
@@ -647,6 +638,62 @@ class CatalogWindow(ttk.Frame):
 
         master.config(menu=menubar)
         self.menubar = menubar
+
+    def _add_menu_action(
+        self, menu: tk.Menu, label: str, name: str, accelerator: str = ""
+    ) -> None:
+        """Add a menu entry that invokes an `action_buttons` action, tracked
+        for `update_action_states` under `name` alongside any other menu
+        (menu bar, context menu) that already tracks the same name."""
+        menu.add_command(
+            label=label, accelerator=accelerator,
+            command=lambda: self.invoke_action(name),
+        )
+        self._menu_entries.setdefault(name, []).append((menu, menu.index("end")))
+
+    def _add_tracked_menu_command(
+        self, menu: tk.Menu, label: str, name: str, command: Callable[[], None],
+        accelerator: str = "",
+    ) -> None:
+        """Like `_add_menu_action`, but for a command not in `action_buttons`
+        (e.g. Import/Import Media/Restore, which have no toolbar button)."""
+        menu.add_command(label=label, accelerator=accelerator, command=command)
+        self._menu_entries.setdefault(name, []).append((menu, menu.index("end")))
+
+    def _build_context_menu(self) -> None:
+        """Right-click the movie table for a selection-aware context menu.
+
+        Mirrors the most commonly needed Edit/Movie menu entries rather than
+        duplicating all of them, and shares their `_menu_entries` tracking —
+        so e.g. Remove Movie is grayed out here in lockstep with the toolbar
+        button and the Edit menu entry, not just one of them.
+        """
+        menu = tk.Menu(self, tearoff=False)
+        self._add_menu_action(menu, "Add Movie", "Add")
+        self._add_menu_action(menu, "Edit Movie", "Edit")
+        self._add_menu_action(menu, "Remove Movie", "Remove")
+        menu.add_separator()
+        self._add_menu_action(menu, "Toggle Checked", "Toggle Checked")
+        menu.add_separator()
+        self._add_menu_action(menu, "Loan Out...", "Loan Out")
+        self._add_menu_action(menu, "Loan In", "Loan In")
+        menu.add_separator()
+        self._add_menu_action(menu, "Open URL", "Open URL")
+        self.context_menu = menu
+        self.table.bind("<Button-3>", self._show_context_menu)
+
+    def _show_context_menu(self, event: tk.Event) -> None:
+        """Select the right-clicked row (if it isn't already selected) and
+        pop up the context menu there, matching common file-manager UX."""
+        row = self.table.identify_row(event.y)
+        if row and row not in self.table.selection():
+            self.table.selection_set(row)
+            self.table.focus(row)
+            self.selection_changed()
+        try:
+            self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
 
     def invoke_action(self, name: str) -> str:
         """Invoke a toolbar action while respecting its disabled state."""
@@ -714,9 +761,7 @@ class CatalogWindow(ttk.Frame):
         # getattr, not self._menu_entries directly: headless tests build a
         # CatalogWindow via object.__new__ and never run __init__/
         # _build_menu_bar, so there is no menu bar (or _menu_entries) to sync.
-        entry = getattr(self, "_menu_entries", {}).get(name)
-        if entry is not None:
-            menu, index = entry
+        for menu, index in getattr(self, "_menu_entries", {}).get(name, []):
             menu.entryconfigure(index, state="normal" if enabled else "disabled")
 
     def refresh(self) -> None:

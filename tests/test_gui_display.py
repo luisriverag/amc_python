@@ -197,6 +197,78 @@ def test_menu_command_opens_the_add_movie_dialog(real_root: tk.Tk, tmp_path: Pat
     dialogs[0].destroy()
 
 
+def test_context_menu_state_tracks_the_edit_menu_together(real_root: tk.Tk, tmp_path: Path):
+    """The context menu and the Edit menu both track the "Remove" action
+    name in `_menu_entries` now; selecting a movie must gray both out in
+    lockstep, not just whichever menu happens to be open."""
+    window = _open_window(real_root, tmp_path)
+    edit_menu = real_root.nametowidget(window.menubar.entrycget(1, "menu"))
+
+    def _index(menu: tk.Menu, label: str) -> int:
+        return next(
+            i for i in range(menu.index("end") + 1)
+            if menu.type(i) != "separator" and menu.entrycget(i, "label") == label
+        )
+
+    edit_remove = _index(edit_menu, "Remove Movie")
+    context_remove = _index(window.context_menu, "Remove Movie")
+    assert edit_menu.entrycget(edit_remove, "state") == "disabled"
+    assert window.context_menu.entrycget(context_remove, "state") == "disabled"
+
+    window.selected_movies = lambda: [next(iter(window.service.catalog))]
+    window.selection_changed()
+
+    assert edit_menu.entrycget(edit_remove, "state") == "normal"
+    assert window.context_menu.entrycget(context_remove, "state") == "normal"
+
+
+def test_right_click_selects_the_row_and_opens_the_edit_dialog(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    assert window.table.selection() == ()
+
+    bbox = window.table.bbox("1")
+    assert bbox, "the single seeded row must be visible to click on"
+    x, y = bbox[0] + bbox[2] // 2, bbox[1] + bbox[3] // 2
+    window.table.event_generate("<Button-3>", x=x, y=y)
+    real_root.update_idletasks()
+    real_root.update()
+    window.context_menu.unpost()
+
+    assert window.table.selection() == ("1",)
+
+    def _index(menu: tk.Menu, label: str) -> int:
+        return next(
+            i for i in range(menu.index("end") + 1)
+            if menu.type(i) != "separator" and menu.entrycget(i, "label") == label
+        )
+
+    window.context_menu.invoke(_index(window.context_menu, "Edit Movie"))
+    real_root.update_idletasks()
+    real_root.update()
+
+    dialogs = [item for item in _toplevels(real_root) if item.title() == "Edit movie"]
+    assert len(dialogs) == 1
+    dialogs[0].destroy()
+
+
+def test_right_click_on_empty_space_does_not_change_the_selection(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    window.table.selection_set("1")
+    real_root.update_idletasks()
+    real_root.update()
+
+    window.table.event_generate("<Button-3>", x=5, y=window.table.winfo_height() - 2)
+    real_root.update_idletasks()
+    real_root.update()
+
+    assert window.table.selection() == ("1",)
+    window.context_menu.unpost()
+
+
 def test_preferences_dialog_opens_over_a_real_window(real_root: tk.Tk, tmp_path: Path):
     window = _open_window(real_root, tmp_path)
 

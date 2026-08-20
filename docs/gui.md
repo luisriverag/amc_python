@@ -142,6 +142,15 @@ or catalog-writability is grayed out in step with its toolbar button —
 disabling **Remove Movie** because nothing is selected disables it in the
 **Edit** menu too, not just the toolbar.
 
+Right-clicking a table row opens a context menu (Add/Edit/Remove Movie, Toggle
+Checked, Loan Out, Loan In, Open URL) at the pointer, matching common
+file-manager UX: right-clicking a row outside the current selection selects
+just that row first; right-clicking within an existing multi-row selection, or
+on empty space below the last row, leaves the selection unchanged. Its entries
+share the same grayed-out-together tracking as the menu bar and toolbar —
+selecting a movie enables **Remove Movie** in the context menu, the **Edit**
+menu, and the toolbar button all at once.
+
 Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
 search, Escape to clear search, Ctrl+N for a new movie, Ctrl+M for Import Media,
 Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked state,

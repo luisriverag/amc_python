@@ -168,6 +168,15 @@ def test_window_set_pictures_links_instead_of_embedding_when_declined():
     )
 
 
+def test_window_assign_pictures_ignores_missing_selection():
+    window = _window()
+    window.selected_movies = Mock(return_value=[])
+    with patch("amc.gui.tk.Toplevel") as toplevel:
+        window.assign_pictures()
+    toplevel.assert_not_called()
+    window.service.set_picture_many.assert_not_called()
+
+
 def test_window_clears_pictures_for_all_selected_movies_atomically():
     window = _window()
     movies = [Movie(number=2, title="Two"), Movie(number=4, title="Four")]
@@ -564,7 +573,8 @@ def test_window_action_states_follow_selection_history_and_format():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Set Pictures", "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
+        "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
+        "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -592,7 +602,8 @@ def test_window_disables_mutations_for_interchange_catalog():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Set Pictures", "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
+        "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
+        "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -616,7 +627,8 @@ def test_window_disables_actions_when_selection_lacks_required_data():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Set Pictures", "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
+        "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
+        "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()

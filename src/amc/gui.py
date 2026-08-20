@@ -58,6 +58,10 @@ _EDIT_INTEGER_FIELDS = (
     "file_size",
 )
 _EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
+_IMAGE_FILETYPES = (
+    ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
+    ("All files", "*"),
+)
 
 
 def movie_from_form(movie: Movie, values: dict[str, str], *, checked: bool) -> Movie:
@@ -216,6 +220,7 @@ class CatalogWindow(ttk.Frame):
             ("Loan In", self.loan_in, 4),
             ("Toggle Checked", self.toggle_checked, 12),
             ("Set Pictures", self.set_pictures, 12),
+            ("Assign Pictures", self.assign_pictures, 4),
             ("Clear Pictures", self.clear_pictures, 4),
             ("Undo", self.undo, 12),
             ("Redo", self.redo, 4),
@@ -337,6 +342,7 @@ class CatalogWindow(ttk.Frame):
             "Loan In": selected > 0 and all(movie.borrower for movie in movies) and writable,
             "Toggle Checked": selected > 0 and writable,
             "Set Pictures": selected > 0 and writable,
+            "Assign Pictures": selected > 0 and writable,
             "Clear Pictures": selected > 0 and writable,
             "Open URL": can_open_url,
         }
@@ -688,10 +694,7 @@ class CatalogWindow(ttk.Frame):
         selected = filedialog.askopenfilename(
             parent=self.winfo_toplevel(),
             title="Choose poster",
-            filetypes=(
-                ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
-                ("All files", "*"),
-            ),
+            filetypes=_IMAGE_FILETYPES,
         )
         if not selected:
             return
@@ -714,6 +717,90 @@ class CatalogWindow(ttk.Frame):
             messagebox.showerror("Could not set pictures", str(error), parent=self)
             return
         self.refresh()
+
+    def assign_pictures(self) -> None:
+        """Assign a distinct picture file to each selected movie in one write."""
+        movies = self.selected_movies()
+        if not movies:
+            return
+        dialog = tk.Toplevel(self)
+        dialog.title("Assign pictures")
+        dialog.transient(self.winfo_toplevel())
+        ttk.Label(
+            dialog,
+            text="Browse a picture for each movie below, then Apply. Movies "
+            "left unassigned keep their current picture.",
+            wraplength=440,
+            justify="left",
+        ).grid(row=0, column=0, sticky="w", padx=8, pady=(8, 4))
+
+        canvas = tk.Canvas(
+            dialog, highlightthickness=0, width=460, height=min(320, 32 * len(movies) + 8)
+        )
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        rows_frame = ttk.Frame(canvas)
+        rows_frame.bind(
+            "<Configure>",
+            lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.create_window((0, 0), window=rows_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.grid(row=1, column=0, sticky="nsew", padx=(8, 0), pady=4)
+        scrollbar.grid(row=1, column=1, sticky="ns", pady=4)
+        dialog.rowconfigure(1, weight=1)
+        dialog.columnconfigure(0, weight=1)
+
+        assignments: dict[int, str] = {}
+        for row, movie in enumerate(movies):
+            ttk.Label(rows_frame, text=movie.display_title(), width=30, anchor="w").grid(
+                row=row, column=0, sticky="w", pady=2
+            )
+            status = ttk.Label(rows_frame, text="(unassigned)", width=24, anchor="w")
+            status.grid(row=row, column=1, sticky="w", padx=(4, 4))
+
+            def choose(number: int = movie.number, status: ttk.Label = status) -> None:
+                selected = filedialog.askopenfilename(
+                    parent=dialog, title="Choose poster", filetypes=_IMAGE_FILETYPES,
+                )
+                if not selected:
+                    return
+                assignments[number] = selected
+                status.configure(text=Path(selected).name)
+
+            ttk.Button(rows_frame, text="Browse", command=choose).grid(
+                row=row, column=2, padx=(0, 8)
+            )
+
+        embed = tk.BooleanVar(value=False)
+        ttk.Checkbutton(dialog, text="Embed", variable=embed).grid(
+            row=2, column=0, sticky="w", padx=8, pady=(4, 0)
+        )
+
+        def accept() -> None:
+            if not assignments:
+                messagebox.showerror(
+                    "Assign pictures",
+                    "Choose a picture for at least one movie.",
+                    parent=dialog,
+                )
+                return
+            try:
+                self.service.set_picture_many(assignments, embed=embed.get())
+            except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+                messagebox.showerror(
+                    "Could not assign pictures", str(error), parent=dialog
+                )
+                return
+            dialog.destroy()
+            self.refresh()
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=3, column=0, sticky="e", padx=8, pady=8)
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(
+            side="left", padx=(0, 4)
+        )
+        ttk.Button(buttons, text="Apply", command=accept).pack(side="left")
+        make_modal(dialog)
 
     def clear_pictures(self) -> None:
         """Remove linked and embedded pictures from every selected movie."""
@@ -958,13 +1045,7 @@ class CatalogWindow(ttk.Frame):
                     selected = filedialog.askopenfilename(
                         parent=dialog,
                         title="Choose poster",
-                        filetypes=(
-                            (
-                                "Images",
-                                "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp",
-                            ),
-                            ("All files", "*"),
-                        ),
+                        filetypes=_IMAGE_FILETYPES,
                     )
                     if not selected:
                         return

@@ -165,13 +165,13 @@ all omitted or opaque data is reported.
   linked/size-bounded embedded picture set/clear/export, validated cropping, and
   native retention are complete; unverified native export is confirmation-gated
   and reports its replacement backup; native/XML/CSV sources are protected as
-  read-only until saved as JSON; batch picture set/clear across an extended table
-  selection is complete, covering one shared picture per selection from the GUI
-  and one distinct picture per movie from the CLI (`picture-set-many`); assigning
-  a distinct picture per movie from the desktop toolbar, interactive crop
-  selection in the edit dialog, progress, cancellation, and accessibility remain
-  pending; every mutation persists immediately, so there is no unsaved dirty
-  state left to prompt about).
+  read-only until saved as JSON; batch picture set/assign/clear across an
+  extended table selection is complete from both the CLI (`picture-set-many`)
+  and the desktop toolbar (Set/Assign/Clear Pictures), covering a shared
+  picture across the selection, a distinct picture per movie, and clearing;
+  interactive crop selection in the edit dialog, progress, cancellation, and
+  accessibility remain pending; every mutation persists immediately, so there
+  is no unsaved dirty state left to prompt about).
 - [ ] Add loan management and catalog preferences if confirmed upstream features
   (atomic single/multi-movie check-out/check-in and validated JSON-retained loan
   history, managed borrower lists, and source-shaped TSV history export are

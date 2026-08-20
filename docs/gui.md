@@ -32,13 +32,18 @@ The packaging check verifies that an isolated wheel installation can import both
   controls. Browse validates the selected image, stores a catalog-relative link
   when possible, and can retain the image bytes in the catalog when **Embed** is
   selected. Clearing a picture removes both its link and embedded bytes when the
-  movie is saved. The toolbar **Set Pictures** and **Clear Pictures** actions apply
-  to one movie or an extended table selection in a single atomic write, mirroring
-  the batch Remove, Loan, and Toggle Checked actions: **Set Pictures** prompts for
-  one image file and an Embed/Link choice, then applies that same picture to every
-  selected movie (for a shared cover across a boxed set or series); **Clear
-  Pictures** removes linked and embedded picture state from the selection.
-  Description and comments use multiline editors so paragraphs are not forced
+  movie is saved. The toolbar **Set Pictures**, **Assign Pictures**, and **Clear
+  Pictures** actions apply to one movie or an extended table selection in a
+  single atomic write, mirroring the batch Remove, Loan, and Toggle Checked
+  actions: **Set Pictures** prompts for one image file and an Embed/Link choice,
+  then applies that same picture to every selected movie (for a shared cover
+  across a boxed set or series); **Assign Pictures** opens a scrollable per-movie
+  list with its own Browse button for each selected movie, so every movie can
+  receive its own picture file in one atomic write, applying a shared Embed/Link
+  choice to whichever movies were assigned a file (movies left unassigned keep
+  their current picture); **Clear Pictures** removes linked and embedded picture
+  state from the selection. Description and comments use multiline editors so
+  paragraphs are not forced
   through single-line fields; borrower changes remain in the dedicated loan
   controls.
 - Search the visible list; filter all, loaned, available, checked, or unchecked
@@ -124,9 +129,11 @@ upstream fixtures.
 The GUI remains a prototype. Mutations currently save immediately, so there is no
 unsaved dirty state to prompt about. It does not yet provide progress or
 cancellation, interactive crop selection, accessibility verification,
-localization, or automated real-display widget tests. Batch **Set Pictures** and
-**Clear Pictures** toolbar actions cover clearing and sharing one picture across
-an extended selection; assigning a distinct picture file to each of several
-movies in one step is available from the CLI (`picture-set-many`) but not yet
-from the desktop toolbar. Current GUI tests are headless adapter tests with
+localization, or automated real-display widget tests. The batch **Set
+Pictures**, **Assign Pictures**, and **Clear Pictures** toolbar actions cover
+sharing one picture, assigning a distinct picture per movie, and clearing
+pictures across an extended selection; per-movie batch cropping is still
+unavailable from either the CLI or the desktop (a shared crop rectangle can be
+supplied to `picture-set-many`, but each embedded image gets the same
+coordinates). Current GUI tests are headless adapter tests with
 mocked dialogs.

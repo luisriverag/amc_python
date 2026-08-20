@@ -613,6 +613,23 @@ def test_window_checks_selected_movie_in():
     window.refresh.assert_called_once_with()
 
 
+def test_window_loan_in_reports_stale_movie_number_as_dialog_not_traceback():
+    """check_in_many raises KeyError for a movie number that no longer exists
+    (Catalog.get()'s documented signal, e.g. a stale selection racing another
+    mutation). Every service-call boundary in the window must catch it, the
+    same as CatalogError/OSError/TypeError/ValueError, instead of letting it
+    escape as an unhandled Tk callback exception."""
+    window = _window()
+    window.selected_movies = Mock(return_value=[Movie(number=7, title="Moon")])
+    window.service.check_in_many.side_effect = KeyError("movie 7 does not exist")
+
+    with patch("amc.gui.messagebox.showerror") as showerror:
+        window.loan_in()
+
+    showerror.assert_called_once()
+    window.refresh.assert_not_called()
+
+
 def test_window_loan_in_ignores_missing_selection():
     window = _window()
     window.selected_movies = Mock(return_value=[])

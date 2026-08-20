@@ -454,13 +454,21 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     `OSError` propagates from the temp-file `open()`/`mkdir()` call with no
     documented, stable diagnostic shape. PORT_AUDIT design-debt item 7
     (remaining part).
-  - [ ] Consolidate the error model: expected failures are currently reported
-    partly through the public `CatalogError` hierarchy and partly through bare
-    `ValueError`/`TypeError`/`KeyError`, and the split is undocumented. Define
-    which built-in exceptions are part of the stable contract (if any) versus
-    which call sites should raise a public `CatalogError` subclass instead,
-    then document it in `docs/cli.md` or a new error-model reference.
-    PORT_AUDIT design-debt item 8.
+  - [x] Fix the concrete bug the undocumented error-model split had produced:
+    the desktop GUI's ~20 `try`/`except` boundaries around `CatalogService`
+    calls were meant to share one expected-failure set, but only 5 of them
+    caught `KeyError` (`Catalog.get()`'s documented signal for a movie number
+    that no longer exists) alongside `CatalogError`/`OSError`/`TypeError`/
+    `ValueError`; the other 15 would have let a stale-selection `KeyError`
+    escape as an unhandled Tk callback traceback instead of the usual error
+    dialog. All ~20 now share one `gui._SERVICE_ERRORS` tuple; `cli.main()`'s
+    equivalent boundary already covered `KeyError` via `LookupError` and is now
+    commented to say so. PORT_AUDIT design-debt item 8 (partial).
+  - [ ] Decide the rest of the error model: whether `ValueError`/`TypeError`/
+    `KeyError` call sites in `catalog.py`, `application.py`, and elsewhere
+    should migrate to public `CatalogError` subclasses instead of the split
+    remaining permanent, then document that decision in `docs/cli.md` or a new
+    error-model reference. PORT_AUDIT design-debt item 8 (remaining part).
 
 ## Immediate next slice
 

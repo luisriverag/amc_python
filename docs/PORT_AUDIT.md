@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 457 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 15 functional package modules, 6 repository tools, 458 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -166,8 +166,28 @@ confidence.
    is now used by every one of those call sites, each with a regression test
    confirming the directory descriptor is fsynced. Permission errors and
    concurrent writers remain untested.
-8. Expected errors are partly represented by public exceptions and partly by built-in
-   `ValueError`, `TypeError`, and `KeyError`; the documented error model is incomplete.
+8. [Partially resolved] Expected errors are still partly represented by public
+   `CatalogError` subclasses and partly by built-in `ValueError`, `TypeError`,
+   and `KeyError` raised directly from `catalog.py`, `application.py`, and
+   elsewhere; that split itself remains an intentional, undocumented-until-now
+   design choice rather than something this pass converted to one hierarchy.
+   What was a genuine bug, not just missing documentation: the desktop GUI's
+   ~20 `try`/`except` boundaries around `CatalogService` calls were supposed to
+   all catch the same failure set, but 15 of them caught
+   `(CatalogError, OSError, TypeError, ValueError)` while only 5 also caught
+   `KeyError` — `Catalog.get()`'s documented signal for a movie number that no
+   longer exists (used by `replace`/`remove`/check-out/check-in/set-checked/
+   picture operations). A `KeyError` hitting one of the 15 unprotected
+   boundaries — for example a stale table selection racing another mutation —
+   would have escaped as an unhandled Tk callback traceback instead of the same
+   `messagebox.showerror` dialog every other expected failure gets. All ~20
+   boundaries now share one module-level `gui._SERVICE_ERRORS` tuple
+   (`CatalogError, OSError, TypeError, ValueError, KeyError`); `cli.main()`'s
+   equivalent boundary already covered `KeyError` via `LookupError` and is now
+   commented to say so explicitly. The remaining scope of this item — deciding
+   whether `KeyError`/`ValueError`/`TypeError` call sites should migrate to
+   `CatalogError` subclasses instead of being a permanently mixed model — is
+   unchanged.
 9. The Python native reader deliberately reports truncated records, unlike upstream
    `ReadData`, which catches a movie-record exception and stops. This intentional
    difference needs fixture-backed documentation and stable diagnostics.

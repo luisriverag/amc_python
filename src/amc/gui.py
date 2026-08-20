@@ -72,6 +72,16 @@ _IMAGE_FILETYPES = (
     ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
     ("All files", "*"),
 )
+# Every catalog-mutating CatalogService call the desktop makes is wrapped in
+# this exact tuple. CatalogError/OSError/TypeError/ValueError are the
+# documented service-layer failures; KeyError is Catalog.get()'s (and hence
+# replace/remove/check-out/check-in/set-checked/picture) documented signal
+# for a movie number that no longer exists, e.g. a stale selection racing
+# another mutation. It belongs in every one of these boundaries, not just
+# the ones a past edit happened to add it to — an uncaught KeyError here
+# would surface as an unhandled Tk callback traceback instead of the same
+# graceful error dialog every other expected failure gets.
+_SERVICE_ERRORS = (CatalogError, OSError, TypeError, ValueError, KeyError)
 
 
 def movie_from_form(movie: Movie, values: dict[str, str], *, checked: bool) -> Movie:
@@ -683,7 +693,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.open(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not open catalog", str(error), parent=self)
             return
         self._path_changed()
@@ -699,7 +709,7 @@ class CatalogWindow(ttk.Frame):
     def reload_catalog(self) -> None:
         try:
             self.service.reload()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not reload catalog", str(error), parent=self)
             return
         self.refresh()
@@ -715,7 +725,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.save_as(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not save catalog", str(error), parent=self)
             return
         self._path_changed()
@@ -736,7 +746,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             count = self.service.import_from(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not import catalog", str(error), parent=self)
             return
         self.refresh()
@@ -825,7 +835,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.add_many(movies)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not import media", str(error), parent=dialog)
             dialog.destroy()
             return
@@ -879,7 +889,7 @@ class CatalogWindow(ttk.Frame):
                 return
         try:
             self.service.export(selected, format=format_name)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not export catalog", str(error), parent=self)
             return
         completion = f"Exported to {selected}."
@@ -899,7 +909,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.backup(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not back up catalog", str(error), parent=self)
             return
         messagebox.showinfo("Backup complete", f"Backed up to {selected}.", parent=self)
@@ -920,7 +930,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.restore(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not restore catalog", str(error), parent=self)
             return
         self.refresh()
@@ -946,7 +956,7 @@ class CatalogWindow(ttk.Frame):
         if messagebox.askyesno("Remove movie", f"Remove {description}?"):
             try:
                 self.service.remove_many(movie.number for movie in movies)
-            except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not remove movie", str(error), parent=self)
                 return
             self.refresh()
@@ -974,7 +984,7 @@ class CatalogWindow(ttk.Frame):
                 self.service.check_out_many(
                     (movie.number for movie in movies), borrower.get()
                 )
-            except (CatalogError, OSError, TypeError, ValueError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not check out movie", str(error), parent=dialog)
                 return
             dialog.destroy()
@@ -992,7 +1002,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.check_in_many(movie.number for movie in movies)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not check in movie", str(error), parent=self)
             return
         self.refresh()
@@ -1006,7 +1016,7 @@ class CatalogWindow(ttk.Frame):
             self.service.set_checked_many(
                 (movie.number for movie in movies), checked
             )
-        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror(
                 "Could not update checked state", str(error), parent=self
             )
@@ -1040,7 +1050,7 @@ class CatalogWindow(ttk.Frame):
             self.service.set_picture_many(
                 {movie.number: selected for movie in movies}, embed=embed
             )
-        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not set pictures", str(error), parent=self)
             return
         self.refresh()
@@ -1148,7 +1158,7 @@ class CatalogWindow(ttk.Frame):
                 self.service.set_picture_many(
                     assignments, embed=embed.get(), crops=crops
                 )
-            except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror(
                     "Could not assign pictures", str(error), parent=dialog
                 )
@@ -1180,7 +1190,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.clear_picture_many(movie.number for movie in movies)
-        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not clear pictures", str(error), parent=self)
             return
         self.refresh()
@@ -1188,7 +1198,7 @@ class CatalogWindow(ttk.Frame):
     def undo(self) -> None:
         try:
             self.service.undo()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not undo change", str(error), parent=self)
             return
         self.refresh()
@@ -1196,7 +1206,7 @@ class CatalogWindow(ttk.Frame):
     def redo(self) -> None:
         try:
             self.service.redo()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not redo change", str(error), parent=self)
             return
         self.refresh()
@@ -1326,7 +1336,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.renumber()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not renumber movies", str(error), parent=self)
             return
         self.refresh()
@@ -1335,7 +1345,7 @@ class CatalogWindow(ttk.Frame):
         reverse = self.sort_field == field and not self.sort_reverse
         try:
             self.service.sort(field, reverse=reverse)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not sort movies", str(error), parent=self)
             return
         self.sort_field = field
@@ -1503,7 +1513,7 @@ class CatalogWindow(ttk.Frame):
                     self.service.add(replacement)
                 else:
                     self.service.replace(movie.number, replacement)
-            except (CatalogError, OSError, TypeError, ValueError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not save movie", str(error), parent=dialog)
                 return
             self.refresh()

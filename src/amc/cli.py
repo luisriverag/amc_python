@@ -293,6 +293,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         return _run(args)
+    # CatalogError/OSError/TypeError/ValueError are the documented service-layer
+    # failures; LookupError covers KeyError, Catalog.get()'s (and hence
+    # replace/remove/check-out/check-in/set-checked/picture) signal for a movie
+    # number that does not exist. See gui.py's _SERVICE_ERRORS for the same
+    # boundary on the desktop side.
     except (CatalogError, OSError, TypeError, ValueError, LookupError) as error:
         print(f"amc: {error}", file=sys.stderr)
         return EXIT_ERROR

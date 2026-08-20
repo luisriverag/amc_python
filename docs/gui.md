@@ -58,6 +58,9 @@ The packaging check verifies that an isolated wheel installation can import both
   status and retains a visible selection across refreshes. Clicking a column heading
   sorts ascending; clicking it again sorts descending. An arrow shows the active
   direction, and missing numeric values remain at the end in either direction.
+  The active view filter, layout, and window size are remembered across
+  restarts (see **Preferences** below); this does not affect sorting, which
+  always starts unsorted for a freshly opened catalog.
 - Use Ctrl+F to move directly to search and Escape to clear the current query and
   return to the movie table. Selection-dependent actions are disabled until they
   can succeed, and mutation controls remain disabled while an interchange catalog
@@ -130,6 +133,22 @@ byte values that Python's strict CP-1252 codec leaves undefined (including `0x90
 the reader preserves those values as matching control codes instead of refusing to
 open the catalog. Locale-specific code-page verification still requires genuine
 upstream fixtures.
+
+## Preferences
+
+The desktop remembers the last-used view filter, layout, and window size across
+restarts. This is an AMC Python convenience with no upstream counterpart, so it is
+deliberately stored outside any catalog file — never in the JSON catalog, and never
+confused with a retained Ant Movie Catalog property — in a small per-user JSON
+file (`amc.preferences`): `%APPDATA%\amc-python\gui-preferences.json` on Windows,
+`~/Library/Application Support/amc-python/gui-preferences.json` on macOS, and
+`$XDG_CONFIG_HOME/amc-python/gui-preferences.json` (or `~/.config/amc-python/...`)
+elsewhere. Set `AMC_PYTHON_CONFIG_DIR` to use a different location, such as in
+tests or portable installs. Preferences are written atomically whenever the view
+filter or layout changes, and once more when the window closes to capture its
+final size. A missing, corrupt, or invalid preferences file — or a failed write —
+is never treated as an error: the desktop falls back to built-in defaults (view
+All, layout Details, 1100×720) rather than failing to start or blocking a close.
 
 ## Known limitations
 

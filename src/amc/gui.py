@@ -19,6 +19,12 @@ from .application import CatalogService
 from .errors import CatalogError
 from .loans import LoanEvent
 from .model import Movie
+from .preferences import (
+    GuiPreferences,
+    default_preferences_path,
+    load_preferences,
+    save_preferences,
+)
 from .presentation import filter_movies, poster_source
 
 _EDIT_TEXT_FIELDS = (
@@ -282,15 +288,24 @@ def movie_web_url(movie: Movie) -> str:
 class CatalogWindow(ttk.Frame):
     """Browse and edit a catalog without third-party GUI dependencies."""
 
-    def __init__(self, master: tk.Tk, path: Path) -> None:
+    def __init__(
+        self, master: tk.Tk, path: Path, *, preferences_path: Path | None = None
+    ) -> None:
         super().__init__(master, padding=10)
         self.path = path
         self.service = CatalogService(path)
+        self.preferences_path = (
+            default_preferences_path() if preferences_path is None else preferences_path
+        )
+        self._preferences = load_preferences(self.preferences_path)
         self.search_text = tk.StringVar()
-        self.view_filter = tk.StringVar(value="All")
-        self.layout = tk.StringVar(value="Details")
+        self.view_filter = tk.StringVar(value=self._preferences.view_filter)
+        self.layout = tk.StringVar(value=self._preferences.layout)
         self.sort_field: str | None = None
         self.sort_reverse = False
+        master.geometry(
+            f"{self._preferences.window_width}x{self._preferences.window_height}"
+        )
         self.pack(fill="both", expand=True)
         self._configure_style()
 
@@ -322,7 +337,7 @@ class CatalogWindow(ttk.Frame):
             width=10,
         )
         view.pack(side="left", padx=(0, 6))
-        view.bind("<<ComboboxSelected>>", lambda _event: self.refresh())
+        view.bind("<<ComboboxSelected>>", lambda _event: self._view_filter_changed())
         ttk.Label(bar, text="Layout:").pack(side="left")
         layout = ttk.Combobox(
             bar,
@@ -332,7 +347,7 @@ class CatalogWindow(ttk.Frame):
             width=8,
         )
         layout.pack(side="left", padx=(0, 6))
-        layout.bind("<<ComboboxSelected>>", lambda _event: self.apply_layout())
+        layout.bind("<<ComboboxSelected>>", lambda _event: self._layout_changed())
 
         # Keep catalog actions on their own row. Putting every action beside the
         # search field clipped the right-most controls on common 760px displays.
@@ -393,6 +408,7 @@ class CatalogWindow(ttk.Frame):
         self._bind_shortcuts()
         self.refresh()
         self.apply_layout()
+        master.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _configure_style(self) -> None:
         """Use a readable Treeview row height derived from the active Tk font."""
@@ -414,6 +430,40 @@ class CatalogWindow(ttk.Frame):
                 self.poster.pack(side="left", fill="y", padx=(0, 8))
                 self.details.pack(side="left", fill="both", expand=True)
         self.show_selected()
+
+    def _view_filter_changed(self) -> None:
+        self.refresh()
+        self._save_preferences()
+
+    def _layout_changed(self) -> None:
+        self.apply_layout()
+        self._save_preferences()
+
+    def _save_preferences(self) -> None:
+        """Persist the current view/layout and window size, best-effort.
+
+        A write failure here must not block using or closing the window, so
+        it is deliberately swallowed rather than shown to the user; the
+        catalog itself is unaffected either way.
+        """
+        toplevel = self.winfo_toplevel()
+        width = toplevel.winfo_width()
+        height = toplevel.winfo_height()
+        preferences = GuiPreferences(
+            view_filter=self.view_filter.get(),
+            layout=self.layout.get(),
+            window_width=width if width > 1 else self._preferences.window_width,
+            window_height=height if height > 1 else self._preferences.window_height,
+        )
+        self._preferences = preferences
+        try:
+            save_preferences(preferences, self.preferences_path)
+        except OSError:
+            pass
+
+    def _on_close(self) -> None:
+        self._save_preferences()
+        self.winfo_toplevel().destroy()
 
     def _bind_shortcuts(self) -> None:
         root = self.winfo_toplevel()
@@ -1312,7 +1362,6 @@ class CatalogWindow(ttk.Frame):
 def run(path: Path) -> None:
     root = tk.Tk()
     root.title(f"AMC Python — {path.name}")
-    root.geometry("1100x720")
     root.minsize(760, 480)
     CatalogWindow(root, path)
     root.mainloop()

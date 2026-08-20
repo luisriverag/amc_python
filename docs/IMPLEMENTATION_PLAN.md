@@ -370,9 +370,14 @@ both a CLI and a desktop entry point.
 
 ### D3 — catalog/GUI preferences
 
-  - [ ] Persist Python-owned GUI preferences (last-used view filter, layout,
+  - [x] Persist Python-owned GUI preferences (last-used view filter, layout,
     window geometry) separately from catalog data, so they are not confused
-    with retained upstream catalog properties.
+    with retained upstream catalog properties: the new `amc.preferences`
+    module reads/writes an atomic, platform-appropriate per-user JSON file
+    (`AMC_PYTHON_CONFIG_DIR` overrides it), validated field-by-field with a
+    default fallback rather than an error for any missing/corrupt/invalid
+    data. The desktop loads it on startup and saves on every view/layout
+    change and on window close.
   - [ ] Make the retained undo/redo history depth (`_HISTORY_LIMIT`) and any
     future retention limits configurable instead of a fixed constant.
 

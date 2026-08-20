@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 14 functional package modules, 6 repository tools, 367 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 15 functional package modules, 6 repository tools, 367 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -73,6 +73,7 @@ confidence.
 | Loan prototype | Single/batch, media-label, and retained-native-number group transitions; managed borrowers; JSON history; source-shaped TSV export | Unit/service/CLI/GUI tests, including atomic conflicts and output preservation | Moderate internally; upstream encoding/behavior unverified |
 | Web prototype | Read-only poster table/gallery, expanded details, bounded posters, pagination, search, and safe links | HTTP, escaping, reload, MIME, bounds, and security-header tests | Moderate for stated Python extension; upstream has no corresponding web server |
 | Picture prototype | Linked and byte/pixel-bounded validated embedded set/clear/crop, interactive drag-to-select cropping in the desktop edit dialog and each Assign Pictures row, atomic batch set/clear with per-movie crop rectangles across an extended selection (distinct or shared picture/crop per movie), JSON/native retention, and atomic export | Service/CLI/GUI/native tests, including malformed image, crop/bounds, per-movie crop overrides, batch set/clear atomicity, and failure preservation | Moderate internally; upstream path/conversion semantics unverified |
+| GUI preferences | Platform-appropriate per-user JSON file for view filter, layout, and window size, atomically written and validated field-by-field on load with default fallback for any missing/invalid data | Round-trip, corrupt-file, invalid-field, and platform-path tests | High internally; AMC Python-only convenience with no upstream counterpart |
 
 ### Present but inadequately tested
 

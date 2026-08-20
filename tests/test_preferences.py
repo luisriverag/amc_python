@@ -1,0 +1,112 @@
+import json
+from pathlib import Path
+
+from amc.preferences import (
+    GuiPreferences,
+    default_preferences_path,
+    load_preferences,
+    save_preferences,
+)
+
+
+def test_load_preferences_returns_defaults_for_missing_file(tmp_path: Path):
+    assert load_preferences(tmp_path / "missing.json") == GuiPreferences()
+
+
+def test_save_and_load_preferences_round_trip(tmp_path: Path):
+    path = tmp_path / "gui-preferences.json"
+    preferences = GuiPreferences(
+        view_filter="Checked", layout="Poster", window_width=1280, window_height=800,
+    )
+
+    save_preferences(preferences, path)
+
+    assert load_preferences(path) == preferences
+
+
+def test_save_preferences_creates_parent_directories(tmp_path: Path):
+    path = tmp_path / "nested" / "config" / "gui-preferences.json"
+
+    save_preferences(GuiPreferences(), path)
+
+    assert path.exists()
+
+
+def test_load_preferences_falls_back_to_defaults_for_corrupt_or_unreadable_file(
+    tmp_path: Path,
+):
+    corrupt = tmp_path / "corrupt.json"
+    corrupt.write_text("not json", encoding="utf-8")
+    assert load_preferences(corrupt) == GuiPreferences()
+
+    not_an_object = tmp_path / "not-object.json"
+    not_an_object.write_text("[1, 2, 3]", encoding="utf-8")
+    assert load_preferences(not_an_object) == GuiPreferences()
+
+    wrong_format = tmp_path / "wrong-format.json"
+    wrong_format.write_text(
+        json.dumps({"format": "something-else", "version": 1}), encoding="utf-8"
+    )
+    assert load_preferences(wrong_format) == GuiPreferences()
+
+    wrong_version = tmp_path / "wrong-version.json"
+    wrong_version.write_text(
+        json.dumps({"format": "amc-python-gui-preferences", "version": 99}),
+        encoding="utf-8",
+    )
+    assert load_preferences(wrong_version) == GuiPreferences()
+
+
+def test_load_preferences_falls_back_field_by_field_for_invalid_values(
+    tmp_path: Path,
+):
+    path = tmp_path / "gui-preferences.json"
+    path.write_text(
+        json.dumps({
+            "format": "amc-python-gui-preferences",
+            "version": 1,
+            "view_filter": "Not a real view",
+            "layout": 12345,
+            "window_width": "wide",
+            "window_height": 10,
+        }),
+        encoding="utf-8",
+    )
+
+    assert load_preferences(path) == GuiPreferences()
+
+
+def test_load_preferences_rejects_boolean_window_dimensions(tmp_path: Path):
+    path = tmp_path / "gui-preferences.json"
+    path.write_text(
+        json.dumps({
+            "format": "amc-python-gui-preferences",
+            "version": 1,
+            "window_width": True,
+            "window_height": True,
+        }),
+        encoding="utf-8",
+    )
+
+    preferences = load_preferences(path)
+
+    assert preferences.window_width == GuiPreferences().window_width
+    assert preferences.window_height == GuiPreferences().window_height
+
+
+def test_default_preferences_path_honors_config_dir_override(
+    tmp_path: Path, monkeypatch
+):
+    monkeypatch.setenv("AMC_PYTHON_CONFIG_DIR", str(tmp_path))
+
+    assert default_preferences_path() == tmp_path / "gui-preferences.json"
+
+
+def test_default_preferences_path_is_stable_and_under_amc_python(monkeypatch):
+    monkeypatch.delenv("AMC_PYTHON_CONFIG_DIR", raising=False)
+
+    path = default_preferences_path()
+
+    assert path.name == "gui-preferences.json"
+    assert path.parent.name == "amc-python"
+    assert default_preferences_path() == path

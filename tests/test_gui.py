@@ -30,6 +30,7 @@ from amc.errors import CorruptCatalogError
 from amc.catalog import Catalog
 from amc.model import Movie
 from amc.loans import LoanEvent
+from amc.preferences import GuiPreferences
 
 
 def test_window_sort_delegates_to_application_service():
@@ -59,6 +60,95 @@ def test_window_repeated_column_sort_toggles_direction():
     window.service.sort.assert_called_once_with("year", reverse=True)
     assert window.sort_reverse is True
     assert window.table.heading.call_args_list[2].kwargs["text"] == "Year ▼"
+
+
+def test_window_view_filter_change_refreshes_and_saves_preferences():
+    window = object.__new__(CatalogWindow)
+    window.refresh = Mock()
+    window._save_preferences = Mock()
+
+    window._view_filter_changed()
+
+    window.refresh.assert_called_once_with()
+    window._save_preferences.assert_called_once_with()
+
+
+def test_window_layout_change_applies_layout_and_saves_preferences():
+    window = object.__new__(CatalogWindow)
+    window.apply_layout = Mock()
+    window._save_preferences = Mock()
+
+    window._layout_changed()
+
+    window.apply_layout.assert_called_once_with()
+    window._save_preferences.assert_called_once_with()
+
+
+def test_window_saves_current_view_layout_and_window_size():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="Checked"))
+    window.layout = Mock(get=Mock(return_value="Poster"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences()
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1280
+    window.winfo_toplevel.return_value.winfo_height.return_value = 800
+
+    with patch("amc.gui.save_preferences") as save:
+        window._save_preferences()
+
+    save.assert_called_once_with(
+        GuiPreferences(
+            view_filter="Checked", layout="Poster",
+            window_width=1280, window_height=800,
+        ),
+        Path("prefs.json"),
+    )
+    assert (window._preferences.window_width, window._preferences.window_height) == (
+        1280, 800,
+    )
+
+
+def test_window_save_preferences_keeps_previous_size_when_window_not_yet_drawn():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="All"))
+    window.layout = Mock(get=Mock(return_value="Details"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences(window_width=999, window_height=555)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1
+    window.winfo_toplevel.return_value.winfo_height.return_value = 1
+
+    with patch("amc.gui.save_preferences") as save:
+        window._save_preferences()
+
+    saved = save.call_args.args[0]
+    assert (saved.window_width, saved.window_height) == (999, 555)
+
+
+def test_window_save_preferences_ignores_write_failures():
+    window = object.__new__(CatalogWindow)
+    window.view_filter = Mock(get=Mock(return_value="All"))
+    window.layout = Mock(get=Mock(return_value="Details"))
+    window.preferences_path = Path("prefs.json")
+    window._preferences = GuiPreferences()
+    window.winfo_toplevel = Mock(return_value=Mock())
+    window.winfo_toplevel.return_value.winfo_width.return_value = 1100
+    window.winfo_toplevel.return_value.winfo_height.return_value = 720
+
+    with patch("amc.gui.save_preferences", side_effect=OSError("disk full")):
+        window._save_preferences()
+
+
+def test_window_close_saves_preferences_then_destroys():
+    window = object.__new__(CatalogWindow)
+    window._save_preferences = Mock()
+    window.winfo_toplevel = Mock(return_value=Mock())
+
+    window._on_close()
+
+    window._save_preferences.assert_called_once_with()
+    window.winfo_toplevel.return_value.destroy.assert_called_once_with()
 
 
 def _window() -> CatalogWindow:
@@ -529,7 +619,7 @@ def test_gui_entry_point_defaults_to_catalog_json():
     run.assert_called_once_with(Path("catalog.json"))
 
 
-def test_run_sets_readable_resizable_window_geometry():
+def test_run_sets_title_and_resizable_minimum_size():
     root = Mock()
     with (
         patch("amc.gui.tk.Tk", return_value=root),
@@ -538,7 +628,6 @@ def test_run_sets_readable_resizable_window_geometry():
         run(Path("movies.amc"))
 
     root.title.assert_called_once_with("AMC Python — movies.amc")
-    root.geometry.assert_called_once_with("1100x720")
     root.minsize.assert_called_once_with(760, 480)
     window.assert_called_once_with(root, Path("movies.amc"))
     root.mainloop.assert_called_once_with()

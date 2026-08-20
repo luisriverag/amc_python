@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 458 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 15 functional package modules, 6 repository tools, 468 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -164,8 +164,15 @@ confidence.
    contents and skipped the directory entry. `native.py`'s
    `replace_and_sync_directory` helper (made a shared, non-private name for this)
    is now used by every one of those call sites, each with a regression test
-   confirming the directory descriptor is fsynced. Permission errors and
-   concurrent writers remain untested.
+   confirming the directory descriptor is fsynced. Permission-denied behavior is
+   now defined and tested too: a parent directory that cannot be created, or an
+   existing directory that denies new-file creation, propagates an unwrapped
+   `PermissionError`/`OSError` (no wrapping into a `CatalogError`) and leaves any
+   existing destination and temp-file state untouched, verified by injected
+   tests for every `storage.py` atomic writer, `copy_catalog`, and the native
+   `.amc` writer — this environment runs its automated checks as `root`, where
+   real filesystem permission bits are not enforced, so these tests inject the
+   denial rather than relying on `chmod`. Concurrent writers remain untested.
 8. [Partially resolved] Expected errors are still partly represented by public
    `CatalogError` subclasses and partly by built-in `ValueError`, `TypeError`,
    and `KeyError` raised directly from `catalog.py`, `application.py`, and

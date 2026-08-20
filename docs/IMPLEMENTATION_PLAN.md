@@ -449,11 +449,15 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     `native.py`'s `replace_and_sync_directory` helper is now shared by every
     writer in the package. PORT_AUDIT design-debt item 7 (partial: permission
     errors and concurrent writers remain untested).
-  - [ ] Define and test explicit behavior for a permission-denied or read-only
-    destination directory across the atomic writers above — currently an
-    `OSError` propagates from the temp-file `open()`/`mkdir()` call with no
-    documented, stable diagnostic shape. PORT_AUDIT design-debt item 7
-    (remaining part).
+  - [x] Define and test explicit behavior for a permission-denied or read-only
+    destination directory across the atomic writers above: an unwrapped
+    `PermissionError`/`OSError` propagates from the temp-file `open()`/`mkdir()`
+    call (never wrapped into a `CatalogError`) and leaves any existing
+    destination and temp-file state untouched. Verified with injected-failure
+    tests (not real `chmod`, since this environment's automated checks run as
+    `root`, which does not enforce permission bits) for every `storage.py`
+    atomic writer, `copy_catalog`, and the native `.amc` writer.
+    PORT_AUDIT design-debt item 7 (remaining part: concurrent writers).
   - [x] Fix the concrete bug the undocumented error-model split had produced:
     the desktop GUI's ~20 `try`/`except` boundaries around `CatalogService`
     calls were meant to share one expected-failure set, but only 5 of them

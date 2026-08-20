@@ -201,13 +201,41 @@ def copy_catalog(source: str | Path, destination: str | Path) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _reject_duplicate_csv_headers(
+    fieldnames: list[str] | None, aliases: dict[str, str], known: set[str]
+) -> None:
+    """Fail loudly instead of silently discarding a column's data.
+
+    csv.DictReader collapses same-named columns into a single dict key,
+    keeping only the last column's value; two headers that resolve to the
+    same known field, or repeat the same extras key verbatim, have the same
+    silent-data-loss effect. Detect both before any row is read.
+    """
+    seen: dict[str, str] = {}
+    for header in fieldnames or ():
+        if header is None:
+            continue
+        stripped = header.strip()
+        if not stripped:
+            continue
+        field = aliases.get(stripped.casefold(), stripped.casefold().replace(" ", "_"))
+        key = field if field in known and field != "extras" else stripped
+        if key in seen:
+            raise ValueError(
+                f"duplicate CSV header {stripped!r} collides with {seen[key]!r}"
+            )
+        seen[key] = stripped
+
+
 def load_csv(path: str | Path) -> Catalog:
     """Load a UTF-8 CSV file whose headers use Python or AMC field names."""
     aliases = {key.casefold(): value for key, value in _XML_FIELDS.items()}
     known = {item.name for item in fields(Movie)}
     catalog = Catalog()
     with Path(path).open(encoding="utf-8-sig", newline="") as stream:
-        for row_number, row in enumerate(csv.DictReader(stream), start=2):
+        reader = csv.DictReader(stream)
+        _reject_duplicate_csv_headers(reader.fieldnames, aliases, known)
+        for row_number, row in enumerate(reader, start=2):
             values: dict[str, object] = {}
             extras: dict[str, str] = {}
             for header, text in row.items():

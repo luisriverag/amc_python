@@ -436,6 +436,20 @@ def test_csv_roundtrip_with_amc_headers_and_custom_fields(tmp_path: Path):
     assert restored.to_dict() == movie.to_dict()
 
 
+def test_csv_load_rejects_duplicate_extras_header(tmp_path: Path):
+    source = tmp_path / "import.csv"
+    source.write_text("Title,Inventory Code,Inventory Code\nAlien,A-1,A-2\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate CSV header 'Inventory Code'"):
+        load_csv(source)
+
+
+def test_csv_load_rejects_headers_colliding_on_the_same_known_field(tmp_path: Path):
+    source = tmp_path / "import.csv"
+    source.write_text("Title,title\nAlien,alien\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate CSV header 'title' collides with 'Title'"):
+        load_csv(source)
+
+
 def test_html_export_is_static_escaped_and_atomic(tmp_path: Path):
     target = tmp_path / "catalog.html"
     save_html(Catalog([

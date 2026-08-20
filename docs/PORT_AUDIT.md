@@ -134,8 +134,15 @@ confidence.
    construction. Semantic constraints for most upstream fields remain unknown.
 4. XML custom data is flattened into a dictionary, losing repeated names, ordering,
    attributes, and nested structure.
-5. CSV dialect, locale, empty-value, duplicate-header, and malformed-row behavior is
-   not defined from upstream evidence.
+5. [Partially resolved] CSV dialect, locale, and empty-value behavior is still not
+   defined from upstream evidence. Duplicate-header behavior is now defined and
+   tested as a Python-owned policy (not an upstream-verified one): `load_csv`
+   previously let `csv.DictReader` silently discard a column's data whenever two
+   headers collapsed onto the same key (either two identical extras headers, or
+   two headers, such as `Title`/`title`, that normalize to the same known movie
+   field) — the earlier column's value vanished with no diagnostic. It now raises
+   a clear `ValueError` identifying both colliding headers before any row is
+   read, mirroring the JSON v1 decoder's duplicate-member rejection policy.
 6. [Partially resolved] Inspection still parses complete JSON documents merely to
    count records (Python's standard `json` module has no incremental parser, and
    implementing one was judged not worth the complexity for a counting-only path).

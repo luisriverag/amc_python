@@ -69,6 +69,26 @@ def _buttons(widget: tk.Misc) -> dict[str, ttk.Button]:
     return found
 
 
+def _entries(widget: tk.Misc) -> list[ttk.Entry]:
+    """Recursively collect every ttk.Entry under *widget*, in creation order."""
+    found: list[ttk.Entry] = []
+    for child in widget.winfo_children():
+        if isinstance(child, ttk.Entry):
+            found.append(child)
+        found.extend(_entries(child))
+    return found
+
+
+def _comboboxes(widget: tk.Misc) -> list[ttk.Combobox]:
+    """Recursively collect every ttk.Combobox under *widget*."""
+    found: list[ttk.Combobox] = []
+    for child in widget.winfo_children():
+        if isinstance(child, ttk.Combobox):
+            found.append(child)
+        found.extend(_comboboxes(child))
+    return found
+
+
 def _png_bytes(size: tuple[int, int] = (40, 30)) -> bytes:
     buffer = io.BytesIO()
     Image.new("RGB", size, "red").save(buffer, format="PNG")
@@ -207,3 +227,100 @@ def test_crop_dialog_cancel_closes_without_applying(real_root: tk.Tk):
 
     assert applied == []
     assert not dialog.winfo_exists()
+
+
+def test_loan_out_dialog_checks_out_a_real_movie(real_root: tk.Tk, tmp_path: Path):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+    window.selected_movies = lambda: [movie]
+
+    window.loan_out()
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [
+        item for item in _toplevels(real_root) if item.title() == "Check out movie"
+    ][0]
+    _comboboxes(dialog)[0].set("Ripley")
+    _buttons(dialog)["Check Out"].invoke()
+    real_root.update()
+
+    assert not dialog.winfo_exists()
+    assert window.service.catalog.get(movie.number).borrower == "Ripley"
+
+
+def test_loan_in_checks_in_a_real_loaned_movie(real_root: tk.Tk, tmp_path: Path):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+    window.service.check_out(movie.number, "Ripley")
+    window.selected_movies = lambda: [window.service.catalog.get(movie.number)]
+
+    window.loan_in()
+    real_root.update_idletasks()
+    real_root.update()
+
+    assert window.service.catalog.get(movie.number).borrower == ""
+
+
+def test_set_pictures_embeds_a_real_image_for_selected_movies(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+    window.selected_movies = lambda: [movie]
+    picture = tmp_path / "cover.png"
+    picture.write_bytes(_png_bytes())
+
+    with (
+        patch("amc.gui.filedialog.askopenfilename", return_value=str(picture)),
+        patch("amc.gui.messagebox.askyesno", return_value=True),
+    ):
+        window.set_pictures()
+    real_root.update_idletasks()
+    real_root.update()
+
+    updated = window.service.catalog.get(movie.number)
+    assert updated.extras.get("native_picture_base64")
+
+
+def test_clear_pictures_removes_a_real_picture_after_confirmation(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+    picture = tmp_path / "cover.png"
+    picture.write_bytes(_png_bytes())
+    window.service.set_picture(movie.number, picture, embed=True)
+    window.selected_movies = lambda: [window.service.catalog.get(movie.number)]
+
+    with patch("amc.gui.messagebox.askyesno", return_value=True):
+        window.clear_pictures()
+    real_root.update_idletasks()
+    real_root.update()
+
+    updated = window.service.catalog.get(movie.number)
+    assert not updated.extras.get("native_picture_base64")
+    assert updated.picture == ""
+
+
+def test_edit_dialog_rejects_a_missing_title_without_closing(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+    title_entry = _entries(dialog)[0]
+    title_entry.delete(0, tk.END)
+
+    with patch("amc.gui.messagebox.showerror") as showerror:
+        _buttons(dialog)["Save"].invoke()
+    real_root.update()
+
+    showerror.assert_called_once()
+    assert "title is required" in showerror.call_args.args[1]
+    assert dialog.winfo_exists()
+    assert window.service.catalog.get(movie.number).title == movie.title
+    dialog.destroy()

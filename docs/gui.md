@@ -199,10 +199,15 @@ per-movie crop rectangle from the command line.
 Most GUI tests are headless adapter tests that bypass `CatalogWindow.__init__`
 and mock every widget. `tests/test_gui_display.py` is different: it builds
 real Tk widget trees — the main window, Preferences, Assign Pictures, Import
-Media, the edit dialog, and an end-to-end simulated drag-select-and-apply
-crop — against a real (possibly virtual) X display, skipping itself wherever
-none is available. `tools/check.py` runs it under Xvfb automatically on Linux
-when `xvfb-run` is installed and no `DISPLAY` is already set (see
-`.github/workflows/ci.yml`, which installs `xvfb` on the Linux job for this).
-This is real-display coverage, not a substitute for the still-missing
-assistive-technology verification above.
+Media, Loan Out (a real combobox-and-button interaction verified against the
+real service afterward), Loan In, Set Pictures, Clear Pictures, the edit
+dialog (including its missing-title validation path), and an end-to-end
+simulated drag-select-and-apply crop — against a real (possibly virtual) X
+display, skipping itself wherever none is available. `tools/check.py` runs it
+under Xvfb automatically on Linux when `xvfb-run` is installed and no
+`DISPLAY` is already set (see `.github/workflows/ci.yml`, which installs
+`xvfb` on the Linux job for this). This is real-display coverage, not a
+substitute for the still-missing assistive-technology verification above; a
+real, unpatched `messagebox`/`simpledialog` prompt still has to be mocked in
+every one of these tests regardless of display availability, since an
+unpatched one blocks waiting for a click that will never come.

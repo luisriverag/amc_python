@@ -529,14 +529,26 @@ tier's next unchecked item before returning to D4.
     CLI's own `--extensions` semantics (narrowing an automatic scan) and not
     the individual-file-selection path, where the user already chooses each
     file explicitly.
-  - [ ] Broader real-display widget coverage: `test_gui_display.py` currently
-    covers five of the desktop's dialogs. Extend it to the remaining
-    multi-widget flows that only have mocked-widget coverage today — Loan
-    Out/Loan In, Set Pictures' single-shared-picture flow, Clear Pictures'
-    confirmation, and the edit dialog's validation-error paths (e.g. a
-    missing title, an out-of-range rating) — under the same real-Tk-under-Xvfb
-    pattern, asserting the error surfaces as a real dialog rather than mocking
-    `messagebox.showerror` and checking it was called.
+  - [x] Broader real-display widget coverage: extended `test_gui_display.py`
+    to Loan Out (real `ttk.Combobox.set()` plus a real button `.invoke()`,
+    checked against the real service afterward), Loan In, Set Pictures'
+    single-shared-picture flow and Clear Pictures' confirmation (both against
+    a real embedded PNG round-tripped through the real service), and the edit
+    dialog's missing-title validation path. One correction to this item's own
+    original wording: a real blocking `messagebox.showerror`/`askyesno` still
+    has to be patched in every one of these tests, real display or not,
+    because an unpatched one blocks the test waiting for a click that will
+    never come (confirmed the hard way via the Import Media test hanging
+    during development). The real value real widgets add here is different
+    from "not mocking messagebox": checking that the edit dialog's Toplevel
+    still exists and its title Entry still holds the rejected empty value
+    after a failed Save, not just that an error callback fired.
+  - [ ] Further real-display coverage remains available (statistics/
+    duplicates/loan-history review dialogs, table sort/selection, and the
+    edit dialog's other validation paths — an out-of-range rating, an
+    invalid integer field), but the highest-value multi-widget flows named
+    above are now covered; treat any further extension here as optional
+    polish rather than a tracked gap.
   - [ ] Screen-reader labels and a verified accessibility pass remain out of
     reach here regardless of display availability: Tk has no meaningful
     AT-SPI bridge on X11 to exercise, and no screen reader is installed in

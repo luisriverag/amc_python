@@ -78,6 +78,72 @@ def test_import_realistic_attribute_based_ant_xml(tmp_path: Path):
     assert movie.extras == {"UnknownAttribute": "kept"}
 
 
+def test_import_ant_xml_maps_disks_and_size_not_mediacount_and_filesize(tmp_path: Path):
+    """`Disks` and `Size` are the real Ant Movie Catalog 4.2.2 XML attribute
+    names (confirmed against a genuine upstream export and against
+    `Movie Catalog/fields.pas`'s strTagFields table); `MediaCount` and
+    `FileSize` never appear in any upstream-produced XML and were a
+    previous naming bug in this reader/writer."""
+    source = tmp_path / "catalog.xml"
+    source.write_text(
+        '<AntMovieCatalog><Catalog><Contents>'
+        '<Movie Number="1" Checked="False" OriginalTitle="Brazil" '
+        'Disks="2" Size="1835" /></Contents></Catalog></AntMovieCatalog>',
+        encoding="utf-8",
+    )
+    movie = next(iter(load_xml(source)))
+    assert (movie.media_count, movie.file_size) == (2, 1835)
+    assert movie.extras == {}
+
+
+def test_import_ant_xml_retains_multipart_size_text_without_data_loss(tmp_path: Path):
+    """Ant Movie Catalog's Size field is free-form text, not a plain
+    integer: a multi-part release is exported as "+"-joined sizes (e.g. a
+    genuine "698+696" observed in a real catalog). Silently taking only the
+    first number would discard the rest, so the exact original text is
+    retained in extras instead when it isn't a plain integer."""
+    source = tmp_path / "catalog.xml"
+    source.write_text(
+        '<AntMovieCatalog><Catalog><Contents>'
+        '<Movie Number="1" OriginalTitle="Split Release" Size="698+696" />'
+        '</Contents></Catalog></AntMovieCatalog>',
+        encoding="utf-8",
+    )
+    movie = next(iter(load_xml(source)))
+    assert movie.file_size is None
+    assert movie.extras == {"xml_file_size_text": "698+696"}
+
+    target = tmp_path / "export.xml"
+    save_xml(Catalog([movie]), target)
+    reloaded = next(iter(load_xml(target)))
+    assert reloaded.file_size is None
+    assert reloaded.extras == {"xml_file_size_text": "698+696"}
+    assert 'Size="698+696"' in target.read_text(encoding="utf-8")
+
+
+def test_import_ant_xml_recovers_from_declared_encoding_mismatch(tmp_path: Path):
+    """A genuine AMC 4.2.2 export was observed containing a raw multi-byte
+    UTF-8 emoji inside a file declared as single-byte windows-1252 (a real
+    upstream/Delphi encoding mismatch in the source data, not something
+    this writer produces). Strict XML parsing correctly rejects that byte
+    sequence; retry once, tolerantly, so the rest of an otherwise-valid
+    catalog still loads instead of failing outright."""
+    source = tmp_path / "mismatched.xml"
+    document = (
+        b'<?xml version="1.0" encoding="windows-1252"?>'
+        b'<AntMovieCatalog><Catalog><Contents>'
+        b'<Movie Number="1" OriginalTitle="Brazil"><Comments>'
+        b"cat face: " + "🐱".encode("utf-8") +
+        b'</Comments></Movie></Contents></Catalog></AntMovieCatalog>'
+    )
+    source.write_bytes(document)
+
+    movie = next(iter(load_xml(source)))
+
+    assert movie.original_title == "Brazil"
+    assert "cat face:" in movie.comments
+
+
 def test_cli_add_and_list(tmp_path: Path, capsys):
     target = tmp_path / "movies.json"
     assert main(["-c", str(target), "add", "Moon", "--year", "2009"]) == 0

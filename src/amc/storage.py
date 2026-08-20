@@ -33,12 +33,20 @@ _XML_FIELDS = {
     "Length": "length", "FilePath": "file_path",
     "Rating": "rating", "UserRating": "user_rating", "ColorTag": "color_tag",
     "Date": "date", "Borrower": "borrower",
-    "MediaLabel": "media_label", "MediaType": "media_type", "MediaCount": "media_count",
+    # "Disks" and "Size" match Ant Movie Catalog's own field-tag table
+    # (Movie Catalog/fields.pas: strTagFields), confirmed against a genuine
+    # AMC 4.2.2 XML export: every one of that file's 7161 movies used these
+    # two exact attribute names. AMC Python previously used the invented
+    # names "MediaCount" and "FileSize" here, which do not appear anywhere
+    # in the upstream Delphi source and silently routed every real AMC XML
+    # catalog's disk-count and file-size data into `extras` instead of the
+    # typed `media_count`/`file_size` fields.
+    "MediaLabel": "media_label", "MediaType": "media_type", "Disks": "media_count",
     "Source": "source", "URL": "url", "Description": "description", "Comments": "comments",
     "Actors": "actors", "Languages": "languages", "Subtitles": "subtitles",
     "VideoFormat": "video_format", "VideoBitrate": "video_bitrate",
     "AudioFormat": "audio_format", "AudioBitrate": "audio_bitrate",
-    "Resolution": "resolution", "Framerate": "framerate", "FileSize": "file_size",
+    "Resolution": "resolution", "Framerate": "framerate", "Size": "file_size",
     "Picture": "picture",
 }
 _PYTHON_TO_XML = {value: key for key, value in _XML_FIELDS.items()}
@@ -316,6 +324,19 @@ def save_xml(catalog: Catalog, path: str | Path) -> None:
             {"Number": str(movie.number), "Checked": str(movie.checked)},
         )
         for field, tag in _PYTHON_TO_XML.items():
+            if field == "file_size":
+                # Ant Movie Catalog's Size attribute is free-form text, not a
+                # plain integer: a multi-part release is exported as
+                # "+"-joined sizes (e.g. "698+696"), which load_xml cannot
+                # parse as a single int without discarding data, so it keeps
+                # the exact original text here instead. Writing that text
+                # straight back to the Size attribute (rather than as a
+                # generic extras child element) keeps both our own round
+                # trip and a re-import into genuine AMC faithful.
+                raw_text = movie.extras.get("xml_file_size_text")
+                if isinstance(raw_text, str) and raw_text.strip():
+                    node.set(tag, raw_text)
+                    continue
             value = getattr(movie, field)
             if value not in (None, ""):
                 # AMC stores regular fields as Movie attributes; Picture and
@@ -325,6 +346,8 @@ def save_xml(catalog: Catalog, path: str | Path) -> None:
                 else:
                     node.set(tag, str(value))
         for tag, value in movie.extras.items():
+            if tag == "xml_file_size_text":
+                continue
             if tag not in _XML_FIELDS:
                 if not isinstance(value, (str, int, float, bool)) and value is not None:
                     raise ValueError(
@@ -415,12 +438,49 @@ def _number(value: str | None, kind: type[int] | type[float]):
     return kind(float(normalized)) if kind is int else kind(normalized)
 
 
+def _strict_int(value: str) -> int | None:
+    """Parse a plain integer, unlike `_number`'s lenient first-match regex.
+
+    AMC's Size field is free-form text, not a plain integer: a multi-part
+    release is exported as "+"-joined sizes (e.g. "698+696"). `_number`'s
+    regex would silently take only the first part and discard the rest;
+    returning None here instead lets the caller retain the original text
+    in `extras` unmodified, matching the same pattern already used for
+    unparseable native file-size/framerate text in native.py.
+    """
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
+_XML_DECLARED_ENCODING = re.compile(rb'encoding\s*=\s*["\']([^"\']+)["\']')
+
+
 def load_xml(path: str | Path) -> Catalog:
     """Read the XML export produced by Ant Movie Catalog 3.x/4.x."""
+    path = Path(path)
     try:
         root = ET.parse(path).getroot()
-    except ET.ParseError as error:
-        raise ValueError(f"invalid catalog XML: {error}") from error
+    except ET.ParseError as strict_error:
+        # A genuine AMC 4.2.2 export was observed with raw multi-byte UTF-8
+        # (a pasted emoji) inside a file declared as single-byte
+        # windows-1252 — a real-world encoding mismatch in the source data,
+        # not something this reader produces. Retry once, tolerantly:
+        # decode the declared encoding with errors="replace" so a handful
+        # of corrupted characters become U+FFFD instead of the whole,
+        # otherwise-valid catalog failing to load.
+        raw = path.read_bytes()
+        match = _XML_DECLARED_ENCODING.search(raw[:200])
+        declared_encoding = match.group(1).decode("ascii") if match else "utf-8"
+        try:
+            text = raw.decode(declared_encoding, errors="replace")
+            root = ET.fromstring(text)
+        except (LookupError, ET.ParseError):
+            raise ValueError(f"invalid catalog XML: {strict_error}") from strict_error
     metadata = _read_xml_metadata(root)
     catalog = Catalog(metadata={"amc_xml": metadata} if metadata else {})
     for node in root.findall(".//Movie"):
@@ -433,7 +493,12 @@ def load_xml(path: str | Path) -> Catalog:
         raw_fields.update({child.tag: child.text or "" for child in node})
         for tag, text in raw_fields.items():
             field = _XML_FIELDS.get(tag)
-            if field in _INTEGER_FIELDS:
+            if field == "file_size":
+                parsed = _strict_int(text)
+                values[field] = parsed
+                if parsed is None and text.strip():
+                    extras["xml_file_size_text"] = text
+            elif field in _INTEGER_FIELDS:
                 values[field] = _number(text, int)
             elif field in _FLOAT_FIELDS:
                 values[field] = _number(text, float)

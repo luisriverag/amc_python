@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 488 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 15 functional package modules, 6 repository tools, 491 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -271,6 +271,35 @@ confidence.
     path, writer, composer, certification, user-rating, and color-tag values are now
     typed movie fields;
     genuine XML/native fixture comparison remains pending.
+26. [Resolved] Two XML field-name bugs, found and fixed against a genuine AMC 4.2.2
+    export (7161 movies, contributed by a user for local debugging, not committed to
+    the repository — the first time genuine upstream-generated data has been used to
+    validate this port). `Movie Catalog/fields.pas`'s `strTagFields` table is the
+    authoritative XML attribute name for every field; grepping the entire checked-in
+    Delphi source tree confirmed `"MediaCount"` and `"FileSize"` — the names
+    `storage._XML_FIELDS` previously used — appear nowhere in it. The real names are
+    `"Disks"` and `"Size"` (present on all 7161 movies in the real export; `MediaCount`
+    and `FileSize` on none), which this port had apparently invented rather than
+    derived from source. Every real AMC XML catalog was therefore silently routing its
+    disk-count and file-size data into `extras` instead of the typed `media_count`/
+    `file_size` fields. Fixing the name mapping alone would have introduced a second,
+    real bug: `Size` is free-form text in upstream (`strSize: string`, not an integer),
+    and a multi-part release is exported as `+`-joined sizes (a genuine `"698+696"`
+    observed in the same file, affecting 10 of the 7161 movies); the existing lenient
+    `_number()` regex would have silently kept only the first part. `load_xml` now
+    parses `file_size` strictly and retains the original text in
+    `extras["xml_file_size_text"]` when it isn't a plain integer, and `save_xml` writes
+    that original text straight back to the `Size` attribute rather than losing it
+    through the generic extras-child-element fallback. A third, unrelated issue
+    surfaced from the same file: it contained a raw multi-byte UTF-8 emoji inside a
+    document declared as single-byte `windows-1252` (real corruption in the source
+    data, not something this reader produces), which strict XML parsing correctly
+    rejected; `load_xml` now retries once with a tolerant decode of the declared
+    encoding (`errors="replace"`) before giving up, so a few corrupted characters
+    don't fail an otherwise-valid 7161-movie catalog. The full file round-tripped
+    through `load_xml`/`save_xml` with zero field mismatches after these three fixes.
+    This is not upgraded to `verified` in `compatibility.md`: no provenance-tracked
+    fixture is registered in the repository for this file.
 
 ## Gap matrix against the original application
 

@@ -215,6 +215,7 @@ class CatalogWindow(ttk.Frame):
             ("Loan Out", self.loan_out, 12),
             ("Loan In", self.loan_in, 4),
             ("Toggle Checked", self.toggle_checked, 12),
+            ("Set Pictures", self.set_pictures, 12),
             ("Clear Pictures", self.clear_pictures, 4),
             ("Undo", self.undo, 12),
             ("Redo", self.redo, 4),
@@ -335,6 +336,7 @@ class CatalogWindow(ttk.Frame):
             "Loan Out": selected > 0 and writable,
             "Loan In": selected > 0 and all(movie.borrower for movie in movies) and writable,
             "Toggle Checked": selected > 0 and writable,
+            "Set Pictures": selected > 0 and writable,
             "Clear Pictures": selected > 0 and writable,
             "Open URL": can_open_url,
         }
@@ -675,6 +677,41 @@ class CatalogWindow(ttk.Frame):
             messagebox.showerror(
                 "Could not update checked state", str(error), parent=self
             )
+            return
+        self.refresh()
+
+    def set_pictures(self) -> None:
+        """Link or embed one chosen picture for every selected movie."""
+        movies = self.selected_movies()
+        if not movies:
+            return
+        selected = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title="Choose poster",
+            filetypes=(
+                ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
+                ("All files", "*"),
+            ),
+        )
+        if not selected:
+            return
+        description = (
+            movies[0].display_title()
+            if len(movies) == 1
+            else f"these {len(movies)} selected movies"
+        )
+        embed = messagebox.askyesno(
+            "Set pictures",
+            f"Embed this picture in the catalog for {description}? Choose "
+            "No to store a linked path instead.",
+            parent=self,
+        )
+        try:
+            self.service.set_picture_many(
+                {movie.number: selected for movie in movies}, embed=embed
+            )
+        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            messagebox.showerror("Could not set pictures", str(error), parent=self)
             return
         self.refresh()
 

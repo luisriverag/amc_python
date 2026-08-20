@@ -240,6 +240,39 @@ def test_cli_embeds_exports_and_clears_picture(tmp_path: Path):
     assert load(catalog).get(1).picture == ""
 
 
+def test_cli_sets_pictures_for_multiple_movies_in_one_invocation(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    cover_one = tmp_path / "one.jpg"
+    cover_one.write_bytes(b"image one")
+    cover_two = tmp_path / "two.jpg"
+    cover_two.write_bytes(b"image two")
+    save(
+        Catalog([Movie(number=1, title="One"), Movie(number=2, title="Two")]),
+        catalog,
+    )
+
+    assert main([
+        "-c", str(catalog), "picture-set-many",
+        "--assign", f"1={cover_one}",
+        "--assign", f"2={cover_two}",
+    ]) == 0
+
+    assert load(catalog).get(1).picture == str(cover_one)
+    assert load(catalog).get(2).picture == str(cover_two)
+
+
+def test_cli_rejects_malformed_picture_set_many_assignments(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    save(Catalog([Movie(number=1, title="One")]), catalog)
+
+    assert main([
+        "-c", str(catalog), "picture-set-many", "--assign", "not-an-assignment",
+    ]) == 2
+    assert main([
+        "-c", str(catalog), "picture-set-many", "--assign", "x=cover.jpg",
+    ]) == 2
+
+
 def test_cli_clears_pictures_for_multiple_movies_in_one_invocation(tmp_path: Path):
     catalog = tmp_path / "movies.json"
     save(

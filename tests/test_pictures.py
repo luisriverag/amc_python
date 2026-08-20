@@ -44,6 +44,76 @@ def test_service_embeds_exports_and_clears_picture(tmp_path: Path):
     assert "native_picture_base64" not in cleared.extras
 
 
+def test_service_links_pictures_for_many_movies_in_one_persisted_mutation(
+    tmp_path: Path,
+):
+    catalog_path = tmp_path / "catalog.json"
+    cover_one = tmp_path / "one.jpg"
+    cover_one.write_bytes(b"image one")
+    cover_two = tmp_path / "two.jpg"
+    cover_two.write_bytes(b"image two")
+    save(
+        Catalog([Movie(number=1, title="One"), Movie(number=2, title="Two")]),
+        catalog_path,
+    )
+    service = CatalogService(catalog_path)
+
+    updated = service.set_picture_many({1: cover_one, 2: cover_two})
+
+    assert [movie.picture for movie in updated] == [str(cover_one), str(cover_two)]
+    assert load(catalog_path).get(1).picture == str(cover_one)
+    assert load(catalog_path).get(2).picture == str(cover_two)
+
+
+def test_service_embeds_the_same_picture_for_many_movies_atomically(
+    tmp_path: Path,
+):
+    catalog_path = tmp_path / "catalog.json"
+    picture = tmp_path / "cover.png"
+    Image.new("RGB", (2, 3), "red").save(picture)
+    save(
+        Catalog([Movie(number=1, title="One"), Movie(number=2, title="Two")]),
+        catalog_path,
+    )
+    service = CatalogService(catalog_path)
+
+    updated = service.set_picture_many({1: picture, 2: picture}, embed=True)
+
+    assert [movie.picture for movie in updated] == ["cover.png", "cover.png"]
+    for number in (1, 2):
+        assert "native_picture_base64" in load(catalog_path).get(number).extras
+
+
+def test_service_set_picture_many_is_atomic_for_missing_or_duplicate_numbers(
+    tmp_path: Path,
+):
+    catalog_path = tmp_path / "catalog.json"
+    cover = tmp_path / "cover.jpg"
+    cover.write_bytes(b"image")
+    save(Catalog([Movie(number=1, title="One")]), catalog_path)
+    service = CatalogService(catalog_path)
+
+    with pytest.raises(KeyError, match="movie 9"):
+        service.set_picture_many({1: cover, 9: cover})
+    with pytest.raises(ValueError, match="must be unique"):
+        service.set_picture_many([(1, cover), (1, cover)])
+
+    assert load(catalog_path).get(1).picture == ""
+
+
+def test_service_set_picture_many_rejects_crop_without_embed(tmp_path: Path):
+    catalog_path = tmp_path / "catalog.json"
+    cover = tmp_path / "cover.jpg"
+    cover.write_bytes(b"image")
+    save(Catalog([Movie(number=1, title="One")]), catalog_path)
+    service = CatalogService(catalog_path)
+
+    with pytest.raises(ValueError, match="crop is only supported"):
+        service.set_picture_many({1: cover}, crop=(0, 0, 1, 1))
+
+    assert load(catalog_path).get(1).picture == ""
+
+
 def test_service_clears_pictures_for_many_movies_in_one_persisted_mutation(
     tmp_path: Path,
 ):

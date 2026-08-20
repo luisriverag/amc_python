@@ -100,6 +100,10 @@ The JSON shapes are part of the CLI contract:
   Pillow-supported image, bounds encoded bytes and decoded pixels, then base64-retains
   the bytes for native/JSON round trips. `--crop X,Y,WIDTH,HEIGHT` optionally stores a
   validated in-bounds crop using the source image format. Cropping requires `--embed`.
+  `picture-set-many --assign NUMBER=PATH [--assign NUMBER=PATH ...] [--embed] [--crop
+  X,Y,WIDTH,HEIGHT]` applies the same embed/crop/size settings to a distinct picture
+  source per movie number in one atomic write; each movie may reference its own file,
+  or the same file may be repeated across assignments to share one picture.
   `picture-export NUMBER DESTINATION` atomically
   writes embedded bytes or copies a linked picture, resolving relative links beside
   the catalog. `picture-clear NUMBER [NUMBER ...]` removes both linked and embedded

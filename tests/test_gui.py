@@ -125,6 +125,49 @@ def test_window_removes_all_selected_movies_atomically():
     window.refresh.assert_called_once_with()
 
 
+def test_window_sets_the_same_picture_for_all_selected_movies_atomically():
+    window = _window()
+    movies = [Movie(number=2, title="Two"), Movie(number=4, title="Four")]
+    window.selected_movies = Mock(return_value=movies)
+    with (
+        patch("amc.gui.filedialog.askopenfilename", return_value="cover.jpg"),
+        patch("amc.gui.messagebox.askyesno", return_value=True) as confirm,
+    ):
+        window.set_pictures()
+
+    window.service.set_picture_many.assert_called_once_with(
+        {2: "cover.jpg", 4: "cover.jpg"}, embed=True
+    )
+    assert "2 selected movies" in confirm.call_args.args[1]
+    window.refresh.assert_called_once_with()
+
+
+def test_window_set_pictures_ignores_missing_selection_and_cancelled_dialog():
+    window = _window()
+    window.selected_movies = Mock(return_value=[])
+    window.set_pictures()
+    window.service.set_picture_many.assert_not_called()
+
+    window.selected_movies = Mock(return_value=[Movie(number=2, title="Two")])
+    with patch("amc.gui.filedialog.askopenfilename", return_value=""):
+        window.set_pictures()
+    window.service.set_picture_many.assert_not_called()
+
+
+def test_window_set_pictures_links_instead_of_embedding_when_declined():
+    window = _window()
+    window.selected_movies = Mock(return_value=[Movie(number=2, title="Two")])
+    with (
+        patch("amc.gui.filedialog.askopenfilename", return_value="cover.jpg"),
+        patch("amc.gui.messagebox.askyesno", return_value=False),
+    ):
+        window.set_pictures()
+
+    window.service.set_picture_many.assert_called_once_with(
+        {2: "cover.jpg"}, embed=False
+    )
+
+
 def test_window_clears_pictures_for_all_selected_movies_atomically():
     window = _window()
     movies = [Movie(number=2, title="Two"), Movie(number=4, title="Four")]
@@ -521,7 +564,7 @@ def test_window_action_states_follow_selection_history_and_format():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
+        "Set Pictures", "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -549,7 +592,7 @@ def test_window_disables_mutations_for_interchange_catalog():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
+        "Set Pictures", "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -573,7 +616,7 @@ def test_window_disables_actions_when_selection_lacks_required_data():
     window = _window()
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
+        "Set Pictures", "Clear Pictures", "Undo", "Redo", "Open URL", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()

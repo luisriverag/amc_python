@@ -109,6 +109,7 @@ amc -c movies.json export-amc movies.amc
 amc -c movies.json export-amc movies.amc --max-output-bytes 104857600
 amc -c movies.json picture-set 12 cover.jpg --embed
 amc -c movies.json picture-set 12 cover.jpg --embed --crop 10,10,300,450
+amc -c movies.json picture-set-many --assign 12=cover12.jpg --assign 13=cover13.jpg --embed
 amc -c movies.json picture-export 12 exported-cover.jpg
 amc -c movies.json picture-clear 12
 amc -c movies.json picture-clear 12 13 14

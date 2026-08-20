@@ -375,15 +375,14 @@ both a CLI and a desktop entry point.
     documented, tested guarantee (`docs/cli.md`, `test_media.py`) rather
     than an unstated side effect.
   - [x] Added the prerequisite GUI media-import workflow the previous audit
-    found missing: a toolbar **Import Media** action opens a multi-file
-    picker, then a modal dialog that reports which file is being inspected
-    and can be cancelled mid-scan, mirroring the CLI's atomic-after-inspection
-    guarantee (nothing is added unless every selected file is inspected
-    without cancelling or hitting an error). It intentionally does not yet
-    match the CLI's folder/`--recursive`/`--extensions` mode — only explicit
-    multi-file selection — so it is not itself a source of GUI progress
-    reporting for a folder scan; that remains future work if a folder mode
-    is added.
+    found missing: a toolbar **Import Media** action asks whether to import
+    from a folder (with a recursive-subfolder prompt, using
+    `amc.media.discover_media`) or choose individual files, then a modal
+    dialog reports which file is being inspected and can be cancelled
+    mid-scan, mirroring the CLI's atomic-after-inspection guarantee (nothing
+    is added unless every selected/discovered file is inspected without
+    cancelling or hitting an error). It does not yet match the CLI's
+    `--extensions` filter.
   - [x] Keyboard reachability: every modal dialog now moves initial focus to
     a specific control on open (the title field in Add/Edit, the borrower
     field in Loan Out, the first Browse button in Assign Pictures, the
@@ -396,11 +395,10 @@ both a CLI and a desktop entry point.
     reader), so the keyboard-focus item above is a real but partial step,
     not a substitute for this one.
 
-D2's progress/cancellation item is complete for the case it named as worth
-it (CLI large-tree scanning) and its GUI prerequisite (a media-import
-workflow existing at all); folder-based GUI import and a verified
-accessibility pass (beyond the keyboard-focus improvements now shipped)
-remain open.
+D2's progress/cancellation item, including folder-based GUI import, is now
+complete. A verified accessibility pass beyond the keyboard-focus
+improvements already shipped remains the only open item in D2 — and in the
+entire D0–D3 downstream execution backlog.
 
 ### D3 — catalog/GUI preferences
 

@@ -355,11 +355,41 @@ def test_window_imports_and_refreshes():
     showinfo.assert_called_once()
 
 
+def test_window_import_media_ignores_cancelled_mode_prompt():
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=None),
+        patch("amc.gui.filedialog.askopenfilenames") as ask_files,
+        patch("amc.gui.filedialog.askdirectory") as ask_folder,
+    ):
+        window.import_media()
+
+    ask_files.assert_not_called()
+    ask_folder.assert_not_called()
+    window.service.add_many.assert_not_called()
+
+
 def test_window_import_media_ignores_cancelled_file_dialog():
     window = _window()
 
     with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
         patch("amc.gui.filedialog.askopenfilenames", return_value=()),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+
+
+def test_window_import_media_ignores_cancelled_folder_dialog():
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch("amc.gui.filedialog.askdirectory", return_value=""),
         patch("amc.gui.tk.Toplevel") as toplevel,
     ):
         window.import_media()
@@ -374,6 +404,7 @@ def test_window_import_media_inspects_selected_files_and_adds_them():
     movies = [Movie(title="One"), Movie(title="Two")]
 
     with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
         patch(
             "amc.gui.filedialog.askopenfilenames",
             return_value=["one.mkv", "two.mkv"],
@@ -393,6 +424,74 @@ def test_window_import_media_inspects_selected_files_and_adds_them():
     showinfo.assert_called_once()
 
 
+def test_window_import_media_expands_a_chosen_folder():
+    window = _window()
+    dialog = Mock()
+    discovered = [Path("folder/one.mkv"), Path("folder/two.mkv")]
+    movies = [Movie(title="One"), Movie(title="Two")]
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch("amc.gui.filedialog.askdirectory", return_value="folder"),
+        patch("amc.gui.messagebox.askyesno", return_value=True) as recurse_prompt,
+        patch("amc.gui.discover_media", return_value=discovered) as discover,
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button", return_value=Mock()),
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=movies),
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.import_media()
+
+    discover.assert_called_once_with([Path("folder")], recursive=True)
+    recurse_prompt.assert_called_once()
+    window.service.add_many.assert_called_once_with(movies)
+    showinfo.assert_called_once()
+
+
+def test_window_import_media_reports_no_files_found_in_folder():
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch("amc.gui.filedialog.askdirectory", return_value="empty-folder"),
+        patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch("amc.gui.discover_media", return_value=[]),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+    showinfo.assert_called_once()
+
+
+def test_window_import_media_reports_invalid_folder(tmp_path: Path):
+    window = _window()
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch(
+            "amc.gui.filedialog.askdirectory",
+            return_value=str(tmp_path / "missing"),
+        ),
+        patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch(
+            "amc.gui.discover_media",
+            side_effect=ValueError("media path does not exist"),
+        ),
+        patch("amc.gui.tk.Toplevel") as toplevel,
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.import_media()
+
+    toplevel.assert_not_called()
+    window.service.add_many.assert_not_called()
+    showerror.assert_called_once()
+
+
 def test_window_import_media_can_be_cancelled_mid_scan():
     window = _window()
     dialog = Mock()
@@ -406,6 +505,7 @@ def test_window_import_media_can_be_cancelled_mid_scan():
         return Movie(title=path.name)
 
     with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
         patch(
             "amc.gui.filedialog.askopenfilenames",
             return_value=[str(item) for item in paths],
@@ -429,6 +529,7 @@ def test_window_import_media_reports_invalid_media_without_mutating_catalog():
     dialog = Mock()
 
     with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=False),
         patch(
             "amc.gui.filedialog.askopenfilenames", return_value=["broken.mkv"],
         ),

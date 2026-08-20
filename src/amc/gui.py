@@ -18,7 +18,7 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 from .application import CatalogService
 from .errors import CatalogError
 from .loans import LoanEvent
-from .media import movie_from_media
+from .media import discover_media, movie_from_media
 from .model import Movie
 from .preferences import (
     MAX_HISTORY_LIMIT,
@@ -745,19 +745,52 @@ class CatalogWindow(ttk.Frame):
         )
 
     def import_media(self) -> None:
-        """Batch-add movies from chosen media files, with progress and cancel.
+        """Batch-add movies from chosen media files or a folder.
 
-        Unlike the CLI's ``import-media --recursive``, this picks individual
-        files rather than expanding a folder; see docs/gui.md for the gap.
+        Mirrors the CLI's ``import-media``/``--recursive``, including its
+        folder-expansion bound (see `amc.media.discover_media`).
         """
-        selected = filedialog.askopenfilenames(
-            parent=self.winfo_toplevel(), title="Choose media files",
+        from_folder = messagebox.askyesnocancel(
+            "Import media",
+            "Import from a folder (Yes) or choose individual files (No)?",
+            parent=self.winfo_toplevel(),
         )
-        if not selected:
+        if from_folder is None:
             return
-        paths = [Path(item) for item in selected]
-        total = len(paths)
+        if from_folder:
+            selected_folder = filedialog.askdirectory(
+                parent=self.winfo_toplevel(), title="Choose a media folder",
+            )
+            if not selected_folder:
+                return
+            recursive = messagebox.askyesno(
+                "Import media", "Include files in subfolders?",
+                parent=self.winfo_toplevel(),
+            )
+            try:
+                paths = discover_media([Path(selected_folder)], recursive=recursive)
+            except ValueError as error:
+                messagebox.showerror(
+                    "Could not import media", str(error), parent=self
+                )
+                return
+            if not paths:
+                messagebox.showinfo(
+                    "Import media", "No media files were found.", parent=self
+                )
+                return
+        else:
+            selected = filedialog.askopenfilenames(
+                parent=self.winfo_toplevel(), title="Choose media files",
+            )
+            if not selected:
+                return
+            paths = [Path(item) for item in selected]
+        self._import_media_paths(paths)
 
+    def _import_media_paths(self, paths: list[Path]) -> None:
+        """Inspect resolved media paths with progress/cancel, then add atomically."""
+        total = len(paths)
         dialog = tk.Toplevel(self)
         dialog.title("Import media")
         dialog.transient(self.winfo_toplevel())

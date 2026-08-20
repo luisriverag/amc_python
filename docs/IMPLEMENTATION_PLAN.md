@@ -321,10 +321,23 @@ indented, non-canonical checkbox markers that the port-progress count in
   - [x] Dependency-free PCM WAV duration/bitrate.
   - [x] Dependency-free FLAC duration/average bitrate, parsed from the
     mandatory leading STREAMINFO metadata block.
-  - [ ] Evaluate whether further fixed-header formats (e.g., AIFF) are worth
-    dependency-free support versus designing the optional bounded
-    codec-provider interface for compressed/lossy formats (MP3, MP4, OGG)
-    that `getmedia.pas` covers via MediaInfo.
+  - [x] Evaluated further fixed-header formats versus a codec-provider
+    interface: fixed-header IFF/RIFF-style formats are worth continued
+    dependency-free support because their headers are small, fully
+    documented, and bounded to parse, the same properties that made WAV and
+    FLAC tractable. Added dependency-free AIFF/AIFF-C duration and bitrate
+    (COMM chunk, including manual 80-bit extended-float sample-rate
+    decoding, since the stdlib `aifc` module is deprecated and removed
+    starting in Python 3.13). Compressed/lossy formats (MP3, MP4, OGG, and
+    similar) do not share that property — they need either a real decoder or
+    frame-by-frame bitstream scanning — so they remain out of scope for
+    dependency-free parsing and stay behind the deferred, intentionally
+    unimplemented optional bounded codec-provider interface described in the
+    compatibility matrix.
+
+D0 is now complete: the remaining media-analysis gap is entirely the
+optional codec-provider design for compressed formats, which is deferred
+work rather than an open backlog item here.
 
 ### D1 — picture workflow completion
 

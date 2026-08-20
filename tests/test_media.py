@@ -1,3 +1,4 @@
+import math
 import wave
 from pathlib import Path
 
@@ -6,6 +7,60 @@ import pytest
 from amc.media import discover_media, inspect_media, movie_from_media
 from amc.cli import main
 from amc.storage import load
+
+
+def _write_extended_be(value: float) -> bytes:
+    """Encode a positive, finite value as a 10-byte IEEE 754 80-bit extended
+    precision big-endian float, matching the classic AIFF sample-rate field
+    (ported from CPython's historical ``aifc._write_float``)."""
+    if value == 0:
+        expon = himant = lomant = 0
+    else:
+        fmant, expon = math.frexp(value)
+        expon += 16382
+        fmant = math.ldexp(fmant, 32)
+        himant = int(math.floor(fmant))
+        fmant = math.ldexp(fmant - himant, 32)
+        lomant = int(math.floor(fmant))
+    return bytes([
+        (expon >> 8) & 0xFF, expon & 0xFF,
+        (himant >> 24) & 0xFF, (himant >> 16) & 0xFF,
+        (himant >> 8) & 0xFF, himant & 0xFF,
+        (lomant >> 24) & 0xFF, (lomant >> 16) & 0xFF,
+        (lomant >> 8) & 0xFF, lomant & 0xFF,
+    ])
+
+
+def _write_aiff(
+    path: Path,
+    *,
+    sample_rate: float,
+    channels: int,
+    bits_per_sample: int,
+    total_samples: int,
+    form_type: bytes = b"AIFF",
+    compression_type: bytes | None = None,
+    audio_bytes: bytes = b"",
+) -> None:
+    """Write a minimal, spec-shaped AIFF/AIFF-C file with a COMM chunk."""
+    comm = (
+        channels.to_bytes(2, "big")
+        + total_samples.to_bytes(4, "big")
+        + bits_per_sample.to_bytes(2, "big")
+        + _write_extended_be(sample_rate)
+    )
+    if compression_type is not None:
+        comm += compression_type
+    chunks = b"COMM" + len(comm).to_bytes(4, "big") + comm
+    if len(comm) % 2:
+        chunks += b"\x00"
+    if audio_bytes:
+        ssnd = b"\x00\x00\x00\x00\x00\x00\x00\x00" + audio_bytes
+        chunks += b"SSND" + len(ssnd).to_bytes(4, "big") + ssnd
+        if len(ssnd) % 2:
+            chunks += b"\x00"
+    form_size = 4 + len(chunks)
+    path.write_bytes(b"FORM" + form_size.to_bytes(4, "big") + form_type + chunks)
 
 
 def _write_flac(
@@ -125,6 +180,86 @@ def test_inspect_media_rejects_malformed_flac_files(tmp_path: Path):
     truncated_info.write_bytes(b"fLaC" + header + b"\x00" * 10)
     with pytest.raises(ValueError, match="truncated STREAMINFO block"):
         inspect_media(truncated_info)
+
+
+def test_inspect_media_reads_aiff_pcm_duration_and_exact_bitrate(tmp_path: Path):
+    target = tmp_path / "audio.aiff"
+    _write_aiff(
+        target, sample_rate=44100.0, channels=2, bits_per_sample=16,
+        total_samples=44100 * 2,
+    )
+
+    info = inspect_media(target)
+
+    assert info.length_seconds == 2
+    assert info.audio_format == "AIFF"
+    assert info.audio_bitrate == round(44100 * 16 * 2 / 1000)
+
+
+def test_inspect_media_reads_aifc_pcm_variant_with_exact_bitrate(tmp_path: Path):
+    target = tmp_path / "audio.aifc"
+    _write_aiff(
+        target, sample_rate=48000.0, channels=1, bits_per_sample=16,
+        total_samples=48000, form_type=b"AIFC", compression_type=b"sowt",
+    )
+
+    info = inspect_media(target)
+
+    assert info.length_seconds == 1
+    assert info.audio_bitrate == round(48000 * 16 * 1 / 1000)
+
+
+def test_inspect_media_reads_aifc_compressed_variant_with_average_bitrate(
+    tmp_path: Path,
+):
+    target = tmp_path / "audio.aifc"
+    _write_aiff(
+        target, sample_rate=44100.0, channels=2, bits_per_sample=16,
+        total_samples=44100 * 3, form_type=b"AIFC", compression_type=b"ima4",
+        audio_bytes=b"\0" * 5000,
+    )
+
+    info = inspect_media(target)
+
+    assert info.length_seconds == 3
+    assert info.audio_bitrate == round(target.stat().st_size * 8 / 3 / 1000)
+
+
+def test_inspect_media_aiff_with_zero_sample_count_has_no_duration(tmp_path: Path):
+    target = tmp_path / "streamed.aiff"
+    _write_aiff(
+        target, sample_rate=44100.0, channels=2, bits_per_sample=16,
+        total_samples=0,
+    )
+
+    info = inspect_media(target)
+
+    assert info.audio_format == "AIFF"
+    assert info.length_seconds is None
+    assert info.audio_bitrate is None
+
+
+def test_inspect_media_rejects_malformed_aiff_files(tmp_path: Path):
+    missing_marker = tmp_path / "missing-marker.aiff"
+    missing_marker.write_bytes(b"not an aiff file at all!!!!")
+    with pytest.raises(ValueError, match="missing FORM/AIFF marker"):
+        inspect_media(missing_marker)
+
+    truncated_chunk = tmp_path / "truncated-chunk.aiff"
+    truncated_chunk.write_bytes(
+        b"FORM" + (18).to_bytes(4, "big") + b"AIFF"
+        + b"COMM" + (18).to_bytes(4, "big") + b"\x00" * 4
+    )
+    with pytest.raises(ValueError, match="truncated chunk"):
+        inspect_media(truncated_chunk)
+
+    missing_comm = tmp_path / "missing-comm.aiff"
+    missing_comm.write_bytes(
+        b"FORM" + (12).to_bytes(4, "big") + b"AIFF"
+        + b"JUNK" + (0).to_bytes(4, "big")
+    )
+    with pytest.raises(ValueError, match="missing COMM chunk"):
+        inspect_media(missing_comm)
 
 
 def test_cli_import_media_is_atomic_before_save(tmp_path: Path):

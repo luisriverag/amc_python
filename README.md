@@ -171,13 +171,16 @@ catalog text. A bounded UTF-8 template may contain exactly one `{{MOVIES}}` mark
 a bounded row template supports escaped uppercase modeled-field markers such as
 `{{NUMBER}}`, `{{ORIGINAL_TITLE}}`, and `{{DESCRIPTION}}`, plus
 `{{DISPLAY_TITLE}}`. Upstream AMC's full template/tag compatibility remains pending.
-`import-media` records portable path/name/extension/size facts. PCM WAV and FLAC
-files also provide duration and audio bitrate using only Python's standard
-library — WAV bitrate is computed from the PCM format, FLAC duration and
-average bitrate from the mandatory leading STREAMINFO metadata block; broader
-codec inspection remains an optional-provider gap. Directory expansion is
-deterministic, opt-in recursive, optionally extension-filtered, and bounded to
-100,000 files per
+`import-media` records portable path/name/extension/size facts. PCM WAV, FLAC,
+and AIFF/AIFF-C files also provide duration and audio bitrate using only
+Python's standard library — WAV and uncompressed AIFF bitrate come from the
+PCM format; FLAC and compressed AIFF-C use an average bitrate computed from
+file size and duration; AIFF's sample rate is decoded from its 80-bit extended
+float without the deprecated, Python-3.13-removed `aifc` module. Broader
+codec inspection (MP3, MP4, OGG, and similar compressed/lossy formats)
+remains an optional-provider gap. Directory expansion is deterministic,
+opt-in recursive, optionally extension-filtered, and bounded to 100,000 files
+per
 invocation.
 Legacy `.ifs` script metadata can be inspected and inventoried without executing
 Pascal code. Script execution and network providers remain intentionally disabled

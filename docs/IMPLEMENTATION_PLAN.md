@@ -384,13 +384,23 @@ both a CLI and a desktop entry point.
     multi-file selection — so it is not itself a source of GUI progress
     reporting for a folder scan; that remains future work if a folder mode
     is added.
-  - [ ] Desktop accessibility pass: keyboard navigation coverage and
-    screen-reader labels for toolbar actions and dialogs.
+  - [x] Keyboard reachability: every modal dialog now moves initial focus to
+    a specific control on open (the title field in Add/Edit, the borrower
+    field in Loan Out, the first Browse button in Assign Pictures, the
+    Spinbox in Preferences, the Cancel button in the crop and Import Media
+    dialogs) instead of leaving focus on the dialog's background, and Import
+    Media gained a Ctrl+M shortcut alongside the existing toolbar shortcuts.
+  - [ ] Screen-reader labels and a verified accessibility pass remain open.
+    Tk's cross-platform assistive-technology support cannot be exercised or
+    verified in this project's environment (no real display, no screen
+    reader), so the keyboard-focus item above is a real but partial step,
+    not a substitute for this one.
 
 D2's progress/cancellation item is complete for the case it named as worth
 it (CLI large-tree scanning) and its GUI prerequisite (a media-import
-workflow existing at all); folder-based GUI import and the accessibility
-pass remain open.
+workflow existing at all); folder-based GUI import and a verified
+accessibility pass (beyond the keyboard-focus improvements now shipped)
+remain open.
 
 ### D3 — catalog/GUI preferences
 

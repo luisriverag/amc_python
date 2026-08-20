@@ -114,10 +114,11 @@ reachable at the supported 760-pixel minimum window width. The desktop opens at
 1100×720 by default and remains resizable down to 760×480.
 
 Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
-search, Escape to clear search, Ctrl+N for a new movie, Ctrl+Z/Ctrl+Y for undo/redo,
-Ctrl+U for the movie URL, Space for checked state, Delete for removal, and F5 for
-reload. Action shortcuts follow the same enabled/disabled state as their toolbar
-buttons, so they cannot bypass read-only, selection, URL-safety, or history checks.
+search, Escape to clear search, Ctrl+N for a new movie, Ctrl+M for Import Media,
+Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked state,
+Delete for removal, and F5 for reload. Action shortcuts follow the same
+enabled/disabled state as their toolbar buttons, so they cannot bypass read-only,
+selection, URL-safety, or history checks.
 Destructive removal, restore, and renumber workflows require confirmation.
 Native `.amc` export also requires confirmation because writer output has not been
 verified in upstream AMC. The dialog advises retaining the AMC Python JSON catalog
@@ -130,7 +131,14 @@ prevents the JSON persistence layer from replacing interchange bytes in place.
 
 Editor and loan dialogs wait until the window manager has made them viewable before
 taking a modal input grab. This avoids the `grab failed: window not viewable` error
-seen with some Linux window managers.
+seen with some Linux window managers. Every modal dialog also moves initial keyboard
+focus to a specific control when it opens — the title field in Add/Edit, the
+borrower field in Loan Out, the first Browse button in Assign Pictures, the Spinbox
+in Preferences, and the Cancel button in the crop and Import Media dialogs — so a
+keyboard-only user is never left with focus on the dialog's background. This is a
+targeted, tested improvement to keyboard reachability, not a verified accessibility
+pass: Tk's cross-platform screen-reader support cannot be exercised or verified in
+this project's environment, so no assistive-technology compatibility claim is made.
 
 Mutations go through `CatalogService`. A failed persistent mutation is reported in
 a dialog and the table is not refreshed with unpublished state. Restore and
@@ -170,9 +178,12 @@ grow or shrink already-retained history.
 ## Known limitations
 
 The GUI remains a prototype. Mutations currently save immediately, so there is no
-unsaved dirty state to prompt about. It does not yet provide progress or
-cancellation, accessibility verification, localization, or automated
-real-display widget tests. The batch **Set Pictures**, **Assign Pictures**, and
+unsaved dirty state to prompt about. Import Media has cancellable progress
+reporting, but bulk `merge` and batch picture operations do not; there is no
+verified accessibility pass (only the keyboard-focus improvements described
+above — no screen-reader labels, and no automated or human verification with
+assistive technology), no localization, and no automated real-display widget
+tests. The batch **Set Pictures**, **Assign Pictures**, and
 **Clear Pictures** toolbar actions cover sharing one picture, assigning a
 distinct picture per movie, and clearing pictures across an extended
 selection; the edit dialog's **Crop** button and each row's **Crop** button in

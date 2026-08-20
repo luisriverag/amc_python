@@ -281,11 +281,12 @@ def open_crop_dialog(
 
     buttons = ttk.Frame(dialog)
     buttons.pack(fill="x", padx=8, pady=(0, 8))
-    ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="right")
+    cancel_button = ttk.Button(buttons, text="Cancel", command=dialog.destroy)
+    cancel_button.pack(side="right")
     ttk.Button(buttons, text="Apply Crop", command=accept).pack(
         side="right", padx=(0, 4)
     )
-    make_modal(dialog)
+    make_modal(dialog, focus=cancel_button)
 
 
 def movie_web_url(movie: Movie) -> str:
@@ -528,6 +529,7 @@ class CatalogWindow(ttk.Frame):
         root.bind("<Control-f>", lambda _event: self.focus_search())
         root.bind("<Escape>", lambda _event: self.clear_search())
         root.bind("<Control-n>", lambda _event: self.invoke_action("Add"))
+        root.bind("<Control-m>", lambda _event: self.import_media_button.invoke())
         root.bind("<Delete>", lambda _event: self.invoke_action("Remove"))
         root.bind("<space>", lambda _event: self.invoke_action("Toggle Checked"))
         root.bind("<F5>", lambda _event: self.reload_catalog())
@@ -765,10 +767,11 @@ class CatalogWindow(ttk.Frame):
         )
         status.grid(row=0, column=0, padx=8, pady=8)
         cancelled = {"value": False}
-        ttk.Button(
+        cancel_button = ttk.Button(
             dialog, text="Cancel", command=lambda: cancelled.__setitem__("value", True)
-        ).grid(row=1, column=0, sticky="e", padx=8, pady=(0, 8))
-        make_modal(dialog)
+        )
+        cancel_button.grid(row=1, column=0, sticky="e", padx=8, pady=(0, 8))
+        make_modal(dialog, focus=cancel_button)
 
         movies: list[Movie] = []
         for index, path in enumerate(paths, start=1):
@@ -1044,6 +1047,7 @@ class CatalogWindow(ttk.Frame):
 
         assignments: dict[int, str] = {}
         crops: dict[int, tuple[int, int, int, int]] = {}
+        first_browse_button: ttk.Button | None = None
         for row, movie in enumerate(movies):
             ttk.Label(rows_frame, text=movie.display_title(), width=30, anchor="w").grid(
                 row=row, column=0, sticky="w", pady=2
@@ -1086,9 +1090,10 @@ class CatalogWindow(ttk.Frame):
                 except (OSError, UnidentifiedImageError) as error:
                     messagebox.showerror("Crop picture", str(error), parent=dialog)
 
-            ttk.Button(rows_frame, text="Browse", command=choose).grid(
-                row=row, column=2, padx=(0, 4)
-            )
+            browse_button = ttk.Button(rows_frame, text="Browse", command=choose)
+            browse_button.grid(row=row, column=2, padx=(0, 4))
+            if first_browse_button is None:
+                first_browse_button = browse_button
             ttk.Button(rows_frame, text="Crop", command=crop).grid(
                 row=row, column=3, padx=(0, 8)
             )
@@ -1124,7 +1129,7 @@ class CatalogWindow(ttk.Frame):
             side="left", padx=(0, 4)
         )
         ttk.Button(buttons, text="Apply", command=accept).pack(side="left")
-        make_modal(dialog)
+        make_modal(dialog, focus=first_browse_button)
 
     def clear_pictures(self) -> None:
         """Remove linked and embedded pictures from every selected movie."""
@@ -1351,6 +1356,7 @@ class CatalogWindow(ttk.Frame):
         scrollbar.grid(row=0, column=2, sticky="ns")
         dialog.rowconfigure(0, weight=1)
         dialog.columnconfigure(0, weight=1)
+        title_entry: ttk.Entry | None = None
         for row, (name, value) in enumerate(values.items()):
             ttk.Label(fields_frame, text=name.replace("_", " ").title()).grid(row=row, column=0, sticky="w", padx=8, pady=4)
             if name in _EDIT_MULTILINE_FIELDS:
@@ -1361,6 +1367,8 @@ class CatalogWindow(ttk.Frame):
             else:
                 entry = ttk.Entry(fields_frame, textvariable=value, width=48)
                 entry.grid(row=row, column=1, padx=8, pady=4)
+                if name == "title":
+                    title_entry = entry
             if name == "picture":
                 picture_value = value
 
@@ -1470,7 +1478,7 @@ class CatalogWindow(ttk.Frame):
 
         ttk.Button(dialog, text="Save", command=accept).grid(row=1, column=1, sticky="e", padx=8, pady=10)
         dialog.bind("<Return>", lambda _event: accept())
-        make_modal(dialog)
+        make_modal(dialog, focus=title_entry)
 
 
 def run(path: Path) -> None:

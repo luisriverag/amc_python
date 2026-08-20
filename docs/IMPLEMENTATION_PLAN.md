@@ -212,8 +212,9 @@ all omitted or opaque data is reported.
   Xing/VBRI header; MP4 and OGG still need either bounded dependency-free
   parsing or an optional codec provider).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
-- [ ] Reproduce upstream HTML template/tag semantics (safe static HTML table export
-  is available as a non-compatible baseline).
+- [x] Reproduce upstream HTML template/tag semantics: `amc.html_template`
+  renders real AMC `$$TAG_NAME` HTML export templates (see D6 below); safe
+  static HTML table export remains available as a non-compatible baseline.
 
 ## Milestone 7: release
 
@@ -545,6 +546,28 @@ tier's next unchecked item before returning to D4.
     from "not mocking messagebox": checking that the edit dialog's Toplevel
     still exists and its title Entry still holds the rejected empty value
     after a failed Save, not just that an error callback fired.
+  - [x] Menu bar and toolbar UX regrouping: the toolbar had grown to 24
+    ungrouped buttons across separate rows with no menu bar at all. Added a
+    **File / Edit / Movie / Tools** menu bar (`_build_menu_bar`) covering
+    every action, and slimmed the toolbar to only the tightest add/edit/
+    remove/toggle/undo/redo loop — every action button object still exists
+    in `action_buttons` (so the extensive existing headless test suite,
+    which mocks that dict directly, keeps working unchanged) but only the
+    six toolbar buttons are packed/visible. Menu entries call the same
+    `invoke_action` path as their toolbar/keyboard-shortcut counterparts,
+    and two new helpers (`_set_action_state`, `_set_menu_state`) keep a
+    tracked menu entry's enabled state in lock-step with its toolbar
+    button's — e.g. disabling **Remove Movie** because nothing is selected
+    disables it in the **Edit** menu too. `_set_menu_state` uses
+    `getattr(self, "_menu_entries", {})` rather than the attribute
+    directly because headless tests build a `CatalogWindow` via
+    `object.__new__`, bypassing `__init__`/`_build_menu_bar` entirely, so
+    there is no menu bar to sync in that path. New real-display tests in
+    `test_gui_display.py` cover the slimmed toolbar's visible-button set,
+    the four top-level menu labels and a sample of their entries, menu/
+    toolbar state staying in sync on selection, and invoking a menu command
+    end-to-end (Add Movie via the **Edit** menu opens the same dialog the
+    toolbar button does).
   - [ ] Further real-display coverage remains available (statistics/
     duplicates/loan-history review dialogs, table sort/selection, and the
     edit dialog's other validation paths — an out-of-range rating, an

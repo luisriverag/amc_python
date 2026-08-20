@@ -390,9 +390,17 @@ class CatalogWindow(ttk.Frame):
 
         # Keep catalog actions on their own row. Putting every action beside the
         # search field clipped the right-most controls on common 760px displays.
+        # Every action below also has a menu entry (_build_menu_bar, grouped by
+        # File/Edit/Movie/Tools) now that there is a menu bar; only the tightest
+        # add/edit/remove/undo-redo loop — the buttons clicked over and over
+        # while browsing — stays as a one-click toolbar button too. The rest are
+        # still created (just not packed) so action_buttons/invoke_action/
+        # update_action_states keep working unchanged for their keyboard
+        # shortcuts and menu entries.
         actions = ttk.Frame(self)
         actions.pack(fill="x", pady=(0, 8))
         self.action_buttons: dict[str, ttk.Button] = {}
+        toolbar_actions = {"Add", "Edit", "Remove", "Toggle Checked", "Undo", "Redo"}
         for text, command, padding in (
             ("Add", self.add, 0),
             ("Edit", self.edit, 4),
@@ -412,7 +420,8 @@ class CatalogWindow(ttk.Frame):
             ("Renumber", self.renumber, 0),
         ):
             button = ttk.Button(actions, text=text, command=command)
-            button.pack(side="left", padx=(padding, 0))
+            if text in toolbar_actions:
+                button.pack(side="left", padx=(padding, 0))
             self.action_buttons[text] = button
 
         self.table = ttk.Treeview(
@@ -445,6 +454,7 @@ class CatalogWindow(ttk.Frame):
         self.status = ttk.Label(self, anchor="w")
         self.status.pack(fill="x", pady=(6, 0))
         self._bind_shortcuts()
+        self._build_menu_bar(master)
         self.refresh()
         self.apply_layout()
         master.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -554,6 +564,90 @@ class CatalogWindow(ttk.Frame):
         root.bind("<Control-y>", lambda _event: self.invoke_action("Redo"))
         root.bind("<Control-u>", lambda _event: self.invoke_action("Open URL"))
 
+    def _build_menu_bar(self, master: tk.Tk) -> None:
+        """Group every action into a standard File/Edit/Movie/Tools menu bar.
+
+        Before this, every action (24 of them) was a flat, ungrouped toolbar
+        button row with no menu bar at all. Every entry here calls the same
+        method the toolbar buttons and keyboard shortcuts already use — for
+        actions backed by `action_buttons`, through `invoke_action` so a
+        menu click respects the same disabled state a toolbar click would.
+        `_menu_entries` records each such entry's `(menu, index)` so
+        `update_action_states` can gray them out the same way it already
+        grays out `action_buttons`.
+        """
+        self._menu_entries: dict[str, tuple[tk.Menu, int]] = {}
+
+        def add_action(menu: tk.Menu, label: str, name: str, accelerator: str = "") -> None:
+            menu.add_command(
+                label=label, accelerator=accelerator,
+                command=lambda: self.invoke_action(name),
+            )
+            self._menu_entries[name] = (menu, menu.index("end"))
+
+        def add_tracked(
+            menu: tk.Menu, label: str, name: str, command: Callable[[], None],
+            accelerator: str = "",
+        ) -> None:
+            menu.add_command(label=label, accelerator=accelerator, command=command)
+            self._menu_entries[name] = (menu, menu.index("end"))
+
+        menubar = tk.Menu(master, tearoff=False)
+
+        file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(label="Open Catalog...", command=self.open_catalog, accelerator="Ctrl+O")
+        file_menu.add_command(label="Reload", command=self.reload_catalog, accelerator="F5")
+        file_menu.add_command(label="Save As...", command=self.save_as, accelerator="Ctrl+Shift+S")
+        file_menu.add_separator()
+        add_tracked(file_menu, "Import Catalog...", "Import", self.import_catalog)
+        add_tracked(file_menu, "Import Media...", "Import Media", self.import_media, "Ctrl+M")
+        file_menu.add_separator()
+        file_menu.add_command(label="Export...", command=self.export_catalog)
+        file_menu.add_separator()
+        file_menu.add_command(label="Backup...", command=self.backup_catalog)
+        add_tracked(file_menu, "Restore...", "Restore", self.restore_catalog)
+        file_menu.add_separator()
+        file_menu.add_command(label="Preferences...", command=self.open_preferences)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self._on_close)
+        menubar.add_cascade(label="File", menu=file_menu)
+
+        edit_menu = tk.Menu(menubar, tearoff=False)
+        add_action(edit_menu, "Add Movie", "Add", "Ctrl+N")
+        add_action(edit_menu, "Edit Movie", "Edit")
+        add_action(edit_menu, "Remove Movie", "Remove", "Delete")
+        edit_menu.add_separator()
+        add_action(edit_menu, "Undo", "Undo", "Ctrl+Z")
+        add_action(edit_menu, "Redo", "Redo", "Ctrl+Y")
+        edit_menu.add_separator()
+        add_action(edit_menu, "Toggle Checked", "Toggle Checked", "Space")
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Find", command=self.focus_search, accelerator="Ctrl+F")
+        edit_menu.add_command(label="Clear Search", command=self.clear_search, accelerator="Esc")
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+
+        movie_menu = tk.Menu(menubar, tearoff=False)
+        add_action(movie_menu, "Loan Out...", "Loan Out")
+        add_action(movie_menu, "Loan In", "Loan In")
+        movie_menu.add_command(label="Loan History...", command=self.show_loan_history)
+        movie_menu.add_separator()
+        add_action(movie_menu, "Set Pictures...", "Set Pictures")
+        add_action(movie_menu, "Assign Pictures...", "Assign Pictures")
+        add_action(movie_menu, "Clear Pictures", "Clear Pictures")
+        movie_menu.add_separator()
+        add_action(movie_menu, "Open URL", "Open URL", "Ctrl+U")
+        movie_menu.add_separator()
+        add_action(movie_menu, "Renumber", "Renumber")
+        menubar.add_cascade(label="Movie", menu=movie_menu)
+
+        tools_menu = tk.Menu(menubar, tearoff=False)
+        tools_menu.add_command(label="Statistics...", command=self.show_statistics)
+        tools_menu.add_command(label="Duplicates...", command=self.show_duplicates)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+
+        master.config(menu=menubar)
+        self.menubar = menubar
+
     def invoke_action(self, name: str) -> str:
         """Invoke a toolbar action while respecting its disabled state."""
         self.action_buttons[name].invoke()
@@ -599,20 +693,31 @@ class CatalogWindow(ttk.Frame):
             "Open URL": can_open_url,
         }
         for name, enabled in selection_actions.items():
-            self.action_buttons[name].configure(state="normal" if enabled else "disabled")
-        self.action_buttons["Add"].configure(state="normal" if writable else "disabled")
+            self._set_action_state(name, enabled)
+        self._set_action_state("Add", writable)
+        self._set_menu_state("Import", writable)
+        self._set_menu_state("Import Media", writable)
+        self._set_menu_state("Restore", writable)
         self.import_button.configure(state="normal" if writable else "disabled")
         self.import_media_button.configure(state="normal" if writable else "disabled")
         self.restore_button.configure(state="normal" if writable else "disabled")
-        self.action_buttons["Renumber"].configure(
-            state="normal" if writable and len(self.service.catalog) else "disabled"
-        )
-        self.action_buttons["Undo"].configure(
-            state="normal" if writable and self.service.can_undo else "disabled"
-        )
-        self.action_buttons["Redo"].configure(
-            state="normal" if writable and self.service.can_redo else "disabled"
-        )
+        self._set_action_state("Renumber", writable and len(self.service.catalog) > 0)
+        self._set_action_state("Undo", writable and self.service.can_undo)
+        self._set_action_state("Redo", writable and self.service.can_redo)
+
+    def _set_action_state(self, name: str, enabled: bool) -> None:
+        """Enable/disable a toolbar button and its matching menu entry together."""
+        self.action_buttons[name].configure(state="normal" if enabled else "disabled")
+        self._set_menu_state(name, enabled)
+
+    def _set_menu_state(self, name: str, enabled: bool) -> None:
+        # getattr, not self._menu_entries directly: headless tests build a
+        # CatalogWindow via object.__new__ and never run __init__/
+        # _build_menu_bar, so there is no menu bar (or _menu_entries) to sync.
+        entry = getattr(self, "_menu_entries", {}).get(name)
+        if entry is not None:
+            menu, index = entry
+            menu.entryconfigure(index, state="normal" if enabled else "disabled")
 
     def refresh(self) -> None:
         selection = self.table.selection()

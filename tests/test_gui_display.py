@@ -109,6 +109,16 @@ def _open_window(real_root: tk.Tk, tmp_path: Path) -> CatalogWindow:
     return window
 
 
+def _menu_labels(menu: tk.Menu) -> list[str]:
+    end = menu.index("end")
+    if end is None:
+        return []
+    return [
+        "---" if menu.type(index) == "separator" else menu.entrycget(index, "label")
+        for index in range(end + 1)
+    ]
+
+
 def test_main_window_renders_with_expected_controls(real_root: tk.Tk, tmp_path: Path):
     window = _open_window(real_root, tmp_path)
 
@@ -118,6 +128,73 @@ def test_main_window_renders_with_expected_controls(real_root: tk.Tk, tmp_path: 
         "Add", "Edit", "Remove", "Set Pictures", "Assign Pictures",
         "Clear Pictures", "Undo", "Redo",
     }
+
+
+def test_main_window_toolbar_only_shows_the_tightest_edit_loop(real_root: tk.Tk, tmp_path: Path):
+    """Every action still exists (test_main_window_renders_with_expected_controls,
+    and the menu bar below), but the visible toolbar row is limited to the
+    add/edit/remove/toggle/undo/redo loop, not all 16 actions at once."""
+    window = _open_window(real_root, tmp_path)
+
+    visible = [
+        button.cget("text")
+        for button in window.action_buttons.values()
+        if button.winfo_ismapped()
+    ]
+    assert set(visible) == {"Add", "Edit", "Remove", "Toggle Checked", "Undo", "Redo"}
+
+
+def test_main_window_has_a_grouped_menu_bar(real_root: tk.Tk, tmp_path: Path):
+    window = _open_window(real_root, tmp_path)
+
+    menubar = window.menubar
+    top_level = [menubar.entrycget(i, "label") for i in range(menubar.index("end") + 1)]
+    assert top_level == ["File", "Edit", "Movie", "Tools"]
+
+    file_menu = real_root.nametowidget(menubar.entrycget(0, "menu"))
+    assert "Open Catalog..." in _menu_labels(file_menu)
+    assert "Exit" in _menu_labels(file_menu)
+
+    movie_menu = real_root.nametowidget(menubar.entrycget(2, "menu"))
+    assert {"Loan Out...", "Set Pictures...", "Renumber"} <= set(_menu_labels(movie_menu))
+
+    tools_menu = real_root.nametowidget(menubar.entrycget(3, "menu"))
+    assert _menu_labels(tools_menu) == ["Statistics...", "Duplicates..."]
+
+
+def test_menu_bar_disabled_state_tracks_selection_like_the_toolbar(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    edit_menu = real_root.nametowidget(window.menubar.entrycget(1, "menu"))
+    remove_index = next(
+        i for i in range(edit_menu.index("end") + 1)
+        if edit_menu.type(i) != "separator" and edit_menu.entrycget(i, "label") == "Remove Movie"
+    )
+    assert edit_menu.entrycget(remove_index, "state") == "disabled"
+
+    window.selected_movies = lambda: [next(iter(window.service.catalog))]
+    window.selection_changed()
+
+    assert edit_menu.entrycget(remove_index, "state") == "normal"
+    assert str(window.action_buttons["Remove"].cget("state")) == "normal"
+
+
+def test_menu_command_opens_the_add_movie_dialog(real_root: tk.Tk, tmp_path: Path):
+    window = _open_window(real_root, tmp_path)
+    edit_menu = real_root.nametowidget(window.menubar.entrycget(1, "menu"))
+    add_index = next(
+        i for i in range(edit_menu.index("end") + 1)
+        if edit_menu.type(i) != "separator" and edit_menu.entrycget(i, "label") == "Add Movie"
+    )
+
+    edit_menu.invoke(add_index)
+    real_root.update_idletasks()
+    real_root.update()
+
+    dialogs = [item for item in _toplevels(real_root) if item.title() == "Add movie"]
+    assert len(dialogs) == 1
+    dialogs[0].destroy()
 
 
 def test_preferences_dialog_opens_over_a_real_window(real_root: tk.Tk, tmp_path: Path):

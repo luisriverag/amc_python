@@ -119,16 +119,36 @@ The packaging check verifies that an isolated wheel installation can import both
   configurable history limit (100 by default; see **Preferences** below); opening
   or reloading a catalog starts new history.
 
-File, search/view, and catalog actions use separate toolbar rows so controls remain
-reachable at the supported 760-pixel minimum window width. The desktop opens at
-1100×720 by default and remains resizable down to 760×480.
+A **File / Edit / Movie / Tools** menu bar groups every action, alongside File,
+search/view, and catalog-action toolbar rows so controls remain reachable at the
+supported 760-pixel minimum window width. The desktop opens at 1100×720 by
+default and remains resizable down to 760×480.
+
+- **File**: Open Catalog, Reload, Save As, Import Catalog, Import Media,
+  Export, Backup, Restore, Preferences, Exit.
+- **Edit**: Add/Edit/Remove Movie, Undo, Redo, Toggle Checked, Find, Clear
+  Search.
+- **Movie**: Loan Out, Loan In, Loan History, Set/Assign/Clear Pictures,
+  Open URL, Renumber.
+- **Tools**: Statistics, Duplicates.
+
+Only the tightest add/edit/remove/toggle/undo/redo loop — the actions clicked
+over and over while browsing a catalog — stays on the toolbar as a one-click
+button; every other action (loans, pictures, statistics, duplicates,
+renumber, and every file operation) lives in the menu bar instead of a flat,
+ungrouped row of buttons. A menu entry calls exactly the same method a
+toolbar button or keyboard shortcut would, and every entry tied to selection
+or catalog-writability is grayed out in step with its toolbar button —
+disabling **Remove Movie** because nothing is selected disables it in the
+**Edit** menu too, not just the toolbar.
 
 Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
 search, Escape to clear search, Ctrl+N for a new movie, Ctrl+M for Import Media,
 Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked state,
-Delete for removal, and F5 for reload. Action shortcuts follow the same
-enabled/disabled state as their toolbar buttons, so they cannot bypass read-only,
-selection, URL-safety, or history checks.
+Delete for removal, and F5 for reload; the menu bar shows each as an accelerator
+label next to its command. Action shortcuts follow the same enabled/disabled
+state as their toolbar buttons and menu entries, so they cannot bypass
+read-only, selection, URL-safety, or history checks.
 Destructive removal, restore, and renumber workflows require confirmation.
 Native `.amc` export also requires confirmation because writer output has not been
 verified in upstream AMC. The dialog advises retaining the AMC Python JSON catalog

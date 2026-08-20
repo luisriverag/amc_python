@@ -28,11 +28,13 @@ The packaging check verifies that an isolated wheel installation can import both
   individual files, then adds a movie entry per file from portable facts and,
   for WAV/FLAC/AIFF, duration and bitrate — the desktop equivalent of the
   CLI's `import-media`. Choosing a folder also asks whether to include
-  subfolders, mirroring `--recursive`; there is no extension-filter option
-  yet, unlike the CLI's `--extensions`. A modal progress dialog reports which
-  file is being inspected and can be cancelled mid-scan; like the CLI, the
-  catalog is only mutated once, after every selected file has been
-  inspected, so cancelling, an empty folder, or an invalid file leaves it
+  subfolders, mirroring `--recursive`, and then offers an optional
+  comma-separated extension filter (e.g. `mkv,mp4,wav`) that narrows the
+  folder scan the same way as the CLI's `--extensions`; leaving it blank
+  imports every file, matching the CLI's own default. A modal progress dialog
+  reports which file is being inspected and can be cancelled mid-scan; like
+  the CLI, the catalog is only mutated once, after every selected file has
+  been inspected, so cancelling, an empty folder, or an invalid file leaves it
   untouched.
 - Export XML, CSV, static HTML, or experimental native AMC 4.2 output.
 - Create and restore validated, atomically replaced backups.
@@ -184,11 +186,23 @@ unsaved dirty state to prompt about. Import Media has cancellable progress
 reporting, but bulk `merge` and batch picture operations do not; there is no
 verified accessibility pass (only the keyboard-focus improvements described
 above — no screen-reader labels, and no automated or human verification with
-assistive technology), no localization, and no automated real-display widget
-tests. The batch **Set Pictures**, **Assign Pictures**, and
-**Clear Pictures** toolbar actions cover sharing one picture, assigning a
-distinct picture per movie, and clearing pictures across an extended
-selection; the edit dialog's **Crop** button and each row's **Crop** button in
-**Assign Pictures** provide interactive rectangle selection, and CLI
-`picture-set-many --crop-for` sets a per-movie crop rectangle from the command
-line. Current GUI tests are headless adapter tests with mocked dialogs.
+assistive technology — Tk has no meaningful AT-SPI bridge on X11 to exercise,
+and no screen reader is installed in this project's development container, so
+this stays a real gap even after the point below), and no localization. The
+batch **Set Pictures**, **Assign Pictures**, and **Clear Pictures** toolbar
+actions cover sharing one picture, assigning a distinct picture per movie, and
+clearing pictures across an extended selection; the edit dialog's **Crop**
+button and each row's **Crop** button in **Assign Pictures** provide
+interactive rectangle selection, and CLI `picture-set-many --crop-for` sets a
+per-movie crop rectangle from the command line.
+
+Most GUI tests are headless adapter tests that bypass `CatalogWindow.__init__`
+and mock every widget. `tests/test_gui_display.py` is different: it builds
+real Tk widget trees — the main window, Preferences, Assign Pictures, Import
+Media, the edit dialog, and an end-to-end simulated drag-select-and-apply
+crop — against a real (possibly virtual) X display, skipping itself wherever
+none is available. `tools/check.py` runs it under Xvfb automatically on Linux
+when `xvfb-run` is installed and no `DISPLAY` is already set (see
+`.github/workflows/ci.yml`, which installs `xvfb` on the Linux job for this).
+This is real-display coverage, not a substitute for the still-missing
+assistive-technology verification above.

@@ -10,7 +10,7 @@ import tkinter as tk
 import webbrowser
 from pathlib import Path
 from urllib.parse import urlparse
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 from tkinter import font as tkfont
 
 from PIL import Image, ImageTk, UnidentifiedImageError
@@ -161,6 +161,13 @@ def parse_history_limit(value: int) -> int:
             f"history limit must be between {MIN_HISTORY_LIMIT} and {MAX_HISTORY_LIMIT}"
         )
     return value
+
+
+def parse_extensions(text: str) -> set[str] | None:
+    """Parse a comma-separated extension list the same way the CLI's
+    ``import-media --extensions`` does: blank input means no filter."""
+    extensions = {item.strip() for item in text.split(",") if item.strip()}
+    return extensions or None
 
 
 def make_modal(dialog: tk.Toplevel, *, focus: tk.Widget | None = None) -> None:
@@ -777,8 +784,17 @@ class CatalogWindow(ttk.Frame):
                 "Import media", "Include files in subfolders?",
                 parent=self.winfo_toplevel(),
             )
+            extensions_text = simpledialog.askstring(
+                "Import media",
+                "Limit to these extensions (comma-separated, e.g. mkv,mp4,wav)?\n"
+                "Leave blank to import every file.",
+                parent=self.winfo_toplevel(),
+            )
+            extensions = parse_extensions(extensions_text) if extensions_text else None
             try:
-                paths = discover_media([Path(selected_folder)], recursive=recursive)
+                paths = discover_media(
+                    [Path(selected_folder)], recursive=recursive, extensions=extensions
+                )
             except ValueError as error:
                 messagebox.showerror(
                     "Could not import media", str(error), parent=self

@@ -49,8 +49,17 @@ the evidence bar: Milestones 5 and 6 already existed and their gates are
 unchanged. When genuine fixtures become available, work reverts to the P1–P3
 sequence below before any new compatibility claim is made.
 
-The concrete, ordered form of this backlog is the **Downstream execution
-backlog (D0–D4)** further down this document, alongside the upstream P0–P3
+Within the downstream track, **GUI parity is the current priority**: closing
+the desktop GUI's own gaps against its documented contract (real-display
+verification, CLI/GUI feature parity, broader widget coverage) ahead of
+further general engineering debt in D4. This is still evidence-independent —
+it is Python-owned GUI behavior and test coverage, not an upstream-compatibility
+claim — so it needs no fixture and is not blocked by Milestone 0. The concrete
+form of this priority is the **D5 — GUI parity** tier below; pick its next
+unchecked item before further D4 items.
+
+The concrete, ordered form of the wider backlog is the **Downstream execution
+backlog (D0–D5)** further down this document, alongside the upstream P0–P3
 backlog it runs in parallel with.
 
 ## Milestone 0: authoritative upstream baseline
@@ -304,7 +313,7 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.
 
-## Downstream execution backlog (D0–D4)
+## Downstream execution backlog (D0–D5)
 
 While Sprint 1 (below) stays externally blocked on genuine fixtures, this is
 the ordered, concrete backlog for the "Execution priority" track above. Unlike
@@ -389,17 +398,28 @@ both a CLI and a desktop entry point.
     Spinbox in Preferences, the Cancel button in the crop and Import Media
     dialogs) instead of leaving focus on the dialog's background, and Import
     Media gained a Ctrl+M shortcut alongside the existing toolbar shortcuts.
-  - [ ] Screen-reader labels and a verified accessibility pass remain open.
-    Tk's cross-platform assistive-technology support cannot be exercised or
-    verified in this project's environment (no real display, no screen
-    reader), so the keyboard-focus item above is a real but partial step,
-    not a substitute for this one.
+  - [x] Real-display smoke coverage: this development container turned out to
+    have Xvfb installed, contradicting an earlier "no real display" note in
+    this document. `tests/test_gui_display.py` builds genuine Tk widget
+    trees (not the `object.__new__`-bypassed, fully-mocked windows the rest
+    of `test_gui.py` uses) for the main window and the Preferences, Assign
+    Pictures, Import Media, and edit/crop dialogs, including an end-to-end
+    simulated drag-select-and-apply crop. `tools/check.py` wraps the test run
+    in `xvfb-run` automatically on Linux when available and no `DISPLAY` is
+    already set; the tests skip themselves everywhere else (no display, no
+    `xvfb-run`, Windows), so this needed no changes to portability guarantees.
+    CI's Linux job now installs `xvfb` so it gets this coverage too.
+  - [ ] Screen-reader labels and a verified accessibility pass remain open —
+    genuinely, not just for lack of a display now. Tk has no meaningful
+    AT-SPI bridge on X11 to exercise, and no screen reader is installed in
+    this container, so neither the keyboard-focus item above nor the
+    real-display smoke tests above are a substitute for this one.
 
 D2's progress/cancellation item, including folder-based GUI import, is now
-complete. A verified accessibility pass beyond the keyboard-focus
-improvements already shipped remains the only open item in D2; it stays open
-because it requires a real display and screen reader this environment does
-not have, unlike the D4 items below.
+complete, and real-display smoke coverage closes the "no real-display tests"
+gap this document previously described as environment-blocked. A verified
+accessibility pass with actual assistive technology remains the only open
+item in D2 — that part is still genuinely blocked, unlike the D4 items below.
 
 ### D3 — catalog/GUI preferences
 
@@ -474,6 +494,56 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     remaining permanent, then document that decision in `docs/cli.md` or a new
     error-model reference. PORT_AUDIT design-debt item 8 (remaining part).
 
+### D5 — GUI parity (current priority)
+
+The general engineering-debt sweep in D4 is far enough along that GUI parity —
+closing the desktop GUI's own gaps against its documented contract, ahead of
+further D4 items — is now the priority within the downstream track. Work this
+tier's next unchecked item before returning to D4.
+
+  - [x] Real-display smoke coverage. This development container turned out to
+    have Xvfb installed, contradicting an earlier "no real display" note in
+    this document (see D2 above) and in `docs/compatibility.md`/
+    `docs/PORT_AUDIT.md`. `tests/test_gui_display.py` builds genuine Tk widget
+    trees — not the `object.__new__`-bypassed, fully-mocked windows the rest
+    of `test_gui.py` uses — for the main window and the Preferences, Assign
+    Pictures, Import Media, and edit/crop dialogs, including an end-to-end
+    simulated drag-select-and-apply crop (`canvas.event_generate` for the
+    drag, a real button `.invoke()` for Apply Crop, asserting the callback
+    receives the exact box the drag produced). Every test skips itself
+    wherever no working Tk display exists. `tools/check.py` now wraps its
+    test run in `xvfb-run` automatically on Linux when installed and no
+    `DISPLAY` is already set; CI's Linux job installs `xvfb` so it gets this
+    coverage too. This measurably exercises code that was previously only
+    reachable through mocks: `gui.py` branch coverage rose from 53% to 77% in
+    the same run.
+  - [x] Import Media extension filter: the CLI's `import-media` command
+    accepts `--extensions` to restrict a recursive folder scan, but the
+    desktop **Import Media** dialog's folder-import path had no equivalent —
+    it always imported every file `amc.media.discover_media` found. Added a
+    `simpledialog.askstring` prompt (comma-separated, e.g. `mkv,mp4,wav`;
+    blank means no filter) right after the existing recursive-subfolder
+    question, parsed by a new `gui.parse_extensions()` that mirrors the CLI's
+    own parsing exactly, and passed through as `discover_media`'s
+    `extensions=` argument. Scoped to the folder path only, matching the
+    CLI's own `--extensions` semantics (narrowing an automatic scan) and not
+    the individual-file-selection path, where the user already chooses each
+    file explicitly.
+  - [ ] Broader real-display widget coverage: `test_gui_display.py` currently
+    covers five of the desktop's dialogs. Extend it to the remaining
+    multi-widget flows that only have mocked-widget coverage today — Loan
+    Out/Loan In, Set Pictures' single-shared-picture flow, Clear Pictures'
+    confirmation, and the edit dialog's validation-error paths (e.g. a
+    missing title, an out-of-range rating) — under the same real-Tk-under-Xvfb
+    pattern, asserting the error surfaces as a real dialog rather than mocking
+    `messagebox.showerror` and checking it was called.
+  - [ ] Screen-reader labels and a verified accessibility pass remain out of
+    reach here regardless of display availability: Tk has no meaningful
+    AT-SPI bridge on X11 to exercise, and no screen reader is installed in
+    this container. This item stays open until it can be verified on a
+    platform where Tk's accessibility support is meaningful (Windows/macOS
+    native widgets) or a contributor can verify it directly.
+
 ## Immediate next slice
 
 Execution is organized into four gated sprints in
@@ -491,7 +561,7 @@ contributor supplying fixtures, not on further coding here. Sprint exit checks
 remain blocking criteria — no later sprint's work advances an earlier gate, and
 no compatibility status may be upgraded without registered evidence — but with
 Sprint 1 externally blocked, the immediate change should draw from the
-**Downstream execution backlog (D0–D4)** above rather than sitting idle or
+**Downstream execution backlog (D0–D5)** above rather than sitting idle or
 inferring more unverified format behavior. A downstream slice still needs its
 own tests and documentation; it simply makes no upstream-compatibility claim,
 so it does not require a fixture.

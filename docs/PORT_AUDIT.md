@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 468 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 15 functional package modules, 6 repository tools, 477 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -79,7 +79,7 @@ confidence.
 
 | Area | Current state | Missing evidence |
 |---|---|---|
-| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests; no real-display smoke run or broad widget integration suite |
+| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests, plus a real-display smoke run (`tests/test_gui_display.py`, real Tk widget trees under Xvfb, self-skipping without a display) covering the main window and the Preferences/Assign Pictures/Import Media/edit/crop dialogs, including an end-to-end simulated drag-select-and-apply crop; no broad widget integration suite or verified accessibility pass |
 | Installed CLI | Wheel console script and module entry point smoke-tested; empty JSON list exact output checked | Broader installed command contracts remain missing |
 | Packaging | Wheel build, isolated install, license inclusion, and smoke checks | Source-distribution build/install remains missing |
 | CI | Workflow configured for Linux/Windows and Python 3.10–3.13 | No run result is stored in the repository |
@@ -290,7 +290,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | HTML export | `export.pas`, template units | Safe bounded Python table/templates | Upstream template tags, multi-file output, extra/custom-field semantics, and fixture comparison |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
 | Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |
-| Desktop presentation | `main.pas` and `.dfm` forms | Broad Tk prototype with headless adapter tests | Form/workflow parity, accessibility verification, localization, real-display tests, and platform packaging |
+| Desktop presentation | `main.pas` and `.dfm` forms | Broad Tk prototype with headless adapter tests plus real-display smoke tests under Xvfb | Form/workflow parity, accessibility verification, localization, and platform packaging |
 | Web presentation | No upstream server counterpart | Read-only AMC Python extension | Authentication/TLS deployment layer if exposed beyond localhost; it is intentionally outside parity accounting |
 
 ## Requirement traceability

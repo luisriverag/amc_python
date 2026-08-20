@@ -22,6 +22,7 @@ from amc.gui import (
     movie_with_picture,
     movie_web_url,
     open_crop_dialog,
+    parse_extensions,
     parse_history_limit,
     poster_size,
     poster_source,
@@ -434,6 +435,7 @@ def test_window_import_media_expands_a_chosen_folder():
         patch("amc.gui.messagebox.askyesnocancel", return_value=True),
         patch("amc.gui.filedialog.askdirectory", return_value="folder"),
         patch("amc.gui.messagebox.askyesno", return_value=True) as recurse_prompt,
+        patch("amc.gui.simpledialog.askstring", return_value=None) as extensions_prompt,
         patch("amc.gui.discover_media", return_value=discovered) as discover,
         patch("amc.gui.tk.Toplevel", return_value=dialog),
         patch("amc.gui.ttk.Label", return_value=Mock()),
@@ -444,10 +446,37 @@ def test_window_import_media_expands_a_chosen_folder():
     ):
         window.import_media()
 
-    discover.assert_called_once_with([Path("folder")], recursive=True)
+    discover.assert_called_once_with([Path("folder")], recursive=True, extensions=None)
     recurse_prompt.assert_called_once()
+    extensions_prompt.assert_called_once()
     window.service.add_many.assert_called_once_with(movies)
     showinfo.assert_called_once()
+
+
+def test_window_import_media_narrows_folder_scan_to_chosen_extensions():
+    window = _window()
+    dialog = Mock()
+    discovered = [Path("folder/one.mkv")]
+    movies = [Movie(title="One")]
+
+    with (
+        patch("amc.gui.messagebox.askyesnocancel", return_value=True),
+        patch("amc.gui.filedialog.askdirectory", return_value="folder"),
+        patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch("amc.gui.simpledialog.askstring", return_value=" mkv, mp4 "),
+        patch("amc.gui.discover_media", return_value=discovered) as discover,
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", return_value=Mock()),
+        patch("amc.gui.ttk.Button", return_value=Mock()),
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.movie_from_media", side_effect=movies),
+        patch("amc.gui.messagebox.showinfo"),
+    ):
+        window.import_media()
+
+    discover.assert_called_once_with(
+        [Path("folder")], recursive=False, extensions={"mkv", "mp4"}
+    )
 
 
 def test_window_import_media_reports_no_files_found_in_folder():
@@ -457,6 +486,7 @@ def test_window_import_media_reports_no_files_found_in_folder():
         patch("amc.gui.messagebox.askyesnocancel", return_value=True),
         patch("amc.gui.filedialog.askdirectory", return_value="empty-folder"),
         patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch("amc.gui.simpledialog.askstring", return_value=None),
         patch("amc.gui.discover_media", return_value=[]),
         patch("amc.gui.tk.Toplevel") as toplevel,
         patch("amc.gui.messagebox.showinfo") as showinfo,
@@ -478,6 +508,7 @@ def test_window_import_media_reports_invalid_folder(tmp_path: Path):
             return_value=str(tmp_path / "missing"),
         ),
         patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch("amc.gui.simpledialog.askstring", return_value=None),
         patch(
             "amc.gui.discover_media",
             side_effect=ValueError("media path does not exist"),
@@ -1218,6 +1249,14 @@ def test_poster_source_recovers_windows_path_beside_catalog(tmp_path: Path):
     assert poster_source(
         Movie(picture=r"C:\Movies\Posters\cover.jpg"), tmp_path / "movies.amc"
     ) == ("file", str(poster))
+
+
+def test_parse_extensions_matches_cli_import_media_extensions_parsing():
+    assert parse_extensions("mkv,mp4,wav") == {"mkv", "mp4", "wav"}
+    assert parse_extensions(" mkv , , mp4 ") == {"mkv", "mp4"}
+    assert parse_extensions("") is None
+    assert parse_extensions("   ") is None
+    assert parse_extensions(",,,") is None
 
 
 def test_parse_history_limit_accepts_in_range_values():

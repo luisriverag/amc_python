@@ -39,6 +39,13 @@ The JSON shapes are part of the CLI contract:
 - `inspect` returns a catalog-information object.
 - `validate` returns an array of diagnostic objects.
 
+`inspect` and `validate` also accept `--max-input-bytes` to reject a file larger
+than the given size before any format-specific parsing starts (default 1 TiB).
+JSON and native inspection load the full file to identify it, so this bounds the
+work an untrusted-sized file can force; XML and CSV already inspect via streaming
+readers. An exceeded budget is reported as a `validate` diagnostic and as an
+`inspect` error, both without partially parsing the file.
+
 ## Safety-sensitive commands
 
 - `export-amc` is explicitly labeled experimental because generated files have not

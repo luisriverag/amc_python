@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .application import CatalogService
 from .errors import CatalogError
-from .inspection import inspect_catalog, validate_catalog
+from .inspection import DEFAULT_MAX_INSPECT_BYTES, inspect_catalog, validate_catalog
 from .model import Movie
 from .native import NativeReadLimits, NativeWriteLimits
 from .media import discover_media, movie_from_media
@@ -256,9 +256,19 @@ def parser() -> argparse.ArgumentParser:
     inspect = commands.add_parser("inspect", help="identify a catalog without modifying it")
     inspect.add_argument("path", type=Path)
     inspect.add_argument("--json", action="store_true", dest="as_json")
+    inspect.add_argument(
+        "--max-input-bytes",
+        type=int,
+        help="reject files larger than this before parsing (default: 1 TiB)",
+    )
     validate = commands.add_parser("validate", help="validate a catalog without modifying it")
     validate.add_argument("path", type=Path)
     validate.add_argument("--json", action="store_true", dest="as_json")
+    validate.add_argument(
+        "--max-input-bytes",
+        type=int,
+        help="reject files larger than this before parsing (default: 1 TiB)",
+    )
     script = commands.add_parser(
         "inspect-script", help="inspect legacy script metadata without executing it"
     )
@@ -314,7 +324,10 @@ def _run(args: argparse.Namespace) -> int:
         print(json.dumps(configured.to_dict(), ensure_ascii=False, sort_keys=True))
         return EXIT_SUCCESS
     if args.command == "validate":
-        diagnostics = validate_catalog(args.path)
+        max_input_bytes = (
+            DEFAULT_MAX_INSPECT_BYTES if args.max_input_bytes is None else args.max_input_bytes
+        )
+        diagnostics = validate_catalog(args.path, max_file_bytes=max_input_bytes)
         if args.as_json:
             print(json.dumps([asdict(item) for item in diagnostics], ensure_ascii=False, sort_keys=True))
         else:
@@ -327,7 +340,10 @@ def _run(args: argparse.Namespace) -> int:
             else EXIT_SUCCESS
         )
     if args.command == "inspect":
-        info = inspect_catalog(args.path)
+        max_input_bytes = (
+            DEFAULT_MAX_INSPECT_BYTES if args.max_input_bytes is None else args.max_input_bytes
+        )
+        info = inspect_catalog(args.path, max_file_bytes=max_input_bytes)
         if args.as_json:
             print(json.dumps(info.to_dict(), ensure_ascii=False, sort_keys=True))
         else:

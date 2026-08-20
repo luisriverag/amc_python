@@ -136,8 +136,15 @@ confidence.
    attributes, and nested structure.
 5. CSV dialect, locale, empty-value, duplicate-header, and malformed-row behavior is
    not defined from upstream evidence.
-6. Inspection parses complete JSON documents merely to count records; large-catalog
-   resource bounds are not defined.
+6. [Partially resolved] Inspection still parses complete JSON documents merely to
+   count records (Python's standard `json` module has no incremental parser, and
+   implementing one was judged not worth the complexity for a counting-only path).
+   However, `inspect_catalog`/`validate_catalog` and the CLI `inspect`/`validate`
+   `--max-input-bytes` option now reject an oversized file before that parse
+   starts, matching the `NativeReadLimits`/`inspect_media` bound precedent used
+   elsewhere; the previously-undefined resource bound is now defined and
+   configurable (default 1 TiB). True streaming JSON record counting remains
+   undone.
 7. Atomic replacement now has injected serialization-failure coverage for JSON,
    CSV, and XML. Directory durability, permission errors, and concurrent writers remain
    untested. A generic injected replacement failure is covered.

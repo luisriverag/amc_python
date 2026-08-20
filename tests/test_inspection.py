@@ -36,6 +36,35 @@ def test_inspect_json_accepts_a_leading_utf8_bom(tmp_path: Path):
     assert (inspect_catalog(csv_path).format, inspect_catalog(csv_path).movies) == ("csv", 2)
 
 
+def test_inspect_json_rejects_oversized_file_before_parsing(tmp_path: Path):
+    oversized = tmp_path / "catalog.json"
+    oversized.write_text('{"format":"amc-python","version":1,"movies":[]}', encoding="utf-8")
+
+    with pytest.raises(CorruptCatalogError, match="exceeds file-size limit"):
+        inspect_catalog(oversized, max_file_bytes=1)
+
+
+def test_validate_reports_oversized_file_as_diagnostic_instead_of_raising(tmp_path: Path):
+    oversized = tmp_path / "catalog.json"
+    oversized.write_text('{"format":"amc-python","version":1,"movies":[]}', encoding="utf-8")
+
+    diagnostic = validate_catalog(oversized, max_file_bytes=1)[0]
+
+    assert diagnostic.code == "corrupt_catalog"
+    assert "exceeds file-size limit" in diagnostic.message
+
+
+def test_cli_inspect_and_validate_max_input_bytes_flag(tmp_path: Path, capsys):
+    target = tmp_path / "catalog.json"
+    target.write_text('{"format":"amc-python","version":1,"movies":[]}', encoding="utf-8")
+
+    assert main(["inspect", str(target), "--max-input-bytes", "1"]) == 2
+    assert "exceeds file-size limit" in capsys.readouterr().err
+
+    assert main(["validate", str(target), "--max-input-bytes", "1"]) == 1
+    assert "exceeds file-size limit" in capsys.readouterr().out
+
+
 def test_inspection_rejects_corrupt_unknown_future_and_native(tmp_path: Path):
     malformed = tmp_path / "broken.json"
     malformed.write_text("{", encoding="utf-8")

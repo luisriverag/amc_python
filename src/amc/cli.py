@@ -57,6 +57,23 @@ def _parse_picture_assignments(assignments: list[str]) -> dict[int, Path]:
     return parsed
 
 
+def _parse_picture_crops(crops: list[str]) -> dict[int, tuple[int, int, int, int]]:
+    """Parse repeated ``--crop-for NUMBER=X,Y,WIDTH,HEIGHT`` options."""
+    parsed: dict[int, tuple[int, int, int, int]] = {}
+    for entry in crops:
+        if "=" not in entry:
+            raise ValueError(f"invalid crop assignment: {entry!r}")
+        number_text, crop_text = entry.split("=", 1)
+        try:
+            number = int(number_text)
+        except ValueError as error:
+            raise ValueError(f"invalid movie number: {number_text!r}") from error
+        if number in parsed:
+            raise ValueError(f"movie number cropped more than once: {number}")
+        parsed[number] = _parse_crop(crop_text)
+    return parsed
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="amc", description="Portable Ant Movie Catalog")
     result.add_argument("--catalog", "-c", type=Path, default=Path("catalog.json"))
@@ -125,7 +142,16 @@ def parser() -> argparse.ArgumentParser:
     picture_set_many.add_argument(
         "--crop",
         metavar="X,Y,WIDTH,HEIGHT",
-        help="crop every embedded picture using the same rectangle",
+        help="crop every embedded picture using the same rectangle, unless "
+        "overridden per movie with --crop-for",
+    )
+    picture_set_many.add_argument(
+        "--crop-for",
+        action="append",
+        default=[],
+        metavar="NUMBER=X,Y,WIDTH,HEIGHT",
+        help="crop one movie's embedded picture with its own rectangle, "
+        "overriding --crop for that movie; may be repeated",
     )
     picture_clear = commands.add_parser(
         "picture-clear", help="remove one or more movie pictures"
@@ -442,6 +468,7 @@ def _run(args: argparse.Namespace) -> int:
             max_bytes=args.max_bytes,
             max_pixels=args.max_pixels,
             crop=_parse_crop(args.crop),
+            crops=_parse_picture_crops(args.crop_for),
         )
         for movie in movies:
             print(f"Updated picture for #{movie.number}: {movie.picture}")

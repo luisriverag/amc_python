@@ -43,10 +43,12 @@ The packaging check verifies that an isolated wheel installation can import both
   actions: **Set Pictures** prompts for one image file and an Embed/Link choice,
   then applies that same picture to every selected movie (for a shared cover
   across a boxed set or series); **Assign Pictures** opens a scrollable per-movie
-  list with its own Browse button for each selected movie, so every movie can
-  receive its own picture file in one atomic write, applying a shared Embed/Link
-  choice to whichever movies were assigned a file (movies left unassigned keep
-  their current picture); **Clear Pictures** removes linked and embedded picture
+  list with its own Browse and Crop buttons for each selected movie, so every
+  movie can receive its own picture file — and, when Embed is checked, its own
+  interactively selected crop rectangle — in one atomic write, applying a shared
+  Embed/Link choice to whichever movies were assigned a file (movies left
+  unassigned keep their current picture); **Clear Pictures** removes linked and
+  embedded picture
   state from the selection. Description and comments use multiline editors so
   paragraphs are not forced
   through single-line fields; borrower changes remain in the dedicated loan
@@ -137,10 +139,7 @@ cancellation, accessibility verification, localization, or automated
 real-display widget tests. The batch **Set Pictures**, **Assign Pictures**, and
 **Clear Pictures** toolbar actions cover sharing one picture, assigning a
 distinct picture per movie, and clearing pictures across an extended
-selection; the edit dialog's **Crop** button provides interactive rectangle
-selection for one movie's picture. Per-movie batch cropping is still
-unavailable from either the CLI or the desktop: a shared crop rectangle can be
-supplied to `picture-set-many`, but each embedded image gets the same
-coordinates, and the **Assign Pictures** batch dialog has no crop step yet.
-Current GUI tests are headless adapter tests with
-mocked dialogs.
+selection; the edit dialog's **Crop** button and each row's **Crop** button in
+**Assign Pictures** provide interactive rectangle selection, and CLI
+`picture-set-many --crop-for` sets a per-movie crop rectangle from the command
+line. Current GUI tests are headless adapter tests with mocked dialogs.

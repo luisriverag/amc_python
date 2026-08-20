@@ -84,6 +84,103 @@ def test_service_embeds_the_same_picture_for_many_movies_atomically(
         assert "native_picture_base64" in load(catalog_path).get(number).extras
 
 
+def test_service_applies_per_movie_crop_rectangles(tmp_path: Path):
+    catalog_path = tmp_path / "catalog.json"
+    cover_one = tmp_path / "one.png"
+    image_one = Image.new("RGB", (4, 4), "red")
+    image_one.putpixel((1, 1), (0, 255, 0))
+    image_one.save(cover_one)
+    cover_two = tmp_path / "two.png"
+    image_two = Image.new("RGB", (4, 4), "blue")
+    image_two.putpixel((2, 2), (255, 255, 0))
+    image_two.save(cover_two)
+    save(
+        Catalog([Movie(number=1, title="One"), Movie(number=2, title="Two")]),
+        catalog_path,
+    )
+    service = CatalogService(catalog_path)
+
+    service.set_picture_many(
+        {1: cover_one, 2: cover_two},
+        embed=True,
+        crops={1: (1, 1, 1, 1), 2: (2, 2, 1, 1)},
+    )
+
+    exported_one = tmp_path / "exported-one.png"
+    service.export_picture(1, exported_one)
+    with Image.open(exported_one) as cropped:
+        assert cropped.size == (1, 1)
+        assert cropped.getpixel((0, 0)) == (0, 255, 0)
+
+    exported_two = tmp_path / "exported-two.png"
+    service.export_picture(2, exported_two)
+    with Image.open(exported_two) as cropped:
+        assert cropped.size == (1, 1)
+        assert cropped.getpixel((0, 0)) == (255, 255, 0)
+
+
+def test_service_falls_back_to_shared_crop_for_movies_without_a_per_movie_entry(
+    tmp_path: Path,
+):
+    catalog_path = tmp_path / "catalog.json"
+    cover_one = tmp_path / "one.png"
+    image_one = Image.new("RGB", (4, 4), "red")
+    image_one.putpixel((3, 3), (0, 255, 0))
+    image_one.save(cover_one)
+    cover_two = tmp_path / "two.png"
+    image_two = Image.new("RGB", (4, 4), "blue")
+    image_two.putpixel((0, 0), (255, 255, 0))
+    image_two.save(cover_two)
+    save(
+        Catalog([Movie(number=1, title="One"), Movie(number=2, title="Two")]),
+        catalog_path,
+    )
+    service = CatalogService(catalog_path)
+
+    service.set_picture_many(
+        {1: cover_one, 2: cover_two},
+        embed=True,
+        crop=(0, 0, 1, 1),
+        crops={1: (3, 3, 1, 1)},
+    )
+
+    exported_one = tmp_path / "exported-one.png"
+    service.export_picture(1, exported_one)
+    with Image.open(exported_one) as cropped:
+        assert cropped.getpixel((0, 0)) == (0, 255, 0)
+
+    exported_two = tmp_path / "exported-two.png"
+    service.export_picture(2, exported_two)
+    with Image.open(exported_two) as cropped:
+        assert cropped.getpixel((0, 0)) == (255, 255, 0)
+
+
+def test_service_rejects_crops_for_unknown_movie_numbers(tmp_path: Path):
+    catalog_path = tmp_path / "catalog.json"
+    cover = tmp_path / "cover.png"
+    Image.new("RGB", (4, 4), "red").save(cover)
+    save(Catalog([Movie(number=1, title="One")]), catalog_path)
+    service = CatalogService(catalog_path)
+
+    with pytest.raises(ValueError, match="crops references movie numbers"):
+        service.set_picture_many({1: cover}, embed=True, crops={9: (0, 0, 1, 1)})
+
+    assert load(catalog_path).get(1).picture == ""
+
+
+def test_service_rejects_per_movie_crops_without_embed(tmp_path: Path):
+    catalog_path = tmp_path / "catalog.json"
+    cover = tmp_path / "cover.png"
+    Image.new("RGB", (4, 4), "red").save(cover)
+    save(Catalog([Movie(number=1, title="One")]), catalog_path)
+    service = CatalogService(catalog_path)
+
+    with pytest.raises(ValueError, match="crop is only supported"):
+        service.set_picture_many({1: cover}, crops={1: (0, 0, 1, 1)})
+
+    assert load(catalog_path).get(1).picture == ""
+
+
 def test_service_set_picture_many_is_atomic_for_missing_or_duplicate_numbers(
     tmp_path: Path,
 ):

@@ -368,11 +368,14 @@ class CatalogService:
         max_bytes: int = _MAX_PICTURE_BYTES,
         max_pixels: int = _MAX_PICTURE_PIXELS,
         crop: tuple[int, int, int, int] | None = None,
+        crops: dict[int, tuple[int, int, int, int]] | None = None,
     ) -> list[Movie]:
         """Link or embed pictures for distinct movies in one atomic write.
 
-        Every movie shares the same *embed*, *max_bytes*, *max_pixels*, and
-        *crop* settings; each movie number has its own picture source.
+        Every movie shares the same *embed*, *max_bytes*, and *max_pixels*
+        settings; each movie number has its own picture source. *crop* is
+        applied to every embedded picture unless a movie number has its own
+        entry in *crops*, which takes precedence for that movie only.
         """
         pairs = list(assignments.items() if isinstance(assignments, dict) else assignments)
         requested = self._movie_numbers(number for number, _ in pairs)
@@ -380,7 +383,14 @@ class CatalogService:
             raise ValueError("max_bytes must be a non-negative integer")
         if isinstance(max_pixels, bool) or not isinstance(max_pixels, int) or max_pixels < 1:
             raise ValueError("max_pixels must be a positive integer")
-        if not embed and crop is not None:
+        crops = dict(crops) if crops else {}
+        unknown_crop_numbers = sorted(set(crops) - set(requested))
+        if unknown_crop_numbers:
+            raise ValueError(
+                f"crops references movie numbers not in assignments: "
+                f"{unknown_crop_numbers}"
+            )
+        if not embed and (crop is not None or crops):
             raise ValueError("crop is only supported for embedded pictures")
         if not requested:
             return []
@@ -390,6 +400,7 @@ class CatalogService:
             source_path = Path(source)
             encoded = ""
             if embed:
+                movie_crop = crops.get(number, crop)
                 size = source_path.stat().st_size
                 if size > max_bytes:
                     raise ValueError(
@@ -402,7 +413,7 @@ class CatalogService:
                         f"picture exceeds size limit for movie {number}: "
                         f"{len(data)} > {max_bytes}"
                     )
-                data = self._prepare_picture(data, max_pixels=max_pixels, crop=crop)
+                data = self._prepare_picture(data, max_pixels=max_pixels, crop=movie_crop)
                 if len(data) > max_bytes:
                     raise ValueError(
                         f"cropped picture exceeds size limit for movie {number}: "

@@ -170,13 +170,13 @@ all omitted or opaque data is reported.
   native retention are complete; unverified native export is confirmation-gated
   and reports its replacement backup; native/XML/CSV sources are protected as
   read-only until saved as JSON; batch picture set/assign/clear across an
-  extended table selection is complete from both the CLI (`picture-set-many`)
-  and the desktop toolbar (Set/Assign/Clear Pictures), covering a shared
-  picture across the selection, a distinct picture per movie, and clearing;
-  interactive drag-to-select crop is complete for a single movie's picture in
-  the edit dialog; per-movie crop within a batch assignment, progress,
-  cancellation, and accessibility remain pending; every mutation persists
-  immediately, so there
+  extended table selection is complete from both the CLI (`picture-set-many
+  --crop`/`--crop-for`) and the desktop toolbar (Set/Assign/Clear Pictures),
+  covering a shared picture across the selection, a distinct picture per
+  movie, and clearing; interactive drag-to-select crop is complete for both
+  the single-movie edit dialog and each row of the batch Assign Pictures
+  dialog; progress, cancellation, and accessibility remain pending; every
+  mutation persists immediately, so there
   is no unsaved dirty state left to prompt about).
 - [ ] Add loan management and catalog preferences if confirmed upstream features
   (atomic single/multi-movie check-out/check-in and validated JSON-retained loan
@@ -336,11 +336,16 @@ indented, non-canonical checkbox markers that the port-progress count in
   - [x] Interactive crop selection (a draggable rectangle over the poster
     preview) in the edit dialog's **Crop** button, replacing the CLI-only
     `--crop X,Y,WIDTH,HEIGHT` numeric entry for the single-movie case.
-  - [ ] Per-movie crop rectangles in a batch assignment: today `set_picture_many`
-    and CLI `picture-set-many --crop` apply one shared rectangle to every
-    embedded image; extend the service to accept a crop per movie number, then
-    add a per-row Crop button to the **Assign Pictures** dialog using the same
-    interactive selector as the edit dialog.
+  - [x] Per-movie crop rectangles in a batch assignment: `CatalogService.
+    set_picture_many` accepts a `crops` mapping of movie number to rectangle,
+    overriding the shared `crop` for that movie only (validated as
+    embed-only, and rejecting crop entries for movie numbers outside the
+    assignment set); CLI `picture-set-many --crop-for NUMBER=X,Y,WIDTH,HEIGHT`
+    and a per-row **Crop** button in the **Assign Pictures** dialog (reusing
+    the edit dialog's interactive selector) expose it.
+
+D1 is now complete: every planned picture set/assign/clear/crop workflow has
+both a CLI and a desktop entry point.
 
 ### D2 — bulk-operation UX
 

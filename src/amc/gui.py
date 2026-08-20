@@ -887,6 +887,15 @@ class CatalogWindow(ttk.Frame):
             )
             return
         destination_exists = Path(selected).exists()
+        if format_name == "html" and messagebox.askyesno(
+            "Export HTML",
+            "Use an Ant Movie Catalog template — a real .html file with "
+            "$$TAG_NAME placeholders from AMC's own HTML export? Choose No "
+            "for AMC Python's own default table export.",
+            parent=self,
+        ):
+            self._export_html_template(selected)
+            return
         if format_name == "amc":
             backup_note = (
                 f"\n\nThe existing file will be preserved as "
@@ -912,6 +921,47 @@ class CatalogWindow(ttk.Frame):
         if format_name == "amc" and destination_exists:
             completion += f"\nPrevious file: {Path(selected).with_suffix('.bak')}"
         messagebox.showinfo("Export complete", completion, parent=self)
+
+    def _export_html_template(self, destination: str) -> None:
+        """Render Ant Movie Catalog's own $$TAG_NAME HTML templates.
+
+        Distinct from AMC Python's own {{MOVIES}}-template export: this asks
+        for a real AMC template file (full-catalog and/or individual-movie),
+        so a template the user already has keeps working. See
+        amc.html_template for exact tag coverage and scope.
+        """
+        full_template = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title="Choose a full-catalog template (optional)",
+            filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
+        )
+        individual_template = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title="Choose an individual-movie template (optional)",
+            filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
+        )
+        if not full_template and not individual_template:
+            return
+        individual_dir = None
+        if individual_template:
+            chosen_dir = filedialog.askdirectory(
+                parent=self.winfo_toplevel(),
+                title="Choose a folder for individual movie pages",
+            )
+            if not chosen_dir:
+                return
+            individual_dir = chosen_dir
+        try:
+            written = self.service.export_html_template(
+                destination,
+                full_template=full_template or None,
+                individual_template=individual_template or None,
+                individual_dir=individual_dir,
+            )
+        except _SERVICE_ERRORS as error:
+            messagebox.showerror("Could not export catalog", str(error), parent=self)
+            return
+        messagebox.showinfo("Export complete", f"Wrote {len(written)} file(s).", parent=self)
 
     def backup_catalog(self) -> None:
         selected = filedialog.asksaveasfilename(

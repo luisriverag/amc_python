@@ -630,6 +630,69 @@ def test_window_rejects_unknown_export_extension():
     showerror.assert_called_once()
 
 
+def test_window_html_export_declining_ant_template_uses_default_export():
+    window = _window()
+    with (
+        patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
+        patch("amc.gui.messagebox.askyesno", return_value=False),
+        patch("amc.gui.messagebox.showinfo"),
+    ):
+        window.export_catalog()
+    window.service.export.assert_called_once_with("movies.html", format="html")
+    window.service.export_html_template.assert_not_called()
+
+
+def test_window_html_export_with_ant_template_renders_full_and_individual():
+    window = _window()
+    window.service.export_html_template.return_value = [Path("movies.html"), Path("pages/1.html")]
+    with (
+        patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
+        patch("amc.gui.messagebox.askyesno", return_value=True),
+        patch(
+            "amc.gui.filedialog.askopenfilename",
+            side_effect=["full.html", "individual.html"],
+        ),
+        patch("amc.gui.filedialog.askdirectory", return_value="pages"),
+        patch("amc.gui.messagebox.showinfo") as showinfo,
+    ):
+        window.export_catalog()
+
+    window.service.export.assert_not_called()
+    window.service.export_html_template.assert_called_once_with(
+        "movies.html",
+        full_template="full.html",
+        individual_template="individual.html",
+        individual_dir="pages",
+    )
+    showinfo.assert_called_once()
+
+
+def test_window_html_export_with_ant_template_cancelling_both_templates_does_nothing():
+    window = _window()
+    with (
+        patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
+        patch("amc.gui.messagebox.askyesno", return_value=True),
+        patch("amc.gui.filedialog.askopenfilename", return_value=""),
+    ):
+        window.export_catalog()
+    window.service.export_html_template.assert_not_called()
+
+
+def test_window_html_export_with_ant_template_cancelling_the_folder_does_nothing():
+    window = _window()
+    with (
+        patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
+        patch("amc.gui.messagebox.askyesno", return_value=True),
+        patch(
+            "amc.gui.filedialog.askopenfilename",
+            side_effect=["", "individual.html"],
+        ),
+        patch("amc.gui.filedialog.askdirectory", return_value=""),
+    ):
+        window.export_catalog()
+    window.service.export_html_template.assert_not_called()
+
+
 def test_window_checks_selected_movie_in():
     window = _window()
     window.selected_movies = Mock(return_value=[

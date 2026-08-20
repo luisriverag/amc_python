@@ -602,7 +602,10 @@ treating them as one uniform backlog.
     upstream's own `$$TAG_NAME` HTML export template syntax — the same
     placeholders `export.pas`'s `ReplaceTagsGeneral`/`ReplaceTagsMovie` use
     — so a template a user already has for real AMC's HTML export keeps
-    working, wired into the CLI as `export-html-template`. Validated
+    working, wired into the CLI as `export-html-template` and into the
+    desktop **Export** action (an `.html` destination now asks whether to
+    use an Ant Movie Catalog template instead of the default table export).
+    Validated
     locally against the same genuine 4.2.2 export above and that export's
     own real full/individual templates: both rendered with zero leftover
     `$$` placeholders across all 7161 movies. The `$$ITEM_EXTRA_*`

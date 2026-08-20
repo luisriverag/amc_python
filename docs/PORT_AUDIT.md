@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 16 functional package modules, 6 repository tools, 503 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 16 functional package modules, 6 repository tools, 507 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -323,7 +323,10 @@ confidence.
     output rather than left as broken template syntax, matching upstream's own
     behavior for a movie with no supplementary records). Wired into the CLI as
     `export-html-template`, distinct from AMC Python's own `{{MOVIES}}`-template
-    `export-html`. Not registered as `verified`, for the same reason as finding 26.
+    `export-html`, and into the desktop **Export** action (choosing an `.html`
+    destination now asks whether to use an Ant Movie Catalog template instead of
+    the default table export). Not registered as `verified`, for the same reason
+    as finding 26.
 
 ## Gap matrix against the original application
 

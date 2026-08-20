@@ -37,6 +37,12 @@ The packaging check verifies that an isolated wheel installation can import both
   been inspected, so cancelling, an empty folder, or an invalid file leaves it
   untouched.
 - Export XML, CSV, static HTML, or experimental native AMC 4.2 output.
+  Choosing an `.html` destination asks whether to render an Ant Movie
+  Catalog `$$TAG_NAME` template (a real template file, or two — one for the
+  full catalog listing, one for individual movie pages — from real AMC's own
+  HTML export) instead of AMC Python's own default table export. See
+  `amc.html_template` and the CLI's `export-html-template` for the same
+  capability and its documented scope.
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;
   remove one movie or an extended table selection in a single atomic operation,

@@ -21,7 +21,7 @@ def run(command: list[str], *, environment: dict[str, str] | None = None) -> Non
 def _pytest_command() -> list[str]:
     """Wrap the test run under a virtual X server when one is available.
 
-    `tests/test_gui_display.py` builds real Tk widget trees and skips itself
+    `tests/gui/test_gui_display.py` builds real Tk widget trees and skips itself
     wherever no working display exists, so this is purely additive: it lets
     the one documented canonical command also exercise real-display GUI
     coverage on a Linux machine with Xvfb installed (this repository's own

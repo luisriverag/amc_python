@@ -49,14 +49,25 @@ the evidence bar: Milestones 5 and 6 already existed and their gates are
 unchanged. When genuine fixtures become available, work reverts to the P1–P3
 sequence below before any new compatibility claim is made.
 
-Within the downstream track, **GUI parity is the current priority**: closing
-the desktop GUI's own gaps against its documented contract (real-display
-verification, CLI/GUI feature parity, broader widget coverage) ahead of
-further general engineering debt in D4. This is still evidence-independent —
-it is Python-owned GUI behavior and test coverage, not an upstream-compatibility
-claim — so it needs no fixture and is not blocked by Milestone 0. The concrete
-form of this priority is the **D5 — GUI parity** tier below; pick its next
-unchecked item before further D4 items.
+Within the downstream track, **quick wins are the current priority**: D0–D5
+(media analysis, picture workflow, bulk-operation UX, GUI/catalog
+preferences, engineering debt, GUI parity) are now complete or reduced to
+items that are either genuinely blocked (screen-reader verification has no
+assistive technology available to test against) or explicitly optional
+polish, not tracked gaps. What remains open at meaningful size is
+concentrated in **D6**, and D6's four subsystems are not one uniform
+backlog: MP3/MP4/OGG duration/bitrate turned out tractable in small, bounded
+increments and are done; the other three (localization, printing/reports,
+website script execution) are large, need real design or license decisions
+before code can start, and do not decompose into quick wins the way the
+codec item did. Rather than start one of those three half-scoped, execution
+prioritizes: (1) any remaining small, bounded, well-scoped item anywhere in
+D0–D6, picked in tier order; (2) once none remain, the smallest decidable
+slice of a D6 subsystem — a scoping/design decision recorded in a finding,
+not a half-built runtime — over open-ended new-subsystem construction. This
+is still evidence-independent — Python-owned behavior and test coverage, not
+an upstream-compatibility claim — so none of it needs a fixture or is
+blocked by Milestone 0.
 
 The concrete, ordered form of the wider backlog is the **Downstream execution
 backlog (D0–D6)** further down this document, alongside the upstream P0–P3
@@ -613,12 +624,22 @@ tier's next unchecked item before returning to D4.
     synthetic right-click selecting the clicked row and opening the Edit
     dialog through it, and a right-click on empty space leaving an
     existing selection untouched.
-  - [ ] Further real-display coverage remains available (statistics/
-    duplicates/loan-history review dialogs, table sort/selection, and the
-    edit dialog's other validation paths — an out-of-range rating, an
-    invalid integer field), but the highest-value multi-widget flows named
-    above are now covered; treat any further extension here as optional
-    polish rather than a tracked gap.
+  - [x] Further real-display coverage: statistics (a computed summary
+    against a known one-movie catalog), duplicates (both a matching
+    normalized title/year group and the no-duplicates case), loan history
+    (a real check-out event's row in the dialog's table, and the
+    no-history-recorded status-bar message), table sort/selection (a real
+    click-equivalent `sort()` call reorders the actual `ttk.Treeview` rows
+    and toggles the heading's ▲/▼ marker on a second click), and the edit
+    dialog's other validation paths (an out-of-range rating, a non-integer
+    year) — every item this line named is now covered, closing it rather
+    than leaving it open-ended polish.
+  - [ ] Screen-reader labels and a verified accessibility pass remain out of
+    reach here regardless of display availability: Tk has no meaningful
+    AT-SPI bridge on X11 to exercise, and no screen reader is installed in
+    this container. This item stays open until it can be verified on a
+    platform where Tk's accessibility support is meaningful (Windows/macOS
+    native widgets) or a contributor can verify it directly.
   - [ ] Screen-reader labels and a verified accessibility pass remain out of
     reach here regardless of display availability: Tk has no meaningful
     AT-SPI bridge on X11 to exercise, and no screen reader is installed in

@@ -89,6 +89,37 @@ def _comboboxes(widget: tk.Misc) -> list[ttk.Combobox]:
     return found
 
 
+def _treeviews(widget: tk.Misc) -> list[ttk.Treeview]:
+    """Recursively collect every ttk.Treeview under *widget*."""
+    found: list[ttk.Treeview] = []
+    for child in widget.winfo_children():
+        if isinstance(child, ttk.Treeview):
+            found.append(child)
+        found.extend(_treeviews(child))
+    return found
+
+
+def _labeled_entry(container: tk.Misc, label_text: str) -> ttk.Entry:
+    """Find the Entry widget on the same grid row as a Label with this
+    exact text, matching the edit dialog's one-Label-one-Entry-per-field
+    layout without depending on field order or count."""
+    rows_by_label: dict[int, str] = {}
+    rows_by_entry: dict[int, ttk.Entry] = {}
+
+    def walk(widget: tk.Misc) -> None:
+        for child in widget.winfo_children():
+            info = child.grid_info()
+            if isinstance(child, ttk.Label) and info:
+                rows_by_label[info["row"]] = child.cget("text")
+            elif isinstance(child, ttk.Entry) and info:
+                rows_by_entry[info["row"]] = child
+            walk(child)
+
+    walk(container)
+    row = next(row for row, text in rows_by_label.items() if text == label_text)
+    return rows_by_entry[row]
+
+
 def _png_bytes(size: tuple[int, int] = (40, 30)) -> bytes:
     buffer = io.BytesIO()
     Image.new("RGB", size, "red").save(buffer, format="PNG")
@@ -449,6 +480,162 @@ def test_clear_pictures_removes_a_real_picture_after_confirmation(
     updated = window.service.catalog.get(movie.number)
     assert not updated.extras.get("native_picture_base64")
     assert updated.picture == ""
+
+
+def test_statistics_dialog_shows_a_computed_summary(real_root: tk.Tk, tmp_path: Path):
+    window = _open_window(real_root, tmp_path)
+
+    with patch("amc.gui.messagebox.showinfo") as showinfo:
+        window.show_statistics()
+
+    showinfo.assert_called_once()
+    title, message = showinfo.call_args.args
+    assert title == "Catalog statistics"
+    assert "Movies: 1" in message
+    assert "Duplicate groups: 0" in message
+
+
+def test_duplicates_dialog_lists_matching_title_year_groups(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    window.service.add(Movie(number=2, title="Alien", year=1979, director="Someone Else"))
+
+    with patch("amc.gui.messagebox.showinfo") as showinfo:
+        window.show_duplicates()
+
+    showinfo.assert_called_once()
+    title, message = showinfo.call_args.args
+    assert title == "Duplicate movies"
+    assert "#1 Alien (1979)" in message
+    assert "#2 Alien (1979)" in message
+
+
+def test_duplicates_dialog_reports_none_found_when_the_catalog_has_no_duplicates(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+
+    with patch("amc.gui.messagebox.showinfo") as showinfo:
+        window.show_duplicates()
+
+    title, message = showinfo.call_args.args
+    assert title == "Duplicate movies"
+    assert "No duplicate" in message
+
+
+def test_loan_history_dialog_shows_a_real_checkout_event(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+    window.service.check_out(movie.number, "Ada")
+
+    window.show_loan_history()
+    real_root.update_idletasks()
+    real_root.update()
+
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Loan history"][0]
+    table = _treeviews(dialog)[0]
+    rows = [table.item(iid)["values"] for iid in table.get_children()]
+
+    assert len(rows) == 1
+    assert rows[0][1] == "Checked out"
+    assert rows[0][3] == movie.display_title()
+    assert rows[0][4] == "Ada"
+    dialog.destroy()
+
+
+def test_loan_history_dialog_reports_none_recorded_in_the_status_bar(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+
+    window.show_loan_history()
+    real_root.update_idletasks()
+    real_root.update()
+
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Loan history"][0]
+    assert _treeviews(dialog)[0].get_children() == ()
+    assert "No loan history" in window.status.cget("text")
+    dialog.destroy()
+
+
+def test_table_sort_click_reorders_rows_and_marks_the_heading(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    window.service.add(Movie(number=2, title="Before Alien", year=1975))
+    window.refresh()
+
+    window.sort("title")
+    real_root.update_idletasks()
+    real_root.update()
+
+    ascending = [
+        window.table.item(iid)["values"][1] for iid in window.table.get_children()
+    ]
+    assert ascending == sorted(ascending)
+    assert window.table.heading("title")["text"].endswith("▲")
+
+    window.sort("title")
+    real_root.update()
+
+    descending = [
+        window.table.item(iid)["values"][1] for iid in window.table.get_children()
+    ]
+    assert descending == list(reversed(ascending))
+    assert window.table.heading("title")["text"].endswith("▼")
+
+
+def test_edit_dialog_rejects_an_out_of_range_rating_without_closing(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+    rating_entry = _labeled_entry(dialog, "Rating")
+    rating_entry.delete(0, tk.END)
+    rating_entry.insert(0, "15")
+
+    with patch("amc.gui.messagebox.showerror") as showerror:
+        _buttons(dialog)["Save"].invoke()
+    real_root.update()
+
+    showerror.assert_called_once()
+    assert "rating must be between 0 and 10" in showerror.call_args.args[1]
+    assert dialog.winfo_exists()
+    assert window.service.catalog.get(movie.number).rating == movie.rating
+    dialog.destroy()
+
+
+def test_edit_dialog_rejects_a_non_integer_year_without_closing(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+    year_entry = _labeled_entry(dialog, "Year")
+    year_entry.delete(0, tk.END)
+    year_entry.insert(0, "not-a-year")
+
+    with patch("amc.gui.messagebox.showerror") as showerror:
+        _buttons(dialog)["Save"].invoke()
+    real_root.update()
+
+    showerror.assert_called_once()
+    assert "year must be an integer" in showerror.call_args.args[1]
+    assert dialog.winfo_exists()
+    assert window.service.catalog.get(movie.number).year == movie.year
+    dialog.destroy()
 
 
 def test_edit_dialog_rejects_a_missing_title_without_closing(

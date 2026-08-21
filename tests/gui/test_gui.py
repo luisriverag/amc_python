@@ -254,7 +254,7 @@ def test_window_sets_the_same_picture_for_all_selected_movies_atomically():
         window.set_pictures()
 
     window.service.set_picture_many.assert_called_once_with(
-        {2: "cover.jpg", 4: "cover.jpg"}, embed=True
+        [(2, "cover.jpg"), (4, "cover.jpg")], embed=True
     )
     assert "2 selected movies" in confirm.call_args.args[1]
     window.refresh.assert_called_once_with()
@@ -282,7 +282,7 @@ def test_window_set_pictures_links_instead_of_embedding_when_declined():
         window.set_pictures()
 
     window.service.set_picture_many.assert_called_once_with(
-        {2: "cover.jpg"}, embed=False
+        [(2, "cover.jpg")], embed=False
     )
 
 

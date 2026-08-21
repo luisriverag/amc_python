@@ -38,8 +38,9 @@ def _pytest_command() -> list[str]:
 
 
 def main() -> int:
-    """Run tests, bytecode compilation, CLI smoke checking, and diff validation."""
+    """Run linting, type checking, tests, compilation, and diff validation."""
     run([sys.executable, "-m", "ruff", "check", "src", "tests", "tools"])
+    run([sys.executable, "-m", "mypy"])
     run(_pytest_command())
     run([sys.executable, "-m", "coverage", "report"])
     run([sys.executable, "-m", "compileall", "-q", "src", "tests", "tools"])

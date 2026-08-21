@@ -20,6 +20,8 @@ def verify_directory(root: Path, *, require_expectations: bool = False) -> int:
     for manifest in sorted(root.rglob("manifest.json")) if root.exists() else []:
         document = validate_manifest(manifest)
         expectations = document.get("verification", [])
+        if not isinstance(expectations, list):
+            raise ManifestError(f"{manifest}: verification must be an array")
         for entry in expectations:
             fixture = manifest.parent / str(entry["path"])
             actual_header = fixture.read_bytes()[:NATIVE_HEADER_SIZE]
@@ -44,6 +46,8 @@ def verify_directory(root: Path, *, require_expectations: bool = False) -> int:
                 )
             converted = load(fixture)
             native_metadata = converted.metadata.get("native", {})
+            if not isinstance(native_metadata, dict):
+                native_metadata = {}
             for field, expected in entry.get("metadata", {}).items():
                 actual = native_metadata.get(field)
                 if actual != expected:

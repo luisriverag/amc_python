@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import xml.etree.ElementTree as ET
+from collections.abc import Sequence
 from contextlib import contextmanager
 from dataclasses import asdict, fields
 from pathlib import Path
@@ -156,7 +157,7 @@ def _load_native(
     path: Path, encoding: str, limits: NativeReadLimits | None
 ) -> Catalog:
     native = read_native_catalog(path, encoding=encoding, limits=limits)
-    metadata = {
+    metadata: dict[str, object] = {
         "native": {
             "version": native.properties.version,
             "owner": native.properties.owner,
@@ -211,7 +212,7 @@ def copy_catalog(source: str | Path, destination: str | Path) -> None:
 
 
 def _reject_duplicate_csv_headers(
-    fieldnames: list[str] | None, aliases: dict[str, str], known: set[str]
+    fieldnames: Sequence[str] | None, aliases: dict[str, str], known: set[str]
 ) -> None:
     """Fail loudly instead of silently discarding a column's data.
 
@@ -262,7 +263,8 @@ def load_csv(path: str | Path) -> Catalog:
                     values[field] = text
                 elif header.strip():
                     extras[header.strip()] = text
-            values["number"] = int(values.get("number") or 0)
+            raw_number = values.get("number")
+            values["number"] = int(raw_number) if isinstance(raw_number, (int, float)) else 0
             values["extras"] = extras
             try:
                 catalog.add(Movie.from_dict(values), renumber=False)
@@ -428,7 +430,7 @@ def save_html(
         stream.write(document)
 
 
-def _number(value: str | None, kind: type[int] | type[float]):
+def _number(value: str | None, kind: type[int] | type[float]) -> int | float | None:
     if not value or not value.strip():
         return None
     match = re.search(r"[-+]?\d+(?:[.,]\d+)?", value)
@@ -507,7 +509,10 @@ def load_xml(path: str | Path) -> Catalog:
             else:
                 extras[tag] = text
         values["extras"] = extras
-        catalog.add(Movie(**values), renumber=False)
+        # mypy cannot check a dict[str, object] **-unpack against Movie's
+        # per-field-typed constructor; values only ever holds known Movie
+        # field names built above.
+        catalog.add(Movie(**values), renumber=False)  # type: ignore[arg-type]
     return catalog
 
 
@@ -527,7 +532,9 @@ def _read_xml_metadata(root: ET.Element) -> dict[str, object]:
                 result[_camel_to_snake(setting)] = value
         fields: list[dict[str, object]] = []
         for node in definitions.findall("CustomField"):
-            definition = {_camel_to_snake(key): value for key, value in node.attrib.items()}
+            definition: dict[str, object] = {
+                _camel_to_snake(key): value for key, value in node.attrib.items()
+            }
             values = [item.get("Text", "") for item in node.findall("ListValue")]
             if values:
                 definition["list_values"] = values

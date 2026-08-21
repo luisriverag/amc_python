@@ -1,0 +1,30 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TTypeManager</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_var.html">ifs_var.pas</a><br /><br />
+<B>PTypeManager</B><br /><br />
+PTypeManager is used to store all types in the current script engine.<br /><br />
+<b>type</b><br />
+PTypeManager = ^TTypeManager;<br />
+TTypeManager = <b>packed record</b><br />
+&nbsp;&nbsp;List: TIfList;<br />
+<b>end</b>;<br /><br />
+<B>Helper functions:</B><br />
+<b>function</b> TM_Create: PTypeManager;<br />
+<b>function</b> TM_Add(P: PTypeManager; <b>const</b> Name: <b>string</b>; FType: Word; ex: Pointer): <a href="ttyperec.html">PTypeRec</a>;<br />
+<b>function</b> TM_Get(P: PTypeManager; <b>const</b> Name: <b>string</b>): <a href="ttyperec.html">PTypeRec</a>;<br />
+<b>procedure</b> TM_Destroy(p: PTypeManager);<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

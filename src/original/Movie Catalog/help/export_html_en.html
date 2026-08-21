@@ -1,0 +1,250 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Export to HTML</p>
+<hr />
+<p>The "Export to HTML" option allows you to create an HTML file that
+  will contain the full catalog in a portable format. You can upload this list
+  on the web or give it to anybody that has a web browser.</p>
+<p>The HTML file generated is based on a real HTML file. The program replaces
+  special tags with movie and catalog information.</p>
+<hr />
+<p>There are two templates: "Full" and "Individual". Old
+  versions only had the "Full" template. The Full template is only one
+  file, with the list of movies. Its name is the name that you select when you
+  click "Export". The Individual template is one file per movie, with
+  the information of each movie. By default the name is the name that you select when you
+  click "Export" with the movie number appended at the end (you can change that in the <a href="options_en.html#export">Preferences</a> window).</p>
+<p>So if you export the catalog to "My movies.html" you will have:</p>
+<ul>
+  <li>My movies.html -&gt; The list of the movies, based on the template loaded "Full" tab</li>
+  <li>My movies_1.html -&gt; First movie, based on the template loaded in "Individual" tab</li>
+  <li>My movies_2.html -&gt; Second movie, based on the template loaded in "Individual" tab</li>
+  <li>etc...</li>
+</ul>
+<p>At the right of the template selection buttons ("Full"/"Individual"
+  buttons) you can select if you want to export both templates or only the currently
+  selected template.</p>
+<hr />
+<p>All the tags begin with "$$". You do not really have to know them
+  since you can add them with the "Insert Special Tag" menu. They include
+  all the information that you can enter in the main window for a movie, but also
+  the total number of movies, file name of the catalog, the current date and the
+  current time.</p>
+<p>There are two very important tags for the "Full" template: $$ITEM_BEGIN and $$ITEM_END. When creating
+  the HTML file, the program will repeat the HTML code that is between these two
+  tags for each movie. So all the tags begining by $$ITEM_ have to be placed between
+  these two tags. On the other hand, these tags are useless for the "Individual" template.</p>
+<p>The application includes sample templates that you can use or customize. Of
+  course you can create a new one from scratch if you prefer, but I would recommend
+  that you observer first this basic template:</p>
+<pre>&lt;html&gt;
+  &lt;head&gt;&lt;title&gt;$$FILENAME&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;&lt;table&gt;
+    $$ITEM_BEGIN
+      &lt;tr&gt;
+        &lt;td&gt;$$ITEM_NUMBER&lt;/td&gt;
+        &lt;td&gt;$$ITEM_ORIGINALTITLE&lt;/td&gt;
+        &lt;td&gt;$$ITEM_TRANSLATEDTITLE&lt;/td&gt;
+        &lt;td&gt;$$ITEM_DESCRIPTION&lt;/td&gt;
+      &lt;/tr&gt;
+    $$ITEM_END
+  &lt;/table&gt;&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>Here we can see that the page will have the filename as title, and then a table
+  listing all the movies. The program will write the &lt;table&gt; tag, and then
+  repeat the &lt;tr&gt;...&lt;/tr&gt; sequence for each movie since it is between
+  $$ITEM_BEGIN and $$ITEM_END.</p>
+<p>Here is a list of all the available tags:</p>
+<ul>
+  <li>$$DATE = Current date</li>
+  <li>$$TIME = Current time</li>
+</ul>
+<blockquote>
+  <p>Catalog file properties:</p>
+</blockquote>
+<ul>
+  <li>$$FILENAME = Catalog file name</li>
+  <li>$$FILEPATH = Catalog file name with full path</li>
+  <li>$$TOTALMOVIES = Number of movies in the catalog</li>
+</ul>
+<ul>
+  <li>$$OWNER_NAME = Name specified in catalog properties</li>
+  <li>$$OWNER_MAIL = E-mail</li>
+  <li>$$OWNER_SITE = Website</li>
+  <li>$$DESCRIPTION = Description</li>
+</ul>
+<ul>
+  <li>$$ITEM_FILEINDIV = Filename of individual page for current movie</li>
+  <li>$$ITEM_BEGIN = Begin of movie list</li>
+  <li>$$ITEM_END = End of movie list</li>
+  <li>$$ITEM_RECNR = Counter</li>
+</ul>
+<blockquote>
+    <p>Labels of movie fields (according to selected language):</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_NUMBER = Number</li>
+  <li>$$LABEL_CHECKED = State of the checkbox</li>
+  <li>$$LABEL_COLORTAG = Color tag</li>
+  <li>$$LABEL_MEDIA = Media label/barcode</li>
+  <li>$$LABEL_TYPE = Media type</li>
+  <li>$$LABEL_SOURCE = Source</li>
+  <li>$$LABEL_DATEADD = Date added</li>
+  <li>$$LABEL_BORROWER = Current borrower</li>
+  <li>$$LABEL_DATEWATCHED = Date watched</li>
+  <li>$$LABEL_USERRATING = My rating (0 to 10)</li>
+  <li>$$LABEL_RATING = Rating (0 to 10)</li>
+  <li>$$LABEL_ORIGINALTITLE = Original title</li>
+  <li>$$LABEL_TRANSLATEDTITLE = Translated title</li>
+  <li>$$LABEL_FORMATTEDTITLE = Formatted title</li>
+  <li>$$LABEL_DIRECTOR = Director</li>
+  <li>$$LABEL_PRODUCER = Producer</li>
+  <li>$$LABEL_WRITER = Writer</li>
+  <li>$$LABEL_COMPOSER = Composer</li>
+  <li>$$LABEL_ACTORS = Actors list</li>
+  <li>$$LABEL_COUNTRY = Country</li>
+  <li>$$LABEL_YEAR = Year</li>
+  <li>$$LABEL_LENGTH = Length in minutes</li>
+  <li>$$LABEL_CATEGORY = Category</li>
+  <li>$$LABEL_CERTIFICATION = Certification</li>
+  <li>$$LABEL_URL = Website address</li>
+  <li>$$LABEL_DESCRIPTION = Description</li>
+  <li>$$LABEL_COMMENTS = Comments</li>
+  <li>$$LABEL_FILEPATH = File path</li>
+  <li>$$LABEL_VIDEOFORMAT = Video format/codec</li>
+  <li>$$LABEL_VIDEOBITRATE = Video bitrate</li>
+  <li>$$LABEL_AUDIOFORMAT = Audio format/codec</li>
+  <li>$$LABEL_AUDIOBITRATE = Audio bitrate</li>
+  <li>$$LABEL_RESOLUTION = Video resolution</li>
+  <li>$$LABEL_FRAMERATE = Video framerate</li>
+  <li>$$LABEL_LANGUAGES = Languages</li>
+  <li>$$LABEL_SUBTITLES = Subtitles</li>
+  <li>$$LABEL_SIZE = Files sizes</li>
+  <li>$$LABEL_DISKS = Number of disks or tapes</li>
+  <li>$$LABEL_PICTURESTATUS = Picture status</li>
+  <li>$$LABEL_NBEXTRAS = Number of extras</li>
+  <li>$$LABEL_PICTURE = Picture</li>
+  <li>$$LABEL_AUDIOKBPS' = Unit of audio bitrate</li>
+  <li>$$LABEL_VIDEOKBPS' = Unit of video bitrate</li>
+  <li>$$LABEL_UNIT' = Unit of file size</li>
+  <li>$$LABEL_FPS' = Unit of framerate</li>
+</ul>
+<blockquote>
+    <p>Labels of custom fields:</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_CF_ + <i>custom field</i> TAG <i>in upper case</i> = Label of custom field</li>
+</ul>
+<blockquote>
+    <p>Labels of extra fields (according to selected language):</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_EXTRA_NUMBER = Number</li>
+  <li>$$LABEL_EXTRA_CHECKED = State of the checkbox</li>
+  <li>$$LABEL_EXTRA_TAG = Tag</li>
+  <li>$$LABEL_EXTRA_TITLE = Title</li>
+  <li>$$LABEL_EXTRA_CATEGORY = Category</li>
+  <li>$$LABEL_EXTRA_URL = Website address or file path</li>
+  <li>$$LABEL_EXTRA_DESCRIPTION = Description</li>
+  <li>$$LABEL_EXTRA_COMMENTS = Comments</li>
+  <li>$$LABEL_EXTRA_CREATEDBY = Created by</li>
+  <li>$$LABEL_EXTRA_PICTATUS = Picture status</li>
+  <li>$$LABEL_EXTRA_PICTURE = Picture</li>
+</ul>
+<blockquote>
+    <p>Movie fields:</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_NUMBER = Number</li>
+  <li>$$ITEM_CHECKED = State of the checkbox</li>
+  <li>$$ITEM_COLORTAG = Color tag (number between 0 and 12)</li>
+  <li>$$ITEM_COLORHTML = Color tag (HTML color like #FFFFFF)</li>
+  <li>$$ITEM_MEDIA = Media label/barcode</li>
+  <li>$$ITEM_TYPE = Media type</li>
+  <li>$$ITEM_SOURCE = Source</li>
+  <li>$$ITEM_DATEADD = Date added</li>
+  <li>$$ITEM_BORROWER = Current borrower</li>
+  <li>$$ITEM_DATEWATCHED = Date watched</li>
+  <li>$$ITEM_USERRATING = My rating (0 to 10)</li>
+  <li>$$ITEM_USERRATING10 = My rating (0 to 10 without decimal)</li>
+  <li>$$ITEM_USERRATING4 = My rating (0 to 4 without decimal)</li>
+  <li>$$ITEM_USERAPP4 = My appreciation, from 0 to 4 stars, using files appr*.gif</li>
+  <li>$$ITEM_USERAPPR10 = My appreciation, from 0 to 10 stars, using files appr10_*.gif</li>
+  <li>$$ITEM_RATING = Rating (0 to 10)</li>
+  <li>$$ITEM_RATING10 = Rating (0 to 10 without decimal)</li>
+  <li>$$ITEM_RATING4 = Rating (0 to 4 without decimal)</li>
+  <li>$$ITEM_APPRECIATION = Appreciation, from 0 to 4 stars, using files appr*.gif</li>
+  <li>$$ITEM_APPR10 = Appreciation, from 0 to 10 stars, using files appr10_*.gif</li>
+  <li>$$ITEM_ORIGINALTITLE = Original title</li>
+  <li>$$ITEM_TRANSLATEDTITLE = Translated title</li>
+  <li>$$ITEM_FORMATTEDTITLE = Formatted title, as defined in the <a href="options_en.html#formattedtitle">Preferences</a></li>
+  <li>$$ITEM_FORMATTEDTITLE1 = Formatted title, as "Original title (Translated title)"</li>
+  <li>$$ITEM_FORMATTEDTITLE2 = Formatted title, as "Translated title (Original title)"</li>
+  <li>$$ITEM_DIRECTOR = Director</li>
+  <li>$$ITEM_PRODUCER = Producer</li>
+  <li>$$ITEM_WRITER = Writer</li>
+  <li>$$ITEM_COMPOSER = Composer</li>
+  <li>$$ITEM_ACTORS = Actors list</li>
+  <li>$$ITEM_COUNTRY = Country</li>
+  <li>$$ITEM_YEAR = Year</li>
+  <li>$$ITEM_LENGTH = Length in minutes</li>
+  <li>$$ITEM_CATEGORY = Category</li>
+  <li>$$ITEM_CERTIFICATION = Certification</li>
+  <li>$$ITEM_URL = Website address (without link)</li>
+  <li>$$ITEM_DESCRIPTION = Description</li>
+  <li>$$ITEM_COMMENTS = Comments</li>
+  <li>$$ITEM_FILEPATH = File path</li>
+  <li>$$ITEM_VIDEOFORMAT = Video format/codec</li>
+  <li>$$ITEM_VIDEOBITRATE = Video bitrate</li>
+  <li>$$ITEM_AUDIOFORMAT = Audio format/codec</li>
+  <li>$$ITEM_AUDIOBITRATE = Audio bitrate</li>
+  <li>$$ITEM_RESOLUTION = Video resolution</li>
+  <li>$$ITEM_FRAMERATE = Video framerate</li>
+  <li>$$ITEM_LANGUAGES = Languages</li>
+  <li>$$ITEM_SUBTITLES = Subtitles</li>
+  <li>$$ITEM_SIZE = Files sizes</li>
+  <li>$$ITEM_DISKS = Number of disks or tapes</li>
+  <li>$$ITEM_PICTURESTATUS = Picture status</li>
+  <li>$$ITEM_NBEXTRAS = Number of extras</li>
+  <li>$$ITEM_PICTURE = Picture, embedded in a &lt;img&gt; tag</li>
+  <li>$$ITEM_PICTURE_NP = Picture, embedded in a &lt;img&gt; tag (No popup in HTML display)</li>
+  <li>$$ITEM_PICTUREFILENAME = Picture filename</li>
+  <li>$$ITEM_PICTUREFILENAME_NP = Picture filename (No popup in HTML display)</li>
+</ul>
+<blockquote>
+    <p>Custom fields:</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_CF_ + <i>custom field</i> TAG <i>in upper case</i> = Custom field value</li>
+</ul>
+<blockquote>
+    <p>Extra fields of a movie :</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_EXTRA_BEGIN(<i>extra</i> CATEGORY <i>[optional]</i>, <i>extra</i> CHECKED <i>[optional]</i>, START <i>[optional]</i>, END <i>[optional]</i>) = Begin of extra list with a filter or not</li>
+  <li>$$ITEM_EXTRA_END = End of extra list of movie</li>
+  <li>$$ITEM_EXTRA_RECNR = Counter</li>
+  <li>$$ITEM_EXTRA_NUMBER(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Number</li>
+  <li>$$ITEM_EXTRA_CHECKED(<i>extra</i> TAG <i>[optional if you list extras]</i>) = State of the checkbox</li>
+  <li>$$ITEM_EXTRA_TAG(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Tag</li>
+  <li>$$ITEM_EXTRA_TITLE(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Title</li>
+  <li>$$ITEM_EXTRA_CATEGORY(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Category</li>
+  <li>$$ITEM_EXTRA_URL(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Website address or file path</li>
+  <li>$$ITEM_EXTRA_DESCRIPTION(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Description</li>
+  <li>$$ITEM_EXTRA_COMMENTS(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Comments</li>
+  <li>$$ITEM_EXTRA_CREATEDBY(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Created by</li>
+  <li>$$ITEM_EXTRA_PICSTATUS(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Picture status</li>
+  <li>$$ITEM_EXTRA_PICTURE(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Picture, embedded in a &lt;img&gt; tag</li>
+  <li>$$ITEM_EXTRA_PICTURE_NP(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Picture, embedded in a &lt;img&gt; tag (No popup in HTML display)</li>
+  <li>$$ITEM_EXTRA_PICFILENAME(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Picture filename</li>
+  <li>$$ITEM_EXTRA_PICFILENAME_NP(<i>extra</i> TAG <i>[optional if you list extras]</i>) = Picture filename (No popup in HTML display)</li>
+</ul>
+
+</body>
+</html>

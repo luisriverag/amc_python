@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="WebSite PRO 4.3" />
+  <title>Ant Movie Catalog Help</title>
+       <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+       <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Eksport do SQL</p>
+<hr />
+<p>To nie jest prawdziwy format pliku, ale ta opcja eksportu pozwoli ci wygenerować wszystkie komendy SQL, które są użyteczne do łatwego importu listy filmów z bazy danych.</p>
+<p>Zamysłem było stworzenie bazy danych SQL widzianej na stronie generowanej za pomocą PHP. Jest to bardziej wygodne dla ludzi, którzy chcą obejrzeć twoją listę filmów w sieci.</p>
+<p>Eksport do SQL utworzy tabelę (domyślnie movies) zawierającą filmy z wartościami z zaznaczonych pól.
+  Numer filmu jest dodawany automatycznie, ponieważ jest kluczem podstawowym tabeli.
+  Kolejne numery muszą być unikalne dla każdego filmu, aby otrzymać poprawny eksport danych do SQL.
+  W razie potrzeby, gdy nie jesteś pewny numeracji, możesz łatwo zmienić numerację filmów, aby każdy film posiadał swój unikalny numer.</p>
+<p>Jeśli eksportujesz dodatki filmowe, to zostanie utworzona inna tabela (domyślnie extras) zawierająca wartości dodatków filmowych z wybranych pól.
+   Numer dodatku i numer filmu zostaną automatycznie dodane, ponieważ są kluczem podstawowym tabeli.
+   Numery dodatków są zawsze unikalne, więc nie ma potrzeby, aby martwić się o nie.</p>
+<p>Jeśli włączysz eksport obrazka, pole "PICTURENAME" zostanie dodane do tabeli movies, zawierające nazwę pliku obrazka filmu.</p>
+<p>Jeśli włączysz eksport dodatkowych obrazków, pole "PICTURENAME" zostanie dodane do tabeli extras, zawierające nazwę pliku dodatkowego obrazka.</p>
+<p>Jest opcja generowania zapytań UPDATE zamiast zapytań INSERT, jeśli chcesz uaktualnić informacje bez uprzedniego kasowania już istniejących danych.
+   Opcja ta aktualizuje dane na podstawie numerów filmów, więc może to powodować problemy, jeśli zmieniłeś numery niektórych filmów.
+   Ponadto, jeśli eksportujesz dodatki, to stare dodatki filmowe zostaną usunięte przed dodaniem nowych.</p>
+</body>
+</html>

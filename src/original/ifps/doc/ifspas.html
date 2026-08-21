@@ -1,0 +1,100 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifspas.html</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+Back to <a href="index.html">Index</a>.<br /><br />
+The file ifspas.pas contains the script engine.<br /><br />
+<b>Types:</b><br />
+<a href="tifpasscript.html">TIfPasScript</a><br />
+<a href="tifserror.html">TIFSError</a><br />
+<a name="tonuses"><b>TOnUses</b></a> = <b>function</b>(id: Pointer; Sender: <a href="tifpasscript.html">TIfPasScript</a>; Name: <b>string</b>): <a href="tifpasscripterror.html">TIfPasScriptError</a>;<br />
+TOnUses is an event that is used by <a href="tifpasscript.html">TIfPasScript</a>. It is called every time a script runs with with a name 'SYSTEM'. If the script includes an Uses, it is also called.<br />
+<a name="tonrunline"><b>TOnRunLine</b></a> = <b>function</b>(id: Pointer; Sender: <a href="tifpasscript.html">TIfPasScript</a>; Position: Longint): <a href="tifpasscripterror.html">TIfPasScriptError</a>;<br />
+TOnRunLine is an event that is used by <a href="tifpasscript.html">TIfPasScript</a>. It is called every line in the script engine.<br /><br />
+<a name="tresourcefree"><b>TResourceFree</b></a> = <b>procedure</b>(id: Pointer; Data: Pointer);<br />
+TResourceFree is used by <a href="tifpasscript.html">TIfPasScript</a>.AddResource and RemoveResource.<br /><br />
+<a name="tonexternal"><b>TOnExternal</b></a> = <b>function</b>(id: Pointer; Sender: <a href="tifpasscript.html">TIfPasScript</a>; <b>const</b> Param, FuncName: <b>string</b>; Func: PProcedure; <b>const</b> CallingConvention: <b>string</b>): Boolean;<br />
+TOnExternal is an event that is used by <a href="tifpasscript.html">TIfPasScript</a>. It is called for each external function in the script.<br /><br />
+<br />
+<b>Functions:</b><br/>
+<b>function</b> GetClassVariable(Self: <a href="tifvariant.html">PIfVariant</a>; ProcClass: <a href="tifsclasstype.html">PIFSClassType</a>; <b>const</b> Name: <b>string</b>; <b>var</b> thevar: <a href="tifvariant.html">PIfVariant</a>; AlsoProtected: Boolean): Boolean;<br />
+<b>function</b> GetClassVariable2(Self: <a href="tcreatedclass.html">PCreatedClass; ProcClass: <a href="tifsclasstype.html">PIFSClassType</a>; <b>const</b> Name: <b>string</b>; <b>var</b> thevar: <a href="tifvariant.html">PIfVariant</a>; AlsoProtected: Boolean): Boolean;<br />
+Returns a variable that is in a class.<br /><br />
+<b>function</b> GetClassProcedure(Self: PIfVariant; ProcClass: <a href="tifsclasstype.html">PIFSClassType</a>; <b>const</b> Name: <b>string</b>; <b>var</b> proc: <A href="tprocedure.html">PProcedure</a>; AlsoProtected: Boolean): Boolean;<br />
+Returns a method pointer.<br /><br />
+<b>function</b> GetInheritedProc(CurrProc: <a href="tprocedure.html">PProcedure</a>): <a href="tprocedure.html">PProcedure</a>;<br />
+Returns where function CurrProc inherits from (or nil).<br /><br />
+procedure RegisterStdLib(p: <a href="tifpasscript.html">TIfPasScript</a>; OnlySafe: Boolean);<br />
+Register the standard library. If onlysafe is true, All Floating point functions are disabled (cos, sin, tan, round etc).<br />
+<b>Installs</b>:<br />
+Function StrGet(S : String; I : Integer) : Char;<br />
+Function StrSet(c : Char; I : Integer; var s : String) : Char;<br />
+Function Ord(C : Char) : Byte;<br />
+Function Chr(B : Byte) : Char;<br />
+Function StrToInt(s : string;def : Longint) : Longint;<br />
+Function IntToStr(i : Longint) : String;<br />
+Function Uppercase(s : string) : string;<br />
+Function Lowercase(s : string) : string;<br />
+Function Trim(s : string) : string;<br />
+Function Copy(S : String; Indx, Count : Integer) : String;<br />
+Procedure Delete(var S : String; Indx, Count : Integer);<br />
+Function Pos(SubStr, S : String) : Integer;<br />
+Procedure Insert(Source : String; var Dest : String; Indx : Integer);<br />
+Function Length(s : String) : Longint;<br />
+procedure SetLength(var S: String; L: Longint);<br />
+Function Sin(e : Extended) : Extended;<br />
+Function Cos(e : Extended) : Extended;<br />
+Function Sqrt(e : Extended) : Extended;<br />
+Function Round(e : Extended) : Longint;<br />
+Function Trunc(e : Extended) : Longint;<br />
+Function Int(e : Extended) : Longint;<br />
+Function Pi : Extended;<br />
+Function Abs(e : Extended) : Extended;<br />
+Function Sqrt(e : Extended) : Extended;<br />
+Function FloatToStr(e : Extended) : String;<br />
+Function Padl(s : string;I : longInt) : string;<br />
+Function Padr(s : string;I : longInt) : string;<br />
+Function Padz(s : string;I : longInt) : string;<br />
+Function Replicate(c : char;I : longInt) : string;<br />
+Function StringOfChar(c : char;I : longInt) : string;<br />
+procedure SetArrayLength(var u: array; Length: Longint);<br />
+function GetArrayLength(var u: array): Longint;<br />
+function GetType(const data): String;<br />
+function Assigned(const data): Boolean;<br />
+function Low(var u: array): Longint;<br />
+function High(var u: array): Longint;<br />
+<br />
+Type<br />
+TObject = class<br />
+public<br />
+Constructor Create;<br />
+Destructor Destroy; virtual;<br />
+procedure Free;<br />
+<br />
+function ClassNameIs(FType: string): Boolean;<br />
+function ClassName: string;<br />
+function GetAncestors: string;<br />
+end;<br />
+<br />
+<b>procedure</b> RegisterExceptionLib(Sender: <a href="tifpasscript.html">TIfPasScript</a>);<br />
+Registers the exception support library.<br />
+function GetLastErrorCode: word;<br />
+function GetLastErrorParam: string;<br />
+function GetLastErrorModule: string;<br />
+function GetLastErrorAsString: string;<br />
+function GetLastErrorPosition: Longint;<br />
+procedure RaiseError(ErrorCode: Word; Param: string);<br />
+<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

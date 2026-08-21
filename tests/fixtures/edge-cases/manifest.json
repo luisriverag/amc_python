@@ -1,0 +1,54 @@
+{
+  "id": "synthetic-edge-cases",
+  "origin": "synthetic",
+  "format": "AMC native 4.2 + AMC XML 4.2.2",
+  "producer": "amc_python",
+  "producer_version": "n/a (hand-authored, not produced by any AMC release)",
+  "created_at": "2026-08-21T00:00:00Z",
+  "creation_steps": "Hand-authored a two-movie amc.catalog.Catalog of entirely fictional movies in Python, then wrote it with amc.native.write_native_catalog() and amc.storage.save_xml(). No bytes are derived from any real catalog, script, or export. Movie 1 has a blank native title with a populated original_title/translated_title (the native format has no title field at all -- only original_title/translated_title -- so FormattedTitle is always synthesized elsewhere, never stored; see docs/PORT_AUDIT.md finding 34) and its description/comments fields contain the undefined CP-1252 byte 0x90 (Python chr(0x90)), the same byte value implicated in the native writer round-trip bug fixed this session. Movie 1's extras.xml_file_size_text is a multi-part '698+696' value, which save_xml writes verbatim to the Size attribute instead of the typed file_size field. Movie 2 has an explicit title distinct from original_title (so FormattedTitle appears in the XML export) and populated media_count/file_size fields (Disks/Size as plain integers) for contrast.",
+  "provenance": "Authored directly in this repository (amc_python port project) by an AI coding assistant, informed by -- but containing none of the bytes of -- real script and native-catalog files separately supplied for local, uncommitted validation and never committed to this repository.",
+  "redistribution": "allowed",
+  "expected_contents": "A 2-movie fictional catalog exercising: (1) native format's lack of a stored title field, (2) the undefined-CP-1252-byte (0x90) preservation path in both the native writer and reader, (3) minutes-denominated Movie.length, (4) multi-part XML Size text routed through extras['xml_file_size_text'], and (5) plain integer Disks/Size XML attributes. Note: the 0x90 byte also lands in the XML file's element text; XML 1.0 strictly disallows this control character in text content, but Python's ElementTree neither rejects it on write nor on read, so this fixture also documents that current lenient behavior rather than a validated XML 1.0 export.",
+  "files": [
+    {
+      "path": "edge-cases.amc",
+      "sha256": "4f8ca3a60becf96dc4067c45aaeb8bf1f1f9a03511bd7b6080438b30239013b3"
+    },
+    {
+      "path": "edge-cases.xml",
+      "sha256": "dd87b2cb506c3fea8f986112246c4611ced6137b43638168013de875e3466093"
+    }
+  ],
+  "verification": [
+    {
+      "path": "edge-cases.amc",
+      "format": "amc-native",
+      "header": " AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be ",
+      "version": "4.2",
+      "movies": 2,
+      "metadata": {
+        "owner": "",
+        "description": ""
+      },
+      "movie_fields": [
+        {
+          "title": "",
+          "original_title": "Nebula Drift",
+          "translated_title": "Nebula Drift (Region B)",
+          "director": "Priya Kestrel",
+          "length": 127,
+          "description": "A synthetic sample catalog entry with an undefined CP-1252 byte (\u0090) embedded in this description field.",
+          "comments": "Second synthetic marker character: \u0090 again."
+        },
+        {
+          "title": "",
+          "original_title": "Paper Lighthouse",
+          "director": "Otto Bramwell",
+          "length": 94,
+          "media_count": 1,
+          "file_size": 734003200
+        }
+      ]
+    }
+  ]
+}

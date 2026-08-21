@@ -1,0 +1,391 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Preferences</p>
+<hr />
+<ul id="options">
+  <li><a href="#display">General display</a>
+  <ul>
+    <li><a href="#customizetoolbar">Customize toolbar</a></li>
+  </ul></li>
+  <li><a href="#files">Files</a></li>
+  <li><a href="#movielist">Movie list</a>
+  <ul>
+    <li><a href="#formattedtitle">Title formatting</a></li>
+    <li><a href="#grouping">Grouping</a></li>
+  </ul></li>
+  <li><a href="#extralist">Extra list</a>
+  <li><a href="#movieinfo">Movie / Extra information</a>
+  <ul>
+    <li><a href="#dropdown">Drop-down lists</a></li>
+    <li><a href="#mediafilesimport">Media files importation</a></li>
+    <li><a href="#pictureimport">Picture importation</a></li>
+    <li><a href="#searchinternet">Search on internet</a></li>
+  </ul></li>
+  <li><a href="#scripting">Scripting</a></li>
+  <li><a href="#export">Export</a></li>
+  <li><a href="#folders">Folders</a></li>
+</ul>
+<hr />
+<p class="subtitle" id="display">General display</p>
+<blockquote>
+  <p>Icon set: Allows you to select the "theme" of the icons that will
+    appear in the toolbars. These themes are simple bitmap (".bmp")
+    stored in the "Toolbars" folder. Some sets are provided with the program.</p>
+  <p>Color type: Specifies how toolbar icons should appear when mouse is not
+    over them. Available values are "Automatic", "Greyed when inactive" (Windows
+    98/2000 style), "Blended light when inactive" (Office/Windows XP
+    style), "Blended dark when inactive" or "Always colored".</p>
+  <p>Office XP style: Gives to menus and toolbars the same appearence than in
+    Microsoft Office XP.</p>
+  <p>Images in menus: Display images on the left of menu items. These images
+    are the same as the images used in the toolbar.</p>
+  <p>Soft borders for Movie List, Movie Information Panel and Picture Box: When
+    enabled, the specified items in the main window appear with a "less lowered"
+    border than usual. This may look better if you are using Windows XP with a visual theme.</p>
+  <p>Display logo: Application logo (splash screen) is displayed at startup.</p>
+</blockquote>
+<p class="subtitle" id="customizetoolbar">Customize toolbar</p>
+<blockquote>
+  <p>You can select which icons should be displayed on the main toolbar. See <a href="toolbar_en.html">this
+    page</a> for more information on each icon.</p>
+</blockquote>
+<p class="subtitle" id="files">Files</p>
+<blockquote>
+  <p>Always create a backup copy: Each time the catalog is saved, the old file
+    is renamed as ".bak".</p>
+  <p>At statup, automatically open...: Allows you to specify a file to open instead
+    of creating a new file at startup. The option "Re-open last used file"
+    opens last used file instead of specified file.</p>
+  <p>Number of recent files to display in menu: Last files that you used are
+    displayed in the "File" menu, above the "Exit" item, to
+    allow you to quickly re-open these files. You can select here the number of
+    filenames that have to be stored in the history.</p>
+  <p>Repair files associations: Rewrites to Windows' registry values that allow
+    to open .amc files with ANSYsoft Movie Catalog by double-clicking on then.</p>
+  <p>Automatically import custom fields from a file for new catalogs : When you create a new catalog,
+    the custom fields of selected file will be automatically added.</p>
+  <p>Store loans history: Records all loan changes (in/out) in a text file, using
+    a tab-delimited format (so you can open it with programs such as Microsoft Excel).
+    By default the file is stored in the application's folder, and is called "Loans history.csv".
+    The same file is shared by all instances of Ant Movie Catalog so you can have
+    problems if you use the loans window in several instances (this will be corrected
+    later).</p>
+  <p>HTML Template: HTML Template file used for HTML display.
+    By default the file is stored in the templates folder, and is called "HTMLDefaultTemplate.html".
+    You can change the file with other HTML template.
+    See <a href="export_html_en.html">this page</a> for more informations on HTML templates.</p>
+</blockquote>
+<p class="subtitle" id="movielist">Movie list</p>
+<blockquote>
+  <p>Checkboxes: If this option is enabled, checkboxes will be displayed in the
+    movie list in the main window (Left click to check/uncheck, right click to change color tag of movie).
+    The use of these checkboxes is free: e.g. they can
+    be used to indicate which movies you've seen, which ones you already have, or anything
+    else. These checkboxes can be used as filter for exportation, printing or scripting.</p>
+  <p>Checkboxes in thumbnails display: If this option is enabled, checkboxes will be displayed under
+    the thumbnails of movies in the main window when thumbnails display is selected
+    (Left click to check/uncheck, right click to change color tag of movie).</p>
+  <p>Checkboxes with background color : If this option is enabled, checkboxes will be displayed with background color associated to color tag of movie .</p>
+  <p>Lines with background color : If this option is enabled, lines of movie list will be displayed with background color associated to color tag of movie.</p>
+  <p>Hot track: Underlines items of the lists when mouse passes over them.</p>
+  <p>Enhanced scrollbars: Uses enhanced scrollbars for Main Window and Loans Window lists.</p>
+  <p>"Movie Number" column: Shows or hides the column containing the movie numbers on the left of
+    the titles in main window. If you do not use the numbers, hiding this column makes more
+    space available on the screen for other info.</p>
+  <p>Number of characteres by section in grid mode: Set the number of characteres to display by section in grid mode
+  (The sections FormatedTitle, OriginalTitle and TranslatedTitle are not affected).
+  By default, the number of characteres is set to 32.
+  To remove this limitation on all sections, put 0 but grid display can be much slower.</p>
+  <p>Auto stretch list in grid mode view: If this option is enabled, the list is stretch automatically when you select/deselect grid mode view.</p>
+  <p>Auto stretch list in thumbnails view: If this option is enabled, the list is stretch automatically when you select/deselect thumbnails view.</p>
+  <p>Confirm Delete: Ask for confirmation before deleting a movie from the list.</p>
+  <p>Confirm Undo: Ask for confirmation before undoing changes made to a movie.</p>
+  <p>Shortcuts, Previous/Next movie: Allows you to define a shortcut to jump
+    to previous or next movie without losing the focus of the current field.
+    It is useful to modify one field accross lots of movies without needing to
+    use mouse to select next movie. Default key is Ctrl + Page Up/Down, which
+    is the same as Ctrl + Numeric pad 9/3.</p>
+  <p class="subtitle" id="formattedtitle">Title formatting</p>
+  <blockquote>
+    <p>Title to display: </p>
+    <ul>
+      <li>Original title: Display only original title.</li>
+      <li>Translated title: Display translated title if available, otherwise original
+        title is used.</li>
+      <li>Original title (Translated title): Display first the original title,
+        and then the translated title if available.</li>
+      <li>Translated title (Original title): Display first the translated title,
+        and then the original title. If translated title is not available, only
+        the original title is displayed.</li>
+      <li>Label: Displays the contents of Media label field.</li>
+    </ul>
+    <p>Put the following prefixes at the end: You can specify here the list of
+      prefixes that will be placed at the end of the movie name (e.g. "The
+      Matrix" will become "Matrix, The"). By default the list has
+      English and French prefixes.<br />
+      Simply enter the prefixes, one per line, without space or quote (a prefix
+      will be recognized if, in the movie title, it is followed by a space or a
+      quote). <br />
+      I will not included other langues for the moment, because it can cause problems,
+      e.g. "Die" in German ("The") will display the movie "Die
+      hard" as "Hard, Die", which is not correct. But you can change
+      the prefixes yourself to make them match to your language.</p>
+  </blockquote>
+  <p class="subtitle" id="grouping">Grouping</p>
+  <blockquote>
+    <p>Display groups count: In "Group by..." mode, displays the number of movies in each group near the group name.</p>
+    <p>Full expand by default: When the "Group by..." function is enabled, this option opens all the groups when
+      refreshing the list.</p>
+    <p>Make groups with values in multi field separated by: Set the separator between the different values of a multi field
+    (MediaType, Source, Director, Producer, Writer, Composer, Actors, Country, Category, Certification, VideoFormat, AudioFormat, Languages, Subtitles).
+    For example, the field category with the value "Action, Thriller" belongs to the group "Action" and "Thriller" if the separator is here ",".
+    This option can be enabled or disabled by checking the associated checkbox.</p>
+    <p>Remove values between parentheses for all multi fields : Check this option to remove values between parentheses for all multi fields.
+    Values between parentheses of field actor are always removed by default.</p>
+    <p>Add patch to ignore parenthesis of (I, (II, (II, (IV... (XXX values : Check this option to apply the patch (Checked by default).</p>
+    <p>Sort groups by groups count: Check this option to sort groups by groups count rather than alphabetical order.</p>
+    <p>Location: Specify whether the group should be placed before or after the common groups (Empty value "&lt; none &gt;", Error brackets "&lt; ?()? &gt;").</p>
+    <p>Put in a special common group items that would have been alone in their group: Create a "&lt; other gt;" group with movies that would have been alone in their group.</p>
+  </blockquote>
+</blockquote>
+<p class="subtitle" id="extralist">Extra list</p>
+<blockquote>
+  <p>Checkboxes: If this option is enabled, checkboxes will be displayed in the extra list in the main window.
+    The use of these checkboxes is free. They can be used as filter for HTML exportation or scripting.</p>
+  <p>Show extra number with extra title: If this option is enabled, the extra number will be added before extra title when extra title is displayed in the extra list.</p>
+  <p>Confirm Delete: Ask for confirmation before deleting one or more extras from the list.</p>
+  <p>Display groups count: In "Group by..." mode, displays the number of extras in each group near the group name.</p>
+  <p>Full expand by default: When the "Group by..." function is enabled, this option opens all the groups when refreshing the list.</p>
+  <p>Make groups with values in multi field separated by: Set the separator between the different values of a multi field (Category).
+  For example, the field category with the value "Trailer, Video" belongs to the group "Trailer" and "Video" if the separator is here ",".
+  This option can be enabled or disabled by checking the associated checkbox.</p>
+  <p>Remove values between parentheses for multi fields : Check this option to remove values between parentheses for multi fields.</p>
+  <p>Sort groups by groups count: Check this option to sort groups by groups count rather than alphabetical order.</p>
+  <p>Location: Specify whether the group should be placed before or after the common groups (Empty value "&lt; none &gt;", Error brackets "&lt; ?()? &gt;").</p>
+
+</blockquote>
+<p class="subtitle" id="movieinfo">Movie / Extra information</p>
+<blockquote>
+  <p>Ask for number: When a adding a movie, a window will allow you to select
+    the number of the new movie. If the option is disabled the number of the movie
+    will be the default value, which is highest movie number + 1, except if you
+    change the next option:</p>
+  <p>Use first available ...: Will use as default number the first available
+    number instead of highest + 1.</p>
+  <p>Open "Get information ... window": When you add a movie the Script
+    import or File import will be opened.</p>
+  <p>Edit default movie values: Displays another window, allowing you to modify the values that
+    are already filled when you add a new movie in the list.</p>
+  <p>Edit default extra values: Displays another window, allowing you to modify the values that
+    are already filled when you add a new extra in the list.</p>
+  <p>Rating - Do not display decimals: If this option is enabled the rating will be an
+    integer number like in older versions.</p>
+  <p>Background Color (Picture): Allows you to select which color should be used as background
+    of the Picture Window. e.g. It may look better with a white background if
+    your images are made to be used on a web page with white background. Defaut
+    value is BtnFace, which corresponds to the color of Windows' dialogs and buttons.</p>
+  <p>Fit picture in window: Zoom/Shrink picture to avoid scrollbars in the picture
+    window.</p>
+  <p>Background Color (Frame movie fields): Allows you to select which color should be used as background
+    of the frame movie fields and custom fields.
+    Defaut value is clWindow (white) with themes and BtnFace (light gray) without themes.</p>
+  <p class="subtitle" id="dropdown">Drop-down lists</p>
+  <blockquote>
+    <p>Same options for all lists: Keeps the same options for all the lists.</p>
+    <p>Auto-sort items: Sort list contents alphabetically</p>
+    <p>Auto-complete while typing: If enabled, when you type text in a drop-down
+      list in the main window there will be a "suggestion" of a matching
+      value, like when you type an address in a web browser. This feature may
+      cause problems if you have several items that are similar.</p>
+    <p>Use values of current catalog instead of predefined lists: Does not use
+      the values entered for the lists, but searchs in the current catalog for
+      values to display in the lists.</p>
+    <p>Automatically add values not in list: If the contents of a field is not
+      in the list of this field, the value will be added to the list (e.g. if
+      you enter a country that is not yet in the list, the program will add it
+      to the list).</p>
+    <p>Edit items: This allows to edit the contents of the lists.</p>
+  </blockquote>
+  <p class="subtitle" id="mediafilesimport">Media files importation</p>
+  <blockquote>
+    <p>Get information from files: Allows you to specify what to do when a video
+      file is dropped on the main window (e.g. from Windows Explorer) or when
+      the user asks to get information from files (from the menu).</p>
+    <ul>
+      <li>Import media label: Take the volume name of the drive where the file is
+        and put it in the "Media label" field.</li>
+      <li>Import filename as title: Put the file name in the "Original title" field.
+        Your can alose define settings to filter the file name
+        by clicking on 'Filter the file name' button.</li>
+      <li>Import full path in the File Path field: Put the file name and it's whole folder path in File Path field.</li>
+      <li>Import full path in the URL field: Put the file name and it's whole folder path in URL field.</li>
+      <li>Import size: Read the size of the selected files. The sum can be computed or simply
+        written with a "+" between each size, depending of the selected option.</li>
+      <li>Import length: Read the length of the file (in minutes) and put it in the "Length" field.</li>
+      <li>Allow to clear fields ...: Allow to clear fields or not when the new value to import is empty.</li>
+      <li>Use internal engine ...: By default, MediaInfo.dll is used for all media types except AVI, because
+        Ant Movie Catalog has it's own engine for that, which is much faster but less accurate.</li>
+      <li>Extensions: Here you can add, delete and modify extensions of considered video files.
+        It can be usefull to add other video formats.</li>
+    </ul>
+    <p>Info to take from video &amp; audio strams: Put these info in the fields with the same names.
+      The codec names are defined in the "Codecs.ini" file.</p>
+  </blockquote>
+  <p class="subtitle" id="pictureimport">Picture importation</p>
+  <blockquote>
+    <p>Importing pictures from external sources: When you import an image, there are several ways to
+      associate it to the movie or extra:</p>
+    <ul>
+      <li>Store picture into catalog: Keeps the picture file inside the catalog; this works only when 
+        the catalog uses the ".amc" format and not ".xml". Depending of the size of the pictures, this may
+        create a very large catalog, so it will use more memory and take more time to load. With large pictures
+        I really recommend to not use this option.</li>
+      <li>Copy picture to catalog folder, and link it to catalog: Copies the picture file to the folder where
+        the catalog is stored, and then creates a relative link to the picture (so it only stores the picture
+        name).</li>
+      <li>Copy picture to pictures folder of catalog, and link it to catalog: Copies the picture file to the pictures folder
+        (Catalog name + '_pics') where the catalog is stored, and then creates a relative link to the picture
+        (so it only stores the folder name and the picture name).</li>
+      <li>Only link picture: Only stores the path to the file in the catalog. The "Make relative path" option
+        can be used if the catalog folder and the pictures folder are near, for example if the catalog is in
+        "my documents\catalogs\movies.amc" and the pictures in "my documents\my pictures\posters". This allows
+        you to not care about where are the folders "catalogs" and "my pictures". On the other side, if you want
+        to be able to move the catalog without moving the pictures, you shoud rather not use relative paths.</li>
+    </ul>
+    <p>The same options are displayed in the "Select picture" window.</p>
+    <p>The third option is not available for scripts in the current version since only "local" links (against
+      "internet" links) are possible.</p>
+    <p>The pictures stored in the same folder than the catalog are supposed to "belong" to the catalog and so they
+      are deleted when they are not used anymore by a movie (e.g. if you associate a new picture to a movie,
+      the old one is not useful anymore). If you do not want this behavious, I recommend you to manually
+      place pictures e.g. in a "Pictures" subfolder when you want to add them to the catalog, and then
+      use the relative links to keep the catalog and their images "movable".</p>
+  </blockquote>
+  <p class="subtitle" id="searchinternet">Search on internet</p>
+  <blockquote>
+    <p>This allows you to customize the "Search on internet" menu. It
+      contains the addresses of websites. When you select an item of the menu,
+      it launches the browser to go to the site. It inserts current movie's title
+      where you put a "%s" in the URL.</p>
+    <p>You can also use other movie fields in address using keyword [FieldTag] instead of "%s"
+      where FieldTag is the tag of the field to insert.
+      The list of the fields is directly available in the drop down list just
+      at right of the input field address.<br />
+      Ex 1: [TranslatedTitle] to use the value of the field translated title.<br />
+      Ex 2: [EAN] to use the value of the custom field EAN if there.</p>
+    <p>Names have to be unique. If you want to put separators you have to begin
+      their name with a "-" ; then the address is ignored.</p>
+  </blockquote>
+</blockquote>
+<p class="subtitle" id="scripting">Scripting</p>
+<blockquote>
+  <p>Auto-run last script used: Runs the last used script when the scripting window is opened
+    through the "Get information from script" command.</p>
+  <p>Use proxy when accessing to internet: Allows you to specify proxy server
+    information if needed.</p>
+  <p>Keep connection alive: By default the connection is closed after each request (page or picture).
+    If this option is checked, the connection will not be automatically closed. This may a little speed up the
+    speed of the web requests, but I kept this as an option because lots of people had problems when the connection
+    was kept open. If you get error messages like "Connection closed gracefully" when activated, do not use this option.</p>
+</blockquote>
+<p class="subtitle" id="export">Export</p>
+<blockquote>
+  <p>Automatically reload last used template: Keeps the name of the opened template
+    so it will be open next time the window is shown.</p>
+  <p>Line breaks will be replaced by ...: Allows you to modify the tag used to
+    insert line breaks. Since it is the only tag that the program does not take
+    from the template, you can define it here. If you want to use HTML you will
+    probably use the default &lt;br&gt; tag, but you may want to use &lt;br /&gt;
+    for XHTML or XML. You can also simply leave this field empty if you do not want
+    to remplace linebreaks by something else.</p>
+  <p>Force picture size by adding attributes: Allows to specify a value for HTML attributes
+    height &amp; width for movie and extra pictures. If you leave one of these fields (or both) blanks,
+    the attribute will not be added.</p>
+  <p>SQL Date format: Allows to define which format has to be used for the date
+    when exporting to SQL commands. If you leave the field empty, Windows' default
+    short date format will be used. Mask characters are those used in Delphi:
+    yy and yyyy = year (on 2 or 4 digits), m and mm = month (without or with leading 0),
+    d and dd = day (without or with leading 0), and characters than should stay unchanged must be
+    enclosed in quotes (e.g.: yyyy'/'mm'/'dd).</p>
+  <p>Remember filename of last exported file: Use last file name as default instead
+    of catalog name.</p>
+  <p>Open exported file when export finished: Launch created file after export.</p>
+  <p>Individual pages and pictures filename style: Allows to specify how the program has
+    to create to filenames of the multiple files that come with the exported file.</p>
+  <p>
+    Example, if you export the file "My movies.amc" to "My list.html":</p>
+  <blockquote>
+    <table>
+      <tr>
+        <td style="font-style: italic;">Exported filename + Movie number</td>
+        <td style="font-style: italic;">Catalog name + Movie number</td>
+        <td style="font-style: italic;">Movie title</td>
+        <td style="font-style: italic;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td>my list.html</td>
+        <td>my list.html</td>
+        <td>my list.html</td>
+        <td>Full list</td>
+      </tr>
+      <tr>
+        <td>my list_1.html</td>
+        <td>my movies_1.html</td>
+        <td>matrix.html</td>
+        <td>First movie</td>
+      </tr>
+      <tr>
+        <td>my list_2.html</td>
+        <td>my movies_2.html</td>
+        <td>starwars - episode one.html</td>
+        <td>Second movie</td>
+      </tr>
+      <tr>
+        <td>etc...</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+    </table>
+  </blockquote>
+  <p>Extension to append: Allows to force another extension for the individual files.
+    This may be usefull if for example your main list is a .html file, but you want .php
+    files for each individual movie pages. If this field is blank the main file extension
+    is used for individual files.</p>
+  <p>Add zeroes in front of low numbers: If enabled, small numbers will be left-padded with
+    zeroes so they are properly sorted with all file managers (only Windows XP Explorer
+    seems to detect numbers in filenames for sorting).</p>
+  <p>Copy pictures to the same folder than the exported file: Extracts or copy
+    pictures from catalog to the same folder than the exported file.</p>
+  <p>Copy pictures into a subfolder pictures: Extracts or copy
+    pictures from catalog to a subfolder pictures (exported file name + '_pics') in the same folder than the exported file
+    instead of copy pictures directly in the same folder than the exported file.</p>
+  <p>Copy only if target file does not exist: If enabled, the image of a movie or an extra
+    will not be copied if the filename of this image already exists (only filename
+    is compared, so the image will not be overwritten even if it is different).</p>
+  <p>Include extra pictures: Include the extraction or copy of extra pictures in addition to movie pictures.</p>
+</blockquote>
+<p class="subtitle" id="folders">Folders</p>
+<blockquote>
+  <p>You can define here the behaviour of the file selection dialog boxes for:</p>
+  <ul>
+    <li>Loading or saving catalogs</li>
+    <li>Selecting a picture</li>
+    <li>Exporting</li>
+    <li>Loading or saving html template</li>
+    <li>Importing</li>
+    <li>Getting information from files</li>
+    <li>Saving graphic</li>
+    <li>Loading or saving script files</li>
+  </ul>
+  <p>The option "Same options for all Windows" allows to define the same
+    default folder for all windows.</p>
+</blockquote>
+</body>
+</html>

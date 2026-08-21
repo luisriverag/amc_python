@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Exportation vers SQL</p>
+<hr />
+<p>Il ne s'agit pas r&eacute;ellement d'un format de fichier, mais cette fonction
+  vous permettra de g&eacute;n&eacute;rer toutes les commandes SQL n&eacute;cessaires
+  pour importer facilement la liste dans une base de donn&eacute;es.</p>
+<p>L'id&eacute;e de d&eacute;part &eacute;tait de cr&eacute;er une base de donn&eacute;es
+  mySQL, consultable &agrave; l'aide d'une page &eacute;crite en PHP, ce qui serait
+  beaucoup plus interactif qu'une page HTML pour les gens consultant votre liste
+  si vous la placez sur le web.</p>
+<p>L'export SQL va créer une table (movies par défaut) contenant les films avec les valeurs des champs choisis.
+  Le numéro du film est automatiquement ajouté car il est la clé primaire de la table.
+  Les numéros des films doivent donc être uniques pour chaque film pour que l'export SQL soit correct.
+  Vous pouvez facilement renuméroter vos films si besoin ou si vous n'êtes pas certain d'avoir un numéro unique pour chaque film.</p>
+<p>Si vous exportez les extras des films, une autre table sera créée (extras par défaut) contenant les extras des films avec les valeurs des champs choisis.
+  Le numéro de l'extra et du film associé sont automatiquement ajoutés car ils sont la clé primaire de la table.
+  Les numéros des extras sont toujours uniques donc vous n'avez pas à vous soucier de ceci ici.</p>
+<p>Si vous activez l'exportation des images des films, un champ "PICTURENAME" sera ajouté dans la table des films, contenant le nom de fichier de l'image du film.</p>
+<p>Si vous activez l'exportation des images des extras, un champ "PICTURENAME" sera ajouté dans la table des extras, contenant le nom de fichier de l'image de l'extra.</p>
+<p>Il y a une option pour générer des requêtes UPDATE à la place des requêtes INSERT, si vous voulez mettre à jour les informations sans supprimer au préalable les données existantes.
+  Cela provoque la mise à jour des films sur base de leur numéro, donc cela peut causer des problèmes pour certains films si vous changez leurs numéros.
+  Aussi, si vous exportez les extras, les anciens extras des films mis à jour seront supprimés avant d'insérer les nouveaux.</p>
+</body>
+</html>

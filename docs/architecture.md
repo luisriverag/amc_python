@@ -65,6 +65,52 @@ Exceptions should carry a stable diagnostic code, user-facing message, file offs
 when relevant, and the causal exception. CLI converts them to documented exit codes;
 GUI converts them to dialogs. Libraries never print directly.
 
+### The `CatalogError` / built-in split is deliberate and permanent
+
+`Movie`, `Catalog`, `CatalogService`, and `loans.py` raise plain `ValueError`,
+`TypeError`, and `KeyError` far more often than they raise a `CatalogError`
+subclass — `catalog.py`, `application.py`, `model.py`, and `loans.py` alone
+account for over 60 raw built-in `raise` sites, against five `CatalogError`
+subclasses used almost entirely by `inspection.py` (`inspect_catalog`/
+`validate_catalog`'s `Diagnostic` output) and `native.py` (the binary `.amc`
+reader/writer). `docs/PORT_AUDIT.md` design-debt item 8 originally left open
+whether this split should collapse into one hierarchy. It should not, and
+this section is that decision, made permanent rather than left undocumented:
+
+- **`CatalogError` subclasses are for structured, diagnosable catalog-content
+  problems** — a corrupt, wrong-format, or wrong-version file; a validation
+  rule violated by data already on disk; a merge/renumber conflict — the
+  cases where a stable `.code` and an optional byte `.offset` add real value
+  to a diagnostic consumer, chiefly `validate_catalog`'s `Diagnostic` list
+  and the native reader/writer's truncation/mutation reporting.
+- **Plain `ValueError`/`TypeError` are for local API argument-contract
+  violations** — a bad type, an out-of-range value, an invalid keyword
+  combination passed directly to `Movie(...)`, `Catalog.sort(...)`,
+  `CatalogService.set_picture(...)`, and similar — the same convention the
+  Python standard library and most Python APIs already use for "you called
+  me wrong." These are caller mistakes, not catalog data problems, and have
+  no meaningful diagnostic code or file offset to attach.
+- **Plain `KeyError` is for dict-like lookup failures** — `Catalog.get()`'s
+  signal for a movie number that no longer exists, `remove_borrower`'s
+  signal for an unknown borrower — mirroring how `dict[missing_key]` already
+  behaves in Python, rather than inventing a `CatalogError` subclass to
+  duplicate a lookup-failure signal the language already provides.
+
+This split is invisible to both built-in user-facing boundaries, which is
+why leaving it in place costs nothing there: the CLI's `main()` catches
+`(CatalogError, OSError, TypeError, ValueError, LookupError)` in one block
+(`cli.py`), and the desktop GUI's `_SERVICE_ERRORS` tuple catches
+`(CatalogError, OSError, TypeError, ValueError, KeyError)` at every
+`CatalogService` call boundary (`gui.py`) — both already treat every
+exception in this document as one expected-failure family and present the
+same generic error (exit status / dialog) regardless of which member raised
+it. Migrating the 60+ built-in-`raise` sites to dedicated `CatalogError`
+subclasses would not change CLI or GUI behavior at all; it would only make
+`Movie`/`Catalog`/`CatalogService` argument validation less idiomatic for
+any future direct-API (non-CLI, non-GUI) consumer, who would otherwise
+expect ordinary Python argument errors to be ordinary Python exceptions.
+The split stays.
+
 ## Format adapter contract
 
 Every format adapter provides, as applicable:

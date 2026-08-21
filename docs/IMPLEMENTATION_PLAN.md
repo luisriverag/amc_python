@@ -491,11 +491,25 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     dialog. All ~20 now share one `gui._SERVICE_ERRORS` tuple; `cli.main()`'s
     equivalent boundary already covered `KeyError` via `LookupError` and is now
     commented to say so. PORT_AUDIT design-debt item 8 (partial).
-  - [ ] Decide the rest of the error model: whether `ValueError`/`TypeError`/
+  - [x] Decide the rest of the error model: whether `ValueError`/`TypeError`/
     `KeyError` call sites in `catalog.py`, `application.py`, and elsewhere
     should migrate to public `CatalogError` subclasses instead of the split
     remaining permanent, then document that decision in `docs/cli.md` or a new
-    error-model reference. PORT_AUDIT design-debt item 8 (remaining part).
+    error-model reference. Decided: the split stays. `docs/architecture.md`'s
+    "Error model" section now documents the rule it already followed
+    inconsistently-on-paper-but-consistently-in-practice — `CatalogError`
+    subclasses for diagnosable catalog-content problems (`.code`/`.offset`
+    consumed by `validate_catalog` and the native reader/writer); plain
+    `ValueError`/`TypeError` for local API argument-contract violations,
+    matching ordinary Python convention; plain `KeyError` for dict-like
+    lookup failures (`Catalog.get()`, `remove_borrower`) — and why migrating
+    the 60+ built-in-`raise` sites in `catalog.py`/`application.py`/
+    `model.py`/`loans.py` would change no CLI or GUI behavior (both already
+    catch the whole family in one block: `cli.main()`'s
+    `(CatalogError, OSError, TypeError, ValueError, LookupError)`, `gui.py`'s
+    `_SERVICE_ERRORS`), only make direct-API argument validation less
+    idiomatic for a future non-CLI, non-GUI consumer. PORT_AUDIT design-debt
+    item 8 (now fully resolved).
 
 ### D5 — GUI parity (current priority)
 

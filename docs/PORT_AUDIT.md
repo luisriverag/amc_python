@@ -175,7 +175,7 @@ confidence.
    `.amc` writer — this environment runs its automated checks as `root`, where
    real filesystem permission bits are not enforced, so these tests inject the
    denial rather than relying on `chmod`. Concurrent writers remain untested.
-8. [Partially resolved] Expected errors are still partly represented by public
+8. [Resolved] Expected errors are still partly represented by public
    `CatalogError` subclasses and partly by built-in `ValueError`, `TypeError`,
    and `KeyError` raised directly from `catalog.py`, `application.py`, and
    elsewhere; that split itself remains an intentional, undocumented-until-now
@@ -196,7 +196,19 @@ confidence.
    commented to say so explicitly. The remaining scope of this item — deciding
    whether `KeyError`/`ValueError`/`TypeError` call sites should migrate to
    `CatalogError` subclasses instead of being a permanently mixed model — is
-   unchanged.
+   now decided and documented in `docs/architecture.md`'s "Error model"
+   section rather than left open: the split stays, because it already
+   follows a coherent rule (`CatalogError` subclasses for diagnosable
+   catalog-*content* problems that carry a `.code`/`.offset`; plain
+   `ValueError`/`TypeError` for local API argument-contract violations,
+   matching ordinary Python convention; plain `KeyError` for dict-like
+   lookup failures), and because both the CLI's `main()` and the GUI's
+   `_SERVICE_ERRORS` already catch every member of this family in one block
+   each, so a mass migration of the 60+ built-in-`raise` sites in
+   `catalog.py`/`application.py`/`model.py`/`loans.py` to dedicated
+   `CatalogError` subclasses would change no observable CLI or GUI behavior —
+   only make direct-API argument validation less idiomatic for a future
+   non-CLI, non-GUI consumer.
 9. The Python native reader deliberately reports truncated records, unlike upstream
    `ReadData`, which catches a movie-record exception and stops. This intentional
    difference needs fixture-backed documentation and stable diagnostics.

@@ -115,6 +115,8 @@ def add_borrower(catalog: Catalog, name: str) -> str:
     if any(item.casefold() == name.casefold() for item in existing):
         raise ValueError(f"borrower already exists: {name}")
     managed = catalog.metadata.get(BORROWERS_KEY, [])
+    if not isinstance(managed, list):
+        raise TypeError("catalog borrowers must be an array")
     catalog.metadata[BORROWERS_KEY] = [*managed, name]
     return name
 
@@ -128,6 +130,8 @@ def remove_borrower(catalog: Catalog, name: str) -> str:
         raise ValueError("borrower must not be empty")
     managed = catalog.metadata.get(BORROWERS_KEY, [])
     borrowers(catalog)  # validate metadata before changing it
+    if not isinstance(managed, list):
+        raise TypeError("catalog borrowers must be an array")
     match = next(
         (item for item in managed if item.casefold() == name.casefold()), None
     )

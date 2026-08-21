@@ -72,10 +72,10 @@ def render_catalog(
     if sort not in sort_fields:
         raise ValueError(f"unknown web sort field: {sort}")
     if sort == "title":
-        def key(movie: Movie) -> object:
+        def key(movie: Movie) -> str | int | bool:
             return movie.display_title().casefold()
     else:
-        def key(movie: Movie) -> object:
+        def key(movie: Movie) -> str | int | bool:
             return getattr(movie, sort)
     present = [movie for movie in movies if key(movie) is not None]
     missing = [movie for movie in movies if key(movie) is None]

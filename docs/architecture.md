@@ -178,3 +178,22 @@ whether redistribution is permitted. Synthetic fixtures must be clearly labeled.
   supplementary-record loop, most notably.
 - `storage.py` remains too broad; codec separation should follow genuine fixture
   contracts rather than moving unverified behavior between modules prematurely.
+- Localization has no Python code at all, deliberately. Upstream's `.lng`
+  mechanism (`Common/AntTranslator.pas`) is a runtime Delphi RTTI
+  object-graph patcher tied to live VCL form/component instances — it has no
+  Tk equivalent, so porting the format itself was never on the table. A
+  Python-owned i18n layer (externalize `gui.py`'s hardcoded strings behind a
+  key→string lookup, add a loader) is possible but not built: there is no
+  actual translated content anywhere in this repository to load, so building
+  the scaffolding now would ship untested, empty infrastructure. This is a
+  timing decision, not a permanent one — revisit once real translated
+  strings exist to load.
+- Printing/reports has no Python code at all, permanently. FreeReport's
+  license (LGPLv2, in `src/original/FreeReport/license.txt`) is
+  redistributable under this repository's GPLv2 posture, so licensing was
+  never the blocker; porting it would mean reimplementing a complete
+  standalone report designer and renderer (its own binary report format, a
+  design-time UI, print preview) — an application-sized project, not a
+  bounded slice, disproportionate to the rest of this port.
+  `export-html-template`/`html_template.py` already covers "produce a
+  formatted report from the catalog" as a non-compatible baseline.

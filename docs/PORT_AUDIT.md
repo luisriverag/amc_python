@@ -20,12 +20,14 @@ drop-in Ant Movie Catalog port. Internal JSON behavior, catalog operations, the
 application service, and guarded CLI workflows have useful automated coverage.
 Native `.amc` parsing/writing, XML, CSV, metadata, and embedded-picture retention
 are implemented from source or synthetic examples but lack genuine upstream
-fixtures. Safe subsets also exist for HTML export, media discovery, PCM WAV,
-FLAC, and AIFF inspection, non-executing script metadata and public settings,
-desktop/web presentation, and loans.
-Script execution, localization, printing, and full
-upstream desktop workflows are not ported. Python-owned borrower/history metadata
-is deliberately distinguished from upstream file-format compatibility.
+fixtures. Safe subsets also exist for HTML export, media discovery, PCM WAV/
+FLAC/AIFF/MP3/MP4/OGG inspection, non-executing script metadata and public
+settings, desktop/web presentation, and loans.
+Script execution and full upstream desktop workflows are not ported; localization
+and printing/reports are not ported and, unlike script execution, this is now a
+decided outcome rather than an open gap (findings 29-30). Python-owned
+borrower/history metadata is deliberately distinguished from upstream
+file-format compatibility.
 
 Two progress measures are tracked deliberately:
 
@@ -101,10 +103,14 @@ confidence.
   real codec/container-vs-codec distinction remain unimplemented, since they
   need per-track sample-table parsing this port does not do).
 - Upstream verification of grouped-loan and TSV history encoding/consumption.
-- Localization resources.
-- Printing and reports (FreeReport's own report designer/renderer — distinct
-  from HTML export, which does render upstream's `$$TAG_NAME` template syntax;
-  see the HTML export row below).
+- Localization resources (decided, not merely unaddressed — see finding 29:
+  the `.lng` format itself has no Tk equivalent to port, and a Python-owned
+  i18n layer is deliberately deferred until real translated content exists).
+- Printing and reports (decided, not merely unaddressed — see finding 30:
+  FreeReport's own report designer/renderer is a standalone-application-sized
+  port, permanently out of scope; distinct from HTML export, which does
+  render upstream's `$$TAG_NAME` template syntax, see the HTML export row
+  below).
 - Full desktop workflows and upstream UI parity.
 
 ## Findings requiring correction
@@ -380,6 +386,48 @@ confidence.
     AIFF/MP3 already were (`Common/MediaInfo.pas` shows upstream delegates all
     of this to a third-party DLL, so there is no Delphi-native mechanism to
     compare against in the first place).
+29. Localization is decided as a deliberately deferred, not merely
+    unaddressed, gap. Reading `Common/AntTranslator.pas` — the actual `.lng`
+    loader, since no `.lng` file itself is present in the checked-in source
+    snapshot to treat as a fixture — shows the mechanism is a runtime Delphi
+    RTTI object-graph patcher: each line is a dotted VCL property path (e.g.
+    `Button1.Caption=Fermer`, including indexed collection/list/tree items)
+    resolved and assigned live via `GetPropInfo`/`SetStrProp` against actual
+    form/frame/component instances. That mechanism is structurally tied to
+    VCL forms and has no Tk equivalent to receive it, so "parity" with the
+    `.lng` format is not a coherent target for this port's Tk GUI regardless
+    of effort spent — it was never a bounded slice waiting to be picked up.
+    A localized Python GUI is separately possible as a wholly Python-owned
+    feature (externalize `gui.py`'s hardcoded English strings behind a
+    key→string lookup, add a loader), but there is no actual translated
+    content available anywhere in this repository to load even if that
+    scaffolding existed. Decided: don't build it now. An i18n layer with no
+    translations behind it is untestable beyond "does English fall back to
+    English" — speculative infrastructure for a hypothetical need, not a
+    slice with a real test to write, the same standard every other item in
+    this document is held to. This is a timing decision, not a permanent
+    one: revisit once a contributor supplies real translated strings, at
+    which point the externalization refactor becomes a bounded, testable
+    slice like any other.
+30. Printing/reports is decided as permanently out of scope, not pending a
+    license review that already concluded. `src/original/FreeReport/
+    license.txt` is LGPLv2, redistributable under this repository's existing
+    GPLv2 posture — there is no remaining license question, contrary to this
+    document's own earlier "decide port/omission after ... license review"
+    framing. What remains, and is what this finding actually decides, is
+    that FreeReport is a complete Delphi report designer and renderer (its
+    own binary report definition format, a design-time UI, print preview,
+    and a large source tree under `src/original/FreeReport/SOURCE/`):
+    porting it is a standalone-application-sized effort, not a bounded
+    slice, disproportionate to the rest of this port's scope and to the
+    value it would add on top of what already exists. Decided: don't port
+    FreeReport. `export-html-template`/`amc.html_template` (finding 27)
+    already renders real AMC HTML export templates against the catalog,
+    covering "produce a formatted report from the catalog" as a
+    non-compatible baseline. A specifically PDF/print-friendly export beyond
+    HTML remains a separate, smaller, and genuinely open possible future
+    item if actually requested — this finding closes the FreeReport-port
+    question specifically, not every conceivable printing-adjacent feature.
 
 ## Gap matrix against the original application
 
@@ -397,8 +445,8 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings | IFPS compiler/runtime, complete API inventory, HTTP/browser interactions, license acceptance, debugger, results UI, safe merge preview, timeouts/cache/rate limits, and recorded provider tests |
 | Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration and bitrate (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec — MP4 from the `moov/mvhd` box, OGG from the Vorbis identification header and the stream's last granule position) | MediaInfo integration/version checks, video-track resolution/framerate/real codec name (needs per-track sample-table parsing this port does not do), the full tag map, stream selection, filters, and field merge behavior |
 | HTML export | `export.pas`, `ConstValues.pas` (`strTagFields`/`TAG_*`), `fields.pas` | Safe bounded Python table/templates, plus `amc.html_template` rendering upstream's own `$$TAG_NAME` general/item/rating/picture/custom-field tags and the `$$ITEM_BEGIN`/`$$ITEM_END` full+individual document loop, validated locally against a genuine AMC 4.2.2 export's own real templates | The `$$ITEM_EXTRA_*` supplementary-record loop (with its category/checked/range filter syntax), upstream picture/rating-icon file copying, multi-file/SQL export, and fixture comparison of rendered tag values against genuine upstream output |
-| Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
-| Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |
+| Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader; localization decided as deliberately deferred (finding 29) — the `.lng` format has no Tk equivalent, and a Python-owned i18n layer awaits real translated content | Settings XML, per-user state, translated UI/help, and migration; localization scaffolding itself only once translated content exists |
+| Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported; decided as permanently out of scope (finding 30) — FreeReport's license is resolved (LGPLv2) but porting its designer/renderer is an application-sized effort disproportionate to this port | None planned; HTML template export already covers the underlying "formatted report" need as a non-compatible baseline |
 | Desktop presentation | `main.pas` and `.dfm` forms | Broad Tk prototype with headless adapter tests plus real-display smoke tests under Xvfb | Form/workflow parity, accessibility verification, localization, and platform packaging |
 | Web presentation | No upstream server counterpart | Read-only AMC Python extension | Authentication/TLS deployment layer if exposed beyond localhost; it is intentionally outside parity accounting |
 

@@ -54,20 +54,26 @@ Within the downstream track, **quick wins are the current priority**: D0–D5
 preferences, engineering debt, GUI parity) are now complete or reduced to
 items that are either genuinely blocked (screen-reader verification has no
 assistive technology available to test against) or explicitly optional
-polish, not tracked gaps. What remains open at meaningful size is
-concentrated in **D6**, and D6's four subsystems are not one uniform
-backlog: MP3/MP4/OGG duration/bitrate turned out tractable in small, bounded
-increments and are done; the other three (localization, printing/reports,
-website script execution) are large, need real design or license decisions
-before code can start, and do not decompose into quick wins the way the
-codec item did. Rather than start one of those three half-scoped, execution
+polish, not tracked gaps. D6's four subsystems were not one uniform backlog:
+MP3/MP4/OGG duration/bitrate turned out tractable in small, bounded
+increments and are done; localization and printing/reports turned out to be
+scoping decisions, not implementation gaps, and are now decided — localization
+because there is no translated content to load yet (revisit when there is,
+not a permanent no), printing/reports because FreeReport is a standalone
+report-designer-sized port disproportionate to this project regardless of
+its now-resolved license (permanent no; HTML template export already covers
+the underlying need). Website script execution remains genuinely open: it
+is the one item with a real security dimension — executing arbitrary
+third-party script bytecode sourced from the web — not just an effort one,
+so it is deliberately left for an explicit product/security-posture call
+rather than decided unilaterally here. Until that call is made, execution
 prioritizes: (1) any remaining small, bounded, well-scoped item anywhere in
 D0–D6, picked in tier order; (2) once none remain, the smallest decidable
-slice of a D6 subsystem — a scoping/design decision recorded in a finding,
-not a half-built runtime — over open-ended new-subsystem construction. This
-is still evidence-independent — Python-owned behavior and test coverage, not
-an upstream-compatibility claim — so none of it needs a fixture or is
-blocked by Milestone 0.
+slice of website script execution — a scoping decision recorded in a
+finding, not a half-built runtime — over open-ended new-subsystem
+construction. This is still evidence-independent — Python-owned behavior and
+test coverage, not an upstream-compatibility claim — so none of it needs a
+fixture or is blocked by Milestone 0.
 
 The concrete, ordered form of the wider backlog is the **Downstream execution
 backlog (D0–D6)** further down this document, alongside the upstream P0–P3
@@ -651,11 +657,17 @@ tier's next unchecked item before returning to D4.
 
 Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
 all: website script execution, localization, printing/reports, and compressed
-media codecs (MP3/MP4/OGG). They are not comparable in size or in what
-"proceeding" means for each — this tier records that per item rather than
-treating them as one uniform backlog. Compressed media codecs is now the one
-of the four with dependency-free duration/bitrate coverage for all three
-named formats; the other three remain unstarted below.
+media codecs (MP3/MP4/OGG). They were not comparable in size or in what
+"proceeding" meant for each — this tier records that per item rather than
+treating them as one uniform backlog. Three of the four are now settled:
+compressed media codecs has dependency-free duration/bitrate coverage for all
+three named formats; localization and printing/reports were scoping
+decisions rather than implementation gaps, and are now decided (see below —
+localization is a timing decision, revisit when translated content exists;
+printing/reports is permanent, FreeReport is out of proportion to this
+project). Website script execution remains open: it carries real security
+exposure, not just effort, and is deliberately left for an explicit call
+rather than decided unilaterally here.
 
   - [x] MP3 duration/bitrate, the most tractable of the four: a
     dependency-free MPEG audio frame header parser (`amc.media._inspect_mp3`)
@@ -738,7 +750,7 @@ named formats; the other three remain unstarted below.
     docstring). This is distinct from — and does not reduce the scope of
     — the FreeReport report-designer item below. See PORT_AUDIT.md
     finding 27.
-  - [ ] Localization turns out not to be a portable-format problem: reading
+  - [x] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a
     fixture) shows the mechanism is a runtime Delphi RTTI object-graph
@@ -752,11 +764,16 @@ named formats; the other three remain unstarted below.
     Python-owned feature (externalize `gui.py`'s hardcoded English strings
     behind a key→string lookup, add a loader), and there is no actual
     translated content available anywhere in this repository to load even if
-    that scaffolding existed — building it now would ship empty
-    infrastructure with no translations behind it. Left open pending a
-    decision on whether that scaffolding is worth building ahead of having
-    translations to put in it.
-  - [ ] Printing/reports' license blocker is resolved but its effort is not:
+    that scaffolding existed. **Decided:** don't build that scaffolding now —
+    an i18n layer with no translations behind it is untestable beyond "does
+    English fall back to English," which is speculative infrastructure for a
+    hypothetical future need rather than a bounded slice with a test to
+    write. This is a timing decision, not a permanent one: revisit once a
+    contributor supplies real translated strings to load, at which point the
+    externalization refactor becomes a bounded, testable slice like any
+    other. `docs/architecture.md`'s "Deliberate prototype boundaries" and
+    `docs/compatibility.md`'s Localization row record this.
+  - [x] Printing/reports' license blocker is resolved but its effort is not:
     `src/original/FreeReport/license.txt` is LGPL v2, which is redistributable
     under this repository's existing GPLv2 posture — contrary to the
     "decide port/omission after ... license review" framing, there is no
@@ -766,9 +783,16 @@ named formats; the other three remain unstarted below.
     tree under `src/original/FreeReport/SOURCE/`) — porting it is a
     standalone-application-sized effort, not a bounded slice, and AMC Python
     already has static HTML export as a non-compatible baseline export path.
-    Whether a report designer/renderer is a wanted feature at all — as
-    opposed to, say, richer HTML/PDF export — is a product-scope decision
-    left open here rather than assumed.
+    **Decided:** don't port FreeReport, permanently rather than pending —
+    `export-html-template`/`amc.html_template` (finding 27) already covers
+    "produce a formatted report from the catalog" as a non-compatible
+    baseline, and a full report designer/renderer is disproportionate to the
+    rest of this port's scope. A specifically PDF/print-friendly export
+    beyond HTML remains a separate, smaller possible future item if actually
+    requested — this decision closes the FreeReport port question, not every
+    conceivable printing-adjacent feature. `docs/architecture.md`'s
+    "Deliberate prototype boundaries" and `docs/compatibility.md`'s
+    Printing/reports row record this.
   - [ ] Website script execution needs an IFPS (Innerfuse Pascal Script)
     bytecode compiler and sandboxed VM with timeouts, rate limits, and a
     result-merge UI before any script can actually run — `amc.scripts`

@@ -115,6 +115,32 @@ def test_inspect_media_reads_wav_duration_and_audio(tmp_path: Path):
     assert (info.length_seconds, info.audio_format, info.audio_bitrate) == (1, "PCM", 256)
 
 
+def test_movie_from_media_converts_length_seconds_to_minutes(tmp_path: Path):
+    """`Movie.length` is minutes (upstream's documented unit for its own
+    "Length" field), not the seconds `MediaInfo.length_seconds` reports."""
+    target = tmp_path / "audio.wav"
+    with wave.open(str(target), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(1)
+        stream.writeframes(b"\0" * 240)  # 240 frames at 1 Hz = 120 seconds
+
+    info = inspect_media(target)
+    movie = movie_from_media(target)
+
+    assert info.length_seconds == 120
+    assert movie.length == 2
+
+
+def test_movie_from_media_leaves_length_unset_when_duration_is_unknown(tmp_path: Path):
+    target = tmp_path / "unknown.mkv"
+    target.write_bytes(b"media")
+
+    movie = movie_from_media(target)
+
+    assert movie.length is None
+
+
 def test_inspect_media_rejects_non_file_invalid_wav_and_size(tmp_path: Path):
     with pytest.raises(ValueError, match="not a file"):
         inspect_media(tmp_path)

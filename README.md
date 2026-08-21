@@ -134,6 +134,8 @@ amc inspect movies.json --json
 amc validate movies.json
 amc inspect-script scripts/provider.ifs
 amc list-scripts scripts/
+amc -c movies.json imdb-lookup 12 --api-key "$OMDB_API_KEY"
+amc -c movies.json imdb-lookup 12 --api-key "$OMDB_API_KEY" --apply
 ```
 
 The desktop interface requires Tk. Tk ships with the official Windows and macOS

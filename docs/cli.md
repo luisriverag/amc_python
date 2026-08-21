@@ -123,6 +123,23 @@ readers. An exceeded budget is reported as a `validate` diagnostic and as an
   `--max-custom-fields`, `--max-list-values`, `--max-extras-per-movie`, and
   `--max-total-extras` expose the remaining structural budgets. Invalid or exceeded
   budgets return status 2 without replacing an existing destination.
+- `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID] [--timeout SECONDS]
+  [--apply]` fetches one movie's metadata from the OMDb API
+  (https://www.omdbapi.com/, a REST API that legally re-serves a curated
+  subset of IMDb's own data) and prints the field-level differences it would
+  make — the catalog is left untouched unless `--apply` is also given. This
+  is a hand-written, first-party Python provider, not IFPS script execution;
+  see `amc.omdb`'s module docstring and `docs/PORT_AUDIT.md` findings 29-31
+  for why. Requires an OMDb API key, obtained separately at
+  https://www.omdbapi.com/apikey.aspx and never stored by this project: pass
+  `--api-key` or set the `OMDB_API_KEY` environment variable. Without
+  `--imdb-id`, the lookup uses the movie's own `url` field when it is
+  already an `imdb.com` link, otherwise falls back to a title/year search.
+  Only fields with a non-"N/A" OMDb value and a matching `Movie` field are
+  proposed; poster images are never downloaded (see the Media analysis row
+  in `docs/compatibility.md` for that separate, unimplemented capability).
+  Network access always uses an explicit, caller-supplied timeout (default
+  10 seconds) and never runs during the automated test suite.
 - `picture-set NUMBER SOURCE` stores a linked picture path;
   `picture-set NUMBER SOURCE --embed [--max-bytes N] [--max-pixels N]` verifies a
   Pillow-supported image, bounds encoded bytes and decoded pixels, then base64-retains

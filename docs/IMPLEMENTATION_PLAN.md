@@ -62,15 +62,21 @@ because there is no translated content to load yet (revisit when there is,
 not a permanent no), printing/reports because FreeReport is a standalone
 report-designer-sized port disproportionate to this project regardless of
 its now-resolved license (permanent no; HTML template export already covers
-the underlying need). Website script execution remains genuinely open: it
-is the one item with a real security dimension — executing arbitrary
-third-party script bytecode sourced from the web — not just an effort one,
-so it is deliberately left for an explicit product/security-posture call
-rather than decided unilaterally here. Until that call is made, execution
-prioritizes: (1) any remaining small, bounded, well-scoped item anywhere in
-D0–D6, picked in tier order; (2) once none remain, the smallest decidable
-slice of website script execution — a scoping decision recorded in a
-finding, not a half-built runtime — over open-ended new-subsystem
+the underlying need). General website script execution remains genuinely
+open: it is the one item with a real security dimension — executing
+arbitrary third-party script bytecode sourced from the web — not just an
+effort one, so building an IFPS compiler/VM stays for an explicit
+product/security-posture call rather than decided unilaterally here. What
+did get decided and built, once asked which legacy scripts actually
+mattered: a narrower, first-party alternative (`amc.omdb`, CLI
+`imdb-lookup`) for the two named highest-value cases — refreshing existing
+entries and IMDb lookups — via the OMDb API instead of any script
+execution at all. This closes that concrete slice without deciding the
+general question either way. Execution continues to prioritize: (1) any
+remaining small, bounded, well-scoped item anywhere in D0–D6, picked in
+tier order; (2) once none remain, the next smallest decidable slice of
+what's left — general script execution's own scoping/security decision,
+or GUI wiring for the OMDb provider — over open-ended new-subsystem
 construction. This is still evidence-independent — Python-owned behavior and
 test coverage, not an upstream-compatibility claim — so none of it needs a
 fixture or is blocked by Milestone 0.
@@ -665,9 +671,12 @@ three named formats; localization and printing/reports were scoping
 decisions rather than implementation gaps, and are now decided (see below —
 localization is a timing decision, revisit when translated content exists;
 printing/reports is permanent, FreeReport is out of proportion to this
-project). Website script execution remains open: it carries real security
-exposure, not just effort, and is deliberately left for an explicit call
-rather than decided unilaterally here.
+project). Website script *execution* remains open in general: it carries
+real security exposure, not just effort, and is deliberately left for an
+explicit call rather than decided unilaterally here. A concrete slice of
+it is no longer open, though: asked which legacy scripts mattered most,
+the answer scoped the actual need down to two cases that don't need
+script execution at all — see the checked sub-item below.
 
   - [x] MP3 duration/bitrate, the most tractable of the four: a
     dependency-free MPEG audio frame header parser (`amc.media._inspect_mp3`)
@@ -793,15 +802,42 @@ rather than decided unilaterally here.
     conceivable printing-adjacent feature. `docs/architecture.md`'s
     "Deliberate prototype boundaries" and `docs/compatibility.md`'s
     Printing/reports row record this.
-  - [ ] Website script execution needs an IFPS (Innerfuse Pascal Script)
-    bytecode compiler and sandboxed VM with timeouts, rate limits, and a
-    result-merge UI before any script can actually run — `amc.scripts`
+  - [ ] General website script execution needs an IFPS (Innerfuse Pascal
+    Script) bytecode compiler and sandboxed VM with timeouts, rate limits,
+    and a result-merge UI before any script can actually run — `amc.scripts`
     deliberately reads only leading metadata comments today and never
     executes script bodies. This is comparable in scope to printing: a
     standalone interpreter project, not a bounded slice, and it additionally
     carries real security exposure (executing arbitrary scripts sourced from
     the web) that deserves an explicit decision before any execution path is
-    built, not silent implementation. Left open pending that decision.
+    built, not silent implementation. Left open pending that decision — this
+    item stays unchecked; the sub-item below is a different, smaller thing,
+    not a partial answer to it.
+  - [x] Asked which legacy scripts mattered most, the answer scoped the
+    actual need down to two cases that don't need IFPS at all: refreshing
+    metadata on movies already in the catalog ("update scripts") and IMDb
+    lookups specifically. `amc.omdb` (new module) is a small, hand-written,
+    auditable Python provider for exactly that pair, via the OMDb API — a
+    REST API that legally re-serves a curated subset of IMDb's own data as
+    JSON, chosen over scraping imdb.com directly (against its Terms of
+    Service, fragile to markup changes) and over IMDb's own bulk datasets
+    (no live title search without building a local index). Every request
+    needs an explicit, caller-supplied API key (never hardcoded, never
+    persisted) and a bounded timeout; `movie_fields_from_omdb` maps the
+    response onto `Movie` fields, explicitly excluding `Poster` (image
+    download is separately unimplemented) and fields with no `Movie`
+    equivalent; `preview_omdb_update` builds an isolated, unmutated
+    candidate and diff, reusing `amc.scripts`' `ScriptFieldChange`/
+    `ScriptMergePreview` shape rather than inventing a second one. Wired
+    into the CLI as `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID]
+    [--apply]` (dry-run preview by default; `--apply` writes through the
+    existing `CatalogService.replace`). Not yet wired into the desktop GUI —
+    a natural, separately-scoped follow-up. See `docs/PORT_AUDIT.md`
+    finding 31. While mapping OMDb's `Runtime` field, found and fixed a real,
+    unrelated bug this same investigation surfaced: `movie_from_media` had
+    been setting `Movie.length` in seconds since D0, when every other place
+    in this port (including upstream's own documentation) treats it as
+    minutes — see finding 32.
 
 ## Immediate next slice
 

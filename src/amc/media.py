@@ -462,13 +462,26 @@ def _inspect_mp4_movie_header(path: Path, size: int) -> tuple[int | None, int | 
 
 
 def movie_from_media(path: str | Path) -> Movie:
-    """Create a movie populated only with facts established by media inspection."""
+    """Create a movie populated only with facts established by media inspection.
+
+    `Movie.length` is minutes, matching upstream's own documented unit for
+    the "Length" field (`options_en.html`: "Read the length of the file (in
+    minutes) and put it in the 'Length' field") and every other place this
+    port already treats it as minutes (the GUI statistics dialog's "Total
+    length (minutes)" label, `$$ITEM_LENGTH`'s upstream tag). `MediaInfo.
+    length_seconds` stays in seconds, the natural unit for a single media
+    file's exact duration; this is the one boundary that converts between
+    the two, rounding to the nearest whole minute.
+    """
     info = inspect_media(path)
+    length_minutes = (
+        round(info.length_seconds / 60) if info.length_seconds is not None else None
+    )
     return Movie(
         title=info.name,
         media_label=Path(info.path).name,
         media_type=info.extension.lstrip(".").upper(),
-        length=info.length_seconds,
+        length=length_minutes,
         audio_format=info.audio_format,
         audio_bitrate=info.audio_bitrate,
         video_format=info.video_format,

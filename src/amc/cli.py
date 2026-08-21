@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -14,6 +15,12 @@ from .inspection import DEFAULT_MAX_INSPECT_BYTES, inspect_catalog, validate_cat
 from .model import Movie
 from .native import NativeReadLimits, NativeWriteLimits
 from .media import discover_media, movie_from_media
+from .omdb import (
+    DEFAULT_TIMEOUT as DEFAULT_OMDB_TIMEOUT,
+    fetch_omdb_record,
+    imdb_id_from_url,
+    preview_omdb_update,
+)
 from .scripts import (
     configure_script,
     discover_scripts,
@@ -308,6 +315,25 @@ def parser() -> argparse.ArgumentParser:
     configure.add_argument("--parameter", action="append", default=[], metavar="NAME=VALUE")
     configure.add_argument("--load", type=Path, metavar="SETTINGS")
     configure.add_argument("--save", type=Path, metavar="SETTINGS")
+    imdb = commands.add_parser(
+        "imdb-lookup",
+        help="preview or apply an OMDb-sourced IMDb metadata update for a movie",
+    )
+    imdb.add_argument("number", type=int)
+    imdb.add_argument(
+        "--api-key",
+        help="OMDb API key (default: the OMDB_API_KEY environment variable)",
+    )
+    imdb.add_argument(
+        "--imdb-id",
+        help="look up this IMDb title ID (default: extracted from the movie's "
+        "URL if it is an imdb.com link, otherwise the movie's title/year)",
+    )
+    imdb.add_argument("--timeout", type=float, default=DEFAULT_OMDB_TIMEOUT)
+    imdb.add_argument(
+        "--apply", action="store_true",
+        help="write the previewed changes to the catalog (default: preview only)",
+    )
     return result
 
 
@@ -552,6 +578,31 @@ def _run(args: argparse.Namespace) -> int:
                 ) from error
         replacement = service.replace(args.number, Movie.from_dict(values))
         print(f"Updated #{replacement.number}: {replacement.display_title()}")
+    elif args.command == "imdb-lookup":
+        movie = catalog.get(args.number)
+        api_key = args.api_key or os.environ.get("OMDB_API_KEY", "")
+        imdb_id = args.imdb_id or imdb_id_from_url(movie.url)
+        record = fetch_omdb_record(
+            api_key=api_key,
+            imdb_id=imdb_id,
+            title="" if imdb_id else movie.display_title(),
+            year=None if imdb_id else movie.year,
+            timeout=args.timeout,
+        )
+        preview = preview_omdb_update(movie, record)
+        if not preview.changes:
+            print(f"No changes for #{movie.number}: {movie.display_title()}")
+        elif args.apply:
+            replacement = service.replace(args.number, preview.movie)
+            print(f"Updated #{replacement.number}: {replacement.display_title()}")
+        else:
+            print(
+                f"Preview for #{movie.number}: {movie.display_title()} "
+                "(use --apply to save)"
+            )
+        if preview.changes:
+            for change in preview.changes:
+                print(f"  {change.field}: {change.before!r} -> {change.after!r}")
     elif args.command == "export-xml":
         service.export(args.destination, format="xml")
     elif args.command == "export-csv":

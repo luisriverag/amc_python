@@ -862,6 +862,118 @@ def test_cli_edit_set_rejects_invalid_values_without_saving(tmp_path: Path):
     assert target.read_bytes() == previous
 
 
+_OMDB_RECORD = {
+    "Title": "Alien", "Year": "1979", "Rated": "R", "Runtime": "117 min",
+    "Genre": "Horror, Sci-Fi", "Director": "Ridley Scott", "Writer": "Dan O'Bannon",
+    "Actors": "Sigourney Weaver", "Plot": "A crew encounters a deadly lifeform.",
+    "Language": "English", "Country": "United States", "imdbRating": "8.5",
+    "imdbID": "tt0078748", "Response": "True",
+}
+
+
+def test_cli_imdb_lookup_previews_without_saving(monkeypatch, tmp_path: Path, capsys):
+    calls = []
+
+    def fake_fetch(**kwargs):
+        calls.append(kwargs)
+        return dict(_OMDB_RECORD)
+
+    monkeypatch.setattr("amc.cli.fetch_omdb_record", fake_fetch)
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "testkey"]) == 0
+
+    assert calls[0]["api_key"] == "testkey"
+    assert calls[0]["title"] == "Alien"
+    movie = load(target).get(1)
+    assert movie.director == ""  # preview only, catalog untouched
+    output = capsys.readouterr().out
+    assert "Preview for #1" in output
+    assert "use --apply to save" in output
+    assert "director: '' -> 'Ridley Scott'" in output
+
+
+def test_cli_imdb_lookup_apply_saves_the_previewed_changes(
+    monkeypatch, tmp_path: Path, capsys
+):
+    monkeypatch.setattr("amc.cli.fetch_omdb_record", lambda **kwargs: dict(_OMDB_RECORD))
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "k", "--apply"]) == 0
+
+    movie = load(target).get(1)
+    assert movie.director == "Ridley Scott"
+    assert movie.rating == 8.5
+    assert movie.year == 1979
+    assert "Updated #1" in capsys.readouterr().out
+
+
+def test_cli_imdb_lookup_reports_no_changes_without_touching_the_catalog(
+    monkeypatch, tmp_path: Path, capsys
+):
+    matching = Movie(
+        number=1, title="Alien", director="Ridley Scott", writer="Dan O'Bannon",
+        actors="Sigourney Weaver", description="A crew encounters a deadly lifeform.",
+        category="Horror, Sci-Fi", country="United States", languages="English",
+        certification="R", year=1979, length=117, rating=8.5,
+        url="https://www.imdb.com/title/tt0078748/",
+    )
+    monkeypatch.setattr("amc.cli.fetch_omdb_record", lambda **kwargs: dict(_OMDB_RECORD))
+    target = tmp_path / "catalog.json"
+    save(Catalog([matching]), target)
+    previous = target.read_bytes()
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "k", "--apply"]) == 0
+
+    assert target.read_bytes() == previous
+    assert "No changes for #1" in capsys.readouterr().out
+
+
+def test_cli_imdb_lookup_uses_the_env_var_api_key_when_no_flag_given(
+    monkeypatch, tmp_path: Path
+):
+    calls = []
+    monkeypatch.setattr(
+        "amc.cli.fetch_omdb_record",
+        lambda **kwargs: calls.append(kwargs) or dict(_OMDB_RECORD),
+    )
+    monkeypatch.setenv("OMDB_API_KEY", "from-env")
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1"]) == 0
+
+    assert calls[0]["api_key"] == "from-env"
+
+
+def test_cli_imdb_lookup_prefers_an_existing_imdb_url_over_title_search(
+    monkeypatch, tmp_path: Path
+):
+    calls = []
+    monkeypatch.setattr(
+        "amc.cli.fetch_omdb_record",
+        lambda **kwargs: calls.append(kwargs) or dict(_OMDB_RECORD),
+    )
+    target = tmp_path / "catalog.json"
+    save(Catalog([
+        Movie(number=1, title="Alien", url="https://www.imdb.com/title/tt0078748/"),
+    ]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "k"]) == 0
+
+    assert calls[0]["imdb_id"] == "tt0078748"
+    assert calls[0]["title"] == ""
+
+
+def test_cli_imdb_lookup_requires_an_api_key(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("OMDB_API_KEY", raising=False)
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+    assert main(["-c", str(target), "imdb-lookup", "1"]) == 2
+
+
 def test_cli_exit_status_constants_are_stable():
     from amc.cli import EXIT_ERROR, EXIT_INVALID_CATALOG, EXIT_SUCCESS
 

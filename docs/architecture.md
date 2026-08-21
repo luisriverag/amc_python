@@ -197,3 +197,16 @@ whether redistribution is permitted. Synthetic fixtures must be clearly labeled.
   bounded slice, disproportionate to the rest of this port.
   `export-html-template`/`html_template.py` already covers "produce a
   formatted report from the catalog" as a non-compatible baseline.
+- Website script *execution* has no Python code at all, and no decision
+  either way — real security exposure (running arbitrary third-party script
+  bytecode sourced from the web) makes this the one item in this list that
+  isn't this project's call alone to make. `omdb.py` is a deliberately
+  narrower, different thing: a small, hand-written, auditable first-party
+  provider for the two legacy-script use cases named as mattering most
+  (refreshing existing entries, IMDb lookups specifically), built against
+  the OMDb API instead of executing any script at all. It requires an
+  explicit, caller-supplied API key (never hardcoded, never persisted) and
+  a bounded timeout on every request, and its network call is always
+  injectable in tests (`fetch_omdb_record`'s `opener` parameter) so nothing
+  here reaches the network during the normal test suite, matching the
+  network-provider rule in "Security and resource limits" below.

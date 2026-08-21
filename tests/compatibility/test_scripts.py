@@ -16,7 +16,7 @@ from amc.model import Movie
 from amc.cli import main
 import json
 
-REAL_SCRIPT_FIXTURES = Path(__file__).parent / "fixtures" / "scripts"
+REAL_SCRIPT_FIXTURES = Path(__file__).parent.parent / "fixtures" / "scripts"
 
 
 def test_inspect_script_reads_upstream_style_metadata_without_execution(tmp_path: Path):

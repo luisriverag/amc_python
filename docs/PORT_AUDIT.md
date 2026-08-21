@@ -85,7 +85,7 @@ confidence.
 
 | Area | Current state | Missing evidence |
 |---|---|---|
-| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests, plus a real-display smoke run (`tests/test_gui_display.py`, real Tk widget trees under Xvfb, self-skipping without a display) covering the main window and the Preferences/Assign Pictures/Import Media/edit/crop/Loan Out/Loan In/Set Pictures/Clear Pictures dialogs, including an end-to-end simulated drag-select-and-apply crop and a real Loan Out combobox-and-button interaction verified against the real service; no verified accessibility pass |
+| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests, plus a real-display smoke run (`tests/gui/test_gui_display.py`, real Tk widget trees under Xvfb, self-skipping without a display) covering the main window and the Preferences/Assign Pictures/Import Media/edit/crop/Loan Out/Loan In/Set Pictures/Clear Pictures dialogs, including an end-to-end simulated drag-select-and-apply crop and a real Loan Out combobox-and-button interaction verified against the real service; no verified accessibility pass |
 | Installed CLI | Wheel console script and module entry point smoke-tested; empty JSON list exact output checked | Broader installed command contracts remain missing |
 | Packaging | Wheel build, isolated install, license inclusion, and smoke checks | Source-distribution build/install remains missing |
 | CI | Workflow configured for Linux/Windows and Python 3.10–3.13 | No run result is stored in the repository |
@@ -581,7 +581,7 @@ confidence.
     structurally faithful — is `synthetic` origin, not `upstream-generated`,
     and registering it does not move any format's status to "verified";
     that still requires provenance-tracked upstream bytes. Covered by
-    `tests/test_amc.py::test_edge_case_fixture_native_and_xml_agree_on_synthetic_movies`
+    `tests/compatibility/test_storage.py::test_edge_case_fixture_native_and_xml_agree_on_synthetic_movies`
     and `tools/verify_fixtures.py`.
 36. Wired `amc.omdb` into the desktop GUI as a **Movie / Update from
     IMDb...** dialog, closing the gap the "Website scripts" row and finding
@@ -602,7 +602,7 @@ confidence.
     and stays open with Apply disabled rather than closing or applying a
     partial change
     (`test_update_from_imdb_dialog_reports_a_lookup_failure_without_closing`),
-    both in `tests/test_gui_display.py`.
+    both in `tests/gui/test_gui_display.py`.
 
 ## Gap matrix against the original application
 
@@ -629,11 +629,11 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 | Port requirement | Code | Tests | Upstream evidence | Status |
 |---|---|---|---|---|
-| Acquire/inventory source | `tools/acquire_upstream.py` | `test_acquire_upstream.py` | Supplied archives exactly match the 952-file snapshot; publisher authentication is unavailable | Archive/tree identity confirmed; acquisition timestamp and independent digest pending |
+| Acquire/inventory source | `tools/acquire_upstream.py` | `tooling/test_acquire_upstream.py` | Supplied archives exactly match the 952-file snapshot; publisher authentication is unavailable | Archive/tree identity confirmed; acquisition timestamp and independent digest pending |
 | Native header probe | Source-derived 1.0–4.2 recognition in `inspection.py` | All ten headers, truncation, unknown-version, CLI, and warning tests | Constants and dispatch in `movieclass.pas` | Implemented from source; genuine fixtures pending |
 | Native catalog reader | `native.py`, storage/CLI import | Source-derived synthetic happy/error tests | `TMovieList.LoadFromFile`, `ReadRecords`, fixed records, `ReadData`, pictures/custom/extras | 1.0–4.2 implemented; no genuine verification |
 | Native catalog writer | `native.py`, `storage.py`, `export-amc` | Synthetic round trip; atomic failure; malformed metadata/rating/separator; invalid-limit; encoded-string; full service/CLI budget and resource tests | `TMovieList.SaveToFile` and nested `WriteData` methods | Strict bounded configurable 4.2 writer implemented from source; upstream acceptance unverified |
-| Internal working format | `storage.py`, JSON v1 spec | `test_amc.py` | Not applicable | Implemented |
+| Internal working format | `storage.py`, JSON v1 spec | `compatibility/test_storage.py` | Not applicable | Implemented |
 | AMC XML reader/writer | `storage.py` | Synthetic tests | None | Prototype only |
 | AMC CSV reader/writer | `storage.py` | Synthetic tests | None | Prototype only |
 | Catalog operations | `catalog.py` | Direct tests | None | Prototype only |

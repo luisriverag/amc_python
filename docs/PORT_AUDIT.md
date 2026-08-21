@@ -37,7 +37,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 554 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 559 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -494,6 +494,39 @@ confidence.
     at exactly this one boundary, with a regression test asserting the
     conversion and a second confirming an unknown duration still leaves
     `length` unset rather than becoming `0`.
+33. [Resolved] `inspect_script()` crashed with an unhandled
+    `UnicodeDecodeError` on any real script using a single-byte code page
+    other than cp1252, found by running it against 314 genuine Ant Movie
+    Catalog scripts a user contributed for local debugging — a snapshot of
+    `update.antp.be/amc/scripts/`, the official script-update feed (not
+    committed to the repository in full; see below for what is). The
+    fallback chain was `utf-8-sig` then `cp1252`; cp1252 leaves five byte
+    positions undefined (0x81/0x8D/0x8F/0x90/0x9D), and a real script in
+    another single-byte code page — a genuine Polish script, `cp1250` —
+    legitimately uses them, so Python's `cp1252` codec raised instead of
+    decoding. 37 of the 314 real files (about 12%) hit this and crashed
+    outright, rather than degrading gracefully the way every other
+    malformed-input path in `amc.scripts` already does. Fixed by decoding
+    the `cp1252` fallback with `errors="replace"` instead of letting it
+    raise: the exact source code page is genuinely unknown here (the same
+    open question already recorded for native `.amc` string decoding), and
+    the structural `[Infos]`/`[Options]`/`[Parameters]` syntax this function
+    actually parses is plain ASCII regardless of code page, so a handful of
+    mis-decoded characters in a title or description no longer costs the
+    whole file. Verified: re-running the same 314-file snapshot afterward
+    produced zero exceptions (277 real script headers parsed, 37
+    correctly identified as `legacy_format` with no header at all).
+    Fourteen of these files — the ones carrying their own explicit,
+    redistribution-permitting license (12 GPLv2-or-later/GPLv3-or-later,
+    2 MIT) — are now committed as real fixtures at
+    `tests/fixtures/scripts/` (see its `PROVENANCE.md` for the full
+    per-file author/license table and the selection criterion). The
+    remaining ~300 files in the contributor's snapshot — most of a 272-file
+    archive of scripts for now-defunct sites, plus about half of the
+    current top-level scripts, neither carrying an explicit license, and
+    one file with non-standard attribution-only terms — are deliberately
+    not committed; reachability from the official update feed was not, on
+    its own, treated as a redistribution grant.
 
 ## Gap matrix against the original application
 
@@ -508,7 +541,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |
 | Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop, bounded poster display, and atomic batch set/clear | Upstream import modes, naming/copy/move rules, conversion options, and genuine embedded/linked fixtures |
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
-| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings; separately, a first-party (not IFPS) OMDb-backed IMDb lookup/update provider (`amc.omdb`, CLI `imdb-lookup`) covers the two cases named most-used, with an isolated merge preview reusing the same safe-merge shape below | IFPS compiler/runtime and general script execution remain undecided (finding 31, real security exposure); complete API inventory, HTTP/browser interactions, license acceptance, debugger, and results UI for actual IFPS scripts |
+| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings, now validated against 14 committed real scripts plus a 314-file contributor snapshot used locally (finding 33 — found and fixed a real crash on non-cp1252 scripts); separately, a first-party (not IFPS) OMDb-backed IMDb lookup/update provider (`amc.omdb`, CLI `imdb-lookup`) covers the two cases named most-used, with an isolated merge preview reusing the same safe-merge shape below | IFPS compiler/runtime and general script execution remain undecided (finding 31, real security exposure); complete API inventory, HTTP/browser interactions, license acceptance, debugger, and results UI for actual IFPS scripts |
 | Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration and bitrate (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec — MP4 from the `moov/mvhd` box, OGG from the Vorbis identification header and the stream's last granule position) | MediaInfo integration/version checks, video-track resolution/framerate/real codec name (needs per-track sample-table parsing this port does not do), the full tag map, stream selection, filters, and field merge behavior |
 | HTML export | `export.pas`, `ConstValues.pas` (`strTagFields`/`TAG_*`), `fields.pas` | Safe bounded Python table/templates, plus `amc.html_template` rendering upstream's own `$$TAG_NAME` general/item/rating/picture/custom-field tags and the `$$ITEM_BEGIN`/`$$ITEM_END` full+individual document loop, validated locally against a genuine AMC 4.2.2 export's own real templates | The `$$ITEM_EXTRA_*` supplementary-record loop (with its category/checked/range filter syntax), upstream picture/rating-icon file copying, multi-file/SQL export, and fixture comparison of rendered tag values against genuine upstream output |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader; localization decided as deliberately deferred (finding 29) — the `.lng` format has no Tk equivalent, and a Python-owned i18n layer awaits real translated content | Settings XML, per-user state, translated UI/help, and migration; localization scaffolding itself only once translated content exists |

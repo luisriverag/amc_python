@@ -22,6 +22,7 @@ redistribution clearance.
 | `src/antcomponents/` | Ant components, Antoine Potten, JVCL contributors, and named component authors | MPL 1.1 umbrella notice at `Ant__Licence.txt`, with exceptions | Per-file mapping complete in `docs/upstream/license-inventory.json`; CorelButton's separate notice and the XML units' GPL headers are identified there. |
 | `src/antcomponents/AntCorelButton.*` | CorelButton, Peter Theill / ConquerWare | Separate freeware terms at `AntCorelButton.txt` | Notice present; keep the copyright and permission text. |
 | `src/antcomponents/xml/` | Akretio/JVCL-derived XML units | File headers state GPL terms | Notice present; confirm exact GPL version and upstream provenance. |
+| `tests/fixtures/scripts/` | 14 genuine Ant Movie Catalog "Get Info" scripts, various community authors (Antoine Potten and others; Purfview) — see the file for the full per-file table | Each file's own `[Infos]` `License=` field: 12 GPLv2-or-later/GPLv3-or-later, 2 MIT (`IMDB_ALT.ifs`/`IMDB_ALT_ES.ifs`, Copyright (c) 2025 Purfview); full text and per-file attribution in `tests/fixtures/scripts/PROVENANCE.md` | Notice present per file; this is a curated subset of a larger contributor-supplied snapshot of `update.antp.be/amc/scripts/` — only files with their own explicit, redistribution-permitting license were selected, not the full snapshot (`PROVENANCE.md` records the selection criterion and what was excluded). |
 
 ## Build-time components named but not included
 

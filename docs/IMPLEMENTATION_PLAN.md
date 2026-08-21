@@ -838,6 +838,28 @@ script execution at all — see the checked sub-item below.
     been setting `Movie.length` in seconds since D0, when every other place
     in this port (including upstream's own documentation) treats it as
     minutes — see finding 32.
+  - [x] Validated `amc.scripts.inspect_script`/`discover_scripts` against a
+    314-file contributor snapshot of `update.antp.be/amc/scripts/`, Ant
+    Movie Catalog's own official script-update feed — real scripts at real-
+    world scale, not just synthetic headers. Found and fixed a real bug:
+    37 of the 314 files (about 12%) crashed `inspect_script()` outright with
+    an unhandled `UnicodeDecodeError`, because its two-codec fallback chain
+    (`utf-8-sig` then `cp1252`) had no answer for a real script using a
+    different single-byte code page (a genuine Polish script uses `cp1250`,
+    which legitimately fills five byte positions `cp1252` leaves
+    undefined). Fixed by decoding the `cp1252` fallback with
+    `errors="replace"` instead of raising, matching every other malformed-
+    input path in this module; the structural syntax this function actually
+    parses is plain ASCII regardless of code page. Re-running the full
+    314-file snapshot afterward produced zero exceptions. Fourteen of these
+    files — the ones carrying their own explicit, redistribution-permitting
+    license — are now committed as real fixtures at
+    `tests/fixtures/scripts/`; the rest of the snapshot (mostly a 272-file
+    archive of scripts for now-defunct sites, plus unlicensed current
+    scripts) is deliberately not committed, on the same "explicit license
+    required, reachability from an official feed is not enough" standard
+    this project already applies to its own retained Delphi source. See
+    `docs/PORT_AUDIT.md` finding 33.
 
 ## Immediate next slice
 

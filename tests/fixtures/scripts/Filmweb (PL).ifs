@@ -1,0 +1,2911 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=2021 Dekert, 2016 Ariell, poprawki i nowoúci: athe
+Title=filmweb.pl
+Description=Importuje chyba wszystko co moøliwe z filmweb.pl
+Site=https://www.filmweb.pl
+Language=PL
+Version=3.2.25 (02.08.2026)
+Requires=4.2.3
+Comments=Jak coú nie dzia≥a zg≥aszaÊ na forum programu.
+License=This program is free software; you can redistribute it and/or modify it under the  terms of the GNU General Public License as published by the Free Software Foundation;  either version 2 of the License, or (at your option) any later version. |
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+Aktualizacja=0|1|0=Ponowne wyszukiwanie|1=Skorzystaj z zachowanego linku
+Plakat=1|1|0=Bez plakatu|1=Pobierz plakat
+OpisFilmu=0|0|0=Wyúwietl opisy do wyboru|1=PobraÊ pierwszy|2=PobraÊ wszystkie|4=Wyúwietl opisy do wyboru i zapamiÍtaj opis na sta≥e
+Komentarze=1|3|0=PozostawiÊ puste|1=PobraÊ domyúlnπ recenzje|2=PobraÊ recenzje z moøliwoúciπ wyboru|3=PobraÊ wszystkie|4=Wyúwietl recenzje do wyboru i zapamiÍtaj recenzjÍ na sta≥e
+UkladAktorow=0|2|0=Uk≥ad typu '<Aktor> (jako <grana postaÊ>)' rozdzielone przecinkami|1=Uk≥ad typu '<Aktor> (jako <grana postaÊ>)' kaødy w osobnej linii|2=Uk≥ad typu '<Aktor> - <grana postaÊ>' rozdzielone przecinkami|3=Uk≥ad typu '<Aktor> - <grana postaÊ>'  kaødy w osobnej linii|4=Uk≥ad typu '<Aktor>' rozdzielone przecinkami|5=Uk≥ad typu '<Aktor>'  kaødy w osobnej linii
+IloscAktorow=0|3|0=Pobierz wszystkich dostÍpnych|1=Ogranicz do 10|2=Ogranicz do 20|3=Ogranicz do 30|4=Ogranicz do 40|5=Ogranicz do 50
+LimitWynikow=3|1|0=Pobierz wszystkie filmy o podanej nazwie|1=Pobierz 10 najbardziej pasujπcych tytu≥Ûw|2=Ogranicz do 50|3=Ogranicz do 100|4=Ogranicz do 500
+ZdjÍciaAktorÛw=1|0|0=Nie pobieraj|1=Pobieraj|2=Pobierz wraz z biografiπ
+DodatkowePlakaty=0|0|0=Nie pobieraj|1=Pobierz do dodatkÛw
+Zdjecia=0|0|0=Nie pobieraj|1=Pobierz do dodatkÛw
+CzasTrwaniaFilmu=0|2|0=Nie pobieraj|1=Pobierz z filmweb|2=Pobierz tylko gdy brak
+Sprawdzeniepol=0|0|0=Sprawdzanie wy≥πczone|1=Jednorazowo sprawdü czy mam wszystkie pola
+Duplikator=0|0|0=Wy≥πczony|1=Automatycznie oznaczaj|2=Wyúwietl info
+Zwiastuny=0|0|0=Nie pobieraj|1=Pobierz pierwszy|2=Pobierz wszystkie
+TrailerZYouTube=0|0|0=Nie pobieraj|1=Pobierz|2=Pobierz tylko gdy brak
+PobierzzIMDb=0|0|0=Nie pobieraj|1=Ocena z IMDb na g≥Ûwnym panelu (dzia≥a tylko gdy brak dodatkowego pola "Ocena IMDb")|2=Pobierz twÛrcÛw oraz ocenÍ... w trybie nadpisywania, a resztÍ pÛl w trybie uzupe≥niania (tylko gdy brak)|3=Pobierz ocenÍ... w trybie nadpisywania, a twÛrcÛw oraz resztÍ pÛl w trybie uzupe≥niania (tylko gdy brak)|4=Wybierz opcje: 1, 2|5=Wybierz opcje: 1, 3
+ZmienNazwePliku=0|0|0=Nie zmieniaj|1=ZmieÒ wed≥ug schematu
+SeparatorKraju=0|0|0=Separatorem slash i spacje po obu stronach ' / '|1=Separatorem przecinek ', '|2=Separatorem slash bez spacji '/'
+SeparatorGatunku=0|0|0=Separatorem slash i spacje po obu stronach ' / '|1=Separatorem przecinek ', '|2=Separatorem slash bez spacji '/'
+SeparatorPoziomy=1|1|0=Pojedyncza linia|1=PodwÛjna linia|2=Myúlniki ('------------------------------------------')
+Tytu≥yAKA=3|3|0=Nie pobieraj|1=Dla krajÛw z pola produkcja|2=Produkcja oraz Polska|3=Produkcja oraz Francja, Hiszpania, Niemcy, Polska, USA, Wielka Brytania, W≥ochy|4=Pobierz wszystkie
+Odcinki=8|8|0=Nie pobieraj|1=Pobierz: nr odcinka, tytu≥|2=Pobierz: nr odcinka, tytu≥, data|3=Pobierz: nr odcinka, tytu≥, ocena|4=Pobierz: nr odcinka, tytu≥, czas trwania|5=Pobierz: nr odcinka, tytu≥, data, ocena|6=Pobierz: nr odcinka, tytu≥, data, czas trwania|7=Pobierz: nr odcinka, tytu≥, data, ocena i czas trwania|8=Pobierz: nr odcinka, tytu≥, ocena, czas trwania
+
+[Parameters]
+IlePlakatow=5|5|Wprowadü ile mam pobraÊ plakatÛw (99999 - pobierz wszystkie)
+IleZdjec=15|15|Wprowadü ile mam pobraÊ zdjÍÊ (99999 - pobierz wszystkie)
+KolorowanieWykonanych=|-1|Na jaki numer koloru mam oznaczyÊ wykonane pozycje (+1 lub -1 podnosi lub obniøa numer tylko do 12 lub 0 potem zostawia.)
+NazwaPliku=||Schemat zmiany nazwy pliku wideo
+
+***************************************************)
+
+(*********************************************************
+ *                                                       *
+ *  Zajrzyj na forum                                     *
+ *                                                       *
+ *********************************************************)
+
+program filmwebpl;
+uses
+	en2pl, cp1250, StringUtils7552, BatchCommon7552, ScorEpioNCommonScript, jsonUtils;
+
+var
+	MovieName, MAddress, URL, URLS, ExtrasS, Tests, TempDane, Dir, DirI, DirC: string;
+	SepPoziomy, TytulyAkaKraje: string;
+	YY,MM,DD: Word;
+	AUpdate, Ej,ACount, Aktorile: Integer;
+	SearchAddresses, AktorI, preparexml: TStringList;
+	CzasTrwaniaZOdcinkow: boolean;
+
+procedure UniToPol(var Value: string);
+begin
+	Value := StringReplace(Value, '%C4%84', '•');
+	Value := StringReplace(Value, '%C4%85', 'π');
+	Value := StringReplace(Value, '%C4%86', '∆');
+	Value := StringReplace(Value, '%C4%87', 'Ê');
+	Value := StringReplace(Value, '%C4%98', ' ');
+	Value := StringReplace(Value, '%C4%99', 'Í');
+	Value := StringReplace(Value, '%C5%81', '£');
+	Value := StringReplace(Value, '%C5%82', '≥');
+	Value := StringReplace(Value, '%C5%83', '—');
+	Value := StringReplace(Value, '%C5%84', 'Ò');
+	Value := StringReplace(Value, '%C3%93', '”');
+	Value := StringReplace(Value, '%C3%B3', 'Û');
+	Value := StringReplace(Value, '%C5%9A', 'å');
+	Value := StringReplace(Value, '%C5%9B', 'ú');
+	Value := StringReplace(Value, '%C5%B9', 'è');
+	Value := StringReplace(Value, '%C5%BA', 'ü');
+	Value := StringReplace(Value, '%C5%BB', 'Ø');
+	Value := StringReplace(Value, '%C5%BC', 'ø');
+	Value := StringReplace(Value, '&#x105;', 'π');
+	Value := StringReplace(Value, '&#x107;', 'Ê');
+	Value := StringReplace(Value, '&#x119;', 'Í');
+	Value := StringReplace(Value, '&#x142;', '≥');
+	Value := StringReplace(Value, '&#x144;', 'Ò');
+	Value := StringReplace(Value, '&#xF3;', 'Û');
+	Value := StringReplace(Value, '&#x15B;', 'ú');
+	Value := StringReplace(Value, '&#x17A;', 'ü');
+	Value := StringReplace(Value, '&#x17C;', 'ø');
+	Value := StringReplace(Value, '&#x104;', '•');
+	Value := StringReplace(Value, '&#x106;', '∆');
+	Value := StringReplace(Value, '&#x118;', ' ');
+	Value := StringReplace(Value, '&#x141;', '£');
+	Value := StringReplace(Value, '&#x143;', '—');
+	Value := StringReplace(Value, '&#xD3;', '”');
+	Value := StringReplace(Value, '&#x15A;', 'å');
+	Value := StringReplace(Value, '&#x179;', 'è');
+	Value := StringReplace(Value, '&#x17B;', 'Ø');
+	Value := StringReplace(Value, '&#165;', '•');
+	Value := StringReplace(Value, '&#185;', 'π');
+	Value := StringReplace(Value, '&#198;', '∆');
+	Value := StringReplace(Value, '&#230;', 'Ê');
+	Value := StringReplace(Value, '&#202;', ' ');
+	Value := StringReplace(Value, '&#234;', 'Í');
+	Value := StringReplace(Value, '&#163;', '£');
+	Value := StringReplace(Value, '&#179;', '≥');
+	Value := StringReplace(Value, '&#209;', '—');
+	Value := StringReplace(Value, '&#241;', 'Ò');
+	Value := StringReplace(Value, '&#211;', '”');
+	Value := StringReplace(Value, '&#243;', 'Û');
+	Value := StringReplace(Value, '&#140;', 'å');
+	Value := StringReplace(Value, '&#156;', 'ú');
+	Value := StringReplace(Value, '&#143;', 'è');
+	Value := StringReplace(Value, '&#159;', 'ü');
+	Value := StringReplace(Value, '&#175;', 'Ø');
+	Value := StringReplace(Value, '&#191;', 'ø');
+	Value := StringReplace(Value, '&#260;', '•');
+	Value := StringReplace(Value, '&#261;', 'π');
+	Value := StringReplace(Value, '&#262;', '∆');
+	Value := StringReplace(Value, '&#263;', 'Ê');
+	Value := StringReplace(Value, '&#280;', ' ');
+	Value := StringReplace(Value, '&#281;', 'Í');
+	Value := StringReplace(Value, '&#321;', '£');
+	Value := StringReplace(Value, '&#322;', '≥');
+	Value := StringReplace(Value, '&#323;', '—');
+	Value := StringReplace(Value, '&#324;', 'Ò');
+	Value := StringReplace(Value, '&scaron;', 'ö');
+	Value := StringReplace(Value, '&Oacute;', '”');
+	Value := StringReplace(Value, '&oacute;', 'Û');
+	Value := StringReplace(Value, '&Eacute;', '…');
+	Value := StringReplace(Value, '&eacute;', 'È');
+	Value := StringReplace(Value, '&#346;', 'å');
+	Value := StringReplace(Value, '&#347;', 'ú');
+	Value := StringReplace(Value, '&#377;', 'è');
+	Value := StringReplace(Value, '&#378;', 'ü');
+	Value := StringReplace(Value, '&#379;', 'Ø');
+	Value := StringReplace(Value, '&#380;', 'ø');
+	Value := StringReplace(Value, '&#39;', '''');
+	Value := StringReplace(Value, '&amp;egrave;', 'È');
+	Value := StringReplace(Value, '&ccedil;', 'Á');
+	Value := StringReplace(Value, '&icirc;', 'Ó');
+	Value := StringReplace(Value, '&ndash;', '-');
+	Value := StringReplace(Value, '&ouml;', 'ˆ');
+	Value := StringReplace(Value, '&hellip;', '...');
+	Value := StringReplace(Value, '&ntilde;', 'n');
+	Value := StringReplace(Value, '&iacute;', 'Ì');
+	Value := StringReplace(Value, '&aacute;', '·');
+	Value := StringReplace(Value, '&agrave;', '·');
+	Value := StringReplace(Value, '&egrave;', 'È');
+	Value := StringReplace(Value, '&ograve;', 'o');
+	Value := StringReplace(Value, '&ocirc;', 'Ù');
+	Value := StringReplace(Value, '&bdquo;', '"');
+	Value := StringReplace(Value, '&rdquo;', '"');
+	Value := StringReplace(Value, '&ldquo;', '"');
+	Value := StringReplace(Value, '&egrave;', 'e');
+	Value := StringReplace(Value, '&amp;', '&');
+	Value := StringReplace(Value, '&acirc;', '‚');
+	Value := StringReplace(Value, '&reg;', 'Æ');
+	Value := StringReplace(Value, '&aelig;', 'ae');
+	Value := StringReplace(Value, '&oslash;', 'o');
+	Value := StringReplace(Value, '&quot;', '"');
+	Value := StringReplace(Value, '&auml;', '‰');
+	Value := StringReplace(Value, '&aring;', 'a');
+	Value := StringReplace(Value, '&uuml;', '¸');
+	Value := StringReplace(Value, '&uacute;', '˙');
+	Value := StringReplace(Value, '%C3%BA', '˙');
+	Value := StringReplace(Value, '&middot;', '-');
+	Value := StringReplace(Value, '&sup3;', ' 3');
+	Value := StringReplace(Value, '&euml;', 'Î');
+	Value := StringReplace(Value, '&Agrave;', 'A');
+	Value := StringReplace(Value, '√≤', 'o');
+	Value := StringReplace(Value, '&deg;', '∞');
+	Value := StringReplace(Value, '&sup2;', '2');
+	Value := StringReplace(Value, '&szlig;', 'ﬂ');
+	Value := StringReplace(Value, '&amp;', '&');
+	Value := StringReplace(Value, '	 ', '');
+	Value := StringReplace(Value, '&amp;', '&');
+	Value := StringReplace(Value, '&rsquo;', 'í');
+	Value := StringReplace(Value, '&lsquo;', 'ë');
+	Value := StringReplace(Value, '&ugrave;', 'u');
+	Value := StringReplace(Value, '%3A', ':');
+	Value := StringReplace(Value, '+', ' ');
+	Value := StringReplace(Value, '%21', '!');
+	Value := StringReplace(Value, '%27', 'ë');
+	Value := StringReplace(Value, '%2B', '+');
+	Value := StringReplace(Value, '%2C', ',');
+	Value := StringReplace(Value, '%20', ' ');
+	Value := StringReplace(Value, '%5B', '[');
+	Value := StringReplace(Value, '%5D', ']');
+	Value := StringReplace(Value, '%E2%80%98', 'ë');
+	Value := StringReplace(Value, '≈º', 'ø');
+	Value := StringReplace(Value, '≈ª', 'Ø');
+	Value := StringReplace(Value, '%5D', ']');
+	Value := StringReplace(Value, 'ƒÖ', 'π');
+	Value := StringReplace(Value, 'ƒá', 'Ê');
+	Value := StringReplace(Value, 'ƒô', 'Í');
+	Value := StringReplace(Value, '√≥', 'Û');
+	Value := StringReplace(Value, '≈Ç', '≥');
+	Value := StringReplace(Value, '≈Ñ', 'Ò');
+	Value := StringReplace(Value, '≈õ', 'ú');
+	Value := StringReplace(Value, '≈ü', 'ø');
+	Value := StringReplace(Value, '≈∫', 'ü');
+	Value := StringReplace(Value, '≈Å', '£');
+	Value := StringReplace(Value, '√ì', '”');
+	Value := StringReplace(Value, '√ü', '¸');
+	Value := StringReplace(Value, '√§', '‰');
+	Value := StringReplace(Value, '≈ë', 'ˆ');
+	Value := StringReplace(Value, '≈ê', '÷');
+	Value := StringReplace(Value, '%C2%B7', '∑');
+	Value := StringReplace(Value, 'È', 'e');
+	Value := StringReplace(Value, '"', '');
+	Value := StringReplace(Value, '√©', 'È');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '√∂', 'ˆ');
+	Value := StringReplace(Value, '≈ö', 'å');
+	Value := StringReplace(Value, '&Aacute;', '¡');
+	Value := StringReplace(Value, '&ecirc;', 'e');
+	Value := StringReplace(Value, '&eth;', 'o');
+	Value := StringReplace(Value, '&iuml;', 'i');
+	Value := StringReplace(Value, '&Aring;', 'A');
+	Value := StringReplace(Value, '&atilde;', 'a');
+	Value := StringReplace(Value, '&Scaron;', 'ä');
+	Value := StringReplace(Value, '≈æ', 'û');
+	Value := StringReplace(Value, '&AElig;', 'AE');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+end;
+
+procedure HTMLDecode2(var Value: string);
+begin
+	Value := StringReplace(Value, '%C4%84', '•');
+	Value := StringReplace(Value, '%C4%85', 'π');
+	Value := StringReplace(Value, '%C4%86', '∆');
+	Value := StringReplace(Value, '%C4%87', 'Ê');
+	Value := StringReplace(Value, '%C4%98', ' ');
+	Value := StringReplace(Value, '%C4%99', 'Í');
+	Value := StringReplace(Value, '%C5%81', '£');
+	Value := StringReplace(Value, '%C5%82', '≥');
+	Value := StringReplace(Value, '%C5%83', '—');
+	Value := StringReplace(Value, '%C5%84', 'Ò');
+	Value := StringReplace(Value, '%C3%93', '”');
+	Value := StringReplace(Value, '%C3%B3', 'Û');
+	Value := StringReplace(Value, '%C5%9A', 'å');
+	Value := StringReplace(Value, '%C5%9B', 'ú');
+	Value := StringReplace(Value, '%C5%B9', 'è');
+	Value := StringReplace(Value, '%C5%BA', 'ü');
+	Value := StringReplace(Value, '%C5%BB', 'Ø');
+	Value := StringReplace(Value, '%C5%BC', 'ø');
+	Value := StringReplace(Value, '%3A', ':');
+	Value := StringReplace(Value, '%21', '!');
+	Value := StringReplace(Value, '%27', 'ë');
+	Value := StringReplace(Value, '%2B', '+');
+	Value := StringReplace(Value, '%2C', ',');
+	Value := StringReplace(Value, '%20', ' ');
+	Value := StringReplace(Value, '%5B', '[');
+	Value := StringReplace(Value, '%5D', ']');
+	Value := StringReplace(Value, '%E2%80%98', 'ë');
+	Value := StringReplace(Value, '%C2%B7', '∑');
+	Value := StringReplace(Value, '%C3%BA', '˙');
+	Value := StringReplace(Value, '&amp;', '&');
+	Value := StringReplace(Value, '&#x105;', 'π');
+	Value := StringReplace(Value, '&#x107;', 'Ê');
+	Value := StringReplace(Value, '&#x119;', 'Í');
+	Value := StringReplace(Value, '&#x142;', '≥');
+	Value := StringReplace(Value, '&#x144;', 'Ò');
+	Value := StringReplace(Value, '&#xF3;', 'Û');
+	Value := StringReplace(Value, '&#x15B;', 'ú');
+	Value := StringReplace(Value, '&#x17A;', 'ü');
+	Value := StringReplace(Value, '&#x17C;', 'ø');
+	Value := StringReplace(Value, '&#x104;', '•');
+	Value := StringReplace(Value, '&#x106;', '∆');
+	Value := StringReplace(Value, '&#x118;', ' ');
+	Value := StringReplace(Value, '&#x141;', '£');
+	Value := StringReplace(Value, '&#x143;', '—');
+	Value := StringReplace(Value, '&#xD3;', '”');
+	Value := StringReplace(Value, '&#x15A;', 'å');
+	Value := StringReplace(Value, '&#x179;', 'è');
+	Value := StringReplace(Value, '&#x17B;', 'Ø');
+	Value := StringReplace(Value, '&#165;', '•');
+	Value := StringReplace(Value, '&#185;', 'π');
+	Value := StringReplace(Value, '&#198;', '∆');
+	Value := StringReplace(Value, '&#230;', 'Ê');
+	Value := StringReplace(Value, '&#202;', ' ');
+	Value := StringReplace(Value, '&#234;', 'Í');
+	Value := StringReplace(Value, '&#163;', '£');
+	Value := StringReplace(Value, '&#179;', '≥');
+	Value := StringReplace(Value, '&#209;', '—');
+	Value := StringReplace(Value, '&#241;', 'Ò');
+	Value := StringReplace(Value, '&#211;', '”');
+	Value := StringReplace(Value, '&#243;', 'Û');
+	Value := StringReplace(Value, '&#140;', 'å');
+	Value := StringReplace(Value, '&#156;', 'ú');
+	Value := StringReplace(Value, '&#143;', 'è');
+	Value := StringReplace(Value, '&#159;', 'ü');
+	Value := StringReplace(Value, '&#175;', 'Ø');
+	Value := StringReplace(Value, '&#191;', 'ø');
+	Value := StringReplace(Value, '&#260;', '•');
+	Value := StringReplace(Value, '&#261;', 'π');
+	Value := StringReplace(Value, '&#262;', '∆');
+	Value := StringReplace(Value, '&#263;', 'Ê');
+	Value := StringReplace(Value, '&#280;', ' ');
+	Value := StringReplace(Value, '&#281;', 'Í');
+	Value := StringReplace(Value, '&#321;', '£');
+	Value := StringReplace(Value, '&#322;', '≥');
+	Value := StringReplace(Value, '&#323;', '—');
+	Value := StringReplace(Value, '&#324;', 'Ò');
+	Value := StringReplace(Value, '&scaron;', 'ö');
+	Value := StringReplace(Value, '&Oacute;', '”');
+	Value := StringReplace(Value, '&oacute;', 'Û');
+	Value := StringReplace(Value, '&Eacute;', '…');
+	Value := StringReplace(Value, '&eacute;', 'È');
+	Value := StringReplace(Value, '&#346;', 'å');
+	Value := StringReplace(Value, '&#347;', 'ú');
+	Value := StringReplace(Value, '&#377;', 'è');
+	Value := StringReplace(Value, '&#378;', 'ü');
+	Value := StringReplace(Value, '&#379;', 'Ø');
+	Value := StringReplace(Value, '&#380;', 'ø');
+	Value := StringReplace(Value, '&ccedil;', 'Á');
+	Value := StringReplace(Value, '&icirc;', 'Ó');
+	Value := StringReplace(Value, '&ndash;', '-');
+	Value := StringReplace(Value, '&ouml;', 'ˆ');
+	Value := StringReplace(Value, '&hellip;', '...');
+	Value := StringReplace(Value, '&ntilde;', 'n');
+	Value := StringReplace(Value, '&iacute;', 'Ì');
+	Value := StringReplace(Value, '&aacute;', '·');
+	Value := StringReplace(Value, '&agrave;', '·');
+	Value := StringReplace(Value, '&egrave;', 'È');
+	Value := StringReplace(Value, '&ograve;', 'o');
+	Value := StringReplace(Value, '&ocirc;', 'Ù');
+	Value := StringReplace(Value, '&bdquo;', '"');
+	Value := StringReplace(Value, '&rdquo;', '"');
+	Value := StringReplace(Value, '&ldquo;', '"');
+	Value := StringReplace(Value, '&egrave;', 'e');
+	Value := StringReplace(Value, '&acirc;', '‚');
+	Value := StringReplace(Value, '&reg;', 'Æ');
+	Value := StringReplace(Value, '&aelig;', 'ae');
+	Value := StringReplace(Value, '&oslash;', 'o');
+	Value := StringReplace(Value, '&quot;', '"');
+	Value := StringReplace(Value, '&auml;', '‰');
+	Value := StringReplace(Value, '&aring;', 'a');
+	Value := StringReplace(Value, '&uuml;', '¸');
+	Value := StringReplace(Value, '&uacute;', '˙');
+	Value := StringReplace(Value, '&middot;', '-');
+	Value := StringReplace(Value, '&sup3;', ' 3');
+	Value := StringReplace(Value, '&euml;', 'Î');
+	Value := StringReplace(Value, '&Agrave;', 'A');
+	Value := StringReplace(Value, '&deg;', '∞');
+	Value := StringReplace(Value, '&sup2;', '2');
+	Value := StringReplace(Value, '&szlig;', 'ﬂ');
+	Value := StringReplace(Value, '&amp;', '&');
+	Value := StringReplace(Value, '&amp;', '&');
+	Value := StringReplace(Value, '&rsquo;', 'í');
+	Value := StringReplace(Value, '&lsquo;', 'ë');
+	Value := StringReplace(Value, '&ugrave;', 'u');
+	Value := StringReplace(Value, '&Aacute;', '¡');
+	Value := StringReplace(Value, '&ecirc;', 'e');
+	Value := StringReplace(Value, '&eth;', 'o');
+	Value := StringReplace(Value, '&iuml;', 'i');
+	Value := StringReplace(Value, '&Aring;', 'A');
+	Value := StringReplace(Value, '&atilde;', 'a');
+	Value := StringReplace(Value, '&Scaron;', 'ä');
+	Value := StringReplace(Value, '&AElig;', 'AE');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	HTMLDecode(Value);
+end;
+
+function RemoveHTMLTag(aStr, aHtmlTag, aAttributRE: string): string;
+var
+	closetag, s: string;
+	i, spos, spos2: integer;
+	lst: TStringListEx;
+begin
+	Result := aStr;
+	// wyszukuje tagi otwierajπce
+	RegExprModifiers('I');
+	RegExprSet('(<'+aHtmlTag+'[^>]*'+aAttributRE+'[^>]*>)');
+	RegExprExec(aStr);
+	if ( SubExprMatchCount=0 ) then
+	  Exit;
+	closetag := '</'+aHtmlTag+'>';
+	lst := TStringListEx.Create;
+	lst.Clear;
+	spos := RegExprMatchPos(1);
+	// poczπtkowa czÍúÊ danych przed pierwszym tagiem
+	s := copy(aStr, 1, spos-1);
+	// rozdziela kolejne oddzielne ≥aÒcuchy znakÛw zaczynajπce siÍ od poszukiwanego tagu
+	while RegExprExecNext do
+	begin
+		spos2 := RegExprMatchPos(1);
+		lst.Append(copy(aStr, spos, spos2-spos));
+		spos := spos2;
+	end;
+	lst.Append(copy(aStr, spos, Length(aStr)-(spos-1)));
+	// wyszukuje tagi zamykajπce, usuwa je i ≥πczy wszystkie ≥aÒcuchy znakÛw
+	for i:=0 to lst.Count-1 do
+	begin
+		spos := Pos(closetag, lst.GetString(i));
+		if spos>0 then
+			s := s + copy(lst.GetString(i), spos+Length(closetag), Length(lst.GetString(i)));
+	end;
+	lst.Free;
+	Result := s;
+end;
+
+function RemoveBracketText(aString: string): string;
+var
+	s: string;
+begin
+	s := StringReplace(aString, crlf, '');
+	s := RegExprSetReplace('\((.*?)\)', s, '', true);
+	s := RegExprSetReplace('\[(.*?)\]', s, '', true);
+	Result := FullTrim(s);
+end;
+
+function RemoveSpace(Value: string): string;
+var
+	i, j, k: integer;
+begin
+	Result := ' ' + Value + ' ';
+	while Pos('  ', Result) > 0 do
+		Result := StringReplace(Result, '  ', ' ');
+	Result := Copy(Result, 2, Length(Result) - 2);
+end;
+
+procedure CorrectTextError(var Value: string);
+begin
+	Value := StringReplace(Value, '[ dystrybutora]', '');
+	Value := StringReplace(Value, '[opis dystrybutora do wydania VHS]', '');
+	Value := StringReplace(Value, '&#8211;', '-');
+	Value := StringReplace(Value, '&#8212;', '-');
+	Value := StringReplace(Value, '&#8216;', '''');
+	Value := StringReplace(Value, '&#8217;', '''');
+	Value := StringReplace(Value, '&#8220;', '"');
+	Value := StringReplace(Value, '&#8221;', '"');
+	Value := StringReplace(Value, '&#8222;', '"');
+	Value := StringReplace(Value, '&#8230;', '...');
+	Value := StringReplace(Value, '&#160;', ' ');
+	Value := StringReplace(Value, '&nbsp;', ' ');
+	Value := StringReplace(Value, '&lt;', '<');
+	Value := StringReplace(Value, '&gt;', '>');
+	Value := StringReplace(Value, '&quot;', '"');
+	Value := StringReplace(Value, '&amp;', '&');
+	Value := StringReplace(Value, '&#8364;', '‚,¨');
+	Value := StringReplace(Value, '&Aacute;', 'A');
+	Value := StringReplace(Value, '&uacute;', 'u');
+	Value := StringReplace(Value, '  ', ' ');
+	Value := StringReplace(Value, '	', '');
+	Value := StringReplace(Value, ' , ', ', ');
+	Value := StringReplace(Value, ' . ', '. ');
+	Value := StringReplace(Value, ' )', ')');
+	Value := StringReplace(Value, '( ', '(');
+	Value := StringReplace(Value, ' ]', ']');
+	Value := StringReplace(Value, '[ ', '[');
+	Value := StringReplace(Value, '''''', '"');
+	Value := StringReplace(Value, '""', '"');
+	Value := StringReplace(Value, ',,', '"');
+	Value := StringReplace(Value, ' :', ':');
+	Value := StringReplace(Value, ' ;', ';');
+	Value := StringReplace(Value, '.:', ':');
+	Value := StringReplace(Value, ':.', ':');
+	Value := StringReplace(Value, ' ?', '?');
+	Value := StringReplace(Value, ' !', '!');
+	Value := StringReplace(Value, '. . .', '...');
+	Value := StringReplace(Value, '. ..', '...');
+	Value := StringReplace(Value, '.. .', '...');
+	Value := StringReplace(Value, '..', '...');
+	Value := StringReplace(Value, '... .', '...');
+	Value := StringReplace(Value, '....', '...');
+	Value := RegExprSetReplace('([^\d\. \xA0])[ \xA0]*(\.+)[ \xA0]*([^\d\. \xA0])', Value, '$1$2 $3', true);
+	Value := RegExprSetReplace('([^\d\, \xA0])[ \xA0]*,[ \xA0]*([^\d, \xA0])', Value, '$1, $2', true);
+	Value := StringReplace(Value, #13#10, '');
+end;
+
+function FormatHTMLText(aText: string): string;
+var
+	Value: string;
+begin
+	Value := aText;
+	HTMLDecode2(Value);
+	CorrectTextError(Value);
+	// Clean spaces & new line formating
+	Value := RegExprSetReplace('\s*(<br\s?/?>)\s*', Value, #13#10'$1', true);
+	Value := RegExprSetReplace('\s*(</?p>)\s*', Value, #13#10'$1', true);
+	Value := RegExprSetReplace('(<li>)', Value, #13#10'$1ï ', true);
+	// Remove comments
+	Value := RegExprSetReplace('<!--(.*?)-->', Value, '', true);
+	// Remove scripts
+	Value := RegExprSetReplace('<script>.+</script>', Value, '', false);
+	// Remove HTML Tags
+	HTMLRemoveTags(Value);
+	// Replace multiple spaces or nbps by single space character
+	Value := RegExprSetReplace('[ \xA0]{2,}', Value, ' ', false);
+	// Trim left
+	Value := RegExprSetReplace('^[ \xA0\t]+', Value, '', false);
+	// Trim right
+	Value := RegExprSetReplace('[ \xA0\t]+$', Value, '', false);
+	// Remove multiple empty lines
+	Value := RegExprSetReplace('^\s*$', Value, '', false);
+
+	Result := FullTrim(Value);
+end;
+
+function IMDbReadList(OutList: TStringList; InputText, HtmlTagLn: string; ClearList: boolean): boolean;
+var
+	Value, Value2: string;
+begin
+	result := False;
+	if ClearList then
+		OutList.Clear;
+	Value2 := TextBetween(InputText, HtmlTagLn, '</a>');
+	while Value2 <> '' do
+	begin
+		Value := RemainingText;
+		Value2 := TextAfter(Value2, '>');
+		if OutList.IndexOf(Value2) < 0 then begin
+			Value2 := UTF8ToCP1250(Value2);
+			Value2 := FormatHTMLText(Value2);
+			OutList.Add(Value2);
+			result := True;
+		end;
+		Value2 := TextBetween(Value, HtmlTagLn, '</a>');
+	end;
+end;
+
+procedure PobierzDaneZIMDb();
+var
+	IMDbUrl: string;
+	Pagetmp: string;
+	Value, Value2, FullValue: string;
+	Line, Line2, Linetmp: string;
+	lst: TStringListEx;
+	Nadpisz: boolean;
+	CharacterFlag: boolean;
+	Prefix, Sufix: string;
+	IloscAktorow: integer;
+	Separator: string;
+	WW, PL: string;
+	i: integer;
+	PlakatIMDb, CountryIMDb, CategoryIMDb, ZwiastunIMDb, PLPremieraIMDb, WWPremieraIMDb: boolean;
+begin
+	if GetOption('PobierzzIMDb') = 0 then
+		Exit;
+	lst := TStringListEx.Create;
+	PlakatIMDb     := False;
+	CountryIMDb    := False;
+	CategoryIMDb   := False;
+	ZwiastunIMDb   := False;
+	PLPremieraIMDb := False;
+	WWPremieraIMDb := False;
+
+	// IMDb URL
+	if CustomFieldExists('IMDbLINK') then
+		IMDbUrl := GetCustomField('IMDbLINK')
+	else
+		IMDbUrl := '';
+	Value := GetField(fieldOriginalTitle);
+	Pagetmp := UrlEncode('https://www.imdb.com/find?q=' + Value + '&s=tt&ref_=fn_all_mr');
+	Line2 := GetPage(Pagetmp);
+	Line := TextBetween(Line2, 'Titles</h3>', '</table>');
+	if Line = '' then
+	begin
+		Value := GetField(fieldTranslatedTitle);
+		Pagetmp := UrlEncode('https://www.imdb.com/find?q=' + Value + '&s=tt&ref_=fn_all_mr');
+		Line2 := GetPage(Pagetmp);
+		Line := TextBetween(Line2, 'Titles</h3>', '</table>');
+	end;
+
+	Linetmp := TextBetween(Line, '<td class="result_text">', '</tr>');
+	Line2 := TextBetween(Line, '<a href="', '/?');
+	while Pos('<td class="result_text">', Line) > 0 do
+	begin
+		Value := TextBetween(Linetmp, '</a> (', ')');
+		Value := IntToStr(StrToInt(Value, 0));
+		if (IntToStr(StrToInt(Value, 0)) = '0') then
+			Value := TextBetween(Linetmp, ') (', ')');
+		if (GetField(fieldYear) <> Value) then
+		begin
+			Line := Copy(Line, Pos('</tr>', Line) + Length('</tr>'), Length(Line));
+			Linetmp := TextBetween(Line, '<td class="result_text">', '</tr>');
+			Value := '';
+		end
+		else
+		begin
+			if (GetField(fieldYear) = Value) then
+				break;
+		end;
+	end;
+	Value := TextBetween(Linetmp, '" >', '</a>');
+	Value := AnsiUpperCase(Value);
+	Value := UTF8ToCP1250(Value);
+	if ((AnsiUpperCase(GetField(fieldOriginalTitle)) <> Value) and (AnsiUpperCase(GetField(fieldTranslatedTitle)) <> Value)) then
+	begin
+		Value := TextBetween(Linetmp, '<i>', '</i>');
+		if Pos('aka', Linetmp) > 0 then
+			Value := TextBetween(Linetmp, '<i>"', '"</i>');
+		Value := AnsiUpperCase(Value);
+		if ((AnsiUpperCase(GetField(fieldOriginalTitle)) <> Value) and (AnsiUpperCase(GetField(fieldTranslatedTitle)) <> Value)) then
+			Value := '';
+	end;
+	if ((Value = '') and (IMDbUrl = '')) then
+	begin
+		ShowMessage('Skrypt nie odnalaz≥ identycznego tytu≥u lub nie zgadza siÍ rok produkcji ze strony Filmweb na stronie IMDb. ' +
+			#13#10 + 'Pobierze informacje z pierwszej pozycji na liúcie IMDb najbardziej pasujπcego tytu≥u. Moøesz sprawdziÊ czy to jest w≥aúciwy film i wprowadziÊ korekty rÍcznie.');
+		Value := Line2;
+	end
+	else
+	begin
+		Value := TextBetween(Line, '<a href="', '/?');
+		if Value = '' then
+			Value := TextAfter(IMDbUrl, 'com');
+	end;
+	IMDbUrl := Trim('https://www.imdb.com' + Value);	 //adres strony z filmem
+	if CanSetCustomField('IMDbLINK') then
+		SetCustomField('IMDbLINK', IMDbUrl);
+
+	Pagetmp := GetPage(IMDbUrl);
+	Pagetmp := UTF8ToCP1250(Pagetmp);
+	HTMLDecode2(Pagetmp);
+
+	// Ocena z IMDb i iloúÊ g≥osÛw
+	Value := '';
+	Line := TextBetween(Pagetmp, '"aggregateRating":{', '"datePublished"');
+	if CanSetCustomField('VotesIMDB') then
+	begin
+		Value := TextBetween(Line, 'ratingCount":', ',');
+		//Value := StringReplace(Value, ',', '');
+		if Value <> '' then
+			SetCustomField('VotesIMDB', Trim(Value));
+	end;
+	Value := Trim(TextBefore(Line, '},"', ':'));  //ratingValue
+	Value := StringReplace(Value, '.', ',');
+	if Value <> '' then
+	begin
+	    if Pos(',', Value) = 0 then
+			Value := Value + ',0';
+		if CanSetCustomField('RatingIMDb') then
+			SetCustomField('RatingIMDb', Value);
+		if (((GetOption('PobierzzIMDb') = 1) or  (GetOption('PobierzzIMDb') = 4) or  (GetOption('PobierzzIMDb') = 5)) and
+			(not CustomFieldExists('RatingIMDb')) and CanSetField(fieldRating)) then
+			SetField(fieldRating, Value);
+	end;
+
+	// Ranking (Top IMDB, Pos IMDB)
+	Value := '';
+	Value := TextBetween(Pagetmp, 'top?ref_=tt_awd"', '</a>');
+	if Pos('See', Value) > 0 then
+		Value := TextBetween(Line, 'toptv?ref_=tt_awd"', '</a>');
+	if CanSetCustomField('PosIMDB') then
+	begin
+		if Value <> '' then
+			SetCustomField('TopIMDB', Trim(Value));
+	end;
+	if CanSetCustomField('PosIMDB') then
+	begin
+		Value := TextAfter(Value, '#');
+		if Value <> '' then
+			SetCustomField('PosIMDB', Trim(Value));
+	end;
+
+	// Opcje 2, 3, 4, 5: plakat, kraj, gatunek, jÍzyk, zwiastun
+	if GetOption('PobierzzIMDb') >= 2 then
+	begin
+
+		// Pobranie plakatu, jeøeli nie ma na filmweb
+		if (CanSetPicture() and (not PictureExists)) then
+		begin
+			Value := TextBetween(Pagetmp, 'ipc-poster__poster-image', '/>');
+			Value := TextBetween(Value, 'src="', '"');
+			if Value <> '' then
+			begin
+				Value := TextBefore(Value, '._', '') + '._V1_UY' + '720' + '_AL_.jpg';
+				GetPicture(Value);
+				PlakatIMDb := True;
+			end;
+		end;
+
+		// Pobranie kraju gdy brak na filmweb
+		if (CanSetField(fieldCountry) and (GetField(fieldCountry) = '')) then
+		begin
+			case GetOption('SeparatorKraju') of
+				0: Separator := ' / ';
+				1: Separator := ', ';
+				2: Separator := '/';
+			end;
+			Value := TextBetween(Pagetmp, 'Country of origin</span>', '</div>');
+			if Value = '' then
+				Value := TextBetween(Pagetmp, 'Countries of origin</span>', '</div>');
+			Value := StringReplace(Value, '</li>', '|</li>');
+			HTMLRemoveTags(Value);
+			if Copy(Value, Length(Value), 1) = '|' then
+				Value := Copy(Value, 1, Length(Value) - 1);
+			Value := RemoveSpaces(Value, True);
+			Value := StringReplace(Value, '|', Separator);
+			if Value <> '' then
+			begin
+				Value := CountryEN2PL(Value);
+				SetField(fieldCountry, Trim(Value));
+				CountryIMDb := True;
+			end;
+		end;
+
+		// Pobranie gatunku gdy brak na filmweb
+		if (CanSetField(fieldCategory) and (GetField(fieldCategory) = '')) then
+		begin
+			case GetOption('SeparatorGatunku') of
+				0: Separator := ' / ';
+				1: Separator := ', ';
+				2: Separator := '/';
+			end;
+			Value := TextBetween(Pagetmp, 'Genres</span>', '</div>');
+			if Value = '' then
+				Value := TextBetween(Pagetmp, 'Genre</span>', '</div>');
+			Value := StringReplace(Value, '</li>', '|</li>');
+			HTMLRemoveTags(Value);
+			if Copy(Value, Length(Value), 1) = '|' then
+				Value := Copy(Value, 1, Length(Value) - 1);
+			Value := RemoveSpaces(Value, True);
+			Value := StringReplace(Value, '|', Separator);
+			if Value <> '' then
+			begin
+				Value := CategoryEN2PL(Value);
+				SetField(fieldCategory, Trim(Value));
+				CategoryIMDb := True;
+			end;
+		end;
+
+		// Pobranie jÍzyka, gdy pole jest puste
+		if (CanSetField(fieldLanguages) and (GetField(fieldLanguages) = '')) then
+		begin
+			Value := TextBetween(Pagetmp, 'Languages</span>', '</div>');
+			if Value = '' then
+				Value := TextBetween(Pagetmp, 'Language</span>', '</div>');
+			Value := StringReplace(Value, '</li>', '|</li>');
+			HTMLRemoveTags(Value);
+			if Copy(Value, Length(Value), 1) = '|' then
+				Value := Copy(Value, 1, Length(Value) - 1);
+			Value := RemoveSpaces(Value, True);
+			Value := StringReplace(Value, '|', ', ');
+			if Value <> '' then
+			begin
+				Value := LanguageEN2PL(Value);
+				SetField(fieldLanguages, Trim(Value));
+			end;
+		end;
+
+		// Pobranie linku do zwiastuna gdy brak na filmweb,
+		// przeciwnym razie do trilera z youtube gdy brak
+		Value := TextBetween(Pagetmp, '>Trailer', '</div></div></div>');
+		Value := TextBetween(Value, 'href="', '"');
+		i := Pos('?', Value);
+		if i > 0 then
+			Value := Copy(Value, 1, i - 1);
+		if Value <> '' then
+		begin
+			Value := 'https://www.imdb.com' + Value;
+			if (CanSetCustomField('Zwiastuny') and (GetOption('Zwiastuny') > 0) and (GetCustomField('Zwiastuny') = '')) then
+			begin
+				SetCustomField('Zwiastuny', Value);
+				ZwiastunIMDb := True;
+			end
+			else
+				if (CanSetCustomField('Trailer') and (GetCustomField('Trailer') = '')) then
+					SetCustomField('Trailer', Value);
+		end;
+
+		// Polska i úwiatowa premiera
+		if ((CanSetCustomField('Swiatowapremiera') and (GetCustomField('Swiatowapremiera') = '')) or
+			(CanSetCustomField('Polskapremiera') and (GetCustomField('Polskapremiera') = ''))) then
+		begin
+			Pagetmp := IMDbUrl + '/releaseinfo';
+			Pagetmp := GetPage(Pagetmp);
+			WW := '';
+			PL := '';
+			Value := RemoveSpaces(TextBetween(Pagetmp, '<td class="release-date-item__country-name">', '</td>'), True);
+			HTMLRemoveTags(Value);
+			while ((Value <> '') and (PL = '')) do
+			begin
+				if (((PL = '') and (Value = 'Poland')) or ((WW = '') and (Value <> 'Poland'))) then begin
+					Value2 := RemoveSpaces(TextBefore(RemainingText, '</td>', ''), True);
+					HTMLRemoveTags(Value2);
+					if Pos(' ', Value2) = 2 then
+					Value2 := '0' + Value2;
+					Value2 := StringReplace(Value2, 'January', '01');
+					Value2 := StringReplace(Value2, 'February', '02');
+					Value2 := StringReplace(Value2, 'March', '03');
+					Value2 := StringReplace(Value2, 'April', '04');
+					Value2 := StringReplace(Value2, 'May', '05');
+					Value2 := StringReplace(Value2, 'June', '06');
+					Value2 := StringReplace(Value2, 'July', '07');
+					Value2 := StringReplace(Value2, 'August', '08');
+					Value2 := StringReplace(Value2, 'September', '09');
+					Value2 := StringReplace(Value2, 'October', '10');
+					Value2 := StringReplace(Value2, 'November', '11');
+					Value2 := StringReplace(Value2, 'December', '12');
+					if Length(Value2) = 10 then begin
+						Value2 := Copy(Value2, 7, 4) + '-' + Copy(Value2, 4, 2) + '-' + Copy(Value2, 1, 2);
+						if ((WW = '') and (Value <> 'Poland')) then begin
+							WW := Value2;
+							if (CanSetCustomField('Swiatowapremiera') and (GetCustomField('Swiatowapremiera') = '')) then
+							begin
+								SetCustomField('Swiatowapremiera', WW);
+								WWPremieraIMDb := True;
+							end;
+
+						end;
+						if ((PL = '') and (Value = 'Poland')) then begin
+							PL := Value2;
+							if (CanSetCustomField('Polskapremiera') and (GetCustomField('Polskapremiera') = '')) then
+							begin
+								SetCustomField('Polskapremiera', PL);
+								PLPremieraIMDb := True;
+							end;
+						end;
+					end;
+				end;
+				Value := RemoveSpaces(TextBetween(RemainingText, '<td class="release-date-item__country-name">', '</td>'), True);
+				HTMLRemoveTags(Value);
+			end;
+			if ((WW = '') and (PL <> '')) then
+				if (CanSetCustomField('Swiatowapremiera') and (GetCustomField('Swiatowapremiera') = '')) then
+				begin
+					SetCustomField('Swiatowapremiera', PL);
+					WWPremieraIMDb := True;
+				end;
+		end;
+
+		Pagetmp := IMDbUrl + '/reference';
+		Pagetmp := GetPage(Pagetmp);
+
+		// Boxoffice
+		if (CanSetCustomField('Boxoffice') and (GetCustomField('Boxoffice') = '')) then
+		begin
+			Value := TextBetween(Pagetmp, 'Cumulative Worldwide Gross', '</tr>');
+			Value := TextBetween(Value, '<td>', '</td');
+			Value := UTF8ToCP1250(Value);
+			Value := RemoveBracketText(FormatHTMLText(Value));
+			Value := RegExprSetReplace('(\d),(\d)', Value, '$1 $2', true);
+			Value := RegExprSetReplace('EUR(\d)', Value, 'Ä$1', true);
+			if Value <> '' then
+				SetCustomField('Boxoffice', Value);
+		end;
+
+		// Budøet
+		if (CanSetCustomField('Budzet') and (GetCustomField('Budzet') = '')) then
+		begin
+			Value := TextBetween(Pagetmp, 'Budget', '</tr>');
+			Value := TextBetween(Value, '<td>', '</td');
+			Value := UTF8ToCP1250(Value);
+			Value := RemoveBracketText(FormatHTMLText(Value));
+			Value := RegExprSetReplace('(\d),(\d)', Value, '$1 $2', true);
+			Value := RegExprSetReplace('EUR(\d)', Value, 'Ä$1', true);
+			if Value <> '' then
+				SetCustomField('Budzet', Value);
+		end;
+
+		// TwÛrcy
+		Nadpisz := (GetOption('PobierzzIMDb') = 2) or (GetOption('PobierzzIMDb') = 4);
+
+		// Reøyser
+		if (CanSetField(fieldDirector) and (Nadpisz or (GetField(fieldDirector) = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="directors"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetField(fieldDirector, FullTrim(lst.DelimitedAMCText));
+		end;
+
+		// Scenariusz
+		if (CanSetField(fieldWriter) and (Nadpisz or (GetField(fieldWriter) = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="writers"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetField(fieldWriter, lst.DelimitedAMCText);
+		end;
+
+		// Produkcja
+		if (CanSetField(fieldProducer) and (Nadpisz or (GetField(fieldProducer) = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="producers"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetField(fieldProducer, lst.DelimitedAMCText);
+		end;
+
+		// Muzyka
+		if (CanSetField(fieldComposer) and (Nadpisz or (GetField(fieldComposer) = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="composers"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetField(fieldComposer, lst.DelimitedAMCText);
+		end;
+
+		// ZdjÍcia
+		if (CanSetCustomField('Zdjecia') and (Nadpisz or (GetCustomField('Zdjecia') = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="cinematographers"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetCustomField('Zdjecia', lst.DelimitedAMCText);
+		end;
+
+		// Montaø
+		if (CanSetCustomField('Montaz') and (Nadpisz or (GetCustomField('Montaz') = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="editors"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetCustomField('Montaz', lst.DelimitedAMCText);
+		end;
+
+		// Scenografia
+		if (CanSetCustomField('Scenografia') and (Nadpisz or (GetCustomField('Scenografia') = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="production_designers"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			Value := TextBetween(Pagetmp, '<h4 name="art_directors"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', False);
+			Value := TextBetween(Pagetmp, '<h4 name="set_decorators"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', False);
+			if lst.Count > 0 then
+				SetCustomField('Scenografia', lst.DelimitedAMCText);
+		end;
+
+		// Kostiumy
+		if (CanSetCustomField('Kostiumy') and (Nadpisz or (GetCustomField('Kostiumy') = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="costume_designers"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetCustomField('Kostiumy', lst.DelimitedAMCText);
+		end;
+
+		// DzwiÍk
+		if (CanSetCustomField('Dzwiek') and (Nadpisz or (GetCustomField('Dzwiek') = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, '<h4 name="sound_department"', '</table>');
+			IMDbReadList(lst, Value, '<a href="/name/', True);
+			if lst.Count > 0 then
+				SetCustomField('Dzwiek', lst.DelimitedAMCText);
+		end;
+
+		// Studio
+		if (CanSetCustomField('Studio') and (Nadpisz or (GetCustomField('Studio') = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, 'Production Companies', '<header');
+			IMDbReadList(lst, Value, '<a href="/company/', True);
+			if lst.Count > 0 then
+				SetCustomField('Studio', lst.DelimitedAMCText);
+		end;
+
+		// Dystrybucja
+		if (CanSetCustomField('Dystrybucja') and (Nadpisz or (GetCustomField('Dystrybucja') = ''))) then
+		begin
+			Value := TextBetween(Pagetmp, 'Distributors', '<header');
+			IMDbReadList(lst, Value, '<a href="/company/', True);
+			if lst.Count > 0 then
+				SetCustomField('Dystrybucja', lst.DelimitedAMCText);
+		end;
+
+		// Aktorzy
+		if (CanSetField(fieldActors) and (Nadpisz or (GetField(fieldActors) = ''))) then
+		begin
+			CharacterFlag := (GetOption('UkladAktorow') < 4);
+			case GetOption('UkladAktorow') of
+				0, 1: Prefix := ' jako ';
+				2, 3: Prefix := ' - ';
+			end;
+			case GetOption('UkladAktorow') of
+				0, 2, 4: Sufix := ', ';
+				1, 3, 5: Sufix := #13#10;
+			end;
+			case GetOption('IloscAktorow') of
+				0: IloscAktorow := 99999;
+				1: IloscAktorow := 10;
+				2: IloscAktorow := 20;
+				3: IloscAktorow := 30;
+				4: IloscAktorow := 40;
+				5: IloscAktorow := 50;
+			end;
+			Value := FullTrim(TextBetween(Pagetmp, '<h4 name="cast"', '</table>'));
+			if Value <> '' then
+			begin
+				FullValue := '';
+				while ((Pos('<tr', Value) > 0) and (IloscAktorow > 0)) do
+				begin
+					Value2 := TextBetween(Value, '<tr class', '</tr>');
+					HTMLDecode2(Value2);
+					Value := RemainingText;
+					if Pos('Rest of cast', Value2) > 0 then
+						Continue;
+					if FullValue <> '' then
+						FullValue := FullValue + Sufix;
+					TextBefore(Value2, '</td>', '');
+					Value2 := FullTrim(TextBetween(Value2, '<td class="itemprop" itemprop="actor" itemscope itemtype="http://schema.org/Person">', '</td>'));
+					HTMLRemoveTags(Value2);
+					Value2 := RemoveSpaces(Value2, True);
+					if Value2 <> '' then
+					begin
+						FullValue := FullValue + Value2;
+						if (CharacterFlag) then
+						begin
+							Value2 := FullTrim(TextBetween(RemainingText, '<td class="character">', '</td>'));
+							HTMLRemoveTags(Value2);
+							Value2 := StringReplace(Value2, 'The ', ''); //usuwa prefix 'The'
+							Value2 := RemoveBracketText(RemoveSpaces(Value2, True));
+							//Value2 := '*'+RemoveBracketText(RemoveSpaces(Value2, True))+'*';
+							if Value2 <> '' then
+								FullValue := FullValue + Prefix + Value2;
+						end;
+						IloscAktorow := IloscAktorow - 1;
+					end;
+				end;
+				HTMLRemoveTags(FullValue);
+				FullValue := UTF8ToCP1250(FullValue);
+				if Value <> '' then
+					SetField(fieldActors, FullValue);
+			end;
+		end;
+	end;
+
+	if (PlakatIMDb or CountryIMDb or CategoryIMDb or ZwiastunIMDb or PLPremieraIMDb or WWPremieraIMDb) then
+	begin
+		Value := 'Niøej wymienione pozycje, alternatywnie zosta≥y pobrane ze strony imdb.com, zamiast z filmweb.pl:'#10;
+		if (PlakatIMDb) then
+			Value := Value + '  - plakat'#10;
+		if (CountryIMDb) then
+			Value := Value + '  - kraj'#10;
+		if (CategoryIMDb) then
+			Value := Value + '  - gatunek'#10;
+		if (ZwiastunIMDb) then
+			Value := Value + '  - zwiastun'#10;
+		if (PLPremieraIMDb) then
+			Value := Value + '  - Polska premiera'#10;
+		if (WWPremieraIMDb) then
+			Value := Value + '  - úwiatowa premiera'#10;
+		ShowInformation(Value);
+	end;
+	lst.Free;
+end;
+
+//Adaptacja skryptu Soulsnake: GetEmbeddedTrailerFromYouTube.ifs
+procedure PobierzTrailerZYouTube();
+var
+	Value, VideoId, Line, Pagetmp: string;
+begin
+	if ((not CanSetCustomField('Trailer')) or (GetOption('TrailerZYouTube') = 0) or ((GetOption('TrailerZYouTube') = 2) and
+		(GetCustomField('Trailer') <> ''))) then
+		Exit;
+
+	Value := GetField(fieldOriginalTitle);
+	if (Value = '') then
+		Value := GetField(fieldTranslatedTitle);
+	if (GetField(fieldYear) <> '') then
+		Value := Value + ' ' + GetField(fieldYear);
+	Value := UrlEncode(Value + ' Trailer');
+	Pagetmp := 'https://www.youtube.com/results?search_query=' + Value;
+	Line := GetPage4(Pagetmp, '', '', #13#10'DNT: 1'#10'Cookie: CONSENT=');
+	VideoId := findInfo('{"url":"/watch?v=', '"', Line,'4');
+	if (VideoId <> '') then
+	begin
+		Value := 'https://www.youtube.com/embed/' + videoId;
+		SetCustomField('Trailer', Value);
+	end;
+end;
+
+procedure duplikaty(Numer: string);
+var
+	NumerF, NumerP, FilmTytul, Cfile, Dir, Test: string;
+	i, EditD: integer;
+	FilmyL: TStringList;
+begin
+	EditD := 0;
+	FilmyL := TStringList.Create;
+	Cfile := fileCurrentCatalog;
+	Dir := Cfile + '_pics' + '\';
+	if (not DirectoryExists(Dir)) then
+		CreateFolder(Dir);
+	Cfile := ExtractFileName(Cfile);
+	if FileExists(Dir + 'Filmy.adb') then
+		FilmyL.LoadFromFile(Dir + 'Filmy.adb');
+	FilmTytul := FilmyL.GetValue(Numer);
+	NumerF := FilmyL.GetValue(Numer + 'N');
+	NumerP := GetField(fNumber);
+	if FilmTytul = '' then
+	begin
+		for i := 0 to FilmyL.Count do
+		begin
+			Test := FilmyL.GetString(i);
+			Test := Copy(Test, Pos('=', Test) + 1, Length(Test));
+			if Test = NumerP then
+				FilmyL.Delete(i);
+		end;
+		FilmyL.SetValue(Numer, GetField(fieldTranslatedTitle) + ' (' + GetField(fieldOriginalTitle) + ') [' + GetField(fieldYear) + ']');
+		FilmyL.SetValue(Numer + 'N', GetField(fNumber));
+		EditD := 1;
+	end
+	else
+	begin
+		if ((NumerP <> NumerF) and (NumerF <> '')) then
+		begin
+			if (GetOption('Duplikator') = 1) then
+				SetField(fMedia, 'Zdublowany');
+			if (GetOption('Duplikator') = 2) then
+				if ShowWarning('Wykryto duplikat z pozycjπ: ' + NumerF + #13#10 + 'Tytu≥: ' + FilmTytul + #13#10 + 'OznaczyÊ poprzez etykietÍ "Zdublowany"?') then
+					SetField(fMedia, 'Zdublowany');
+		end;
+		if ((NumerP = NumerF) or (NumerF = '')) then
+		begin
+			FilmyL.SetValue(Numer, GetField(fieldTranslatedTitle) + ' (' + GetField(fieldOriginalTitle) + ') [' + GetField(fieldYear) + ']');
+			FilmyL.SetValue(Numer + 'N', GetField(fNumber));
+			EditD := 1;
+		end;
+	end;
+	if ((FilmyL.Count > 0) and (DirectoryExists(Dir)) and (EditD = 1)) then
+	begin
+		FilmyL.SaveToFile(Dir + 'Filmy.adc');
+		DeleteFile(Dir + 'Filmy.adb');
+		MoveFile(Dir + 'Filmy.adc', Dir + 'Filmy.adb');
+	end;
+	FilmyL.Free;
+end;
+
+
+
+function Obsada(Page: TStringList; Typ: string; Adres: string; Nazwa: string; Jako: boolean): string;
+var
+	Aktor, Rola, Zdjecie, URLA, AktorID, VTemp, Prefix, Sufix, PComments: string;
+	Pagetmp, Line, Line1, Line2: string;
+	NzwZdj, Plik: string;
+	Lista: TStringList;
+	Status: boolean;
+	StartPos, Dodatek: integer;
+	StartMarkerTxt: string;
+begin
+	case GetOption('UkladAktorow') of
+		0, 1: Prefix := ' jako ';
+		2, 3: Prefix := ' - ';
+	end;
+	case GetOption('UkladAktorow') of
+		0, 2, 4: Sufix := ', ';
+		1, 3, 5: Sufix := #13#10;
+	end;
+	if (Aktorile < 0) then
+		case GetOption('IloscAktorow') of
+			0: Aktorile := 99999;
+			1: Aktorile := 10;
+			2: Aktorile := 20;
+			3: Aktorile := 30;
+			4: Aktorile := 40;
+			5: Aktorile := 50;
+		end;
+	if ((Nazwa <> 'Aktor') and (Nazwa <> 'Goúcinni')) then
+		Prefix := ' - ';
+	if ((Nazwa <> 'Aktor') and (Nazwa <> 'Goúcinni')) then
+		Sufix := ', ';
+	if ((Nazwa <> 'Aktor') and (Nazwa <> 'Goúcinni')) then
+		Aktorile := 99999;
+	Lista := TStringList.Create;
+	//Czyszczenie Dodatkow
+	if GetOption('ZdjÍciaAktorÛw') > 0 then
+	begin
+		for Dodatek := GetExtraCount downto 0 do
+		begin
+			if GetExtraField(Dodatek, eCategory) = Nazwa then
+			begin
+				Lista.SetValue(GetExtraField(Dodatek, extraFieldURL), GetExtraPicturePath(Dodatek));
+				DeleteExtra(Dodatek);
+			end;
+		end;
+	end;
+
+	Result := '';
+	if Typ = 'Obsada' then
+		Line := TextBetween(Page.Text, '<div class="filmFullCastSection__list">', '</section>')
+	else
+  	Line := TextBetween(Page.Text, '            ' + Typ, '<h3 class="filmFullCastSection__header');
+	if Length(Line) = 0 then
+		Line := TextBetween(Page.Text, '"> ' + Typ + ' </span>', '</section>');
+	Rola := '';
+	StartMarkerTxt := 'filmFullCastSection__item castRoleListElement';
+	while ((Length(Line) > 0) and (Aktorile > 0)) do
+	begin
+		StartPos := Pos(StartMarkerTxt, Line);
+		if StartPos>0 then
+			Line := Copy(Line, StartPos+Length(StartMarkerTxt), Length(Line))
+		else
+			Line := '';
+		VTemp := TextBefore(Line, StartMarkerTxt, '');
+		if Length(VTemp) = 0 then
+			VTemp := Line;
+
+		if (Pos('class="castRoleListElement__info', VTemp) > 0) then
+		begin
+			Aktor := TextBetween(VTemp, 'data-person-source>', '<');
+			HTMLDecode2(Aktor);
+			Rola := '';
+			if Jako and (Pos('</span>', RemainingText) > 0) then                     //jeúli jest podana postaÊ
+			begin
+//				Rola := TextBefore('<'+RemainingText, '</div>', '');
+				Rola := TextBefore('<'+RemainingText, '</span>', '');
+				HTMLRemoveTags(Rola);
+				HTMLDecode2(Rola);
+				Rola := RemoveSpaces(Rola, True);
+			end;
+			Zdjecie := TextBetween(VTemp, 'data-image="', '"');
+			Zdjecie := StringReplace(Zdjecie, '.2.', '.3.');
+			URLA := 'https://www.filmweb.pl' + TextBetween(VTemp, '<a href="', '"');
+			AktorID := TextBetween(VTemp, 'data-item-id="', '"');
+			VTemp := FullTrim(Aktor);
+			if ((Length(Prefix) > 0) and (Length(Rola) > 0)) then
+				VTemp := VTemp + Prefix + Rola;
+			Result := Result + VTemp + Sufix;
+			if GetOption('ZdjÍciaAktorÛw') > 0 then
+			begin
+				if GetOption('ZdjÍciaAktorÛw') = 2 then
+				begin
+					PComments := StringReplace(AktorI.GetValue(URLA), '<br>', #13#10);
+					if ((PComments = '') or (PComments = 'brak')) then
+					begin
+						Pagetmp := GetPage(URLA);
+						Line1 := TextBetween(Pagetmp, 'class="inline vertical', '</h2');
+						if Pos('<a href=', Line1) > 0 then
+						begin
+							Pagetmp := GetPage(URLA + '/biography');
+						end
+						else
+						begin
+							Line1 := Textbetween(Pagetmp, 'personMenu-personCuriosities"', '</li><li');
+							if Pos('<a href=', Line1) > 0 then
+								Pagetmp := GetPage(URLA + '/trivia');
+						end;
+						if Pos('<a href=', Line1) > 0 then
+						begin
+							Line1 := TextBetween(Pagetmp, 'ContentWrapper', 'class="personSubpageMenu');
+							while Pos('<p class="text">', Line1) > 0 do
+							begin
+								Line2 := TextBetween(Line1, '<p class="text">', '</p>');
+								Line1 := RemainingText;
+								PComments := PComments + Line2;
+								PComments := StringReplace(PComments, '</li><li>', #13#10);
+							end;
+						end;
+						if PComments <> '' then
+						begin
+							PComments := UTF8ToCP1250(PComments);
+							PComments := StringReplace(PComments, '?', '"');
+							PComments := FormatHTMLText(PComments);
+							AktorI.SetValue(URLA, StringReplace(PComments, #13#10, '<br>'));
+						end;
+						if PComments = '' then
+						begin
+							AktorI.SetValue(URLA, 'brak');
+						end;
+					end;
+				end;
+				if Length(Zdjecie) > 0 then
+				begin
+					Dodatek := AddExtra;
+					SetExtraField(Dodatek, extraFieldTitle, Aktor);
+					SetExtraField(Dodatek, extraFieldCategory, Nazwa);
+					SetExtraField(Dodatek, extraFieldURL, URLA);
+					SetExtraField(Dodatek, extraFieldTag, 'Obsada');
+					SetExtraField(Dodatek, eDescription, Rola);
+					SetExtraField(Dodatek, eComments, PComments);
+
+					NzwZdj := URLDecode(URLA);
+					NzwZdj := StringReplace(NzwZdj, '/', '\');
+					NzwZdj := StringReplace(NzwZdj, '+', ' ');
+					NzwZdj := ExtractFileName(NzwZdj);
+					//ZdjÍcie jest w folderze "cache"
+					if FileExists(DirC + NzwZdj + '.*') then
+					begin
+						Plik := ListDirectory(DirC, NzwZdj + '.*');
+						Plik := FullTrim(copy(Plik, 1, Length(NzwZdj)+5));
+						ImportExtraPicture2(Dodatek, DirC + Plik, picImportCopyInPicDir);
+					end
+					else
+					begin
+						//Plik zdjÍcia istnieje (ponowne uruchomienie skryptu)
+						if ((Length(Lista.GetValue(URLA)) > 0) and (FileExists(Dir + Lista.GetValue(URLA)))) then
+						begin
+							ImportExtraPicture2(Dodatek, Dir + Lista.GetValue(URLA), picImportCopyInPicDir);
+						end
+						else
+						//Pobierz zdjÍcie ze strony internetowej
+						begin
+							RaiseConnectionErrors(False);
+							Status := GetExtraPicture(Dodatek, Zdjecie);
+							if Status = False then
+							begin
+								Zdjecie := StringReplace(Zdjecie, '.3.', '.2.');
+								Status := GetExtraPicture(Dodatek, Zdjecie);
+								if Status = False then
+								begin
+									Zdjecie := StringReplace(Zdjecie, '.2.', '.1.');
+									Status := GetExtraPicture(Dodatek, Zdjecie);
+									if Status = False then
+										DeleteExtra(Dodatek);
+								end;
+							end;
+							RaiseConnectionErrors(True);
+							if Status then
+								ExportExtraPicture(Dodatek, DirC+NzwZdj+GetExtraPictureExt(Dodatek));
+						end;
+					end;
+				end;
+			end;
+			Aktorile := Aktorile - 1;
+		end;
+	end;
+	Result := Copy(Result, 0, Length(Result) - Length(Sufix));
+	Lista.Free;
+end;
+
+//Zwiastuny
+function Zwiastuny(Page: TStringList): string;
+var
+	Line, Line2, Value: string;
+	StartPos: Integer;
+begin
+	Line := TextBetween(Page.Text, 'page__section filmVideosSection FilmVideosSection', '</section>');
+	Value := '';
+	while Pos('class="thumbnail thumbnail', Line) > 0 do
+	begin
+		Line2 := TextBetween(Line, 'a href="', '"');
+		StartPos := Pos('</a></h3>', Line) + Length('</a></h3>');
+		Line := Copy(Line, StartPos, Length(Line) - StartPos + 1);
+		Value := Value + 'https://www.filmweb.pl' + Line2 + #13#10;
+	end;
+	HTMLDecode2(Value);
+	Result := FullTrim(Value);
+end;
+
+//Odcinki (+suma czasÛw trwania)
+const
+	odcNrTyt = 1;
+	odcData  = 2;
+	odcOcena = 4;
+	odcCzas  = 8;
+procedure Odcinki(Page: TStringList);
+var
+	str: string;
+	Eplnk: TStringList;
+	i, CzasTrw: integer;
+	WybrOpcje, FormatOdc: integer;
+	Line, Line2, Linetmp: string;
+	Value, Value2, Value3, Value4, Value5: string;
+begin
+	Eplnk := TStringList.Create;
+	// lista linkÛw do sezonÛw
+	Value := TextBetween(Page.Text, 'class="filmPosterSection__serialSeasons', '</section>');
+	Value := FullTrim( TextBetween(Value, 'href="', '"') );
+	while ((Value <> '') and ((Pos('/episode/',Value) > 0) or (Pos('/season/',Value) > 0))) do
+	begin
+		if Eplnk.IndexOf(Value) < 0 then
+			Eplnk.Insert(0, Value);
+		Value := FullTrim( TextBetween(RemainingText, 'href="', '"') );
+	end;
+	// zbiÛr opcji formatowania
+	case GetOption('Odcinki') of
+		0: WybrOpcje := 0;
+		1: WybrOpcje := odcNrTyt;                                //nr odcinka, tytu≥
+		2: WybrOpcje := odcNrTyt + odcData;                      //nr odcinka, tytu≥, data
+		3: WybrOpcje := odcNrTyt + odcOcena;                     //nr odcinka, tytu≥, ocena
+		4: WybrOpcje := odcNrTyt + odcCzas;                      //nr odcinka, tytu≥, czas trwania
+		5: WybrOpcje := odcNrTyt + odcData + odcOcena;           //nr odcinka, tytu≥, data, ocena
+		6: WybrOpcje := odcNrTyt + odcData + odcCzas;            //nr odcinka, tytu≥, data, czas trwania
+		7: WybrOpcje := odcNrTyt + odcData + odcOcena + odcCzas; //nr odcinka, tytu≥, data, ocena, czas trwania
+		8: WybrOpcje := odcNrTyt + odcOcena + odcCzas;           //nr odcinka, tytu≥, ocena i czas trwania
+	end;
+	// informacje o odcinkach
+	str := '';
+	CzasTrw := 0;
+	CzasTrwaniaZOdcinkow := True;
+	for i:=0 to Eplnk.Count-1 do
+	begin
+		Line:= UTF8ToCP1250(GetPage('https://www.filmweb.pl' +  + Eplnk.GetString(i)));
+		Line2 := RemoveSpaces(TextBetween(Line, 'class="episodePreview EpisodePreview episodeSource', '</div></a></div>'), True);
+		Linetmp := RemainingText;
+		while Line2 <> '' do
+		begin
+			FormatOdc := WybrOpcje;
+			//numer odcinka
+			Value := TextBetween(Line2, 'class="episodePreview__subTitle', '</span>');
+			Value := FormatHTMLText(TextAfter(Value, '>'));
+			Value := AnsiUpperCase(Value);
+			if Value = '' then
+				FormatOdc := FormatOdc xor odcNrTyt;
+			//tytu≥
+			Value2 := TextBetween(Line2, 'class="episodePreview__title', '</span>');
+			Value2 := FormatHTMLText(TextAfter(Value2, '>'));
+			//data
+			Value3 := TextBetween(Line2, 'class="episodePreview__date', '</');
+			Value3 := FormatHTMLText(TextAfter(Value3, '>'));
+			if Value3 = '' then
+				FormatOdc := FormatOdc xor odcData;
+			//ocena
+			Value4 := TextBetween(Line2, 'class="episodePreview__rating', '</span');
+			Value4 := FormatHTMLText(TextAfter(Value4, '>'));
+			if Value4 = '' then
+				FormatOdc := FormatOdc xor odcOcena;
+			//czas trwania
+			Value5 := TextAfter(Line2, 'data-duration');
+			Value5 := Fulltrim(TextBetween(Value5, '"', '"'));
+			if ((Value5 = '') or (StrToInt(Value5,0) = 0)) then
+			begin
+				FormatOdc := FormatOdc xor odcCzas;
+				CzasTrwaniaZOdcinkow := False;
+			end
+			else
+				CzasTrw := CzasTrw + StrToInt(Value5, 0);
+			// formatowanie
+			if Value2 <> '' then
+        Value2 := ' - ' + Value2;
+			case FormatOdc of
+				odcNrTyt:
+					str := str + Value + Value2 +#13#10;
+				odcNrTyt + odcData:
+					str := str + Value + Value2 +'   ('+ Value3 +'r.)'#13#10;
+				odcNrTyt + odcOcena:
+					str := str + Value + Value2 +'   ('+ Value4 +'pkt.)'#13#10;
+				odcNrTyt + odcCzas:
+					str := str + Value + Value2 +'   ('+ Value5 +'min.)'#13#10;
+				odcNrTyt + odcData + odcOcena:
+					str := str + Value + Value2 +'   ('+ Value3 +'r. '+ Value4 +'pkt.)'#13#10;
+				odcNrTyt + odcData + odcCzas:
+					str := str + Value + Value2 +'   ('+ Value3 +'r. '+ Value5 +'min.)'#13#10;
+				odcNrTyt + odcData + odcOcena + odcCzas:
+					str := str + Value + Value2 +'   ('+ Value3 +'r. '+ Value4 +'pkt. '+ Value5 +'min.)'#13#10;
+				odcNrTyt + odcOcena + odcCzas:
+					str := str + Value + Value2 +'   ('+ Value4 +'pkt. '+ Value5 +'min.)'#13#10;
+			end;
+			Line2 := RemoveSpaces(TextBetween(Linetmp, 'class="episodePreview EpisodePreview episodeSource', '</div></a></div>'), True);
+			Linetmp := RemainingText;
+		end;
+	end;
+	if (CanSetCustomField('Odcinki') and (WybrOpcje>0)) then
+		SetCustomField('Odcinki', Fulltrim(str));
+	if (CzasTrwaniaZOdcinkow and (CzasTrw > 0) and
+		((GetOption('CzasTrwaniaFilmu') = 1) or ((GetOption('CzasTrwaniaFilmu') = 2) and (GetField(fieldLength) = '')))) then
+		SetField(fieldLength, IntToStr(CzasTrw))
+	else
+		CzasTrwaniaZOdcinkow := False;
+	Eplnk.Free;
+end;
+
+//Tytu≥yAKA
+function TytulyAKA(Page: TStringList): string;
+var
+	i: integer;
+	str: string;
+	Line, Linetmp: string;
+	Value, Value2, Value3: string;
+	Dospr: TStringList;
+begin
+	Result := '';
+	str := FullTrim(GetField(fieldCountry));
+	if ((TytulyAkaKraje = '*nie pobieraj')) or ((str = '') and (TytulyAkaKraje = '')) then
+		Exit;
+	// tworzy listÍ krajÛw do sprawdzenia
+	if TytulyAkaKraje <> '' then
+	begin
+		if str='' then
+			str := TytulyAkaKraje
+		else
+			str := str + ',' + TytulyAkaKraje;
+	end;
+	str := StringReplace(str, ' / ', ',');
+	str := StringReplace(str, '/', ',');
+	str := StringReplace(str, ', ', ',');
+	str := '"' + StringReplace(str, ',', '","') + '"';
+	Dospr := TStringList.Create;
+	Dospr.CommaText := str;
+	// wyszukuje dodatkowe tytu≥y
+	str := '';
+	Line := RemoveSpaces(TextBetween(Page.Text, '<li class="filmTitlesSection__item"', '</li>'), True);
+	Linetmp := RemainingText;
+	while Line <> '' do
+	begin
+		Value := TextBetween(Line, '<div class="filmTitlesSection__desc">', '</div>');  //kraj
+		Value := FormatHTMLText(Value);
+		for i:=0 to Dospr.Count-1 do
+			if ((TytulyAkaKraje = '*wszystkie') or (Pos(Dospr.GetString(i),Value) > 0)) then
+			begin
+				Value2 := TextBetween(Line, '<div class="filmTitlesSection__title">', '</div>'); //tytu≥
+				Value2 := FormatHTMLText(Value2);
+				// pomija tytu≥ gdy strona kodowa nie jest obs≥ugiwana
+				Value3 := FullTrim(RegExprSetReplace('[?ª–ŒÆµÄã°∞©ˇ∂¨§áÜô´ß¶õ∑ñó±ïÂ◊∏≤®\x81\x83\x88\x90\x98]',Value2,'',false));
+			    if (((Length(Value2)-Length(Value3))>1) or (Length(Value3)<=1) or (Pos('Œ≠',Value2)>0))  then
+					break;
+				str := str + '> ' + Value + ' <'#13#10;
+				str := str + Value2 + #13#10#13#10;
+				break;
+			end;
+		Line := RemoveSpaces(TextBetween(Linetmp, '<li class="filmTitlesSection__item"', '</li>'), True);
+		Linetmp := RemainingText;
+	end;
+	Dospr.Free;
+	Result := FullTrim(str);
+end;
+
+//Pressbook
+function Pressbook(Page: TStringList): string;
+var
+	Line, Line1, Line2, Value: string;
+	StartPos : Integer;
+//	KorakcjaPyt: boolean;
+begin
+	Value := '';
+	Line := TextBetween(Page.Text, 'class="page__text filmPressbooksSection__list', 'data-group="g8');
+	while Pos('class="filmPressbooksSection__item"', Line) > 0 do
+	begin
+		Line1 := TextBetween(Line, 'class="filmPressbooksSection__subtitle">', '</h3>');
+		Line1 := FormatHTMLText(Line1);
+		Value := Value + '> ' + Line1 + ' <' + #13#10;
+		Line2 := TextBetween(Line, 'data-item-id="pressbook', 'class="filmPressbooksSection__adminButtons');
+		Line := RemainingText;
+		Line2 := TextAfter(Line2, '>');
+		Line2 := FormatHTMLText(Line2 + '>');
+		Value := Value + Line2;
+		if Pos('class="filmPressbooksSection__subtitle">', Line) > 0 then
+			Value := Value + #13#10 + SepPoziomy;
+	end;
+
+	//Tymczasowy kod do korekcji b≥ÍdÛw na stronie filweb.pl spowodowanych niepoprawnym kodowaniem apostrofÛw i cudzys≥owÛw, zastπpionych przez znaki zapytania
+	//( Notatka: niestety, nie da siÍ wszystkiego prawid≥owo poprawiÊ )
+	RegExprSet('((^|([/,/.]\s+))\s*\?)');
+	if ( RegExprExec(Value) ) then begin
+		Value := RegExprSetReplace('([A-Za-z])\?([A-Za-z])', Value, '$1''$2', true);  	// D?Leha -> D'Leha
+		Value := RegExprSetReplace('\?+', Value, '"', true);							// ? -> "
+	end;
+
+	Result := FullTrim(Value);
+end;
+
+//Daty Premier
+procedure DatyPremier(Page: TStringList);
+var
+	Line, Linetmp: string;
+	Value, Value2: string;
+	WW, PL: string;
+begin
+	WW := '';
+	PL := '';
+	Line := RemoveSpaces(TextBetween(Page.Text, '<li class="filmDatesSection__item"', '</li>'), True);
+	Linetmp := RemainingText;
+	//HTMLRemoveTags(Value);
+	while ((Line <> '') and (PL = '')) do
+	begin
+		Value := TextBetween(Line, '<div class="filmDatesSection__desc">', '</div>');  //kraj
+		Value := RemoveBracketText(FormatHTMLText(Value));
+		if (((PL = '') and (Value = 'Polska')) or ((WW = '') and (Value <> 'Polska'))) then begin
+			Value2 := TextBetween(Line, '<div class="filmDatesSection__title">', '</div>'); //data
+			Value2 := RemoveBracketText(FormatHTMLText(Value2));
+			if Pos(' ', Value2) = 2 then
+				Value2 := '0' + Value2;
+			Value2 := StringReplace(Value2, 'stycznia', '01');
+			Value2 := StringReplace(Value2, 'lutego', '02');
+			Value2 := StringReplace(Value2, 'marca', '03');
+			Value2 := StringReplace(Value2, 'kwietnia', '04');
+			Value2 := StringReplace(Value2, 'maja', '05');
+			Value2 := StringReplace(Value2, 'czerwca', '06');
+			Value2 := StringReplace(Value2, 'lipca', '07');
+			Value2 := StringReplace(Value2, 'sierpnia', '08');
+			Value2 := StringReplace(Value2, 'wrzeúnia', '09');
+			Value2 := StringReplace(Value2, 'paüdziernika', '10');
+			Value2 := StringReplace(Value2, 'listopada', '11');
+			Value2 := StringReplace(Value2, 'grudnia', '12');
+			if Length(Value2) = 10 then begin
+				Value2 := Copy(Value2, 7, 4) + '-' + Copy(Value2, 4, 2) + '-' + Copy(Value2, 1, 2);
+				if ((WW = '') and (Value <> 'Polska')) then begin
+					WW := Value2;
+					if CanSetCustomField('Swiatowapremiera') then
+						SetCustomField('Swiatowapremiera', WW);
+				end;
+				if ((PL = '') and (Value = 'Polska')) then begin
+					PL := Value2;
+					if CanSetCustomField('Polskapremiera') then
+						SetCustomField('Polskapremiera', PL);
+				end;
+			end;
+		end;
+		Line := RemoveSpaces(TextBetween(Linetmp, '<li class="filmDatesSection__item"', '</li>'), True);
+		Linetmp := RemainingText;
+	end;
+	if ((WW = '') and (PL <> '')) then
+		if CanSetCustomField('Swiatowapremiera') then
+			SetCustomField('Swiatowapremiera', PL);
+end;
+
+//Ciekawostki
+function Ciekawostki(Page: TStringList): string;
+var
+	Line, Line2, Value: string;
+	MarkerSubtitle, MarkerText: string;
+	StartPos, Count: integer;
+begin
+	Result := '';
+	MarkerSubtitle := 'class="curiositiesNavSection__subtitle"';
+	MarkerText := 'class="curiositiesNavSection__text"';
+	Line := TextBetween(Page.Text, 'page__container page__container--paddingless page__navContent', '</section>');
+	Line := StringReplace(Line, '<u>', '');
+	Line := StringReplace(Line, '</u>', '');
+	Line := StringReplace(Line, '</b>', '');
+	Line := StringReplace(Line, '<b>', '');
+	Line := StringReplace(Line, '<br>', '');
+	Line := StringReplace(Line, '<br/>', '');
+	while Pos(MarkerSubtitle, Line) > 0 do
+	begin
+		Value := '<'+TextBetween(Line, MarkerSubtitle, '<');
+		Result := Result + FormatHTMLText(Value) + #13#10;
+		Line2 := TextBetween(Line, MarkerSubtitle, MarkerSubtitle);
+		StartPos := Pos(MarkerSubtitle, Line) + Length(MarkerSubtitle);
+		Line := Copy(Line, StartPos, Length(Line));
+		if length(line2) = 0 then
+			Line2 := line;
+		Count := 1;
+		while Pos(MarkerText, Line2) > 0 do
+		begin
+			Value := '<'+TextBetween(Line2, MarkerText, '</p>');
+			Result := Result + IntToStr(Count) + ': ' + FormatHTMLText(Value) + #13#10;
+			Count := Count + 1;
+			StartPos := Pos(MarkerText, Line2) + Length(MarkerText);
+			Line2 := Copy(Line2, StartPos, Length(Line2));
+		end;
+		Result := Result + #13#10;
+	end;
+	Result := FullTrim(Result);
+end;
+
+//Nagrody
+function Nagrody(Page: TStringList): string;
+var
+	Line, Line2, Line3, Line4, Value: string;
+	MarkerGroupAwardName: string;
+	StartPos, KonPos: integer;
+begin
+	Result := '';
+	MarkerGroupAwardName := 'class="awardsNavSection__groupAwardName">';
+	Line := TextBetween(Page.Text, 'page__navContent page__container awardsNavSection__container', '</section>');
+	while Pos('<h3 class="awardsNavSection__groupTitle">', Line) > 0 do
+	begin
+		Value := TextBetween(Line, '<h3 class="awardsNavSection__groupTitle">', '</h3>');
+		Result := Result + FormatHTMLText(Value) + #13#10;
+		Line2 := TextBetween(Line, '<h3 class="awardsNavSection__groupTitle">', '<h3 class="awardsNavSection__groupTitle">');
+		StartPos := Pos('<h3 class="awardsNavSection__groupTitle">', Line) + Length('<h3 class="awardsNavSection__groupTitle">');
+		Line := Copy(Line, StartPos, Length(Line));
+		if length(line2) = 0 then
+			line2 := line;
+		while Pos('awardsNavSection__groupYear">', Line2) > 0 do
+		begin
+			Value := TextBetween(Line2, 'awardsNavSection__groupYear">', '</div></div><ul');
+			Result := Result + FormatHTMLText(Value) + #13#10;
+			Line3 := TextBetween(Line2, '<div class="awardsNavSection__groupYear">', '<div class="awardsNavSection__groupYear">');
+			if length(line3) = 0 then
+				line3 := line2;
+			StartPos := Pos('</span></h4></li></ul>', Line2) + Length('</span></h4></li></ul>');
+			Line2 := Copy(Line2, StartPos, Length(Line2));
+			while Pos(MarkerGroupAwardName, Line3) > 0 do
+			begin
+				StartPos := Pos(MarkerGroupAwardName, Line3);
+				Line3 := Copy(Line3, StartPos+Length(MarkerGroupAwardName), Length(Line3));
+				Line4 := TextBefore(Line3, MarkerGroupAwardName, '');
+				if Length(Line4) = 0 then
+					Line4 := Line3;
+				Value := TextBefore(Line4, '</span> <span ', '');
+				Result := Result + FormatHTMLText(Value);
+				Value := TextBetween(Line4, 'class="awardsNavSection__groupDesc"', '</span></h4></li>');
+				if Value<>'' then
+					Result := Result + ' ' + FormatHTMLText('<a ' + Value);
+				Result := Result + #13#10;
+			end;
+			Result := Result + #13#10;
+		end;
+		Result := Result + #13#10;
+	end;
+	Result := StringReplace(Result, #13#10#13#10, #13#10);
+	Result := StringReplace(Result, ' , ', ', ');
+	Result := FullTrim(Result);
+end;
+
+
+//Opis
+function Opis(Page: TStringList): string;
+var
+	Line, Line2: string;
+	DescCnt: integer;
+begin
+	PickListClear;
+	Result := '';
+	DescCnt := 0;
+	if GetOption('OpisFilmu') = 1 then
+	begin
+		Result := TextBetween(Page.Text, 'descriptionSection__text', '</p>') + '</p>';
+		Result := TextBetween(Result, '>', '</p>') + '</p>';
+		Result := FormatHTMLText(Result);
+	end;
+	if GetOption('OpisFilmu') = 0 then
+	begin
+		Line := TextBetween(Page.Text, 'descriptionSection__list"', '</section>');
+		Line2 := '';
+		while Pos('descriptionSection__text--full', Line) > 0 do
+		begin
+			Line2 := TextBetween(Line, 'descriptionSection__text', '</p>') + '</p>';
+			Line2 := TextBetween(Line2, '>', '</p>') + '</p>';
+			Line2 := FormatHTMLText(Line2);
+			PickListAdd(Line2);
+			Line := Copy(Line, Pos('descriptionSection__text--full', Line) + 5, Length(Line));
+			DescCnt := DescCnt + 1;
+		end;
+		if DescCnt > 1 then
+		begin
+  		Line2 := GetField(fieldYear);
+			PickListTitle('Wybierz opis do: "' + GetField(fieldTranslatedTitle) + ' (' + GetField(fieldYear) + ')"');
+			PickListExec('', Result);
+			PickListClear;
+		end
+		else
+			Result := Line2;
+	end;
+	if GetOption('OpisFilmu') = 2 then
+	begin
+		Line := TextBetween(Page.Text, 'descriptionSection__list"', '</section>');
+		while Pos('descriptionSection__text--full', Line) > 0 do
+		begin
+			Line2 := TextBetween(Line, 'descriptionSection__text', '</p>') + '</p>';
+			Line2 := TextBetween(Line2, '>', '</p>') + '</p>';
+			Line2 := FormatHTMLText(Line2);
+			Result := Result + Line2;
+			Line := Copy(Line, Pos('descriptionSection__text--full', Line) + 5, Length(Line));
+			if Pos('descriptionSection__text--full', Line) > 0 then
+				Result := Result + #13#10 + SepPoziomy;
+		end;
+	end;
+	if ((GetOption('OpisFilmu') = 4) and (length(GetField(fieldDescription)) = 0)) then
+	begin
+		Line := TextBetween(Page.Text, 'descriptionSection__list"', '</section>');
+		Line2 := '';
+		while Pos('descriptionSection__text--full', Line) > 0 do
+		begin
+			Line2 := TextBetween(Line, 'descriptionSection__text', '</p>') + '</p>';
+			Line2 := TextBetween(Line2, '>', '</p>') + '</p>';
+			Line2 := FormatHTMLText(Line2);
+			PickListAdd(Line);
+			Line := Copy(Line, Pos('descriptionSection__text--full', Line) + 5, Length(Line));
+			DescCnt := DescCnt + 1;
+		end;
+		if DescCnt > 1 then
+		begin
+			PickListTitle('Wybierz Opis do zapamiÍtania na sta≥e');
+			PickListExec(Result);
+			PickListClear;
+		end
+		else
+			Result := Line2;
+	end;
+	Result := FullTrim(Result);
+end;
+
+
+//Recenzje
+function Recenzje(StronaD: TStringList; Adres: string): string;
+var
+	Line, Line2, Line3, Line4: string;
+	MrkText, MrkTitle: string;
+begin
+	PickTreeClear;
+	Result := '';
+	Line := TextBetween(StronaD.Text, 'page__section filmReviewsSection', '</section>');
+	MrkText := 'reviewBox__textFirst';	// recenzje redakcji
+	MrkTitle := 'reviewBox__title';
+	if Pos(MrkText, Line) = 0 then
+	begin // recenzje uøytkownikÛw
+		MrkText := 'flatReview__text';
+		MrkTitle := 'flatReview__title';
+	end;
+	if GetOption('Komentarze') = 1 then
+	begin
+		Line := TextBetween(Line, MrkTitle, '</a>');
+		Line := TextBetween(Line, 'href="', '"');
+		Line := StringReplace(Line, ' ', '');
+		StronaD.Text := GetPage('https://www.filmweb.pl' + Line);
+		Line := TextBetween(StronaD.Text, 'class="newsMainSection__news', '</div></div>');
+		Result := TextAfter(Line, '>');
+		Result := RemoveHTMLTag(Result, 'span', 'style="display:\s*none"');
+		Result := FormatHTMLText(Result);
+	end;
+	if GetOption('Komentarze') = 2 then
+	begin
+		while Pos(MrkText, Line) > 0 do
+		begin
+			Line3 := TextBetween(Line, MrkTitle, '</a>');
+			Line3 := TextBetween(Line3, 'href="', '"');
+			Line3 := StringReplace(Line3, ' ', '');
+			Line3 := 'https://www.filmweb.pl' + Line3;
+			Line2 := TextBetween(Line, MrkText, '<') + '<';
+			Line2 := TextBetween(Line2, '>', '<');
+			UniToPol(Line2);
+			HTMLRemoveTags(Line2);
+			PickTreeAdd(Line2, Line3);
+			Line := Copy(Line, Pos(MrkText, Line) + 5, Length(Line));
+			if Pos(MrkText, Line) = 0 then
+			begin // prze≥πcz na recenzje uøytkownikÛw
+				MrkText := 'flatReview__text';
+				MrkTitle := 'flatReview__title';
+			end;
+		end;
+		PickTreeTitle('Wybierz recenzjÍ do: "' + GetField(fieldTranslatedTitle) + ' (' + GetField(fieldYear) + ')"');
+		PickTreeExec(Result);
+		StronaD.Text := UTF8ToCP1250(GetPage(Result));
+		Line := TextBetween(StronaD.Text, 'class="newsMainSection__news', '</div></div>');
+		Result := TextAfter(Line, '>');
+		Result := RemoveHTMLTag(Result, 'span', 'style="display:\s*none"');
+		Result := FormatHTMLText(Result);
+		PickTreeClear;
+	end;
+	if GetOption('Komentarze') = 3 then
+	begin
+		while Pos(MrkText, Line) > 0 do
+		begin
+			Line2 := TextBetween(Line, MrkTitle, '</a>');
+			Line2 := TextBetween(Line2, 'href="', '"');
+			Line2 := StringReplace(Line2, ' ', '');
+			line2 := 'https://www.filmweb.pl' + Line2;
+			StronaD.Text := GetPage(Line2);
+			Line3 := TextBetween(StronaD.Text, 'class="newsMainSection__news', '</div></div>');
+			Line3 := UTF8ToCP1250(Line3);
+			Line4 := TextBetween(Line3, 'data-title="', '"');
+			Line4 := FormatHTMLText(Line4);
+			if Line4<>'' then
+				Result := Result + '> ' + Line4 + ' <' + #13#10;
+			Line3 := TextAfter(Line3, '>');
+			Line3 := RemoveHTMLTag(Line3, 'span', 'style="display:\s*none"');
+			Result := Result + FormatHTMLText(Line3);
+			Line := Copy(Line, Pos(MrkText, Line) + 5, Length(Line));
+			if Pos(MrkText, Line) = 0 then
+			begin // prze≥πcz na recenzje uøytkownikÛw
+				MrkText := 'flatReview__text';
+				MrkTitle := 'flatReview__title';
+			end;
+			if Pos(MrkText, Line) > 0 then
+				Result := Result + #13#10 + SepPoziomy;
+		end;
+	end;
+	if ((GetOption('Komentarze') = 4) and (length(GetField(fieldComments)) = 0)) then
+	begin
+		while Pos(MrkText, Line) > 0 do
+		begin
+			Line3 := TextBetween(Line, MrkTitle, '</a>');
+			Line3 := TextBetween(Line3, 'href="', '"');
+			Line3 := StringReplace(Line3, ' ', '');
+			Line3 := 'https://www.filmweb.pl' + Line3;
+			Line2 := TextBetween(Line, MrkText, '<') + '<';
+			Line2 := TextBetween(Line2, '>', '<');
+			UniToPol(Line2);
+			PickTreeAdd(Line2, Line3);
+			Line := Copy(Line, Pos(MrkText, Line) + 5, Length(Line));
+		end;
+		PickTreeTitle('Wybierz recenzjÍ do: "' + GetField(fieldTranslatedTitle) + ' (' + GetField(fieldYear) + ')"');
+		PickTreeExec(Result);
+		StronaD.Text := UTF8ToCP1250(GetPage(Result));
+		Line := TextBetween(StronaD.Text, 'class="newsMainSection__news', '</div></div>');
+		Result := TextAfter(Line, '>');
+		Result := RemoveHTMLTag(Result, 'span', 'style="display:\s*none"');
+		Result := FormatHTMLText(Result);
+		PickTreeClear;
+	end;
+end;
+
+//ZdjÍcia
+function Zdjecia(Page: TStringList): string;
+var
+	Lista: TStringList;
+	Line, Line2, line3, lx: string;
+	Status: boolean;
+	StartPos, Ile, Dodatek: integer;
+begin
+	Ile := StrToInt(GetParam('IleZdjec'), 0);
+	Line := TextBetween(Page.Text, 'class="gallerySection GallerySection', '</section>');
+	Lista := TStringList.Create;
+	//Czyszczenie Dodatkow
+	for Dodatek := GetExtraCount downto 0 do
+	begin
+		if GetExtraField(Dodatek, eCategory) = 'ZdjÍcie' then
+		begin
+			Lista.SetValue(GetExtraField(Dodatek, extraFieldURL), GetExtraPicturePath(Dodatek));
+			DeleteExtra(Dodatek);
+		end;
+	end;
+	while ((Pos('data-photo="', Line) > 0) and (Ile > 0)) do
+	begin
+		line2 := TextBetween(Line, 'data-photo="', '"');
+		StartPos := Pos('data-photo="', Line) + Length('data-photo="');
+		Line := Copy(Line, StartPos, Length(Line) - StartPos + 1);
+		Dodatek := AddExtra;
+		lx := Lista.GetValue(line2);
+		if ((Length(Lista.GetValue(line2)) > 0) and (FileExists(Dir + Lista.GetValue(line2)))) then
+		begin
+			SetExtraField(Dodatek, extraFieldTitle, 'ZdjÍcie');
+			SetExtraField(Dodatek, extraFieldCategory, 'ZdjÍcie');
+			SetExtraField(Dodatek, extraFieldURL, line2);
+			SetExtraField(Dodatek, extraFieldTag, 'ZdjÍcie');
+			ImportExtraPicture2(Dodatek, Dir + Lista.GetValue(line2), picImportCopyInPicDir);
+		end
+		else
+		begin
+			SetExtraField(Dodatek, extraFieldTitle, 'ZdjÍcie');
+			SetExtraField(Dodatek, extraFieldCategory, 'ZdjÍcie');
+			SetExtraField(Dodatek, extraFieldURL, line2);
+			SetExtraField(Dodatek, extraFieldTag, 'ZdjÍcie');
+			RaiseConnectionErrors(False);
+			Status := GetExtraPicture(Dodatek, Line2);
+			RaiseConnectionErrors(True);
+			if Status = False then
+				DeleteExtra(Dodatek);
+		end;
+		ile := ile - 1;
+	end;
+	Lista.Free;
+end;
+
+//Plakaty
+function Plakaty(Page: TStringList): string;
+var
+	Lista: TStringList;
+	Line, Line2, line3, Kraj: string;
+	Status: boolean;
+	StartPos, Ile, Dodatek: integer;
+begin
+	Ile := StrToInt(GetParam('IlePlakatow'), 0);
+	Line := TextBetween(Page.Text, '<section class="page__section postersListSection', '</section>');
+	Lista := TStringList.Create;
+	//Czyszczenie Dodatko
+	for Dodatek := GetExtraCount downto 0 do
+	begin
+		if GetExtraField(Dodatek, eCategory) = 'Plakat' then
+		begin
+			Lista.SetValue(GetExtraField(Dodatek, extraFieldURL), GetExtraPicturePath(Dodatek));
+			DeleteExtra(Dodatek);
+		end;
+	end;
+
+	while ((Pos('<div class="postersListSection__groupHeader', Line) > 0) and (Ile > 0)) do
+	begin
+		Kraj := TextBetween(Line, '<div class="postersListSection__groupHeader">', '<');
+		line2 := TextBetween(Line, '<div class="postersListSection__groupHeader">', '<div class="postersListSection__groupHeader">');
+		if length(line2) = 0 then
+			line2 := line;
+		StartPos := Pos('<div class="postersListSection__groupHeader', Line) + Length('<div class="postersListSection__groupHeader');
+		Line := Copy(Line, StartPos, Length(Line) - StartPos + 1);
+		while ((Pos('postersListSection__item', Line2) > 0) and (Ile > 0)) do
+		begin
+			line3 := TextBetween(Line2, 'data-src="', '"');
+			StartPos := Pos('data-src="', Line2) + Length('data-src="');
+			line3 := StringReplace(line3, '.6.', '.3.');
+			Line2 := Copy(Line2, StartPos, Length(Line2) - StartPos + 1);
+			Dodatek := AddExtra;
+			if ((Length(Lista.GetValue(line3)) > 0) and (FileExists(Dir + Lista.GetValue(line3)))) then
+			begin
+				SetExtraField(Dodatek, extraFieldTitle, kraj);
+				SetExtraField(Dodatek, extraFieldCategory, 'Plakat');
+				SetExtraField(Dodatek, extraFieldURL, line3);
+				SetExtraField(Dodatek, extraFieldTag, 'Plakat');
+				ImportExtraPicture2(Dodatek, Dir + Lista.GetValue(line3), picImportCopyInPicDir);
+			end
+			else
+			begin
+				SetExtraField(Dodatek, extraFieldTitle, kraj);
+				SetExtraField(Dodatek, extraFieldCategory, 'Plakat');
+				SetExtraField(Dodatek, extraFieldURL, line3);
+				SetExtraField(Dodatek, extraFieldTag, 'Plakat');
+				RaiseConnectionErrors(False);
+				Status := GetExtraPicture(Dodatek, Line3);
+				RaiseConnectionErrors(True);
+				if Status = False then
+					DeleteExtra(Dodatek);
+			end;
+			ile := ile - 1;
+		end;
+	end;
+	Lista.Free;
+end;
+
+procedure PodstawoweDane(Address: string; Page: TStringList);
+var
+	Page2: TStringList;
+	Line, Line2, Rok, Value, Linetmp, Hours, Mins, PageTmp, TestV, Rates, TraTitle, OrgTitle, Szukane, SzukaneEnd, Separator: string;
+	Value2, FullValue: string;
+	StartPos, EndPos, i, LineNr, MinsInt: integer;
+begin
+	//inicjalizacja
+	Aktorile := -1;
+	Page2 := TStringList.Create;
+	
+  Value := TextBetween(Page.Text, '"og:url" content="', '"');
+  SetField(fieldURL, value);
+
+	// Tytu≥ polski i oryginalny
+	(*Line := TextBetween(Page.Text, 'filmCoverSection__info', '</header>');
+	if (Pos('itemprop="name"', Line) > 0) then
+	begin
+		Line2 := TextBetween(Line, 'itemprop="url"', '</');
+		TraTitle := TextAfter(Line2, '>');
+	end;
+	if (Pos('filmCoverSection__orginalTitle"', Line) > 0) then
+		OrgTitle := TextBetween(Line, 'filmCoverSection__orginalTitle">', '<');  *)
+
+
+  Line := TextBetween(Page.Text, 'filmCoverSection ', '</header>');
+  if (Pos('itemprop="name"', Line) > 0) then
+	  TraTitle := TextBetween(Line, 'itemprop="name">', '</h1>');
+
+  if (Pos('filmCoverSection__originalTitle"', Line) > 0) then
+		OrgTitle := TextBetween(Line, 'filmCoverSection__originalTitle">', '<');
+	if (Pos('fP__originalTitle"', Line) > 0) then
+		OrgTitle := TextBetween(Line, 'fP__originalTitle">', '<');
+
+
+
+	HTMLRemoveTags(TraTitle);
+	UniToPol(TraTitle);
+	if Length(Trim(TraTitle)) > 0 then
+		SetField(fieldTranslatedTitle, Trim(TraTitle));
+	HTMLRemoveTags(OrgTitle);
+	UniToPol(OrgTitle);
+	if Length(Trim(OrgTitle)) > 0 then
+		SetField(fieldOriginalTitle, Trim(OrgTitle));
+	// nie ma polskiego a jest orginalny to wstawiamy orginalny
+	if ((Length(GetField(fieldOriginalTitle)) > 0) and (Length(GetField(fieldTranslatedTitle)) < 1)) then
+		SetField(fieldTranslatedTitle, GetField(fieldOriginalTitle));
+	// nie ma orginalnego a jest polski to wstawiamy polski
+	if ((Length(GetField(fieldTranslatedTitle)) > 0) and (Length(OrgTitle) < 1)) then
+		SetField(fieldOriginalTitle, GetField(fieldTranslatedTitle));
+
+	//Rok
+	if (Pos('filmCoverSection__year"', Line) > 0) then
+		Line2 := TextBetween(Line, 'filmCoverSection__year">', '<');
+	if (Length(Line2) > 0) then
+	begin
+		if (Pos('-', Line2) > 0) then
+		begin
+			if ((Length(Line2) > 0) and (Pos('-', Line2) > 1)) then begin
+  			Rok := Trim(Copy(Line2, 0, Pos('-', Line2) - 1));
+				SetField(fieldYear, Rok);	// data od - do np. serial
+			end
+		end
+		else
+		begin
+			if Length(Line2) > 0 then
+				SetField(fieldYear, Line2);
+		end;
+	end;
+
+	// Ratting filmweb
+	Line := TextBetween(Page.Text, 'filmRating filmRating--filmRate filmRating--hasPanel', 'filmRatingHeader');
+	Rates := TextBetween(Line, 'filmRating__rateValue">', '<');
+	Rates := StringReplace(Rates, ',', '.');
+	if Length(Rates) > 0 then
+		SetField(fieldRating, Trim(Rates));
+	if CanSetCustomField('VotesFilmweb') then
+	begin
+		Value := TextBetween(Line, ' data-count="', '">');
+		if Length(Value) > 0 then
+			SetCustomField('VotesFilmweb', Trim(Value));
+	end;
+
+	// Kraj
+	Line := TextBetween(Page.Text, '"filmMainHeader">produkcja', '</span></div>');
+	if Length(Line) > 0 then
+	begin
+		case GetOption('SeparatorKraju') of
+			0: Separator := ' / ';
+			1: Separator := ', ';
+			2: Separator := '/';
+		end;
+		Value := '';
+		while Pos('/ranking/', Line) > 0 do
+		begin
+			Line2 := TextBetween(Line, '/ranking/', '</a>');
+			Line := RemainingText;
+			Line2 := TextBetween(Line2, '"filmMainHeader">', '<');
+			Value := Value + Line2 + Separator;
+		end;
+		Value := Copy(Value, 1, Length(Value) - Length(Separator));
+		UniToPol(Value);
+		if Length(Value) > 0 then
+			SetField(fieldCountry, Value);
+	end;
+
+// Gatunek
+	Line := TextBetween(Page.Text, 'data-tag-type="rankingGenre">', '<script>');
+	if Length(Line) > 0 then
+	begin
+		case GetOption('SeparatorGatunku') of
+      0: Separator := ' / ';
+			1: Separator := ', ';
+			2: Separator := '/';
+		end;
+		Value := '';
+		while Pos('linkButton__label', Line) > 0 do
+		begin
+			Line2 := Trim(TextBetween(Line, '<span class="linkButton__label" itemprop="genre">', '</span>'));
+			if Line2 = '' then
+        Break;
+			Line := RemainingText;
+			if Value <> '' then
+        Value := Value + Separator;
+			Value := Value + Line2;
+		end;
+		UniToPol(Value);
+		if Length(Value) > 0 then
+			SetField(fieldCategory, Trim(Value));
+	end;
+
+	//Informacje o odcinkach (+suma czasÛw trwania)
+	if (((GetOption('CzasTrwaniaFilmu') > 0) or (GetOption('Odcinki') > 0)) and (Pos('/episode/', Page.Text) > 0) and
+		(CanSetCustomField('Odcinki') or CanSetField(fieldLength))) then
+		Odcinki(Page);
+
+	// Czas trwania
+	if ((not CzasTrwaniaZOdcinkow) and ((GetOption('CzasTrwaniaFilmu') = 1) or ((GetOption('CzasTrwaniaFilmu') = 2) and (GetField(fieldLength) = '')))) then
+	begin
+		Value := TextBetween(Page.Text, 'data-duration="', '"');
+		if Length(Value) > 0 then
+			SetField(fieldLength, Value);
+	end;
+
+	// Plakat
+  if CanSetPicture() then
+  begin
+  	Line := TextBetween(Page.Text, 'filmPosterSection__poster', '</div>');
+  	case GetOption('Plakat') of
+  		1:
+  		begin
+  			Szukane := TextBetween(Line, 'data-image="', '"');
+  			if Pos('.webp', Szukane) > 0 then
+  				Szukane := 'http://api.antp.be/webp_to_jpeg.php?u=' + UrlEncode(Szukane)
+  			else
+  				Szukane := StringReplace(Szukane, '.1.jpg', '.3.jpg');
+  			RaiseConnectionErrors(False);
+  			if ((not (PictureExists)) or (AUpdate < 2)) then
+  				GetPicture(Szukane);
+  			RaiseConnectionErrors(True);
+  		end;
+  	end;
+  end;
+
+	// Duplikaty
+	if (GetOption('Duplikator') > 0) then
+		duplikaty(TextBetween(Page.Text, 'IRI.globals.page.filmId=', ';'));
+
+	// Obsada
+	if Pos('/cast/actors', Page.Text) > 0 then
+	begin
+		if GetOption('ZdjÍciaAktorÛw') > 0 then
+		begin
+			AktorI := TStringList.Create;
+			Dir := dirCurrentCatalog;
+			DirI := fileCurrentCatalog + '_pics' + '\';
+			DirC := DirI + 'cache\';
+			if (not DirectoryExists(DirI)) then
+				CreateFolder(DirI);
+			if (not DirectoryExists(DirC)) then
+				CreateFolder(DirC);
+			if FileExists(DirI+'Biografie.adb') then
+				AktorI.LoadFromFile(DirI+'Biografie.adb');
+		end;
+
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/cast/actors'));
+		SetField(fieldActors, Obsada(Page2, 'Obsada', Address, 'Aktor', true));
+		if ((Pos('Obsada goúcinna', Page2.Text) > 0) and (Aktorile > 0)) then
+		begin
+			Page2.Text := UTF8ToCP1250(GetPage(Address + '/cast/guest'));
+			SetField(fieldActors, GetField(fieldActors) + #13#10#13#10 + '---Obsada Goúcinna---' + #13#10#13#10);
+			SetField(fieldActors, GetField(fieldActors) + Obsada(Page2, 'obsada goúcinna', Address, 'Goúcinni', true));
+		end;
+		if Pos('/cast/actors', Page2.Text) > 0 then
+		begin
+			Page2.Text := UTF8ToCP1250(GetPage(Address + '/cast/crew'));
+			SetField(fieldDirector, Obsada(Page2, 'reøyser', Address, 'Reøyser', false));
+			SetField(fieldWriter, Obsada(Page2, 'scenariusz', Address, 'Scenarzysta', false));
+			SetField(fieldComposer, Obsada(Page2, 'muzyka', Address, 'Muzyka', false));
+			if CanSetCustomField('Zdjecia') then
+				SetCustomField('Zdjecia', Obsada(Page2, 'zdjÍcia', Address, 'ZdjÍcia', false));
+			SetField(fieldProducer, Obsada(Page2, 'produkcja', Address, 'Producent', false));
+			if CanSetCustomField('Montaz') then
+				SetCustomField('Montaz', Obsada(Page2, 'montaø', Address, 'Montaø', false));
+			if CanSetCustomField('Kostiumy') then
+				SetCustomField('Kostiumy', Obsada(Page2, 'kostiumy', Address, 'Kostiumy', false));
+			if CanSetCustomField('Dzwiek') then
+				SetCustomField('Dzwiek', Obsada(Page2, 'düwiÍk', Address, 'DüwiÍk', false));
+			if CanSetCustomField('Materialydoscenariusza') then
+				SetCustomField('Materialydoscenariusza', Obsada(Page2, 'materia≥y do scenariusza', Address, 'Materia≥y do scenariusza', true));
+			if CanSetCustomField('Scenografia') then
+				SetCustomField('Scenografia', Obsada(Page2, 'scenografia', Address, 'Scenografia', false));
+		end;
+		if GetOption('ZdjÍciaAktorÛw') > 0 then
+		begin
+			if ((AktorI.Count > 0) and (DirectoryExists(DirI))) then
+			begin
+				AktorI.SaveToFile(DirI+'Biografie.adc');
+				DeleteFile(DirI+'Biografie.adb');
+				MoveFile(DirI+'Biografie.adc', DirI+'Biografie.adb');
+			end;
+			AktorI.Free;
+		end;
+
+	end;
+
+	//BoxOffice
+	if (CanSetCustomField('Boxoffice') and (Pos('<div class="boxoffice"', Page.Text) > 0)) then
+	begin
+		Line := TextBetween(Page.Text, '<div class="boxoffice"', '<div class="filmInfo__header">');
+		Value := TextBetween(Line, 'filmMainOtherInfo">', '</span></div></div>');
+		Value := StringReplace(Value, '</span></div><div>', ', ');
+		Value := StringReplace(Value, ' <span data-i18n="film:info.gross.label" data-cacheId="filmMainOtherInfo">', ' ');
+		UniToPol(Value);
+		if Length(Value) > 0 then
+			SetCustomField('Boxoffice', Value);
+	end;
+
+	//Budøet
+	if (CanSetCustomField('Budzet') and (Pos('filmMainOtherInfo">budøet', Page.Text) > 0)) then
+	begin
+		Line := TextBetween(Page.Text, 'filmMainOtherInfo">budøet', '/span></div></div>');
+		Value := TextBetween(Line, 'filmMainOtherInfo">', '<');
+		if Length(Value) > 0 then
+			SetCustomField('Budzet', Value);
+	end;
+
+	//Studio
+	if CanSetCustomField('Studio') then
+	begin
+		Page2.Text := GetPage(Address + '/studios');
+		Line := TextBetween(Page2.Text, 'class="filmStudiosSection__list', '</ul>');
+		Value := '';
+		while Pos('filmStudiosSection__title', Line) > 0 do
+		begin
+			Line2 := TextBetween(Line, 'filmStudiosSection__title">', '</div>');
+			HTMLDecode2(Line2);
+			StartPos := Pos('filmStudiosSection__title', Line) + Length('filmStudiosSection__title');
+			Line := Copy(Line, StartPos, Length(Line) - StartPos + 1);
+			Value := Value + Line2 + ', ';
+		end;
+		Value := Copy(Value, 1, Length(Value) - 2);
+		Value := UTF8ToCP1250(Value);
+		if Length(Value) > 0 then
+			SetCustomField('Studio', Value);
+	end;
+
+	//Dystrybucja
+	if (CanSetCustomField('Dystrybucja') and (Pos('filmMainOtherInfo">dystrybucja', Page.Text) > 0)) then
+	begin
+		Line := TextBetween(Page.Text, 'filmMainOtherInfo">dystrybucja', '/div></div>');
+		Value := TextBetween(Line, 'filmInfo__info">', '<');
+		if Pos('nofollow', Value) > 0 then
+			Value := TextBetween(Value, 'nofollow">', '<');
+		UniToPol(Value);
+		if Length(Value) > 0 then
+			SetCustomField('Dystrybucja', Value);
+	end;
+
+	//RankingTopFilmweb
+	if CanSetCustomField('TopFilmweb') then
+	begin
+		Value := TextBetween(Page.Text, 'class="worldRanking', '</a>');
+		Value := TextBetween(Value, 'data-position="', '"');
+		if Length(Value) > 0 then
+		begin
+			SetCustomField('TopFilmweb', Value);
+			SetCustomField('PosFilmweb', Value);
+		end;
+	end;
+
+	//Ciekawostki
+	if ((CanSetCustomField('Ciekawostki')) and (Pos('/trivia', Page.Text) > 0)) then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/trivia'));
+		SetCustomField('Ciekawostki', Ciekawostki(Page2));
+	end;
+
+	//Nagrody
+	if ((CanSetCustomField('Nagrody')) and (Pos('/awards', Page.Text) > 0)) then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/awards'));
+		SetCustomField('Nagrody', Nagrody(Page2));
+	end;
+
+	//Opis
+	if Pos('/descs"', Page.Text) > 0 then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/descs'));
+		SetField(fieldDescription, Opis(Page2));
+	end
+	else
+	begin //Alternatywny krÛtki opis
+		Line := TextBetween(Page.Text, 'class="filmPosterSection__plot', '</');
+		Line := TextAfter(Line, 'itemprop="description">');
+		Line := FormatHTMLText(Line);
+		SetField(fieldDescription, Line);
+	end;
+
+	//Recenzje
+	if (Pos('page__section reviewsSection ReviewsSection filmMainReviews', Page.Text) > 0) or
+		(Pos('page__section userReviewSection UserReviewSection', Page.Text) > 0) then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/reviews'));
+		SetField(fieldComments, Recenzje(Page2, Address));
+	end;
+
+	//ZdjÍcia
+	if ((Pos('/photos"><h2>', Page.Text) > 0) and (GetOption('Zdjecia') = 1) and (StrToInt(GetParam('IleZdjec'), 0) > 0)) then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/photos'));
+		Zdjecia(Page2);
+	end;
+
+	//Plakaty
+	if ((Pos('/posters"', Page.Text) > 0) and (GetOption('DodatkowePlakaty') = 1) and (StrToInt(GetParam('IlePlakatow'), 0) > 0)) then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/posters'));
+		Plakaty(Page2);
+	end;
+
+	//Daty premier
+	if (CanSetCustomField('Swiatowapremiera') or CanSetCustomField('Polskapremiera')) then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/dates'));
+		DatyPremier(Page2)
+	end;
+
+	//Pressbook
+	if CanSetCustomField('PressBook') then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/pressbook'));
+		SetCustomField('PressBook', Pressbook(Page2));
+	end;
+
+	//Tytu≥yAKA
+	if (CanSetCustomField('TytulyAKA') and (GetOption('Tytu≥yAKA') > 0)) then
+	begin
+		Page2.Text := UTF8ToCP1250(GetPage(Address + '/titles'));
+		SetCustomField('TytulyAKA', TytulyAKA(Page2));
+	end;
+
+	//Zwiastuny
+	if (CanSetCustomField('Zwiastuny') and (GetOption('Zwiastuny') > 0) and (Pos('/video"', Page.Text) > 0)) then
+	begin
+		Page2.Text := GetPage(Address + '/video');
+		SetCustomField('Zwiastuny', Zwiastuny(Page2));
+	end;
+
+	Page2.Free;
+end;
+
+function Czysc(napis: string): string;
+begin
+	Result := StringReplace(napis, #9, '');
+	Result := StringReplace(Result, #10, '');
+	Result := StringReplace(Result, #13, '');
+end;
+
+procedure GetMovieTitles(Address: string);
+var
+	Page: TStringList;
+	Line, Year, MovieTitle, MovieAddress: string;
+	LineNr: integer;
+begin
+	Page := TStringList.Create;
+	Page.Text := UTF8ToCP1250(GetPage(Address));
+	Page.Text := StringReplace(Page.Text, 'class="preview__link"', #13#10 + 'class="preview__link"');
+	Line := Page.Text;
+	LineNr := FindLine('class="preview__link"', Page, 0);
+	while LineNr > -1 do
+	begin
+		Line := Page.GetString(LineNr);
+		Line := Czysc(Line);
+		MovieAddress := 'https://www.filmweb.pl' + TextBetween(Line, 'preview__link" href="', '"');
+		MovieTitle := TextBetween(Line, '>', '</');
+	//	HTMLRemoveTags(MovieTitle);
+		MovieTitle := Trim(MovieTitle);
+		CorrectTextError(MovieTitle);
+		UniToPol(MovieTitle);
+		//Year := TextBetween(Line, 'filmPreview__year">', '</');
+		Year := TextBetween(Line, 'preview__year" content="', '</');
+		if (Year = '') then
+			Year := TextBetween(Line, '"', '"');
+	//	HTMLRemoveTags(Year);
+		Year := Trim(Year);
+		CorrectTextError(Year);
+		Year := Copy(Year, 1, 4);
+		MovieTitle := MovieTitle + ' (' + Year + ')';
+		if (FindLine(MovieAddress, SearchAddresses, 0) < 0) then
+		begin
+			PickTreeAdd(MovieTitle, MovieAddress);
+			SearchAddresses.Add(MovieAddress);
+		end;
+		LineNr := FindLine('class="preview__link"', Page, LineNr + 1);
+	end;
+	Page.Free;
+end;
+
+(*
+procedure AnalyzeSearchPage(Address: string; MovieType: string);
+var
+	Page: TStringList;
+	Line, Linetmp, MovieVariety, AdressSubPage: string;
+	LineNr, Count, MoviesCount, i, NumOfPages: integer;
+begin
+	Page := TStringList.Create;
+	Page.Text := UTF8ToCP1250(GetPage(Address));
+	Line := TextBetween(Page.Text, 'Znalezione pozycje: <span>', '</span>');
+	MovieVariety := Page.Text;
+	Line := Czysc(Line);
+	MoviesCount := StrToInt(Trim(Line), 0);
+	MovieVariety := ' ' + MovieType + ':';
+	PickTreeAdd('Znaleziono' + MovieVariety, '');
+	case GetOption('LimitWynikow') of
+		0: Count := 260;
+		1: Count := 1;
+		2: Count := 5;
+		3: Count := 10;
+		4: Count := 50;
+	end;
+	NumOfPages := (MoviesCount - 1) div 10 + 1;
+	if NumOfPages < 1 then
+		NumOfPages := 1;
+	if NumOfPages > Count then
+		NumOfPages := Count;
+	for i := 1 to NumOfPages do
+	begin
+		AdressSubPage := Address + '&page=' + IntToStr(i);
+		GetMovieTitles(Address + '&page=' + IntToStr(i));
+	end;
+//	if (SearchAddresses.Count = 0) then
+//		MovieName := SmartFormatMovieName(MovieName);
+	Page.Free;
+end;
+*)
+
+procedure AnalyzeSearchPage2(Address: string);
+var
+  i: Integer;
+  data, line, id, typ, title, lang, actors, MovieAddress: string;
+	Lines: TStringList;
+begin
+	PickTreeClear();
+	data := UTF8ToCP1250(GetPage5(Address, 'https://www.filmweb.pl', '', '', 'x-locale=pl_PL'));
+	Lines := ExtractSearchHits(data);
+  for i := 0 to Lines.Count-1 do
+  begin
+    line := Lines.GetString(i);
+    typ := GetJsonValue(line, 'type', '');
+    if (typ <> 'film') and (typ <> 'serial') then
+      Continue;
+    id := GetJsonValue(line, 'id', '');
+    title := GetJsonValue(line, 'matchedTitle', '');
+    lang := GetJsonValue(line, 'matchedLang', '');
+    actors := ExtractActorNames(GetJsonValue(line, 'filmMainCast', ''));
+    MovieAddress := 'https://www.filmweb.pl/film/movie-0000-' + id;
+    SearchAddresses.Add(MovieAddress);
+    title := title + ' (' + typ;
+    if actors <> '' then
+      title := title + ': ' + actors;
+    title := title + + '), ' + lang;
+ 	  PickTreeAdd(title, MovieAddress);
+  end;
+	Lines.Free;
+end;
+
+function ExtractSearchHits(jsonText: string): TStringList;
+var
+  i, j, start, finish: integer;
+  searchHitsSection: string;
+  currentHit: string;
+  braceCount: integer;
+  inString: boolean;
+  escaped: boolean;
+  ch: char;
+begin
+  result := TStringList.Create;
+
+  i := Pos('"searchHits":', jsonText);
+  if i = 0 then
+  begin
+    ExtractSearchHits := result;
+    exit;
+  end;
+
+  // Advance until start of array '['
+  i := i + Length('"searchHits":');
+  while (i <= Length(jsonText)) and (StrGet(jsonText, i) <> '[') do
+    i := i + 1;
+
+  if i > Length(jsonText) then
+  begin
+    ExtractSearchHits := result;
+    exit;
+  end;
+
+  // Start after '['
+  i := i + 1;
+
+  // Parse each array item
+  while i <= Length(jsonText) do
+  begin
+    // Ignore spaces and linebreaks
+    while (i <= Length(jsonText)) and ((StrGet(jsonText, i) = ' ') or (StrGet(jsonText, i) = #13) or (StrGet(jsonText, i) = #10) or (StrGet(jsonText, i) = #9)) do
+      i := i + 1;
+
+    if i > Length(jsonText) then
+      break;
+
+    // If reaching end of array
+    if StrGet(jsonText, i) = ']' then
+      break;
+
+    // If finding a comma, move to next
+    if StrGet(jsonText, i) = ',' then
+    begin
+      i := i + 1;
+      continue;
+    end;
+
+    // Start of object
+    if StrGet(jsonText, i) = '{' then
+    begin
+      start := i;
+      braceCount := 1;
+      inString := false;
+      escaped := false;
+      j := i + 1;
+
+      // Find end of object by counting braces
+      while (j <= Length(jsonText)) and (braceCount > 0) do
+      begin
+        ch := StrGet(jsonText, j);
+
+        if escaped then
+        begin
+          escaped := false;
+        end
+        else if ch = '\' then
+        begin
+          escaped := true;
+        end
+        else if ch = '"' then
+        begin
+          inString := not inString;
+        end
+        else if not inString then
+        begin
+          if ch = '{' then
+            braceCount := braceCount + 1
+          else if ch = '}' then
+            braceCount := braceCount - 1;
+        end;
+
+        j := j + 1;
+      end;
+
+      finish := j - 1;
+
+      // Extract full object
+      currentHit := Copy(jsonText, start, finish - start + 1);
+      result.Add(currentHit);
+
+      i := j;
+    end
+    else
+    begin
+      i := i + 1;
+    end;
+  end;
+end;
+
+function ExtractActorNames(jsonText: string): string;
+var
+  i, start, finish: integer;
+  nameValue: string;
+  inString: boolean;
+  escaped: boolean;
+  ch: char;
+begin
+  result := '';
+  i := 1;
+
+  while i <= Length(jsonText) do
+  begin
+    // search "name"
+    if (i <= Length(jsonText) - 5) and (Copy(jsonText, i, 6) = '"name"') then
+    begin
+      i := i + 6;
+
+      // search colon
+      while (i <= Length(jsonText)) and (StrGet(jsonText, i) <> ':') do
+        i := i + 1;
+
+      if i > Length(jsonText) then
+        break;
+
+      i := i + 1; // skip ':'
+
+      // Ignore spaces
+      while (i <= Length(jsonText)) and (StrGet(jsonText, i) = ' ') do
+        i := i + 1;
+
+      // Must start by "
+      if (i <= Length(jsonText)) and (StrGet(jsonText, i) = '"') then
+      begin
+        i := i + 1; // skip "
+        start := i;
+
+        // Search for end of string
+        inString := true;
+        escaped := false;
+
+        while (i <= Length(jsonText)) and inString do
+        begin
+          ch := StrGet(jsonText, i);
+
+          if escaped then
+          begin
+            escaped := false;
+          end
+          else if ch = '\' then
+          begin
+            escaped := true;
+          end
+          else if ch = '"' then
+          begin
+            inString := false;
+            finish := i - 1;
+          end;
+
+          if inString then
+            i := i + 1;
+        end;
+
+        // Extract name
+        nameValue := Copy(jsonText, start, finish - start + 1);
+
+        // Concat results
+        if result = '' then
+          result := nameValue
+        else
+          result := result + ', ' + nameValue;
+
+        i := i + 1; // Skip closing "
+      end;
+    end
+    else
+    begin
+      i := i + 1;
+    end;
+  end;
+end;
+
+procedure AnalyzeMoviePage(Address: string);
+var
+	Page, Page2, Authors: TStringList;
+	Line, Line2, Rok, Value, Linetmp, Hours, Mins, PageTmp, TestV, Rates, TraTitle, OrgTitle, Szukane, SzukaneEnd, Separator: string;
+	Value2, FullValue: string;
+	StartPos, EndPos, i, LineNr, MinsInt: integer;
+begin
+	Page := TStringList.Create;
+	Page.Text := UTF8ToCP1250(GetPage(Address));
+	PodstawoweDane(Address, Page);
+	Page.Free;
+
+	PobierzTrailerZYouTube();
+	PobierzDaneZIMDb();
+end;
+
+
+procedure ClearFields;
+begin
+	if GetOption('Aktualizacja') < 2 then
+	begin
+	end;
+end;
+
+
+function GetLocalPage(Address: string): string;
+var
+  Page: TStringList;
+  FileName: string;
+begin
+  Page := TStringList.Create;
+  FileName := '';
+  Input('', 'File to read:', FileName);
+  Page.LoadFromFile(SourcePath + FileName + '.html');
+  Result := Page.Text;
+  Page.Free;
+end;
+
+var
+	s: string;
+	Page2: TStringList;
+begin
+	if GetStatic('Info3.2') <> '3.2.0' then
+	begin
+		ShowMessage('Skrypt jest modyfikacjπ poprzednich edycji skryptu. ' + #13#10 +
+			'Uøywa dodatkowych pÛl w ktÛrych zamieszcza wiele informacji (daty premier, resztÍ twÛrcÛw, ciekawostki, nagrody, odcinki seriali, tytu≥y AKA i inne) ' + #13#10 + 'Jeúli chcesz by skrypt utworzy≥ plik XML z dodatkowymi polami ktÛry moøesz zaimportowaÊ w programie zaznacz w opcjach Sprawdzaniepol=1. ' + #13#10 + 'Nie kasuj plikÛw *.adb ani folderu cache. Aby zadziala≥ analizator duplikatÛw, skrypt musi na nowo zaimportowaÊ dane o filmie i zapisaÊ je w pliku "Filmy.adb".');
+		SetStatic('Info3.2', '3.2.0');
+	end;
+
+	if ((not ((CustomFieldExists('Boxoffice')) and (CustomFieldExists('Budzet')) and (CustomFieldExists('Ciekawostki')) and
+		(CustomFieldExists('Dystrybucja')) and (CustomFieldExists('Dzwiek')) and (CustomFieldExists('Kostiumy')) and
+		(CustomFieldExists('Materialydoscenariusza')) and (CustomFieldExists('Montaz')) and (CustomFieldExists('Nagrody')) and
+		(CustomFieldExists('Polskapremiera')) and (CustomFieldExists('Scenografia')) and (CustomFieldExists('Studio')) and
+		(CustomFieldExists('VotesFilmweb')) and (CustomFieldExists('Zwiastuny')) and (CustomFieldExists('PressBook')) and
+		(CustomFieldExists('TopFilmweb')) and (CustomFieldExists('PosFilmweb')) and (CustomFieldExists('IMDbLINK')) and
+		(CustomFieldExists('RatingIMDb')) and (CustomFieldExists('VotesIMDB')) and (CustomFieldExists('TopIMDB')) and
+		(CustomFieldExists('PosIMDB')) and (CustomFieldExists('Swiatowapremiera')) and (CustomFieldExists('TytulyAKA')) and (CustomFieldExists('Zdjecia')))) and
+		(GetOption('Sprawdzeniepol') = 1)) then
+	begin
+		if ShowConfirmation('Skrypt wymaga dodatkowych pÛl. Czy utworzyÊ plik xml z danymi pÛl do zaimportowania?') then
+		begin
+			SetStatic('Pola', 'ok');
+			preparexml := TStringList.Create;
+			preparexml.Add('<?xml version="1.0" encoding="windows-1250"?>');
+			preparexml.Add('<AntMovieCatalog Format="42" Version="4.2.2 (2014-04-20)" Date="11.05.2016 20:13:50">');
+			preparexml.Add(' <Catalog>');
+			preparexml.Add('  <Properties/>');
+			preparexml.Add('  <CustomFieldsProperties ColumnSettings="Ciekawostki:p42:w120:vt,Boxoffice:p43:w120:vt,Budzet:p44:w120:vt,Dystrybucja:p45:w120:vt,Dzwiek:p46:w120:vt,Kostiumy:p47:w120:vt,Materialydoscenariusza:p48:w120:vt,Montaz:p49:w120:vt,Nagrody:p50:w120:vt,Polskapremiera:p51:w120:vt,Scenografia:p52:w120:vt,Studio:p53:w120:vt,Swiatowapremiera:p54:w120:vt,TytulyAKA:p55:w120:vt,Zdjecia:p56:w120:vt," GUIProperties="fw1041:fh625">');
+			preparexml.Add('   <CustomField Tag="Boxoffice" Name="Boxoffice" Type="ftString" MultiValues="True" GUIProperties="rx6:ry0:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Budzet" Name="Budøet" Type="ftString" MultiValues="True" GUIProperties="rx6:ry24:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Ciekawostki" Name="Ciekawostki" Type="ftText" GUIProperties="rx6:ry291:rw1034:rh55:aw1:ah1:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Dystrybucja" Name="Dystrybucja" Type="ftString" MultiValues="True" GUIProperties="rx6:ry49:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Dzwiek" Name="DüwiÍk" Type="ftString" MultiValues="True" GUIProperties="rx6:ry97:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Kostiumy" Name="Kostiumy" Type="ftString" MultiValues="True" GUIProperties="rx6:ry122:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Materialydoscenariusza" Name="Materia≥y do scenariusza" Type="ftString" MultiValues="True" GUIProperties="rx6:ry145:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Montaz" Name="Montaø" Type="ftString" MultiValues="True" GUIProperties="rx6:ry168:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Nagrody" Name="Nagrody" Type="ftText" MultiValues="True" GUIProperties="rx6:ry238:rw1034:rh55:aw1:ah1:lw94"/>');
+			if ShowConfirmation('Czy chcesz pobieraÊ rownieø informacje o odcinkach seriali?') then
+			begin
+				preparexml.Add('   <CustomField Tag="Odcinki" Name="Odcinki" Type="ftText" MultiValues="True" GUIProperties="rx6:ry569:rw1034:rh55:aw1:ah0:lw94"/>');
+			end;
+			preparexml.Add('   <CustomField Tag="Polskapremiera" Name="Polska premiera" Type="ftDate" GUIProperties="rx6:ry545:rw238:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="PressBook" Name="PressBook" Type="ftText" GUIProperties="rx6:ry604:rw690:rh136:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Scenografia" Name="Scenografia" Type="ftString" MultiValues="True" GUIProperties="rx6:ry191:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Studio" Name="Studio" Type="ftString" MultiValues="True" GUIProperties="rx6:ry73:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Swiatowapremiera" Name="åwiatowa premiera" Type="ftDate" GUIProperties="rx243:ry545:rw238:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="TytulyAKA" Name="Tytu≥y AKA" Type="ftText" MultiValues="True" GUIProperties="rx6:ry343:rw1042:rh203:aw1:ah1:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Zdjecia" Name="ZdjÍcia" Type="ftString" MultiValues="True" GUIProperties="rx6:ry215:rw1034:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="Zwiastuny" Name="Zwiastuny (linki)" Type="ftText" GUIProperties="rx6:ry548:rw690:rh55:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="TopFilmweb" Name="Top 500 Filmweb" Type="ftBoolean" GUIProperties="rx311:ry728:rw181:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="TopIMDb" Name="Top 250 IMDb" Type="ftBoolean" GUIProperties="rx312:ry754:rw180:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="VotesFilmweb" Name="Filmweb" Ext="g≥osÛw" Type="ftString" GUIProperties="rx6:ry728:rw205:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="VotesIMDB" Name="IMDb" Ext="g≥osÛw" Type="ftString" GUIProperties="rx7:ry754:rw206:rh25:aw0:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="IMDBLINK" Name="Strona IMDB" Type="ftUrl" GUIProperties="rx6:ry781:rw510:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="PosIMDB" Name="Ranking IMDb" Ext=" / 250" Type="ftString" GUIProperties="rx561:ry754:rw176:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="PosFilmweb" Name="Ranking Filmweb:" Ext=" / 500" Type="ftString" GUIProperties="rx561:ry728:rw176:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('   <CustomField Tag="RatingIMDb" Name="Ocena IMDb" Type="ftString" GUIProperties="rx799:ry751:rw142:rh25:aw1:ah0:lw94"/>');
+			preparexml.Add('  </CustomFieldsProperties>');
+			preparexml.Add(' </Catalog>');
+			preparexml.Add('</AntMovieCatalog>');
+			SetOption('Sprawdzeniepol', 0);
+			preparexml.SaveToFile(ExtractFileName(fileCurrentCatalog) + '.xml');
+			preparexml.Free;
+			Error; //To nie b≥πd. Zaimportuj plik z polami do programu i ponownie uruchom skrypt.
+		end;
+	end;
+	SearchAddresses := TStringList.Create;
+	PickTreeClear;
+	if CheckVersion(4, 2, 3) then
+	begin
+		//gdy brak, ustwia domyslane wartsci dla parametrÛw: 'IlePlakatow', 'IleZdjec' (obejúcie problemu inicjacji parametrÛw AMC)
+		if GetParam('IlePlakatow')='' then
+			SetParam('IlePlakatow', '5');
+		if GetParam('IleZdjec')='' then
+			SetParam('IleZdjec', '15');
+
+		case GetOption('IloscAktorow') of
+			0: ACount := 9999;
+			1: ACount := 10;
+			2: ACount := 20;
+			3: ACount := 30;
+			4: ACount := 40;
+			5: ACount := 50;
+		end;
+		case GetOption('SeparatorPoziomy') of
+			0: SepPoziomy := #13#10;
+			1: SepPoziomy := #13#10#13#10;
+			2: SepPoziomy := '------------------------------------------' + #13#10#13#10;
+		end;
+		case GetOption('Tytu≥yAKA') of
+			0: TytulyAkaKraje := '*nie pobieraj';
+			1: TytulyAkaKraje := '';
+			2: TytulyAkaKraje := 'Polska';
+			3: TytulyAkaKraje := 'Francja, Hiszpania, Niemcy, Polska, USA, Wielka Brytania, W≥ochy';
+			4: TytulyAkaKraje := '*wszystkie';
+		end;
+		CzasTrwaniaZOdcinkow := False;
+
+		AUpdate := GetOption('Aktualizacja');
+		URL := GetField(fieldURL);
+		URL := StringReplace(URL, 'http:', 'https:');
+		if (not (Pos('filmweb', URL) > 0)) then
+			AUpdate := 0;
+		DeCodeDate(Date, YY, MM, DD);
+		SetCustomField('DataAktualizacji', IntToStr(YY) + '-' + IntToStr(MM) + '-' + IntToStr(DD));
+		case AUpdate of
+			0:
+			begin
+				ClearFields;
+				MovieName := GetField(fieldOriginalTitle);
+				if MovieName = '' then
+					MovieName := GetField(fieldTranslatedTitle);
+				if Input('Import from filmweb.pl', 'Podaj tytu≥ filmu lub adres filmu Filmweb: ', MovieName) then
+				begin
+					if Pos('filmweb.pl/', MovieName) > 0 then
+					begin
+						SetField(fieldURL, MovieName);
+						AnalyzeMoviePage(UrlEncode(MovieName));
+					end
+					else
+					begin
+						if GetField(fieldYear) = '' then
+						begin
+							AnalyzeSearchPage2('https://www.filmweb.pl/api/v1/search?query=' + UrlEncode(MovieName) + '&pageSize=25&groupType=web');
+						end
+						else
+						begin
+							AnalyzeSearchPage2('https://www.filmweb.pl/api/v1/search?query=' + UrlEncode(MovieName) + '&startYear=' +GetField(fieldYear) + '&endYear=' + GetField(fieldYear));
+						end;
+						if (SearchAddresses.Count = 1) then
+						begin
+							SetField(fieldURL, UrlDecode(SearchAddresses.GetString(0)));
+							AnalyzeMoviePage(SearchAddresses.GetString(0));
+						end
+						else
+						begin
+							if PickTreeExec(MAddress) then
+							begin
+								SetField(fieldURL, UrlDecode(MAddress));
+								AnalyzeMoviePage(MAddress);
+							end;
+						end;
+					end;
+				end;
+				SearchAddresses.Free;
+			end;
+			1, 2:
+			begin
+				ClearFields;
+				URL := FullTrim(URL);
+				HTMLDecode2(URL);  //< zamiast funkcji URLDecode();
+				if ((Length(URL) > 0) and (GetField(fieldURL) <> URL)) then
+					SetField(fieldURL, URL);
+				URL := UrlEncode(URL);
+				URLS := TextAfter(URL, 'www');
+				URLS := StringReplace(URLS, ':', '%3A');
+				URLS := StringReplace(URLS, '%20', '+');
+				URL := 'https://www' + URLS;
+				AnalyzeMoviePage(URL);
+				SearchAddresses.Free;
+			end;
+		end;
+		if (not (GetParam('KolorowanieWykonanych') = '')) then
+		begin
+			if (GetParam('KolorowanieWykonanych') = '+1') then
+			begin
+				if (StrToInt(GetField(fColorTag), 0) < 12) then
+					SetField(fColorTag, IntToStr(StrToInt(GetField(fColorTag), 0) + 1));
+			end
+			else
+			begin
+				if (GetParam('KolorowanieWykonanych') = '-1') then
+				begin
+					if (StrToInt(GetField(fColorTag), 0) > 0) then
+						SetField(fColorTag, IntToStr(StrToInt(GetField(fColorTag), 0) - 1));
+				end
+				else
+				begin
+					if ((StrToInt(GetParam('KolorowanieWykonanych'), 0) >= 0) and (StrToInt(GetParam('KolorowanieWykonanych'), 0) <= 12)) then
+						SetField(fColorTag, GetParam('KolorowanieWykonanych'));
+				end;
+			end;
+		end;
+	end
+	else
+		if ShowWarning('Ten skrypt wymaga programu Ant Movie Catalog w wersji >=4.2.3'#10'Aktualnie dostÍpna jest tylko wersja beta - czy chcesz otworzyÊ link do strony z programem?)') = true then
+		begin
+			Launch('https://www.antp.be/software/moviecatalog/download', '');
+		end;
+end.

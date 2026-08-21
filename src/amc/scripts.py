@@ -205,7 +205,18 @@ def inspect_script(path: str | Path) -> ScriptInfo:
     try:
         text = header.decode("utf-8-sig")
     except UnicodeDecodeError:
-        text = header.decode("cp1252")
+        # cp1252 has five undefined byte positions (0x81/0x8D/0x8F/0x90/0x9D);
+        # real scripts in other single-byte code pages (e.g. cp1250 for
+        # Polish) legitimately use them, and Python's cp1252 codec raises
+        # UnicodeDecodeError rather than silently accepting them. The exact
+        # source code page is genuinely unknown here (this repository has no
+        # authoritative way to recover the author's original locale from the
+        # bytes alone -- see the same open question for native .amc string
+        # decoding), so this falls back tolerantly instead of crashing: a
+        # handful of characters may come through as U+FFFD, but the
+        # structural [Infos]/[Options]/[Parameters] syntax this function
+        # actually parses is plain ASCII regardless of code page.
+        text = header.decode("cp1252", errors="replace")
     if not text.startswith("(*") or "*)" not in text:
         return ScriptInfo(str(path), path.name, legacy_format=True)
     comment = text[2:text.index("*)")]

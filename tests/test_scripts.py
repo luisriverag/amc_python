@@ -16,6 +16,8 @@ from amc.model import Movie
 from amc.cli import main
 import json
 
+REAL_SCRIPT_FIXTURES = Path(__file__).parent / "fixtures" / "scripts"
+
 
 def test_inspect_script_reads_upstream_style_metadata_without_execution(tmp_path: Path):
     target = tmp_path / "example.ifs"
@@ -90,6 +92,73 @@ def test_inspect_script_skips_malformed_option_with_diagnostic(tmp_path: Path):
     info = inspect_script(target)
     assert [option.name for option in info.options] == ["Valid"]
     assert info.metadata_warnings == ("invalid option entry 1",)
+
+
+def test_inspect_script_tolerates_bytes_undefined_in_cp1252(tmp_path: Path):
+    """Real scripts in other single-byte code pages (found via a genuine
+    Polish script contributed for local debugging, not committed to the
+    repository) can contain byte values cp1252 leaves undefined -- 0x81,
+    0x8D, 0x8F, 0x90, 0x9D -- which Python's cp1252 codec previously raised
+    UnicodeDecodeError on instead of degrading gracefully like every other
+    malformed-input path in this module."""
+    target = tmp_path / "other-codepage.ifs"
+    target.write_bytes(
+        b"(*\n[Infos]\nTitle=Pol\x9dski\n[Options]\n*)\nbegin end."
+    )
+    info = inspect_script(target)
+    assert info.title == "Pol�ski"
+    assert info.legacy_format is False
+
+
+def test_discover_scripts_reads_the_real_fixture_set_without_error():
+    """Genuine AMC "Get Info" scripts, contributed by a user for local
+    debugging (see tests/fixtures/scripts/PROVENANCE.md for source and
+    per-file license/attribution) -- validates inspect_script/
+    discover_scripts against real-world script syntax (multi-line license
+    blocks, 30+ option entries, non-ASCII text in several code pages)
+    instead of only synthetic headers."""
+    infos = discover_scripts(REAL_SCRIPT_FIXTURES)
+    names = {Path(info.path).name for info in infos}
+    assert names == {
+        "Allocine (FR).ifs", "Amazon (FR).ifs", "Filmweb (PL).ifs",
+        "IMDB (Actor images).ifs", "IMDB.ifs", "IMDB_ALT.ifs",
+        "IMDB_ALT_ES.ifs", "ItalianMultisite (IT).ifs", "MyMovies (IT).ifs",
+        "OFDb-mobi-IMDb.ifs", "csfd.cz.ifs",
+    }
+    for info in infos:
+        assert info.legacy_format is False
+        assert info.metadata_warnings == ()
+        assert info.title
+        assert info.license
+
+
+def test_inspect_script_reads_a_real_cp1250_encoded_script():
+    """The real regression case for the cp1252-undefined-byte fix: this
+    genuine Polish script previously crashed inspect_script() outright."""
+    info = inspect_script(REAL_SCRIPT_FIXTURES / "Filmweb (PL).ifs")
+    assert info.title == "filmweb.pl"
+    assert info.language == "PL"
+    assert info.get_info is True
+    assert info.metadata_warnings == ()
+
+
+def test_inspect_script_reads_a_real_mit_licensed_script():
+    info = inspect_script(REAL_SCRIPT_FIXTURES / "IMDB_ALT.ifs")
+    assert info.title == "IMDB ( via API )"
+    assert info.site == "https://github.com/Purfview/IMDB_ALT"
+    assert "MIT License" in info.license
+    assert len(info.options) > 20
+
+
+def test_inspect_script_reads_real_shared_pascal_units():
+    """`.pas` shared units aren't discovered by discover_scripts() (it only
+    globs *.ifs), but inspect_script() reads any file directly; these three
+    are genuine real-world units with their own [Infos] header."""
+    for name in ("JsonUtils.pas", "cp1250.pas", "en2pl.pas"):
+        info = inspect_script(REAL_SCRIPT_FIXTURES / name)
+        assert info.legacy_format is False
+        assert info.metadata_warnings == ()
+        assert "GPL" in info.license or "General Public License" in info.license
 
 
 def test_discover_scripts_is_filtered_and_sorted(tmp_path: Path):

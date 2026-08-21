@@ -6,6 +6,7 @@ import argparse
 import base64
 from collections.abc import Callable
 import io
+import os
 import tkinter as tk
 import webbrowser
 from pathlib import Path
@@ -20,6 +21,12 @@ from .errors import CatalogError
 from .loans import LoanEvent
 from .media import discover_media, movie_from_media
 from .model import Movie
+from .omdb import (
+    DEFAULT_TIMEOUT as DEFAULT_OMDB_TIMEOUT,
+    fetch_omdb_record,
+    imdb_id_from_url,
+    preview_omdb_update,
+)
 from .preferences import (
     MAX_HISTORY_LIMIT,
     MIN_HISTORY_LIMIT,
@@ -414,6 +421,7 @@ class CatalogWindow(ttk.Frame):
             ("Undo", self.undo, 12),
             ("Redo", self.redo, 4),
             ("Open URL", self.open_url, 12),
+            ("Update from IMDb", self.update_from_imdb, 4),
             ("Stats", self.show_statistics, 12),
             ("Loan History", self.show_loan_history, 4),
             ("Duplicates", self.show_duplicates, 4),
@@ -628,6 +636,8 @@ class CatalogWindow(ttk.Frame):
         movie_menu.add_separator()
         add_action(movie_menu, "Open URL", "Open URL", "Ctrl+U")
         movie_menu.add_separator()
+        add_action(movie_menu, "Update from IMDb...", "Update from IMDb")
+        movie_menu.add_separator()
         add_action(movie_menu, "Renumber", "Renumber")
         menubar.add_cascade(label="Movie", menu=movie_menu)
 
@@ -738,6 +748,7 @@ class CatalogWindow(ttk.Frame):
             "Assign Pictures": selected > 0 and writable,
             "Clear Pictures": selected > 0 and writable,
             "Open URL": can_open_url,
+            "Update from IMDb": selected == 1 and writable,
         }
         for name, enabled in selection_actions.items():
             self._set_action_state(name, enabled)
@@ -1410,6 +1421,102 @@ class CatalogWindow(ttk.Frame):
             messagebox.showerror("Could not clear pictures", str(error), parent=self)
             return
         self.refresh()
+
+    def update_from_imdb(self) -> None:
+        """Preview, then optionally apply, an OMDb-sourced IMDb metadata
+        update for the selected movie.
+
+        Reuses `amc.omdb.preview_omdb_update`'s isolated candidate-preview
+        contract exactly as `amc cli imdb-lookup` does: nothing is written
+        to the catalog until the user reviews the field changes and clicks
+        Apply. The API key defaults to the `OMDB_API_KEY` environment
+        variable (matching the CLI's `--api-key` default) and is never
+        persisted by this dialog or written to GUI preferences.
+        """
+        movie = self.selected()
+        if movie is None:
+            return
+        dialog = tk.Toplevel(self)
+        dialog.title("Update from IMDb")
+        dialog.transient(self.winfo_toplevel())
+        api_key = tk.StringVar(value=os.environ.get("OMDB_API_KEY", ""))
+        imdb_id = tk.StringVar(value=imdb_id_from_url(movie.url))
+        ttk.Label(dialog, text="OMDb API key").grid(
+            row=0, column=0, sticky="w", padx=8, pady=(8, 4)
+        )
+        ttk.Entry(dialog, textvariable=api_key, width=42, show="*").grid(
+            row=0, column=1, padx=8, pady=(8, 4)
+        )
+        ttk.Label(dialog, text="IMDb ID (optional)").grid(
+            row=1, column=0, sticky="w", padx=8, pady=4
+        )
+        id_entry = ttk.Entry(dialog, textvariable=imdb_id, width=42)
+        id_entry.grid(row=1, column=1, padx=8, pady=4)
+        ttk.Label(
+            dialog,
+            text=f'Falls back to a title/year search for "{movie.display_title()}" '
+            "when no IMDb ID is given.",
+            wraplength=420, justify="left", foreground="gray",
+        ).grid(row=2, column=0, columnspan=2, sticky="w", padx=8)
+        results = tk.Text(dialog, height=8, width=56, state="disabled", wrap="word")
+        results.grid(row=3, column=0, columnspan=2, padx=8, pady=8)
+
+        preview_holder: dict[str, object] = {}
+
+        def show_lines(lines: list[str]) -> None:
+            results.configure(state="normal")
+            results.delete("1.0", "end")
+            results.insert("1.0", "\n".join(lines) if lines else "No changes.")
+            results.configure(state="disabled")
+
+        def fetch() -> None:
+            preview_holder.pop("preview", None)
+            apply_button.configure(state="disabled")
+            candidate_id = imdb_id.get().strip()
+            try:
+                record = fetch_omdb_record(
+                    api_key=api_key.get().strip(),
+                    imdb_id=candidate_id,
+                    title="" if candidate_id else movie.display_title(),
+                    year=None if candidate_id else movie.year,
+                    timeout=DEFAULT_OMDB_TIMEOUT,
+                )
+                preview = preview_omdb_update(movie, record)
+            except (OSError, ValueError) as error:
+                messagebox.showerror(
+                    "Could not fetch IMDb metadata", str(error), parent=dialog
+                )
+                show_lines([])
+                return
+            preview_holder["preview"] = preview
+            show_lines(
+                [f"{change.field}: {change.before!r} -> {change.after!r}"
+                 for change in preview.changes]
+            )
+            apply_button.configure(state="normal" if preview.changes else "disabled")
+
+        def accept() -> None:
+            preview = preview_holder.get("preview")
+            if preview is None:
+                return
+            try:
+                self.service.replace(movie.number, preview.movie)
+            except _SERVICE_ERRORS as error:
+                messagebox.showerror(
+                    "Could not apply IMDb update", str(error), parent=dialog
+                )
+                return
+            dialog.destroy()
+            self.refresh()
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=4, column=0, columnspan=2, sticky="e", padx=8, pady=(0, 8))
+        ttk.Button(buttons, text="Fetch Preview", command=fetch).pack(
+            side="left", padx=(0, 4)
+        )
+        apply_button = ttk.Button(buttons, text="Apply", command=accept, state="disabled")
+        apply_button.pack(side="left")
+        make_modal(dialog, focus=id_entry)
 
     def undo(self) -> None:
         try:

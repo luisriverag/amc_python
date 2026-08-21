@@ -994,7 +994,7 @@ def test_window_action_states_follow_selection_history_and_format():
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
         "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
-        "Open URL", "Renumber",
+        "Open URL", "Update from IMDb", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -1015,6 +1015,10 @@ def test_window_action_states_follow_selection_history_and_format():
     assert window.action_buttons["Open URL"].configure.call_args.kwargs["state"] == "disabled"
     assert window.action_buttons["Undo"].configure.call_args.kwargs["state"] == "normal"
     assert window.action_buttons["Redo"].configure.call_args.kwargs["state"] == "disabled"
+    assert (
+        window.action_buttons["Update from IMDb"].configure.call_args.kwargs["state"]
+        == "disabled"
+    )
     assert window.import_button.configure.call_args.kwargs["state"] == "normal"
     assert window.restore_button.configure.call_args.kwargs["state"] == "normal"
 
@@ -1024,7 +1028,7 @@ def test_window_disables_mutations_for_interchange_catalog():
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
         "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
-        "Open URL", "Renumber",
+        "Open URL", "Update from IMDb", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -1050,7 +1054,7 @@ def test_window_disables_actions_when_selection_lacks_required_data():
     names = (
         "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
         "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
-        "Open URL", "Renumber",
+        "Open URL", "Update from IMDb", "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -1066,6 +1070,10 @@ def test_window_disables_actions_when_selection_lacks_required_data():
 
     assert window.action_buttons["Loan In"].configure.call_args.kwargs["state"] == "disabled"
     assert window.action_buttons["Open URL"].configure.call_args.kwargs["state"] == "disabled"
+    assert (
+        window.action_buttons["Update from IMDb"].configure.call_args.kwargs["state"]
+        == "normal"
+    )
 
 
 def test_window_renders_selected_movie_details_read_only():

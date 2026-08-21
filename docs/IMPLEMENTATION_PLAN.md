@@ -69,15 +69,16 @@ effort one, so building an IFPS compiler/VM stays for an explicit
 product/security-posture call rather than decided unilaterally here. What
 did get decided and built, once asked which legacy scripts actually
 mattered: a narrower, first-party alternative (`amc.omdb`, CLI
-`imdb-lookup`) for the two named highest-value cases — refreshing existing
+`imdb-lookup`, and now the desktop GUI's **Movie / Update from IMDb...**
+dialog) for the two named highest-value cases — refreshing existing
 entries and IMDb lookups — via the OMDb API instead of any script
 execution at all. This closes that concrete slice without deciding the
 general question either way. Execution continues to prioritize: (1) any
 remaining small, bounded, well-scoped item anywhere in D0–D6, picked in
 tier order; (2) once none remain, the next smallest decidable slice of
-what's left — general script execution's own scoping/security decision,
-or GUI wiring for the OMDb provider — over open-ended new-subsystem
-construction. This is still evidence-independent — Python-owned behavior and
+what's left — general script execution's own scoping/security decision —
+over open-ended new-subsystem construction. This is still
+evidence-independent — Python-owned behavior and
 test coverage, not an upstream-compatibility claim — so none of it needs a
 fixture or is blocked by Milestone 0.
 
@@ -840,13 +841,23 @@ script execution at all — see the checked sub-item below.
     `ScriptMergePreview` shape rather than inventing a second one. Wired
     into the CLI as `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID]
     [--apply]` (dry-run preview by default; `--apply` writes through the
-    existing `CatalogService.replace`). Not yet wired into the desktop GUI —
-    a natural, separately-scoped follow-up. See `docs/PORT_AUDIT.md`
-    finding 31. While mapping OMDb's `Runtime` field, found and fixed a real,
-    unrelated bug this same investigation surfaced: `movie_from_media` had
-    been setting `Movie.length` in seconds since D0, when every other place
-    in this port (including upstream's own documentation) treats it as
+    existing `CatalogService.replace`). See `docs/PORT_AUDIT.md` finding 31.
+    While mapping OMDb's `Runtime` field, found and fixed a real, unrelated
+    bug this same investigation surfaced: `movie_from_media` had been
+    setting `Movie.length` in seconds since D0, when every other place in
+    this port (including upstream's own documentation) treats it as
     minutes — see finding 32.
+  - [x] Wired the same `amc.omdb` preview-then-apply contract into the
+    desktop GUI as a **Movie / Update from IMDb...** dialog: an API-key
+    field (defaulting to `OMDB_API_KEY`, never persisted) and an optional
+    IMDb-ID field, a **Fetch Preview** button that shows the field-change
+    list without writing anything, and an **Apply** button (disabled until
+    a preview with at least one change exists) that writes through
+    `CatalogService.replace`, gated on the same selected-exactly-one-and-
+    writable rule as Edit. Verified with a real Tk widget tree under Xvfb:
+    a patched OMDb response driving a real fetch-preview-apply round trip,
+    and a patched network failure confirming the dialog reports the error
+    and stays open with Apply disabled. See `docs/PORT_AUDIT.md` finding 36.
   - [x] Validated `amc.scripts.inspect_script`/`discover_scripts` against a
     314-file contributor snapshot of `update.antp.be/amc/scripts/`, Ant
     Movie Catalog's own official script-update feed — real scripts at real-

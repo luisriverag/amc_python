@@ -37,7 +37,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 561 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 563 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -107,9 +107,10 @@ confidence.
   general "build it" or "don't" call has been made either way. What is
   decided and built is a narrower, first-party alternative for the two
   cases named as actually mattering most (finding 31): `amc.omdb`'s
-  OMDb-API-backed IMDb lookup/update, wired into the CLI as `imdb-lookup`.
-  This is a new Python-owned feature, not IFPS parity, and carries no
-  upstream-compatibility claim.
+  OMDb-API-backed IMDb lookup/update, wired into the CLI as `imdb-lookup`
+  and, since finding 36, the desktop GUI's **Movie / Update from IMDb...**
+  dialog. This is a new Python-owned feature, not IFPS parity, and carries
+  no upstream-compatibility claim.
 - Full media analysis and codec mapping (portable facts plus PCM WAV/FLAC/AIFF/
   MP3/MP4/OGG duration and bitrate; video-track resolution, framerate, and a
   real codec/container-vs-codec distinction remain unimplemented, since they
@@ -582,6 +583,26 @@ confidence.
     that still requires provenance-tracked upstream bytes. Covered by
     `tests/test_amc.py::test_edge_case_fixture_native_and_xml_agree_on_synthetic_movies`
     and `tools/verify_fixtures.py`.
+36. Wired `amc.omdb` into the desktop GUI as a **Movie / Update from
+    IMDb...** dialog, closing the gap the "Website scripts" row and finding
+    31 had left open ("wire the OMDb provider into the desktop GUI"). It
+    reuses `preview_omdb_update`'s exact isolated-preview contract the CLI's
+    `imdb-lookup` command already uses: fetching only builds and displays a
+    field-change preview in the dialog, and nothing is written to the
+    catalog until the user reviews it and clicks Apply, gated on the same
+    selected-exactly-one-and-writable rule as Edit. The API key field
+    defaults to the `OMDB_API_KEY` environment variable (matching the CLI's
+    own default) and is neither persisted to `amc.preferences` nor written
+    anywhere else — this repository still has no plaintext-secret-storage
+    story, and this dialog does not start one. Verified with a real Tk
+    widget tree under Xvfb: a patched OMDb response driving a real
+    fetch-preview-apply round trip
+    (`test_update_from_imdb_dialog_previews_then_applies_a_real_change`),
+    and a patched network failure confirming the dialog reports the error
+    and stays open with Apply disabled rather than closing or applying a
+    partial change
+    (`test_update_from_imdb_dialog_reports_a_lookup_failure_without_closing`),
+    both in `tests/test_gui_display.py`.
 
 ## Gap matrix against the original application
 
@@ -596,7 +617,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |
 | Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop, bounded poster display, and atomic batch set/clear | Upstream import modes, naming/copy/move rules, conversion options, and genuine embedded/linked fixtures |
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
-| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings, now validated against 14 committed real scripts plus a 314-file contributor snapshot used locally (finding 33 — found and fixed a real crash on non-cp1252 scripts); separately, a first-party (not IFPS) OMDb-backed IMDb lookup/update provider (`amc.omdb`, CLI `imdb-lookup`) covers the two cases named most-used, with an isolated merge preview reusing the same safe-merge shape below | IFPS compiler/runtime and general script execution remain undecided (finding 31, real security exposure); complete API inventory, HTTP/browser interactions, license acceptance, debugger, and results UI for actual IFPS scripts |
+| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings, now validated against 14 committed real scripts plus a 314-file contributor snapshot used locally (finding 33 — found and fixed a real crash on non-cp1252 scripts); separately, a first-party (not IFPS) OMDb-backed IMDb lookup/update provider (`amc.omdb`, CLI `imdb-lookup`, and since finding 36 the desktop GUI's **Movie / Update from IMDb...** dialog) covers the two cases named most-used, with an isolated merge preview reusing the same safe-merge shape below | IFPS compiler/runtime and general script execution remain undecided (finding 31, real security exposure); complete API inventory, HTTP/browser interactions, license acceptance, debugger, and results UI for actual IFPS scripts |
 | Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration and bitrate (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec — MP4 from the `moov/mvhd` box, OGG from the Vorbis identification header and the stream's last granule position) | MediaInfo integration/version checks, video-track resolution/framerate/real codec name (needs per-track sample-table parsing this port does not do), the full tag map, stream selection, filters, and field merge behavior |
 | HTML export | `export.pas`, `ConstValues.pas` (`strTagFields`/`TAG_*`), `fields.pas` | Safe bounded Python table/templates, plus `amc.html_template` rendering upstream's own `$$TAG_NAME` general/item/rating/picture/custom-field tags and the `$$ITEM_BEGIN`/`$$ITEM_END` full+individual document loop, validated locally against a genuine AMC 4.2.2 export's own real templates | The `$$ITEM_EXTRA_*` supplementary-record loop (with its category/checked/range filter syntax), upstream picture/rating-icon file copying, multi-file/SQL export, and fixture comparison of rendered tag values against genuine upstream output |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader; localization decided as deliberately deferred (finding 29) — the `.lng` format has no Tk equivalent, and a Python-owned i18n layer awaits real translated content | Settings XML, per-user state, translated UI/help, and migration; localization scaffolding itself only once translated content exists |

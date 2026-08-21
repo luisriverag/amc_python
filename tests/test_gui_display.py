@@ -441,6 +441,73 @@ def test_loan_in_checks_in_a_real_loaned_movie(real_root: tk.Tk, tmp_path: Path)
     assert window.service.catalog.get(movie.number).borrower == ""
 
 
+def test_update_from_imdb_dialog_previews_then_applies_a_real_change(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+    window.table.selection_set(str(movie.number))
+    real_root.update_idletasks()
+    real_root.update()
+
+    with patch(
+        "amc.gui.fetch_omdb_record",
+        return_value={
+            "Response": "True",
+            "Title": "Alien",
+            "Director": "Ridley Scott",
+            "imdbID": "tt0078748",
+        },
+    ) as fetch:
+        window.update_from_imdb()
+        real_root.update_idletasks()
+        real_root.update()
+        dialog = [
+            item for item in _toplevels(real_root) if item.title() == "Update from IMDb"
+        ][0]
+        _labeled_entry(dialog, "IMDb ID (optional)").insert(0, "tt0078748")
+        _buttons(dialog)["Fetch Preview"].invoke()
+        real_root.update()
+        fetch.assert_called_once()
+        assert fetch.call_args.kwargs["imdb_id"] == "tt0078748"
+
+        _buttons(dialog)["Apply"].invoke()
+        real_root.update()
+
+    assert not dialog.winfo_exists()
+    updated = window.service.catalog.get(movie.number)
+    assert updated.director == "Ridley Scott"
+    assert updated.url == "https://www.imdb.com/title/tt0078748/"
+
+
+def test_update_from_imdb_dialog_reports_a_lookup_failure_without_closing(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+    window.table.selection_set(str(movie.number))
+    real_root.update_idletasks()
+    real_root.update()
+
+    with (
+        patch("amc.gui.fetch_omdb_record", side_effect=OSError("OMDb request failed")),
+        patch("amc.gui.messagebox.showerror") as showerror,
+    ):
+        window.update_from_imdb()
+        real_root.update_idletasks()
+        real_root.update()
+        dialog = [
+            item for item in _toplevels(real_root) if item.title() == "Update from IMDb"
+        ][0]
+        _buttons(dialog)["Fetch Preview"].invoke()
+        real_root.update()
+
+    showerror.assert_called_once()
+    assert dialog.winfo_exists()
+    assert str(_buttons(dialog)["Apply"].cget("state")) == "disabled"
+    dialog.destroy()
+
+
 def test_set_pictures_embeds_a_real_image_for_selected_movies(
     real_root: tk.Tk, tmp_path: Path
 ):

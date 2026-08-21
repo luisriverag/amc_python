@@ -140,6 +140,11 @@ unit and compatibility evidence are recorded.
   parsing; compatibility verification remains blocked on genuine fixtures.
 - [x] Add explicit, atomic source-derived AMC 4.2 export with synthetic round-trip
   coverage; upstream acceptance and byte-level compatibility remain unverified.
+  A genuine native catalog contributed by a user for local debugging (not
+  committed to the repository) round-tripped cleanly after fixing a real
+  encode/decode asymmetry the synthetic-only coverage had missed — see
+  `docs/PORT_AUDIT.md` finding 34. Not upgraded to verified: no
+  provenance-tracked fixture is registered in the repository.
 - [x] Add format-neutral `amc inspect` and `amc validate`; modern native validation
   parses structure but reports unverified status rather than claiming compatibility.
 - [ ] Parse catalog metadata, movie records, custom fields, and pictures (read-only

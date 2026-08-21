@@ -37,7 +37,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 559 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 560 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -240,9 +240,16 @@ confidence.
 11. XML catalog properties and custom-field definitions are now retained, but
     unknown nested structures and typed values are still normalized into the
     Python metadata representation and have no upstream-generated fixture coverage.
-12. Native strings default to CP-1252, version comparisons are textual, and Delphi
-    primitive/layout assumptions are encoded directly. They are plausible from the
-    source snapshot but not established across compiler settings or real catalogs.
+12. [Partially confirmed] Native strings default to CP-1252, version comparisons are
+    textual, and Delphi primitive/layout assumptions are encoded directly. They were
+    plausible from the source snapshot but not established across compiler settings
+    or real catalogs; a genuine native catalog (finding 34) has since confirmed
+    cp1252 as broadly correct for one real, undated catalog — it parsed cleanly with
+    plausible field values throughout — while also surfacing a real gap the
+    synthetic-only evidence had missed (the round-trip bug finding 34 fixes) and an
+    open, unresolved observation (occasional apparent UTF-8-in-cp1252 mojibake in
+    free-text fields, not automatically repaired). Not established across compiler
+    settings, still, and only one real catalog's worth of evidence.
 13. Native reads bound file size, movies, individual/cumulative pictures, cumulative
     strings, custom fields/list values, and supplementary records. Exhaustive
     synthetic fixed-record truncations and a seeded 4.2 byte-mutation corpus now
@@ -527,6 +534,38 @@ confidence.
     one file with non-standard attribution-only terms — are deliberately
     not committed; reachability from the official update feed was not, on
     its own, treated as a redistribution grant.
+34. [Resolved] The native `.amc` reader and writer could not round-trip a
+    real AMC 4.2 catalog, found and fixed against a genuine native export a
+    user contributed for local debugging (not committed to the repository —
+    the first genuine native-format data this port has had access to,
+    parallel to findings 26/27's genuine XML export). The catalog loaded
+    cleanly (no corruption diagnostics beyond the standard unverified-
+    structure warning) and produced plausible, correctly-typed field values
+    throughout, which is itself real evidence for a format that previously
+    had zero fixtures of any kind. Writing the loaded catalog back out and
+    reloading it, to check for a lossless round trip the way `load_xml`/
+    `save_xml` were checked against finding 26's export, surfaced a real,
+    concrete bug: `_read_native_string` already losslessly preserves
+    Windows-1252's five undefined byte positions (0x81/0x8D/0x8F/0x90/0x9D)
+    by decoding each to the identically-numbered Unicode code point rather
+    than raising or dropping it — a real movie's string field genuinely
+    contained one of these bytes — but `write_native_catalog`'s string
+    encoder had no inverse: encoding that exact character straight back
+    with plain `str.encode("cp1252")` failed outright, since cp1252 itself
+    has no mapping for it. Fixed by adding `_encode_native_string`, the
+    missing inverse of the existing `_decode_native_string`, used by
+    `_write_string`. Re-running the full write-then-reload round trip
+    against the same real catalog afterward matched every field on every
+    movie exactly. Separately, and left as an open, evidence-backed
+    observation rather than an automatic fix: a small number of free-text
+    fields (comments copied from elsewhere, by their content) show the same
+    shape as UTF-8 bytes decoded as cp1252 — mojibake, not a crash or data
+    loss — confirming design-debt item 12's "not established across
+    compiler settings or real catalogs" note with genuine evidence rather
+    than resolving it: a reliable, general "detect and repair
+    accidentally-double-encoded text" heuristic risks misfiring on
+    legitimately cp1252 text and was judged not safe to build from one
+    real catalog's evidence alone.
 
 ## Gap matrix against the original application
 
@@ -535,7 +574,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 | Original subsystem | Upstream source | Python coverage | Remaining gap |
 |---|---|---|---|
-| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes | Genuine files for every version; code-page behavior; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
+| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes; read/write/reread round-trip checked byte-for-decoded-field against a genuine native catalog locally, which found and fixed a real encode/decode asymmetry (finding 34) | Genuine registered files for every version; code-page behavior beyond one real catalog; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
 | Movie and custom-field model | `movieclass.pas`, `fields.pas`, `customfieldsmanager.pas`, `extrasedit.pas` | Common scalar fields plus opaque metadata/extras retention | Typed writer/composer/certification/file-path and extra records; duplicate/order/type preservation; custom-field editing semantics and defaults |
 | XML/CSV import and export | `movieclass.pas`, `import2*.pas`, `export.pas` | Synthetic XML/CSV codecs | Upstream dialect/locale fixtures, streaming/resource limits, repeated/nested unknown XML, and cross-application round trips |
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |

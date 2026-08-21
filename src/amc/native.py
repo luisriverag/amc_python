@@ -948,11 +948,39 @@ def replace_and_sync_directory(source: Path, destination: Path) -> None:
         os.close(descriptor)
 
 
+def _encode_native_string(value: str, encoding: str) -> bytes:
+    """Encode text for a native string field, inverting `_decode_native_string`'s
+    lossless preservation of Windows-1252's five undefined byte positions.
+
+    A genuine AMC catalog can contain one of those five raw bytes (0x81, 0x8D,
+    0x8F, 0x90, 0x9D) in a string field; `_decode_native_string` reads it back
+    as the identically-numbered Unicode code point rather than raising or
+    dropping it. Without this inverse, re-encoding that exact string with
+    plain `str.encode("cp1252")` fails outright, since cp1252 has no mapping
+    for those five code points at all -- a real round-trip gap found via a
+    genuine AMC 4.2 native catalog contributed by a user for local debugging.
+    """
+    try:
+        return value.encode(encoding)
+    except UnicodeEncodeError:
+        if encoding.casefold().replace("-", "") not in {"cp1252", "windows1252"}:
+            raise
+        undefined = {0x81, 0x8D, 0x8F, 0x90, 0x9D}
+        result = bytearray()
+        for character in value:
+            code_point = ord(character)
+            if code_point in undefined:
+                result.append(code_point)
+            else:
+                result.extend(character.encode("cp1252"))
+        return bytes(result)
+
+
 def _write_string(stream: BinaryIO, value: object, encoding: str, label: str) -> None:
     if not isinstance(value, str):
         raise TypeError(f"native {label} must be a string")
     try:
-        raw = value.encode(encoding)
+        raw = _encode_native_string(value, encoding)
     except (LookupError, UnicodeEncodeError) as error:
         raise ValueError(f"cannot encode native {label} using {encoding}: {error}") from error
     if len(raw) > _MAX_PROPERTY_BYTES:

@@ -604,6 +604,30 @@ def test_native_reader_preserves_undefined_cp1252_bytes(tmp_path: Path):
     assert read_native_properties(target).owner == "Owner\x90Name"
 
 
+def test_native_writer_round_trips_undefined_cp1252_bytes(tmp_path: Path):
+    """The reader losslessly preserves cp1252's five undefined byte positions
+    (0x81/0x8D/0x8F/0x90/0x9D) by decoding them to the identically-numbered
+    code point (see the test above). A genuine AMC 4.2 native catalog
+    contributed by a user for local debugging turned out to contain one of
+    these bytes in a real movie's string field, and writing it straight back
+    out with plain str.encode("cp1252") failed outright -- cp1252 has no
+    encoding for that code point at all, even though decoding it is exactly
+    how it got there. The writer must invert the same preservation the
+    reader performs, not just tolerate whatever cp1252 already covers."""
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import read_native_catalog, write_native_catalog
+
+    original = "Director\x90Name"
+    catalog = Catalog([Movie(number=1, director=original)])
+    target = tmp_path / "undefined-byte.amc"
+
+    write_native_catalog(catalog, target)
+    result = read_native_catalog(target)
+
+    assert result.movies[0].director == original
+
+
 def test_native_read_limits_supplementary_records(tmp_path: Path):
     from amc.native import NativeReadLimits, read_native_catalog
 

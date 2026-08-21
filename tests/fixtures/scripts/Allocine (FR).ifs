@@ -1,0 +1,976 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=Antoine Potten, Nazgul64, Raoul_Volfoni, HerveM, MarcelT
+Title=Allociné
+Description=Importations des fiches de films d'Allociné
+Site=http://www.allocine.fr
+Language=FR
+Version=2.71
+Requires=3.5.1
+Comments=Nouveau script créé après de gros changements effectués par Allociné en janvier 2016. Pour le moment il n'est prévu que pour les fiches de films et n'intègre pas toutes les options qu'avait l'ancien script. Il sera probablement amélioré dans le futur.|Les versions précédentes ont été réalisées et maintenues par ScorEpioN et  Raoul Volfoni.
+License=This program is free software; you can redistribute it and/or modify it under the  terms of the GNU General Public License as published by the Free Software Foundation;  either version 2 of the License, or (at your option) any later version.
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+Choix Image=1|1|0=Pas d'affiche|1=Petite affiche allociné|2=Grande affiche allociné
+Recherche sur le titre=0|0|0=Traduit|1=Original
+Format du Titre=4|4|0=Titre en minuscule|1=Titre en majuscule|2=Première lettre du titre en majuscule|3=Première lettre de chaque mot du titre en majuscule|4=Formatage identique au site d'origine
+Acteurs=2|2|0=Ne prend pas la liste des acteurs|1=Prend les noms des acteurs de la page principale (plus rapide)|2=Prend la liste des acteurs principaux, producteur, compositeur et scénariste|3=Idem que 2 mais avec tous les acteurs
+Roles acteurs=0|0|0=Pas de nom de rôle|1=Nom de rôle derrière le nom de l'acteur (si option Acteurs à 2 ou 3)
+Détail des notes=1|1|0=Non|1=Oui (champ Commentaires)
+Fiche technique=0|0|0=Non|1=Oui (champ Commentaires)
+Equipe technique=0|0|0=Non|1=Oui (Listée comme sur Allociné)|2=Oui (Noms regroupés par métier)
+Secrets de tournage=0|0|0=Non|1=Oui (dans les commentaires)
+Extra : Photos du film=0|0|0=Non|1=Oui
+Extra : Photos des acteurs=0|0|0=Non|1=Oui
+Garder les valeurs du champ Commentaires=0|0|0=Non|1=Oui
+Batch=0|0|0=Non|1=Oui
+ABlock=0|0|0=Non (par défaut)|1=Oui (ouvre les pages dont le script à besoin dans le navigateur par défaut)
+
+[Parameters]
+Pause=|3000|Délai d'attente (en ms) entre l'ouverture de la page sur navigateur et son acquisition par AMC
+MaxFilmExtra=||Nombre max de photos du film à récupérer dans les extras (0 ou vide = pas de limite)
+ChampBA=||Nom du champ personnalisé où stocker l'adresse de la bande annonce (vide = addresse dans les commentaires)
+
+***************************************************)
+
+program Allocine_FR_v2;
+
+uses
+  StringUtils1, ScorEpioNCommonScript;
+
+var
+  MovieName: string;
+
+const
+  urlDomain = 'allocine.fr';
+  urlAllocine = 'https://www.allocine.fr';
+  urlFicheFilm = 'https://www.allocine.fr/film/fichefilm-';
+  urlSearch = urlAllocine+'/rechercher/?q=';
+
+
+//------------------------------------------------------------------------------
+// Remplace les virgules par des points							      Ajouté 2.06
+//------------------------------------------------------------------------------
+
+function convert_STF (ligne : String ) : Extended;
+  var
+    temp : Extended;
+  begin
+    ligne := FullTrim(ligne);
+    temp := StrToFloat(ligne);
+    if (ligne <> '0') and (temp = 0) then
+    begin
+      if pos(',',ligne) > 0 then
+        ligne := stringreplace(ligne,',','.')
+      else
+      begin
+        if pos('.',ligne) > 0 then
+          ligne := stringreplace(ligne,'.',',');
+      end;
+      temp := StrToFloat(ligne);
+    end;
+    result := temp;
+  end;
+
+//------------------------------------------------------------------------------
+// Fonction Puissance (mathématique)                      Ajouté 2.06
+//------------------------------------------------------------------------------
+
+function Power(base : extended ; puissance : integer): extended;
+var
+  temp : extended;
+  i : integer;
+begin
+  temp := base;
+  if puissance > 0 then
+  begin
+    for i:= 2 to puissance do
+    temp := temp * base;
+  end else
+  begin
+    if puissance = 0 then
+    temp := 1
+    else
+    for i:= puissance to 0 do
+    temp := temp / base;
+  end;
+  result := temp;
+end;
+
+//------------------------------------------------------------------------------
+// Arrondi à la valeur décimale souhaité                 Ajouté 2.06
+//------------------------------------------------------------------------------
+
+function Arrondir(nombre : extended ; nbDecim : integer) : extended;
+var
+  p10 : extended;
+  begin
+    p10 := Power(10,nbDecim);
+    result := round(nombre * p10) / p10;
+  end;
+
+//------------------------------------------------------------------------------
+// Fonction pour récupérer les acteurs et leurs roles   Transféré 2.09 R_V
+//------------------------------------------------------------------------------
+
+function AllActors(Section : String) : string;
+var
+  Roles: Boolean;
+  Page, Block, Value, Actors: string;
+  T: TStringList;
+begin
+  Actors := '';
+  Section := TextBetween(Section, '<div class="card person-card person-card-col">', '<div class="titlebar ">');
+  Section := StringReplace(Section, '<div class="meta-sub light">', '');
+  Section := StringReplace(Section, #13#10+'          </div>', '');
+  Roles := GetOption('Roles acteurs') > 0;
+   while Pos('<div class="card person-card person-card-col">', Section) > 0 do
+    begin
+      Block := TextBetween(Section, '<figure class="thumbnail ">', '</div>'+#13#10++#13#10+'    </div>');
+      if Pos('<div class="section', Block) > 0 then
+        Break;
+      Section := RemainingText;
+      if (Pos(UTF8Encode('Rôle : '), Block) > 0) then
+        Value := TextBefore(Block, UTF8Encode('Rôle : '), '')
+      else
+        Value := Block;
+      Value := CleanText(Value);
+      if Value <> '' then
+      begin
+        if Actors <> '' then
+          Actors := Actors + ', ';
+        Actors := Actors + Value;
+        if Roles then
+          Actors := Actors + ' (' + CleanText(RemainingText) + ')';
+      end;
+      if (CheckVersion(4,2,0) = True) and (GetOption('Extra : Photos des acteurs') = 1) then // Condition pour récupérer les photos des acteurs	Ajouté V2.08 R_V
+      Extra_Photos_Acteurs(Block + '</div>'); // Récupération des photos des acteurs via la procédure Extra_Photos_Acteurs	Ajouté V2.08 R_V
+    end;
+    if GetOption('Acteurs') = 3 then
+    begin
+      while Pos('<div class="gd gd-xs-1 gd-s-2 md-table-row ">', Section) > 0 do
+      begin
+        Block := TextBefore(Section, '</div>', '');
+        if Pos('<div class="section', Block) > 0 then
+        Break;
+        Section := RemainingText;
+        if Pos('</span>', Block) > 0 then
+        begin
+          Value := TextAfter(Block, '</span>');
+          Value := CleanText(Value);
+          if Value <> '' then
+          begin
+              Actors := Actors + ', ' + Value;
+              if Roles then
+              begin
+                Value := TextBefore(Block, '</span>', '');
+                Actors := Actors + ' (' + CleanText(Value) + ')';
+              end;
+          end;
+        end;
+      end;
+    end;
+  result := Actors;
+end;
+
+//------------------------------------------------------------------------------
+// IMPORTE LES PHOTOS DU FILM COMME EXTRAS              Ajouté 2.07 R_V
+//------------------------------------------------------------------------------
+
+procedure Extra_Photos_Film(Value : String);
+var
+  AdressePhoto, AdresseExtra, Comparaison: String;
+  BeginPos, idx, NbrExtra, i, DLExtra, MaxExtra: Integer;
+begin
+  NbrExtra := GetExtraCount;
+  DLExtra := 0;
+  MaxExtra := StrToInt(GetParam('MaxFilmExtra'), 0);
+  if Pos('data-src="', Value) > 0 then  // s'assure que l'adresse de l'image existe
+  begin
+    BeginPos := Pos('data-src="', Value);
+    repeat
+      delete(Value, 1, BeginPos+4);
+      AdressePhoto := FullTrim(findInfo('src="', '"', Value,'0'));
+      if AdressePhoto <> '' then  // s'assure que l'adresse de l'image n'est pas vide
+      begin
+        for i := 0 to NbrExtra-1 do  //  Début boucle pour comparer les adresses des images déja dans la base avec celles du site
+          if GetExtraField(i, eCategory) = 'Photos du film' then  // ne compare que les extras ayant pour catégorie : 'Photos du film'
+          begin
+            AdresseExtra := GetExtraField(i , extraFieldURL);
+            if (AdresseExtra = AdressePhoto) then
+            begin
+              Comparaison := 'OK';
+              Break;
+            end else
+            begin
+              Comparaison := 'KO';
+            end;                  // fin boucle comparaison
+          end else
+            Comparaison := 'KO';
+        if ((Comparaison = 'KO') or (NbrExtra = 0)) then  // Ajoute l'extra si la comparaison n'est pas bonne ou que le nombre d'extra est égale à 0
+        begin
+          idx := AddExtra; // Crée un extra et stock sa position dans la valeur idx
+          SetExtraField(idx, extraFieldCategory, 'Photos du film'); // Stocke la valeur 'Photos du film' dans le champ catégorie de l'extra
+          SetExtraField(idx, extraFieldURL, AdressePhoto); // Stocke dans le champ URL de l'extra, l'adresse de la photo sur le site pour la comparer ultérieurement et ne télécharger que les photos que l'on n'a pas déjà
+          SetExtraField(idx, extraFieldDescription, CleanText(findInfo('alt="', '"', Value,'0'))); // Stocke la description de la photo donnée par le site dans le champ description de l'extra
+          SetExtraField(idx, extraFieldTitle, TextBefore(AdressePhoto, '.jpg', '/')); // Stocke le nom de la photo sur les serveurs du site dans le champ titre de l'extra
+          GetExtraPicture(idx, AdressePhoto); // Récupère l'image
+          if GetExtraPictureWidth(idx) < 1 then // Evite de récupérer un extra sans image en supprimant l'extra si l'image fait moins de 1 pixel de large
+            DeleteExtraOfScript(idx);
+        end;
+      end;
+      delete(Value, 1, Pos('src=', Value)+4);
+      BeginPos := Pos(UTF8Encode('data-src="'), Value);
+      DLExtra := DLExtra + 1;
+    until (BeginPos = 0) or ((MaxExtra > 0) and (DLExtra >= MaxExtra));
+  end;
+end;
+
+///------------------------------------------------------------------------------
+// IMPORTE LES PHOTOS DES ACTEURS COMME EXTRAS              Ajouté 2.08 R_V
+//------------------------------------------------------------------------------
+
+procedure Extra_Photos_Acteurs(Value : String);
+var
+  AdressePhoto, Acteur, Role, AdresseExtra, Comparaison : String;
+  idx, NbrExtra, i : Integer;
+begin
+  if pos('<img class="thumbnail-img"', Value) > 0 then   // vérifie que la photo de l'acteur existe
+  begin
+    AdressePhoto := TextBetween(Value, 'data-src="', '"');
+    Acteur :=  TextBetween(Value, 'title="', '"');
+    Role := TextBetween(Value, UTF8Encode('Rôle : '), '</div>');
+    if (AdressePhoto <> '') and (Pos('empty_photo.jpg', AdressePhoto) = 0) and (Pos('empty_star.jpg', AdressePhoto) = 0) then
+    begin
+      AdressePhoto := StringReplace(AdressePhoto, '/c_160_213', '');
+      AdressePhoto := StringReplace(AdressePhoto, '.JPG', '.jpg');
+      NbrExtra := GetExtraCount;
+      for i := 0 to NbrExtra-1 do  //  Début boucle pour comparer les adresses des images déja dans la base avec celles du site
+        if GetExtraField(i, eCategory) = 'Acteurs et Actrices' then  // ne compare que les extras ayant pour catégorie : 'Acteurs et Actrices'
+        begin
+          AdresseExtra := GetExtraField(i , extraFieldURL);
+          if (AdresseExtra = AdressePhoto) then
+          begin
+          Comparaison := 'OK';
+          Break;
+          end else
+          begin
+            Comparaison := 'KO';
+        end;                  // fin boucle comparaison
+    end else
+      Comparaison := 'KO';
+    if ((Comparaison = 'KO') or (NbrExtra = 0)) then  // Ajoute l'extra si la comparaison n'est pas bonne ou que le nombre d'extra est égale à 0
+    begin
+      idx := AddExtra;
+      SetExtraField(idx, extraFieldCategory, 'Acteurs et Actrices');
+      SetExtraField(idx, extraFieldURL, AdressePhoto);
+      SetExtraField(idx, extraFieldDescription, CleanText(Role));
+      SetExtraField(idx, extraFieldTitle, CleanText(Acteur));
+      GetExtraPicture(idx, AdressePhoto);
+      if GetExtraPictureWidth(idx) < 1 then // Evite de récupérer un extra sans image en supprimant l'extra si l'image fait moins de 1 pixel de large
+      DeleteExtraOfScript(idx);
+    end;
+  end;
+ end;
+end;
+
+//------------------------------------------------------------------------------
+// ANALYSE DE LA PAGE SECRETS DE TOURNAGE  Ajouté 2.09 R_V
+//------------------------------------------------------------------------------
+
+procedure SecretComplet(pageSecret: string);
+var
+  Line, Titre, Texte, La_liste :string;
+begin
+//charge la page
+  if GetOption('ABlock') = 1 then
+  begin
+    Sleep(StrToInt(GetParam('Pause'), 0));
+  end;
+  Line := GetPage(pageSecret);
+  if Pos('<span class="title-punchline">', Line) > 0 then
+  begin
+//liste des secrets
+  Line := TextBetween(Line, '<span class="title-punchline">' , '</section>');
+  delete(Line, 1, Pos('<div class="trivia hred">', Line));
+    while Pos('<div class="trivia-news">', Line) > 0 do
+    begin
+     // titre
+     Titre := CleanText(TextBetween(Line, '<h2 class="trivia-title">', '</h2>'))+#13#10;
+     // secret
+     Texte := CleanText(TextBetween(Line, '<div class="trivia-news">', '</div>'))+#13#10#13#10;
+     // liste
+     La_liste := La_liste+Titre+Texte;
+     delete(Line, 1, Pos('<div class="trivia-news">', Line));
+    end;
+  La_liste := deleteEnd(La_liste, #13#10);
+  if GetField(fieldComments) <> '' then
+  SetField(fieldComments, GetField(fieldComments)+#13#10#13#10+'Secrets de tournage :'+#13#10#13#10+La_liste)
+  else
+  SetField(fieldComments, 'Secrets de tournage :'+#13#10#13#10+La_liste);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// ANALYSE DE L' EQUIPE TECHNIQUE  Ajouté 2.15 R_V
+//------------------------------------------------------------------------------
+
+procedure EquipeTechnique(AdresseCasting: string);
+var
+  Value, Page, Metier, Nom, Liste :string;
+begin
+  if GetOption('ABlock') = 1 then
+  begin
+    Launch(AdresseCasting, '');
+    Sleep(StrToInt(GetParam('Pause'), 0));
+  end;
+  Page := GetPage(AdresseCasting);
+  Page := TextBetween(Page, '>Equipe technique</h2></div>' , '<div class="section casting-list-gql">');
+  while Pos('</div>', Page) > 0 do
+  begin
+    Value := TextBetween(Page, '<div class="md-table-row ">' , '</div>');
+    Metier := TextBetween(Value, '<span class="item light">' , '</span>');
+    Nom := TextBetween(Value, '">' , '</span>');
+    Liste := Liste + '.' + #13#10 + '- '+ Metier + ' : ' + Nom;
+    delete(Page, 1, Pos('</div>', Page));
+    if GetOption('Equipe technique') = 2 then
+    begin
+      while Pos(Metier, Page) > 0 do
+      begin
+        Value := TextBetween(Page, '<div class="row md-table-row ">' , '</div>');
+        Nom := TextBetween(Value, 'title="' , '"');
+        Liste := Liste + ', ' + Nom;
+        delete(Page, 1, Pos('</div>', Page));
+      end;
+    end;
+  end;
+  Liste := deleteEnd(Liste, '-  : ');
+  Liste := 'Equipe Technique :'+UTF8Decode(Liste);
+  HtmlDecode(Liste);
+  Liste := StringReplace(Liste, ':.', ':');
+  Liste := deleteEnd(Liste, #13#10);
+  if GetField(fieldComments) <> '' then
+  SetField(fieldComments, GetField(fieldComments)+#13#10#13#10+Liste)
+  else
+  SetField(fieldComments, Liste);
+end;
+
+//------------------------------------------------------------------------------
+// ANALYSE DE LA PAGE BANDE ANNONCE  Ajouté 2.20 R_V
+//------------------------------------------------------------------------------
+
+procedure BandeAnnonce(pageBA: string);
+var
+  Value, Page: string;
+begin
+  if GetOption('ABlock') = 1 then
+  begin
+   Launch(pageBA, '');
+   Sleep(StrToInt(GetParam('Pause'), 0));
+  end;
+  Page := GetPage(pageBA);
+  Value := TextAfter(Page, 'Bandes-annonces & Teasers');
+  Value := TextBetween(Page, '/video/player_gen_cmedia=', '&amp;');
+  if Value <> '' then
+  begin
+    Value := urlAllocine + '/_video/iblogvision.aspx?cmedia=' + CleanText(Value);
+    if (CheckVersion(4,0,0)) and (GetParam('ChampBA') <> '') then
+    begin
+      SetCustomField(GetParam('ChampBA'), Value);
+    end
+    else
+    begin
+      Value := 'Bande Annonce : ' + Value;
+      if GetField(fieldComments) <> '' then
+        SetField(fieldComments, GetField(fieldComments)+#13#10#13#10+Value)
+      else
+        SetField(fieldComments,Value);
+    end;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+// ANALYSE DE LA PAGE DE RECHERCHES
+//------------------------------------------------------------------------------
+procedure AnalyzePageAllocine();
+var
+  Address, Line, Value: string;
+  BeginPos, EndPos: Integer;
+begin
+  Address := 'https://allocine.fr/_/autocomplete/' + UrlEncode(MovieName);
+  Line := GetPage(Address);
+  begin
+    PickTreeClear;
+    AddMoviesTitlesAllocine(Line);
+	  if PickTreeCount > 0 then
+	  begin
+		  //affichage du tableau des résultats et attente d'action utilisateur
+		  if PickTreeExec(Address) then
+		  begin
+		    AnalyzeMoviePage(Address);
+		  end;
+	  end
+	  else
+	    begin
+		    ShowMessage('Aucun résultat trouvé');
+		    Exit;
+	    end;
+  end;
+end;
+
+procedure AddMoviesTitlesAllocine(Results: string);
+var
+  Block, Id, Title, Title2, Address, Year, FilmTV, test: string;
+  jsonPos, jsonLength : integer;
+  
+begin
+  //tant qu'il y a encore une URL de film dans Results
+  while Pos('}]', Results) > 0 do
+  begin
+      // aK MOD 02:18 02/07/2026 entity_type "series"
+    FilmTV := '';
+    delete(Results, 1, pos('"entity_type":"', Results) + length('"entity_type":"')-1);
+    FilmTV := TextBefore(Results, '"', '');
+      // aK MOD END
+    delete(Results, 1, pos('"entity_id":"', Results) + length('"entity_id":"')-1);
+    Id := TextBefore(Results, '"', '');
+    delete(Results, 1, pos('"label":"', Results) + length('"label":"')-1);
+    Title := TextBefore(Results, '"', '');
+    Title := UNICODEDecode(Title);
+    Title2 := Title;
+    HTMLDecode(Title2);
+    delete(Results, 1, pos('"data":', Results) + length('"data":')-1);
+    Block := TextBetween(Results, '{', '}');
+    jsonPos := pos('"year"', Block);
+    if jsonPos > 0 then
+    begin
+      Year := TextBetween(Block, '"year":"', '"');
+    end;
+      // aK MOD 02:31 02/07/2026 Add entity_type for series and movies
+    if FilmTV = 'series' then
+      Address := 'https://www.allocine.fr/series/ficheserie_gen_cserie='+Id+'.html'
+    else
+      // aK MOD END
+    Address := 'https://www.allocine.fr/film/fichefilm_gen_cfilm='+Id+'.html';
+
+    if AnsiPosEx(MovieName, Title2, True, True) > 0 then
+    begin
+      if getfield(fieldYear) <> '' then
+        PickTreeAdd(CleanText(Title) + ' (' + CleanText(Year) + ') [' + MovieName + ' (' + GetField(fieldYear) + ')]', Address)
+      else if(length(Year)>0) then
+        PickTreeAdd(CleanText(Title) + ' (' + CleanText(Year) + ')', Address)
+      else
+        PickTreeAdd(CleanText(Title) + ' (?)', Address);
+    end;
+
+    jsonPos := pos('},{', Results);
+    if jsonPos = 0 then
+      jsonPos := pos('}]', Results) + 1;
+
+    delete(Results, 1, jsonPos);
+  end;
+end;
+
+function UNICODEDecode(Text: string) :string;
+var
+  decoded: string;
+begin
+  while RegExprSetExec('(.*)(\\u)(....)(.*)', Text) do
+  begin
+    Text := RegExprReplace(Text, '$1&#x$3;$4', True);
+  end;
+  result := Text;
+end;
+
+//------------------------------------------------------------------------------
+// ANALYSE DE LA PAGE DE RECHERCHES
+//------------------------------------------------------------------------------
+procedure AnalyzePage(Address: string);
+var
+  Line: string;
+  BeginPos, EndPos : Integer;
+begin
+  //ShowMessage('AnalyzePage(' + Address + ')');
+  if GetOption('ABlock') = 1 then
+  begin
+    Launch(Address, '');
+    Sleep(StrToInt(GetParam('Pause'), 0));
+  end;
+  Line := GetPage(Address);
+  if pos(UTF8Encode('Oups ! Il semble qu’on n’arrive pas à trouver de résultats pour votre recherche'), Line) <> 0 then
+  begin
+    ShowMessage('Oups ! Il semble qu’on n’arrive pas à trouver de résultats pour votre recherche');
+    Exit;
+  end;
+  if pos(UTF8Encode('1 résultat trouvé dans les titres de films'), Line) > 0 then
+  begin
+    //ShowMessage('1 résultat trouvé dans les titres de films');
+    Address := TextBetween(Line, '<td style=" vertical-align:top;">', '</td>');
+    Address := urlAllocine + TextBetween(Address, '<a href=''', '''');
+    AnalyzeMoviePage(Address);
+  end else
+  begin
+    //ShowMessage('Plusieurs résultats trouvés dans les titres de films');
+    PickTreeClear;
+    //AddMoviesTitles(TextBetween(Line, UTF8Encode('Merci de préciser votre recherche :'), '<div class="searchenginezone">'));
+    AddMoviesTitles(TextBetween(Line, UTF8Encode('titres de films</div>'), '</section>'));
+    if PickTreeExec(Address) then
+    begin
+      AnalyzeMoviePage(Address);
+    end;
+  end;
+end;
+
+procedure AddMoviesTitles(Results: string);
+var
+  Block, Title, Address, Year, Director: string;
+begin
+  if getfield(fieldYear) <> '' then
+  PickTreeAdd(CleanText(TextBefore(Results, '</div>', ''))+' ['+MovieName+' ('+getfield(fieldYear)+')]', '')
+  else
+  PickTreeAdd(CleanText(TextBefore(Results, '</div>', '')), '');
+  while Pos('tr><td style=" vertical-align:top;">', Results) > 0 do
+  begin
+    Block := TextBetween(Results, 'tr><td style=" vertical-align:top;">', '</tr>');
+    Results := RemainingText;
+    Address := urlAllocine + TextBetween(Block, '<a href=''', '''>');
+    Title := TextBefore(Block, '<br />', '');
+    Year := TextBetween(Block, '<span class="fs11">', '<br />');
+    Director := TextBetween(Block, '<br />'+#13#10+'de ', '<br />');
+    PickTreeAdd(CleanText(Title) + ' (' + CleanText(Year) + ')' + ' de ' + CleanText(Director), Address);
+  end;
+end;
+
+function CleanText(Text: string): string;
+begin
+  Result := CleanTextWithBr(Text, False);
+end;
+
+function CleanTextWithBr(Text: string; KeepBr: Boolean): string;
+begin
+  if KeepBr then
+  begin
+    Text := StringReplace(Text, #13#10, '');
+    Text := StringReplace(Text, '<br>', #13#10);
+  end;
+  HtmlRemoveTags(Text);
+  Text := UTF8Decode(Text);
+  HtmlDecode(Text);
+  if not KeepBr then
+  begin
+    Text := StringReplace(Text, #13#10, ' ');
+  end;
+  Text := Trim(Text);
+  while Pos('  ', Text) > 0 do
+  begin
+    Text := StringReplace(Text, '  ', ' ');
+  end;
+  Text := StringReplace(Text, ' , ', ', ');
+  Result := Text;
+end;
+
+//Analyse du film sélectionné par l'utilisateur dans le tableau
+procedure AnalyzeMoviePage(Address: string);
+var
+  Page, Value, Value1, Value2, ID: string;
+  i: Integer;
+begin
+  if GetOption('Garder les valeurs du champ Commentaires') = 0 then
+  SetField(fieldComments,'');
+  SetField(fieldUrl, Address);
+  if Pos('/film/fichefilm_gen_cfilm=', Address) = 0  then
+    if GetOption('ABlock') = 1 then
+    begin
+      Launch(Address, '');
+      Sleep(StrToInt(GetParam('Pause'), 0));
+    end;
+  Page := GetPage(Address);
+
+  //Address := urlAllocine + TextBetween(Page, 'class="item home icon icon-home current" href="', '"');
+  //if Pos('/film/fichefilm_gen_cfilm=', Address) = 0  then
+  //begin
+  //  Address := urlAllocine + '/film/fichefilm_gen_cfilm=' + TextBetween(Page, 'allocine://open/movie?code=', '"') + '.html';
+  //  SetField(fieldUrl, Address);
+  //end;
+
+  // ID Ajouté 2.07 R_V
+  if pos('/film/fichefilm_gen_cfilm=',Address) <> 0 then
+    ID := findInfo('/film/fichefilm_gen_cfilm=', '.html', Address,'0');
+  // titres
+  // Le-Sphinx 12/01/2020 Ajout du Titre FR et Titre Original
+  Value1 := TextBetween(Page, '<div class="titlebar titlebar-page">', '</div>');
+  SetField(fieldTranslatedTitle, formatTitre(CleanText(Value1),GetOption('Format du Titre')));
+  if Pos('Titre original', Page) > 0 then // recherche du titre original
+  begin
+    Value2 := TextBetween(Page, 'Titre original', '<div');
+    Value2 := TextBetween(Value2, '</span>', '</div');
+    SetField(fieldOriginalTitle, formatTitre(CleanText(Value2),GetOption('Format du Titre')));
+  end else // titre original = titre traduit
+    SetField(fieldOriginalTitle, formatTitre(CleanText(Value1),GetOption('Format du Titre')));
+
+  // année
+  if Pos('series/ficheserie_gen_cserie', MovieName) > 0  then
+  begin
+    Value := TextBetween(Page, '<div class="meta-body-item meta-body-info"', '</span>');
+    if Pos('Depuis ', Value) > 0 then
+    begin
+      Value := TextBetween(Value, 'Depuis ', '<span class="spacer">/');
+    end else
+    begin
+      Value := TextBetween(Value, '>', '<span class="spacer">/');
+      Value := CleanText(Value);
+      // Si Value contient plus que l'année (une période par exemple)
+      Value := Copy(Value, 1, 4);
+    end;
+  end else
+  begin
+    Value := TextBetween(Page, UTF8Encode('<span class="what light">Année de production</span>'), '</span>');
+  end;
+  SetField(fieldYear, CleanText(Value));
+  // réalisateur
+  // Le-Sphinx 12/01/2020 Ajout Nom du Réalisateur
+  Value := TextBetween(Page, 'director" content="', '"');
+  if Pos('<span class="light">De</span>', Page) > 0 then
+  begin
+    Value := TextBetween(Page, '<span class="light">De</span>', '</div>');
+    SetField(fieldDirector, formatTitre(CleanText(Value),GetOption('Format du Titre')));
+  end else
+    begin
+      if Pos('>CrÃ©Ã©e par</span>', Page) > 0 then
+      begin
+        Value := TextBetween(Page, '>CrÃ©Ã©e par</span>', '</div>');
+        SetField(fieldDirector, formatTitre(CleanText(Value),GetOption('Format du Titre')));
+      end else
+        SetField(fieldDirector, formatTitre(CleanText(Value),GetOption('Format du Titre')));
+    end;
+  // genres
+  // Le-Sphinx 12/01/2020 Ajout les Categories
+  Value := TextBetween(Page, '<div class="meta-body-item meta-body-info">', '</div>');
+  Value := Copy(Value, Pos('<span class="spacer">|</span>', Value)+29, Length(Value) - Pos('<span class="spacer">|</span>', Value)+29);
+  Value := Copy(Value, Pos('<span class="spacer">|</span>', Value)+29, Length(Value) - Pos('<span class="spacer">|</span>', Value)+29);
+  if Pos('s', Value) = 1 then
+    Value := Copy(Value, 2, Length(Value) - 1);
+  SetField(fieldCategory, formatTitre(CleanText(Value),GetOption('Format du Titre')));
+  // pays
+  // Le-Sphinx 12/01/2020 Format du Pays
+  if Pos('series/ficheserie_gen_cserie', MovieName) > 0  then
+  begin
+    Value := TextBetween(Page, UTF8Encode('<span class="light">Nationalité'), '</div>');
+  end else
+    Value := TextBetween(Page, UTF8Encode('<span class="what light">Nationalité'), '</div>');
+  if Pos('s', Value) = 1 then
+    Value := Copy(Value, 2, Length(Value) - 1);
+  SetField(fieldCountry, formatTitre(CleanText(Value),GetOption('Format du Titre')));
+  // résumé
+  if Pos('series/ficheserie_gen_cserie', MovieName) > 0  then
+  begin
+    Value := TextBetween(Page, 'Synopsis &amp; Info', '</p>');
+  end else
+    Value := TextBetween(Page, UTF8Encode('Synopsis</h2>'), '</section>');
+  if Value <> '' then
+  begin
+    if Pos('certificate-text', Value) > 0 then
+    begin
+      Value := TextBefore(Value, '</span>', '');
+      if CheckVersion(4,2,0) then
+      begin
+        SetField(fieldCertification, CleanText(Value));
+      end;
+      SetField(fieldDescription, CleanTextWithBr(RemainingText, True));
+    end
+    else
+      SetField(fieldDescription, CleanTextWithBr(Value, True));
+  end;
+  // image
+  if (CanSetPicture()) and (GetOption('Choix Image') > 0) then
+  begin
+    Value := TextBetween(Page, '<figure class="thumbnail ">', '</figure>');
+    Value := TextBetween(Value, '<img class="thumbnail-img" src="', '"');
+    if Value <> '' then
+    begin
+      if GetOption('Choix Image') = 2 then
+      begin
+        Value := StringReplace(Value, '/c_215_290/', '/');
+        Value := StringReplace(Value, '/c_310_420/', '/');
+      end;
+      GetPicture(Value);
+    end;
+  end;
+  // Extra Picture Ajouté 2.07 R_V
+  if (CheckVersion(4,2,0)) and (GetOption('Extra : Photos du film') = 1) then
+  begin
+    if pos('/film/fichefilm-'+ID+'/photos', Page) > 0 then   // vérifie que la page photos existe
+      begin
+        if GetOption('ABlock') = 1 then
+        begin
+          Launch(urlFicheFilm+ID+'/photos/', '');
+          Sleep(StrToInt(GetParam('Pause'), 0));
+        end;
+        Value := GetPage(urlFicheFilm+ID+'/photos/');
+        if Pos('Photos</h2>', Value) <> 0 then
+          begin
+            Value := TextBetween(Value, 'Photos</h2>', '</section>'); // récupère la portion de code contenant les adresses des photos du film
+            Value := StringReplace(Value, '/c_300_300', ''); // Nettoie le code pour récupérer les plus grandes images possibles
+            Value := StringReplace(Value, '.JPG', '.jpg');
+            Extra_Photos_Film(Value);
+          end;
+      end;
+  end;
+  // durée
+  // Le-Sphinx 12/01/2020 Ajout Heure du Film en minute
+  if not (Pos('series/ficheserie_gen_cserie', MovieName) > 0)  then
+  begin
+    Value := TextBetween(Page, '<div class="meta-body-item meta-body-info">', '</div>');
+    Value := TextBetween(Value, '<span class="spacer">|</span>', '<span class="spacer">|</span>');
+    Value := CleanText(Value);
+    i := StrToInt(TextBefore(Value, 'h', ''), 0) * 60 + StrToInt(TextBetween(Value, 'h ', 'min'), 0);
+    SetField(fieldLength, IntToStr(i));
+  end;
+  // Date de sortie Cinéma (champ Commentaires) Ajouté 2.13 R_V
+  // Le-Sphinx 12/01/2020 Ajout de la Date de Sortie
+  if CanSetField(fieldComments) then
+  begin
+    Value := TextBetween(Page, '<div class="meta-body-item meta-body-info">', '</span>');
+    Value := CleanText(Value);
+    if Value <> '' then
+    begin
+      Value := 'Date de sortie : ' + Value;
+      if GetField(fieldComments) <> '' then
+        SetField(fieldComments, GetField(fieldComments)+#13#10#13#10+Value)
+      else
+        SetField(fieldComments, Value);
+    end;
+  end;
+  // note
+  if CanSetField(fieldRating) or CanSetField(fieldComments) then
+  begin
+    Value := TextBetween(Page, '<div class="rating-item">', '<a class="rating-title" href="#">Mes amis');
+    GetNote(Value);
+  end;
+  // Bande Annonce (champ Commentaires) Ajouté 2.13 R_V
+  if (CanSetField(fieldComments)) and (Pos('title="Bandes-annonces"', Page) > 0) then
+    BandeAnnonce(urlAllocine+'/videos/fichefilm-'+ID+'/toutes/');
+  // Fiche Technique (champ Commentaires) Ajouté 2.16 R_V
+  if (CanSetField(fieldComments)) and (GetOption('Fiche technique') > 0) then
+  begin
+    Value := TextBetween(Page, 'Infos techniques' , '</section>');
+    Value := StringReplace(Value, '<span class="that', ' : <span class="that');
+    Value := StringReplace(Value, '<span class="what light">', '##- ');
+    Value := CleanText(Value);
+    Value := StringReplace(Value, '##', #13#10);
+    if GetField(fieldComments) <> '' then
+    SetField(fieldComments, GetField(fieldComments)+#13#10#13#10+'Fiche Technique :'+Value)
+    else
+    SetField(fieldComments, 'Fiche Technique :'+Value);
+  end;
+  // Equipe Technique (champ Commentaires) Ajouté 2.15 R_V
+  if (CanSetField(fieldComments)) and (GetOption('Equipe technique') > 0) then
+  EquipeTechnique(urlAllocine + '/film/fichefilm-' + ID + '/casting/');
+  // Secrets de tournage  Ajouté 2.09 R_V
+  if (CanSetField(fieldComments)) and (GetOption('Secrets de tournage') = 1) then
+  begin
+	 if (pos('Secrets de tournage</span>', Page) <> 0) then
+	 begin
+		Value := urlAllocine+'/film/fichefilm-'+ID+'/secrets-tournage/';
+   //Analyse de la page Secrets de Tournage
+		SecretComplet(Value);
+	 end;
+  end;
+  // acteurs
+  if GetOption('Acteurs') > 1 then
+  begin
+    if Pos('series/ficheserie_gen_cserie', MovieName) > 0  then
+    begin
+      Value := TextBetween(Page, '<h2 class="titlebar-title titlebar-title-md" ><a class="titlebar-link" href="', '">Casting');
+      //Value := TextBetween(Page, '<span class="light">Avec</span>', '</div>');
+      GetActors(urlAllocine + Value);
+    end else
+      GetActors(urlAllocine + '/film/fichefilm-' + ID + '/casting/');
+  end else
+  if GetOption('Acteurs') = 1 then
+  begin
+    Value := TextBetween(Page, '<span class="light">Avec</span>', '</div>');
+    if Pos(' plus </span>', Value) > 0 then
+      Value := TextBefore(Value, ' plus </span>', '');
+    SetField(fieldActors, formatTitre(CleanText(Value),GetOption('Format du Titre')));
+  end;
+  // Pour purger la fin des commentaires de retours à la ligne en trop
+  Value := GetField(fieldComments);
+  Value := TextBefore(Value, '(Pour', '') + TextAfter(Value, 'notes)');
+  repeat
+  Value := deleteEnd(Value, #13#10);
+  Until (copy(Value,length(Value)-length(#13#10)+1,length(Value)) <> #13#10);
+  SetField(fieldComments, Value);
+end;
+
+procedure GetActors(Address: string);
+var
+  Roles: Boolean;
+  Page, Section, Block, Value, Actors: string;
+begin
+  if GetOption('ABlock') = 1 then
+  begin
+    Launch(Address, '');
+    Sleep(StrToInt(GetParam('Pause'), 0));
+  end;
+  Page := GetPage(Address);
+  if CanSetField(fieldActors) then
+  begin
+    if Pos('>Acteurs et actrices</h2></div>', Page) > 0 then
+    begin
+      Section := TextAfter(Page, '>Acteurs et actrices</h2></div>');
+      Actors := AllActors(Section);
+    end;
+    if Pos('>Acteurs de doublage (Voix originales)</h2></div>', Page) > 0 then
+    begin
+      Section := TextAfter(Page, '>Acteurs de doublage (Voix originales)</h2></div>');
+      Value := AllActors(Section);
+      if Value <> '' then
+      begin
+        if Actors <> '' then
+          Actors := Actors + ', ' + Value
+        else
+          Actors := Value;
+      end;
+    end;
+    if Pos('>Acteurs de doublage (Voix locales)</h2></div>', Page) > 0 then
+    begin
+      Section := TextAfter(Page, '>Acteurs de doublage (Voix locales)</h2></div>');
+      Value := AllActors(Section);
+      if Value <> '' then
+      begin
+        if Actors <> '' then
+          Actors := Actors + ', ' + Value
+        else
+          Actors := Value;
+      end;
+    end;
+    SetField(fieldActors, Actors);
+  end;
+  if CanSetField(fieldProducer) then
+  // Récupère les producteurs mais aussi les producteurs délégués, coproducteurs, producteurs exécutifs
+  begin
+    Block := TextBetween(Page, 'Production</h2></div>', '<div class="section casting-list-gql">' );
+    if Pos('Producteur" class="item link">', Block) > 0 then
+      SetField(fieldProducer, GetPoste(Block, 'Producteur" class="item link">', '</a>'))
+    else
+      SetField(fieldProducer, GetPoste(Block, '<div class="md-table-row ">', '</span>'));
+  end;
+  if CheckVersion(4,2,0) then
+  begin
+    if CanSetField(fieldComposer) then
+    begin
+      Block := TextBetween(Page, 'Soundtrack</h2></div>', '<div class="section casting-list-gql">' );
+      if Pos('Compositeur" class="item link">', Block) > 0 then
+        SetField(fieldComposer, GetPoste(Block, 'Compositeur" class="item link">', '</a>'))
+      else
+        SetField(fieldComposer, GetPoste(Block, 'Compositeur">', '</span>'));
+    end;
+    if CanSetField(fieldWriter) then
+    begin
+      SetField(fieldWriter, GetPoste(Page, UTF8Encode('Scénariste</span>'), '</div>'));
+    end;
+  end;
+end;
+
+function GetPoste(Section: string; PosteTag: string; EndTag: string): string;
+var
+  Block, Value: string;
+begin
+  Block := '';
+  while Pos(PosteTag, Section) > 0 do
+  begin
+    Value := TextBetween(Section, PosteTag, EndTag);
+    Section := RemainingText;
+    if Block <> '' then
+      Block := Block + ', ';
+    Block := Block + CleanText(Value);
+  end;
+  Result := Block
+end;
+
+procedure GetNote(Value: string);
+var
+  NotePresse, NoteSpectateurs, NoteSur10,RatingCountSpectateurs: string;
+begin
+  if (Pos('Presse',Value)>0) then
+  begin
+    NotePresse := TextAfter(Value, '<span class="stareval-note"');
+    NotePresse := CleanText(TextBetween(NotePresse, '>', '<'));
+    NotePresse := StringReplace(NotePresse, '?', '');
+    Value := TextAfter(Value, '<span class="stareval-note"');
+  end;
+  NoteSpectateurs := TextBetween(Value, '<span class="stareval-note"', '/span>');
+  NoteSpectateurs := CleanText(TextBetween(NoteSpectateurs, '>', '<'));
+  NoteSpectateurs := StringReplace(NoteSpectateurs, '?', '');
+  RatingCountSpectateurs := RegExprSetReplace('.+\<span class="stareval-review light"\> (\d+) note.+', Value, '$1', True);
+  if (NotePresse <> '') and (NoteSpectateurs <> '') then
+  begin
+    NoteSur10 := FloatToStr(arrondir(convert_STF(NotePresse),1) + arrondir(convert_STF(NoteSpectateurs),1));
+    SetField(fieldRating,NoteSur10);
+  end else
+  if (NotePresse <> '') then
+  begin
+    NoteSur10 := FloatToStr(arrondir(convert_STF(NotePresse),1)*2);
+    SetField(fieldRating,NoteSur10);
+  end else
+  if (NoteSpectateurs <> '') then
+  begin
+    NoteSur10 := FloatToStr(arrondir(convert_STF(NoteSpectateurs),1)*2);
+    SetField(fieldRating,NoteSur10);
+  end;
+  Value := '';
+  if NotePresse <> '' then
+  Value := 'Note de la presse : '  + NotePresse + '/5';
+  if NoteSpectateurs <> '' then
+  begin
+    if Value <> '' then
+      Value := Value + #13#10 + 'Note des spectateurs : ' + NoteSpectateurs + '/5' + ' (Pour ' + RatingCountSpectateurs + ' notes)'
+    else
+      Value := 'Note des spectateurs : ' + NoteSpectateurs + '/5' + ' (Pour ' + RatingCountSpectateurs + ' notes)';
+  end;
+  if (Value <> '') and (GetOption('Détail des notes') > 0) then
+  begin
+    if GetField(fieldComments) <> '' then
+    SetField(fieldComments, GetField(fieldComments)+#13#10#13#10+Value)
+    else
+    SetField(fieldComments,Value);
+  end;
+end;
+
+begin
+  if CheckVersion(3,5,1) then
+  begin
+    MovieName := GetField(fieldUrl);
+    if Pos(urlAllocine, MovieName) = 0 then
+    begin
+      MovieName := recupTitreRecherche(GetOption('Recherche sur le titre'));
+    end;
+    if ((GetOption('Batch') = 1) and (Pos(urlAllocine, MovieName) > 0)) then
+      AnalyzeMoviePage(MovieName)
+    else
+    begin
+      if Input('Allociné', 'Entrez le titre du film ou l''adresse d''une page', MovieName) then
+      begin
+        if (Pos('series/ficheserie_gen_cserie', MovieName) > 0) or (Pos('film/fichefilm_gen_cfilm', MovieName) > 0)  then
+          AnalyzeMoviePage(MovieName)
+        else
+        begin
+          if CheckVersion(4,2,2) then
+          begin
+				    AnalyzePageAllocine();
+          end
+          else
+            AnalyzePage(urlSearch + UrlEncode(UTF8Encode(MovieName)));
+        end;
+      end;
+    end;
+  end else
+    ShowMessage('This script requires a newer version of Ant Movie Catalog (at least the version 3.5.1)');
+end.

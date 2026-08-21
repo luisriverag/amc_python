@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Format des fichiers de catalogue ".amc"</p>
+<hr />
+<p class="subtitle">Notes</p>
+<blockquote>
+  <p>Tous les types sont les types du langage Pascal, étant donné
+    que le programme est créé avec Delphi.</p>
+  <p>"Integer" correspond à 4 octets, signé, little endian.
+  <p>Tous les champs "string" (chaînes) sont précédés d'un
+    Integer donnant la taille du vecteur (taille = 0 si
+    pas de vecteur, c.&agrave;.d. une cha&icirc;ne vide). Les cha&icirc;nes sont
+    donc des vecteurs de caract&egrave;res (1 caract&egrave;re = 1 octet, non
+    signé) sans délimiteur de fin.</p>
+  <p>"Boolean" est 1 octet ; 0 vaut Faux, les autres valeurs valent True.</p>
+  <p>Pour les champs film, la date est stockée au format TDateTime de Borland: nombre de jours depuis le 30/12/1899.<br />
+  Pour les champs personnalisés de type date, la date est stockée dans une chaine au format 'yyyy-mm-dd'.<br />
+  Pour les champs personnalisés de type réel, le réel est stocké dans une chaine au format 'x.xxx'.</p>
+  <p>Le champ "Picture" est un vecteur d'octets, contenant l'image dans son format
+    d'origine (PNG/JPEG/GIF/BMP).<br />
+    Son type est donné par le champ "PictureName" qui le préc&egrave;de.<br />
+    Si la taille de l'image est &gt; 0, alors PictureName contient l'extension
+    originale du fichier ('.png', '.jpg', '.gif' ou '.bmp'). Si la taille de l'image
+    = 0 alors PictureName contient un lien vers l'image (absolu ou relatif), ou
+    rien du tout s'il n'y a aucune image associée au film courant.</p>
+  <p>Le fichier commence par un texte de longueur fixe de 65 octets (appelé "strFileHeader42" ci-dessous), avec un caractère
+    "espace" au début et à la fin (le premier octet du fichier est donc un caractère "espace"). Ensuite vient le bloc contenant
+    quelques chaînes reprenant les informations du propriétaire du catalogue, un autre contenant les propriétés des champs
+    personnalisés (depuis AMC 4.0) puis directement les films et les extras (depuis AMC 4.2).</p>
+</blockquote>
+
+<p class="subtitle">Version 4.2</p>
+<blockquote>
+  <p>En-t&ecirc;te :</p>
+    <pre>strFileHeader42 = ' AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be ';</pre>
+    
+  <p>Informations du propriétaire du catalogue :</p>
+    <pre>OwnerName:                string;
+OwnerSite:                string;
+OwnerMail:                string;
+OwnerDescription:         string;
+</pre>
+
+  <p>Propriétés des champs personnalisé :</p>
+    <pre>ColumnSettings:           string;
+GUIProperties:            string;
+Length(CustomFieldsProp)  Integer;
+CustomFieldsProp:         array of struct CustomFieldProp (voir ci-dessous)
+</pre>
+
+  <p>Propriétés d'un champ personnalisé (CustomFieldProp) :</p>
+    <pre>FieldTag:                 string;
+FieldName:                string;
+FieldExt:                 string;
+FieldType:                string;
+DefaultValue:             string;
+MediaInfo:                string;
+MultiValues:              Boolean;
+MultiValuesSep:           Char; // Stocké comme Integer
+MultiValuesRmP:           Boolean;
+MultiValuesPatch:         Boolean;
+ExcludedInScripts:        Boolean;
+GUIProperties:            string;
+<i>if FieldType = 'ftList' then</i>
+| Length(ListValues)      Integer
+| ListValues:             array of string;
+| ListAutoAdd:            Boolean;
+| ListSort:               Boolean;
+| ListAutoComplete:       Boolean;
+| ListUseCatalogValues:   Boolean;
+</pre>
+
+  <p>Structure d'un film, répétée pour chaque film :</p>
+    <pre>Number:                   Integer;
+Date:                     Integer;
+DateWatched:              Integer;
+UserRating:               Integer;
+Rating:                   Integer;
+Year:                     Integer;
+Length:                   Integer;
+VideoBitrate:             Integer;
+AudioBitrate:             Integer;
+Disks:                    Integer;
+ColorTag:                 Integer;
+Checked:                  Boolean;
+Media:                    string;
+MediaType:                string;
+Source:                   string;
+Borrower:                 string;
+OriginalTitle:            string;
+TranslatedTitle:          string;
+Director:                 string;
+Producer:                 string;
+Writer:                   string;
+Composer:                 string;
+Country:                  string;
+Category:                 string;
+Certification:            string;
+Actors:                   string;
+URL:                      string;
+Description:              string;
+Comments:                 string;
+FilePath:                 string;
+VideoFormat:              string;
+AudioFormat:              string;
+Resolution:               string;
+Framerate:                string;
+Languages:                string;
+Subtitles:                string;
+Size:                     string;
+PictureName:              string;
+PictureSize:              Integer;
+Picture                   array of Byte;
+CustomFields              array of string; // Length(CustomFields) = Length(CustomFieldsProp)
+Length(Extras)            Integer;
+Extras:                   array of struct Extra (voir ci-dessous)
+</pre>
+
+  <p>Structure d'un extra (Extra) :</p>
+    <pre>Checked:                  Boolean;
+Tag:                      string;
+Title:                    string;
+Category:                 string;
+URL:                      string;
+Description:              string;
+Comments:                 string;
+CreatedBy:                string;
+PictureName:              string;
+PictureSize:              Integer;
+Picture:                  array of Byte;
+</pre>
+</blockquote>
+
+<p class="subtitle">Version 4.1</p>
+<blockquote>
+  <p>En-t&ecirc;te :</p>
+    <pre>strFileHeader41 = ' AMC_4.1 Ant Movie Catalog 4.1.x   antp/soulsnake    www.antp.be ';</pre>
+    
+  <p>Informations du propriétaire du catalogue :</p>
+    <pre>OwnerName:                string;
+OwnerSite:                string;
+OwnerMail:                string;
+OwnerDescription:         string;
+</pre>
+
+  <p>Propriétés des champs personnalisé :</p>
+    <pre>ColumnSettings:           string;
+GUIProperties:            string;
+Length(CustomFieldsProp)  Integer;
+CustomFieldsProp:         array of struct CustomFieldProp (voir ci-dessous)
+</pre>
+
+  <p>Propriétés d'un champ personnalisé (CustomFieldProp) :</p>
+    <pre>FieldTag:                 string;
+FieldName:                string;
+FieldExt:                 string;
+FieldType:                string;
+DefaultValue:             string;
+MediaInfo:                string;
+MultiValues:              Boolean;
+MultiValuesSep:           Char; // Stocké comme Integer
+MultiValuesRmP:           Boolean;
+MultiValuesPatch:         Boolean;
+ExcludedInScripts:        Boolean;
+GUIProperties:            string;
+<i>if FieldType = 'ftList' then</i>
+| Length(ListValues)      Integer
+| ListValues:             array of string;
+| ListAutoAdd:            Boolean;
+| ListSort:               Boolean;
+| ListAutoComplete:       Boolean;
+| ListUseCatalogValues:   Boolean;
+</pre>
+
+  <p>Structure d'un film, répétée pour chaque film :</p>
+    <pre>Number:                   Integer;
+Date:                     Integer;
+Rating:                   Integer;
+Year:                     Integer;
+Length:                   Integer;
+VideoBitrate:             Integer;
+AudioBitrate:             Integer;
+Disks:                    Integer;
+ColorTag:                 Integer;
+Checked:                  Boolean;
+Media:                    string;
+MediaType:                string;
+Source:                   string;
+Borrower                  string;
+OriginalTitle             string;
+TranslatedTitle           string;
+Director                  string;
+Producer                  string;
+Country                   string;
+Category                  string;
+Actors                    string;
+URL                       string;
+Description               string;
+Comments                  string;
+VideoFormat               string;
+AudioFormat               string;
+Resolution                string;
+Framerate                 string;
+Languages                 string;
+Subtitles                 string;
+Size                      string;
+PictureName:              string;
+PictureSize:              Integer;
+Picture:                  array of Byte;
+CustomFields:             array of string; // Length(CustomFields) = Length(CustomFieldsProp)
+</pre>
+</blockquote>
+
+<p class="subtitle">Version 3.5</p>
+<blockquote>
+  <p>En-t&ecirc;te :</p>
+    <pre>strFileHeader35 = ' AMC_3.5 Ant Movie Catalog 3.5.x   www.buypin.com    www.antp.be ';
+OwnerName:          string;
+OwnerSite:          string;
+OwnerMail:          string;
+OwnerDescription:   string;
+</pre>
+  <p>Structure d'un film, répétée pour chaque film :</p>
+    <pre>Number:           Integer;
+Date:             Integer;
+Rating:           Integer;
+Year:             Integer;
+Length:           Integer;
+VideoBitrate:     Integer;
+AudioBitrate:     Integer;
+Disks:            Integer;
+Checked:          Boolean;
+Media:            string;
+MediaType:        string;
+Source:           string;
+Borrower          string;
+OriginalTitle     string;
+TranslatedTitle   string;
+Director          string;
+Producer          string;
+Country           string;
+Category          string;
+Actors            string;
+URL               string;
+Description       string;
+Comments          string;
+VideoFormat       string;
+AudioFormat       string;
+Resolution        string;
+Framerate         string;
+Languages         string;
+Subtitles         string;
+Size              string;
+PictureName:      string;
+PictureSize:      Integer;
+Picture           array of Byte;
+</pre>
+</blockquote>
+<p>Les seules changements depuis la version 3.3 sont la suppression du champ ICQ de l'en-tête et le passage
+  de la Note (Rating) en format 0-100 plutôt que 0-10 (le dernier chiffre étant utilisé pour la partie décimale).
+  La version 3.4 utilisait le même format de fichier que la version 3.3.</p>
+</body>
+</html>

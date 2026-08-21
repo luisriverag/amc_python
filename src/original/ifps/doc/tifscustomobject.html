@@ -1,0 +1,47 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TIfsCustomObject</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_obj.html">ifs_obj.pas</a><br /><br />
+<b>TIfsCustomObject</b><br />
+<b>Type</b><br />
+TIfsCustomObject = <b>class</b><br />
+<b>Protected Section</b><br />
+<b>property</b> CreatedCustomObject: PCreatedCustomObject <b>read</b> FCCO <b>write</b> FCCO;<br />
+This property points to the PCreatedCustomObject record that is created to store the pointer to this object and also a boolean that says if it's freed or not.<br /><br />
+<br />
+<b>Public Section</b><br />
+<b>property</b> ScriptEngine: Pointer <b>read</b> FScriptEngine;<br />
+This property points to the Script Engine. It's of type <a href="tifpasscript.html">TIfPasScript</a>.<br /><br />
+<b>constructor</b> Create(ScriptEngine: Pointer);<br />
+<b>function</b> GetPropertyType(I: Longint): <a href="ttyperec.html">PTypeRec</a>; <b>virtual</b>;<br />
+Return the type of property (I).<br /><br />
+<b>function</b> SetProperty(I: Longint; P: PIfVariant): Boolean; <b>virtual</b>;<br />
+Changes the value of property (I).<br /><br />
+<b>function</b> GetProperty(I: Longint; Dest: PIfVariant): Boolean; <b>virtual</b>;<br />
+Return the value of Property (I).<br /><br />
+<b>function</b> FindProperty(<b>const</b> Name: <b>string</b>): Longint; <b>virtual</b>;<br />
+Search for a property.<br /><br />
+<b>function</b> GetPropertyCount: Longint; <b>virtual</b>;<br />
+Return the number of properties.<br /><br />
+<b>function</b> FindProc(<b>const</b> Name: <b>string</b>): Longint; <b>virtual</b>;<br />
+Search for a function.<br /><br />
+<b>function</b> GetProcHeader(I: Longint): <b>string</b>; <b>virtual</b>;<br />
+Return the header of function (I)<br /><br />
+<b>function</b> CallProc(I: Longint; Params: PVariableManager): <a href="tifvariant.html">PIFVariant</a>; <b>virtual</b>;<br />
+Call function (I).<br /><br />
+<b>function</b> GetProcCount: Longint; <b>virtual</b>;<br />
+Return the number of functions.<br /><br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

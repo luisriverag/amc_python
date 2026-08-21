@@ -1,0 +1,264 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Exportation vers HTML</p>
+<hr />
+<p>L'option &quot;Exporter en HTML&quot; vous permet de cr&eacute;er un fichier
+  HTML contenant votre catalogue complet dans un format portable. Vous pouvez
+  publier cette liste sur le web ou la donner &agrave; n'importe quelle personne
+  poss&eacute;dant un navigateur web.</p>
+<p>Le fichier HTML g&eacute;n&eacute;r&eacute; est bas&eacute; sur un fichier
+  HTML r&eacute;el. Le programme remplace certains tags sp&eacute;ciaux avec les
+  informations des films et du catalogue. </p>
+<hr />
+<p>Il y a deux mod&egrave;les diff&eacute;rents : &quot;Complet&quot; et &quot;Individuel&quot;.
+  Les anciennes versions du programme n'avaient que le mod&egrave;le &quot;Complet&quot;.
+  Ce mod&egrave;le Complet correspond &agrave; un seul fichier, avec la liste
+  de tous les films. Son nom est le nom que vous s&eacute;lectionnez lorsque vous
+  cliquez sur le bouton &quot;Exporter&quot;. Le mod&egrave;le Individuel correspond
+  &agrave; un fichier par film, avec les informations de chaque film. Par défaut le nom est
+  la concat&eacute;nation du nom que vous s&eacute;lectionnez lorsque vous cliquez
+  sur le bouton &quot;Exporter&quot; et le num&eacute;ro du film (vous pouvez changer ça
+  dans la fenêtre des <a href="options_fr.html#export">Préférences</a>).</p>
+<p>Donc si vous exportez le catalogue vers &quot;Mes films.html&quot; vous aurez
+  : </p>
+<ul>
+  <li>Mes films.html -&gt; La liste des films, page bas&eacute;e sur le mod&egrave;le
+    charg&eacute; dans l'onglet &quot;Complet&quot;</li>
+  <li>Mes films_1.html -&gt; Le premier film, page bas&eacute;e sur le mod&egrave;le
+    charg&eacute; dans l'onglet &quot;Individuel&quot;</li>
+  <li>Mes films_2.html -&gt; Le second film, page bas&eacute;e sur le mod&egrave;le
+    charg&eacute; dans l'onglet &quot;Individuel&quot;</li>
+  <li>etc...</li>
+</ul>
+<p>&Agrave; droite de la s&eacute;lection du mod&egrave;le (boutons &quot;Complet&quot;/&quot;Individuel&quot;)
+  vous pouvez s&eacute;lectionner si vous voulez exporter les deux mod&egrave;les
+  ou juste celui qui est s&eacute;lectionn&eacute;.</p>
+<hr />
+<p>Tous les tags commencent par &quot;$$&quot;. Vous n'avez pas n&eacute;cessairement
+  besoin de les conna&icirc;tre &eacute;tant donn&eacute; qu'ils sont accessibles
+  via le menu &quot;Ins&eacute;rer un tag sp&eacute;cial&quot;. Ils couvrent toutes
+  les informations que vous pouvez entrer pour un film, mais aussi le nombre total
+  de films, le nom du catalogue, la date et l'heure.</p>
+<p>Il y a deux tags tr&egrave;s importants pour le mod&egrave;le &quot;Complet&quot;:
+  $$ITEM_BEGIN et $$ITEM_END. Lors de la cr&eacute;ation du fichier HTML, le programme
+  va r&eacute;p&eacute;ter le morceau de code HTML plac&eacute; entre ces deux
+  tags sp&eacute;ciaux pour chaque film. Donc tous les tags commen&ccedil;ant
+  par $$ITEM_ doivent &ecirc;tre plac&eacute;s entre ces deux tags. Par contre
+  pour le mod&egrave;le &quot;Individuel&quot; ces tags sont inutiles.</p>
+<p>L'application inclut un mod&egrave;le d'exemple que vous pouvez utiliser et
+  personnaliser. Bien s&ucirc;r vous pouvez en cr&eacute;&eacute;r un &agrave;
+  partir de z&eacute;ro si vous pr&eacute;f&eacute;rez, mais je recommande que
+  vous observiez alors ce mod&egrave;le de base :</p>
+<pre>&lt;html&gt;
+  &lt;head&gt;&lt;title&gt;$$FILENAME&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;&lt;table&gt;
+    $$ITEM_BEGIN
+      &lt;tr&gt;
+        &lt;td&gt;$$ITEM_NUMBER&lt;/td&gt;
+        &lt;td&gt;$$ITEM_ORIGINALTITLE&lt;/td&gt;
+        &lt;td&gt;$$ITEM_TRANSLATEDTITLE&lt;/td&gt;
+        &lt;td&gt;$$ITEM_DESCRIPTION&lt;/td&gt;
+      &lt;/tr&gt;
+    $$ITEM_END
+  &lt;/table&gt;&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>Ici nous pouvons voir que la page aura comme titre le nom du fichier, et ensuite
+  une table listant tous les films. Le programme va &eacute;crire le tag &lt;table&gt;,
+  et ensuite r&eacute;p&eacute;ter la s&eacute;quence &lt;tr&gt;...&lt;/tr&gt;
+  pour chaque film car cette s&eacute;quence est plac&eacute;e entre $$ITEM_BEGIN
+  and $$ITEM_END.</p>
+<p>Voici une liste des tags disponibles :</p>
+<ul>
+  <li>$$DATE = Date courante</li>
+  <li>$$TIME = Heure courante</li>
+</ul>
+<blockquote>
+  <p>Propri&eacute;t&eacute;s du fichier de catalogue :</p>
+</blockquote>
+<ul>
+  <li>$$FILENAME = Nom de fichier</li>
+  <li>$$FILEPATH = Nom de fichier avec chemin complet</li>
+  <li>$$TOTALMOVIES = Nombre de films dans le catalogue</li>
+</ul>
+<ul>
+  <li> $$OWNER_NAME = Nom sp&eacute;cifi&eacute; dans les propri&eacute;t&eacute;s
+    du catalogue</li>
+  <li>$$OWNER_MAIL = E-mail</li>
+  <li>$$OWNER_SITE = Site web</li>
+  <li>$$DESCRIPTION = Description</li>
+</ul>
+<ul>
+  <li>$$ITEM_FILEINDIV = Nom de fichier de la page du film courant, cr&eacute;&eacute;e
+    avec le mod&egrave;le &quot;Individuel&quot;</li>
+  <li>$$ITEM_BEGIN = D&eacute;but de liste de films</li>
+  <li>$$ITEM_END = Fin de liste de films</li>
+  <li>$$ITEM_RECNR = Compteur</li>
+</ul>
+<blockquote>
+    <p>Labels des champs de films (en fonction de la langue sélectionnée) :</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_NUMBER = Num&eacute;ro</li>
+  <li>$$LABEL_CHECKED = État de la case à cocher</li>
+  <li>$$LABEL_COLORTAG = Etiquette couleur</li>
+  <li>$$LABEL_MEDIA = Label/code-barre du m&eacute;dia</li>
+  <li>$$LABEL_TYPE = Type de support/média</li>
+  <li>$$LABEL_SOURCE = Source (origine)</li>
+  <li>$$LABEL_DATEADD = Date d'ajout</li>
+  <li>$$LABEL_BORROWER = Emprunteur</li>
+  <li>$$LABEL_DATEWATCHED = Date watched</li>
+  <li>$$LABEL_USERRATING = Ma note (0 &agrave; 10)</li>
+  <li>$$LABEL_RATING = Note (0 &agrave; 10)</li>
+  <li>$$LABEL_ORIGINALTITLE = Titre original</li>
+  <li>$$LABEL_TRANSLATEDTITLE = Titre traduit</li>
+  <li>$$LABEL_FORMATTEDTITLE = Titre formaté</li>
+  <li>$$LABEL_DIRECTOR = R&eacute;alisateur</li>
+  <li>$$LABEL_PRODUCER = Producteur</li>
+  <li>$$LABEL_WRITER = Scénariste</li>
+  <li>$$LABEL_COMPOSER = Compositeur</li>
+  <li>$$LABEL_ACTORS = Liste des acteurs</li>
+  <li>$$LABEL_COUNTRY = Pays</li>
+  <li>$$LABEL_YEAR = Ann&eacute;e</li>
+  <li>$$LABEL_LENGTH = Dur&eacute;e en minutes</li>
+  <li>$$LABEL_CATEGORY = Cat&eacute;gorie</li>
+  <li>$$LABEL_CERTIFICATION = Certification</li>
+  <li>$$LABEL_URL = Adresse web</li>
+  <li>$$LABEL_DESCRIPTION = Description</li>
+  <li>$$LABEL_COMMENTS = Commentaires</li>
+  <li>$$LABEL_FILEPATH = Chemin fichier</li>
+  <li>$$LABEL_VIDEOFORMAT = Format/codec vid&eacute;o</li>
+  <li>$$LABEL_VIDEOBITRATE = D&eacute;bit vid&eacute;o</li>
+  <li>$$LABEL_AUDIOFORMAT = Format/codec audio</li>
+  <li>$$LABEL_AUDIOBITRATE = D&eacute;bit audio</li>
+  <li>$$LABEL_RESOLUTION = R&eacute;solution vid&eacute;o</li>
+  <li>$$LABEL_FRAMERATE = Fr&eacute;quence d'image de la vid&eacute;o</li>
+  <li>$$LABEL_LANGUAGES = Langues</li>
+  <li>$$LABEL_SUBTITLES = Sous-titres</li>
+  <li>$$LABEL_SIZE = Tailles des fichiers</li>
+  <li>$$LABEL_DISKS = Nombre de disques ou de cassettes</li>
+  <li>$$LABEL_PICTURESTATUS = État de l'image</li>
+  <li>$$LABEL_NBEXTRAS = Nombre d'extras</li>
+  <li>$$LABEL_PICTURE = Image</li>
+  <li>$$LABEL_AUDIOKBPS' = Unit&eacute; du d&eacute;bit audio</li>
+  <li>$$LABEL_VIDEOKBPS' = Unit&eacute; du d&eacute;bit vid&eacute;o</li>
+  <li>$$LABEL_UNIT' = Unit&eacute; de la taille du fichier</li>
+  <li>$$LABEL_FPS' = Unit&eacute; de la fréquence vid&eacute;o</li>
+</ul>
+<blockquote>
+    <p>Labels des champs personnalisés :</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_CF_ + TAG <i>du champ personnalisé en majuscule</i> = Label du champ personnalisé</li>
+</ul>
+<blockquote>
+    <p>Labels des champs des extras (en fonction de la langue sélectionnée) :</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_EXTRA_NUMBER = Num&eacute;ro</li>
+  <li>$$LABEL_EXTRA_CHECKED = État de la case à cocher</li>
+  <li>$$LABEL_EXTRA_TAG = Tag</li>
+  <li>$$LABEL_EXTRA_TITLE = Titre</li>
+  <li>$$LABEL_EXTRA_CATEGORY = Cat&eacute;gorie</li>
+  <li>$$LABEL_EXTRA_URL = Adresse web ou chemin fichier</li>
+  <li>$$LABEL_EXTRA_DESCRIPTION = Description</li>
+  <li>$$LABEL_EXTRA_COMMENTS = Commentaires</li>
+  <li>$$LABEL_EXTRA_CREATEDBY = Créé par</li>
+  <li>$$LABEL_EXTRA_PICTATUS = État de l'image</li>
+  <li>$$LABEL_EXTRA_PICTURE = Image</li>
+</ul>
+<blockquote>
+    <p>Champs de films :</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_NUMBER = Num&eacute;ro</li>
+  <li>$$ITEM_CHECKED = État de la case à cocher</li>
+  <li>$$ITEM_COLORTAG = Etiquette couleur (nombre compris entre 0 et 12)</li>
+  <li>$$ITEM_COLORHTML = Etiquette couleur (couleur HTML sous forme #FFFFFF)</li>
+  <li>$$ITEM_MEDIA = Label/code-barre du m&eacute;dia</li>
+  <li>$$ITEM_TYPE = Type de support/média</li>
+  <li>$$ITEM_SOURCE = Source (origine)</li>
+  <li>$$ITEM_DATEADD = Date d'ajout</li>
+  <li>$$ITEM_BORROWER = Emprunteur</li>
+  <li>$$ITEM_DATEWATCHED = Date watched</li>
+  <li>$$ITEM_USERRATING = Ma note (0 &agrave; 10)</li>
+  <li>$$ITEM_USERRATING10 = Ma note (0 &agrave; 10 sans décimal)</li>
+  <li>$$ITEM_USERRATING4 = Ma note (0 &agrave; 4 sans décimal)</li>
+  <li>$$ITEM_USERAPPR4 = Mon appr&eacute;ciation, de 0 &agrave; 4 &eacute;toiles, utilisant appr*.gif</li>
+  <li>$$ITEM_USERAPPR10 = = Mon &ppr&eacute;ciation, de 0 &agrave; 10 &eacute;toiles, utilisant appr10_*.gif</li>
+  <li>$$ITEM_RATING = Note (0 &agrave; 10)</li>
+  <li>$$ITEM_RATING10 = Note (0 &agrave; 10 sans décimal)</li>
+  <li>$$ITEM_RATING4 = Note (0 &agrave; 4 sans décimal)</li>
+  <li>$$ITEM_APPRECIATION = Appr&eacute;ciation, de 0 &agrave; 4 &eacute;toiles, utilisant appr*.gif</li>
+  <li>$$ITEM_APPR10 = = Appr&eacute;ciation, de 0 &agrave; 10 &eacute;toiles, utilisant appr10_*.gif</li>
+  <li>$$ITEM_ORIGINALTITLE = Titre original</li>
+  <li>$$ITEM_TRANSLATEDTITLE = Titre traduit</li>
+  <li>$$ITEM_FORMATTEDTITLE = Titre formaté, comme défini dans les <a href="options_fr.html#formattedtitle">Options</a></li>
+  <li>$$ITEM_FORMATTEDTITLE1 = Titre formaté, sous la forme "Titre original (Titre traduit)"</li>
+  <li>$$ITEM_FORMATTEDTITLE2 = Titre formaté, sous la forme "Titre traduit (Titre original)"</li>
+  <li>$$ITEM_DIRECTOR = R&eacute;alisateur</li>
+  <li>$$ITEM_PRODUCER = Producteur</li>
+  <li>$$ITEM_WRITER = Scénariste</li>
+  <li>$$ITEM_COMPOSER = Compositeur</li>
+  <li>$$ITEM_ACTORS = Liste des acteurs</li>
+  <li>$$ITEM_COUNTRY = Pays</li>
+  <li>$$ITEM_YEAR = Ann&eacute;e</li>
+  <li>$$ITEM_LENGTH = Dur&eacute;e en minutes</li>
+  <li>$$ITEM_CATEGORY = Cat&eacute;gorie</li>
+  <li>$$ITEM_CERTIFICATION = Certification</li>
+  <li>$$ITEM_URL = Adresse web (sans lien)</li>
+  <li>$$ITEM_DESCRIPTION = Description</li>
+  <li>$$ITEM_COMMENTS = Commentaires</li>
+  <li>$$ITEM_FILEPATH = Chemin fichier</li>
+  <li>$$ITEM_VIDEOFORMAT = Format/codec vid&eacute;o</li>
+  <li>$$ITEM_VIDEOBITRATE = D&eacute;bit vid&eacute;o</li>
+  <li>$$ITEM_AUDIOFORMAT = Format/codec audio</li>
+  <li>$$ITEM_AUDIOBITRATE = D&eacute;bit audio</li>
+  <li>$$ITEM_RESOLUTION = R&eacute;solution vid&eacute;o</li>
+  <li>$$ITEM_FRAMERATE = Fr&eacute;quence d'image de la vid&eacute;o</li>
+  <li>$$ITEM_LANGUAGES = Langues</li>
+  <li>$$ITEM_SUBTITLES = Sous-titres</li>
+  <li>$$ITEM_SIZE = Tailles des fichiers</li>
+  <li>$$ITEM_DISKS = Nombre de disques ou de cassettes</li>
+  <li>$$ITEM_PICTURESTATUS = État de l'image</li>
+  <li>$$ITEM_NBEXTRAS = Nombre d'extras</li>
+  <li>$$ITEM_PICTURE = Image, int&eacute;gr&eacute;e dans un tag &lt;img&gt;</li>
+  <li>$$ITEM_PICTURE_NP = Image, int&eacute;gr&eacute;e dans un tag &lt;img&gt; (Sans popup dans l'affichage HTML)</li>
+  <li>$$ITEM_PICTUREFILENAME = Nom du fichier image</li>
+  <li>$$ITEM_PICTUREFILENAME_NP = Nom du fichier image (Sans popup dans l'affichage HTML)</li>
+</ul>
+<blockquote>
+    <p>Champs personnalisés :</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_CF_ + TAG <i>du champ personnalisé en majuscule</i> = Valeur du champ personnalisé</li>
+</ul>
+<blockquote>
+    <p>Champs des extras d'un film :</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_EXTRA_BEGIN(CATÉGORIE <i>de l'extra [optionnel]</i>, <i>extra</i> COCHÉ <i>[optionnel]</i>, DÉBUT <i>[optionnel]</i>, FIN <i>[optionnel]</i>) = D&eacute;but de liste des extras avec ou sans filtre</li>
+  <li>$$ITEM_EXTRA_END = Fin de liste des extras</li>
+  <li>$$ITEM_EXTRA_RECNR = Compteur</li>
+  <li>$$ITEM_EXTRA_NUMBER(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Num&eacute;ro</li>
+  <li>$$ITEM_EXTRA_CHECKED(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = État de la case à cocher</li>
+  <li>$$ITEM_EXTRA_TAG(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Tag</li>
+  <li>$$ITEM_EXTRA_TITLE(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Titre</li>
+  <li>$$ITEM_EXTRA_CATEGORY(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Cat&eacute;gorie</li>
+  <li>$$ITEM_EXTRA_URL(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Adresse web ou chemin fichier</li>
+  <li>$$ITEM_EXTRA_DESCRIPTION(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Description</li>
+  <li>$$ITEM_EXTRA_COMMENTS(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Commentaires</li>
+  <li>$$ITEM_EXTRA_CREATEDBY(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Créé par</li>
+  <li>$$ITEM_EXTRA_PICSTATUS(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = État de l'image</li>
+  <li>$$ITEM_EXTRA_PICTURE(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Image, int&eacute;gr&eacute;e dans un tag &lt;img&gt;</li>
+  <li>$$ITEM_EXTRA_PICTURE_NP(TAG <i>de l'extra [optionnel si on liste les extras]</i>) = Image, int&eacute;gr&eacute;e dans un tag &lt;img&gt; (Sans popup dans l'affichage HTML)</li>
+  <li>$$ITEM_EXTRA_PICFILENAME(TAG <i>de l'extra en majuscule [optionnel si on liste les extras]</i>) = Nom du fichier image</li>
+  <li>$$ITEM_EXTRA_PICFILENAME_NP(TAG <i>de l'extra en majuscule [optionnel si on liste les extras]</i>) = Nom du fichier image (Sans popup dans l'affichage HTML)</li>
+</ul>
+</body>
+</html>

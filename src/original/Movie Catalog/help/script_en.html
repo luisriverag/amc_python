@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Scripting</p>
+<hr />
+<p>With this module you can get movie information from internet and import them
+  into your catalog, or apply a script to a movie list.</p>
+<p>When the window is called by "Get information" -&gt; "From Internet using a script"
+  menu, the only visible scripts are those made for version 3.5 (at least) and that
+  were defined as getting information from Internet. By default the script is
+  applied to selected movies. When it is called by "Scripting" menu, all the scrips
+  are displayed.</p>
+<p>You may want to display only some scripts. This choice is done on the basis of the
+  language defined in scripts' properties. It is the language of the information
+  that the script imports. So this is more applicable to the scripts that get information
+  from Internet. This filtering is done through the "Language filter" menu.</p>
+<p>To start a script, click on the "Run" button, or double-click on
+  its name in the displayed list, or press Enter or F9.</p>
+<p>The "Movies to include" options allows to restrict the script to selected movies,
+  checked movies (that is linked to the "<a href="options_en.html#movielist">Checkboxes</a>"
+  option) or visible movies (when using the "Display results" option of main window's search
+  function).</p>
+<p>The script is executed for each movie corresponding to this criteria. After each execution,
+  a summary window shows the old and new values (if the "Show results" option is enabled). By
+  default the only checked fields are those that have been modified by the script.</p>
+<p>You can define which fields the script can modify using the "Modifiable fields" list.</p>
+<p>If you click "Save" in the results window, the new values for checked fields will be kept.
+  If you click "Save all", the window will not be shown for next movies. The program will ask you
+  if you want it to remember which fields were checked by you, or if you prefer that this is
+  done automatically depending of which fields have been modified by the script.</p>
+<p>Warning: if the "Allow to clear fields" option is enabled, a field that as an empty value as
+  new value will erase the old contents if it is checked.</p>
+  <p>The "Skip" button allows to go to the next movie without modifying the current one.
+  The "Abort" button stops script execution (the movies already modified will keep their
+  changes).</p>
+<p>If the "Close this window at end" is enabled, the script window will close, except
+  if you clicked on "Abort" or if there was an error in the script.</p>
+<p>If the script provides it, some options are displayed in the "Script options" list. 
+  Double-click on an option to change it.</p>
+<p>When importing from internet, if more than one movie is found (that can be very common on some
+  sites) you will get a list asking you to select the right movie. For some scripts you will 
+  also have to select one value in a list for a field (e.g. several movie summaries may be 
+  available).</p>
+<p>If you want to have more details about writing scripts, see the <a href="tech_script_en.html">Script
+  files creation</a> page in the Technical information section.</p>
+</body>
+</html>

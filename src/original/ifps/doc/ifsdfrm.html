@@ -1,0 +1,133 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifsdfrm.pas</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Back to </b><a href="library.html">Libraries</a><br /><br />
+<b>ifsdfrm</b><br /><br />
+function GetCV_Int2: Pointer;<br>
+Returns the CV_Int2 pointer. Internally needed for the ctrlstd library.<br><br>
+<b>function </b>GetControl(SE: TIFPasScript; C: PCreatedClass): TControl;<br>
+Returns a pointer to the real TControl.<br><br>
+<b>function </b>AddTObjectFreeProc(SE: TIFPasScript; P: TObject): TObject;<br>
+returns P again. Use this to call the AddResource and automaticly free a properly override destroy method of TObject.<br><br>
+<b>function</b> Proc2Method(Proc, SelfPtr: Pointer): TMethod;<br>
+A delphi method is a pair of two pointers, use this function to create a method and assign it like: Control.OnClick := TNotifyEvent(Proc2Method(@Proc, ....)); SelfPtr is the first parameter that will be send to the method (the Self pointer in delphi).<br><br>
+The following are standard methods to use. use it like proc2Method(@MyOnKeyPress, ScriptEngine).<br>
+<b>procedure</b> MyOnKeyPress(ScriptEngine: TIfPasScript; Sender: TControl; <b>var</b> Key: Char);<br>
+<b>procedure</b> MyOnClick(ScriptEngine: TIfPasScript; Sender: TControl);<br>
+<b>procedure</b> MyOnChange(ScriptEngine: TIfPasScript; Sender: TControl);<br>
+<b>procedure</b> MyOnDblClick(ScriptEngine: TIfPasScript; Sender: TControl);<br>
+<b>procedure</b> MyOnCloseQuery(ScriptEngine: TIfPasScript; Sender: TControl; <b>var</b> CanClose: Boolean);<br>
+<br>
+<b>procedure</b> RegisterFormsLibrary(p: TIfPasScript);<br>
+This will register the forms library.<br><br>
+<tt>
+const<br>
+fsBold = 1;<br>
+fsItalic = 2;<br>
+fsUnderline = 4;<br>
+fsStrikeOut = 8;<br>
+<br>
+type<br>
+TNotifyEvent = procedure(Sender: TObject);<br>
+TCloseQueryEvent = procedure(Sender: TObject; Var CanClose: Boolean);<br>
+TKeyPressEvent = procedure(Sender: TObject; var Key: Char);<br>
+TControl = class(TObject)<br>
+private<br>
+FParent: TControl;<br>
+protected<br>
+FOnKeyPress: TKeyPressEvent;<br>
+FOnCloseQuery: TCloseQueryEvent;<br>
+FOnChange,<br>
+FOnClick,<br>
+FOnDblClick: TNotifyEvent;<br>
+FControl: ResourcePointer;<br>
+procedure SetEnabled(B: Boolean); virtual;<br>
+function GetEnabled: Boolean;<br>
+procedure SetLeft(I: Integer); virtual;<br>
+procedure SetTop(I: Integer); virtual;<br>
+procedure SetWidth(I: Integer); virtual;<br>
+procedure SetHeight(I: Integer); virtual;<br>
+function GetLeft: Integer; virtual;<br>
+function GetTop: Integer; virtual;<br>
+function GetWidth: Integer; virtual;<br>
+function GetHeight: Integer; virtual;<br>
+function GetVisible: Boolean; virtual;<br>
+procedure SetVisible(b: Boolean); virtual;<br>
+function GetControl: ResourcePointer;<br>
+<br>
+function GetFontName: string;<br>
+function GetFontSize: Integer;<br>
+function GetFontColor: Integer;<br>
+function GetFontStyle: Byte;<br>
+procedure SetFontName(s: string);<br>
+procedure SetFontSize(i: Integer);<br>
+procedure SetFontColor(i: Integer);<br>
+procedure SetFontStyle(b: Byte);v
+function GetColor: Longint;<br>
+property SetColor(I: Longint);<br>
+public<br>
+Constructor Create(AParent: TControl);<br>
+<br>
+property Parent: TControl read FParent;<br>
+<br>
+procedure SetBounds(Left, Top, Width, Height: Integer);<br>
+<br>
+property Left: Integer read GetLeft write SetLeft;<br>
+property Top: Integer read GetTop write SetTop;<br>
+property Width: Integer read GetWidth write SetWidth;<br>
+property Height: Integer read GetHeight write SetHeight;<br>
+property Visible: Boolean read GetVisible write SetVisible;<br>
+<br>
+property FontName: string read GetFontName write SetFontName;<br>
+property FontSize: Integer read GetFontSize write SetFontSize;<br>
+property FontColor: Integer read GetFontColor write GetFontColor;<br>
+property FontStyle: Byte read GetFontStyle write GetFontStyle;<br>
+property Enabled: Boolean read GetEnabled write SetEnabled;<br>
+property OnKeyPress: TKeyPressEvent read/write;<br>
+property OnChange: TNotifyEvent read/write;<br>
+property OnClick: TNotifyEvent read/write;<br>
+property OnDblClick: TNotifyEvent read/write;<br>
+property OnCloseQuery: TCloseQueryEvent read/write;<br>
+property Color: Longint read GetColor write GetColor;<br>
+end;<br>
+<br>
+const<br>
+bsNone = 0;<br>
+bsSingle = 1;<br>
+bsDialog = 2;<br>
+bsSizeable = 3;<br>
+<br>
+biSystemMenu = 1;<br>
+biMinimize = 2;<br>
+biMaximize = 4;<br>
+type<br>
+TForm = class(TControl)<br>
+private<br>
+public<br>
+constructor Create;<br>
+destructor Destroy; override;<br>
+procedure Close;<br>
+procedure Center;<br>
+property Caption: string read/write;<br>
+property Color: Integer read/write;<br>
+property BorderStyle: Byte read/write;<br>
+property BorderIcons: Byte read/write;<br>
+procedure SetActiveControl(c: TControl);<br>
+end;<br>
+<br>
+procedure ProcessMessages;<br>
+</tt>
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

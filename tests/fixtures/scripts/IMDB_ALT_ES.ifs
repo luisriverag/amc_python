@@ -1,0 +1,1515 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=Purfview | Contributors: Elman | Adaptacion ES: (pon aqui tu nombre)
+Title=IMDB ( via API ) - ES
+Description=Importa datos de IMDb y los localiza al espanol (sinopsis y comentarios traducidos, pais y genero en espanol)
+Site=https://github.com/Purfview/IMDB_ALT
+Language=ES
+Version=3.5.0-ES
+Requires=4.2.3
+Comments=Version en espanol basada en "IMDB (via API)" v3.5.0 de Purfview. Traduce sinopsis y resenas al espanol con Google Translate (endpoint gratuito, sin API key), localiza pais y genero, y limpia la Descripcion. Ver LEEME.txt. Codigo base MIT (c) Purfview; modificaciones libres bajo la misma licencia.
+License=MIT License||Copyright (c) 2025 Purfview||Permission is hereby granted, free of charge, to any person obtaining a copy|of this software and associated documentation files (the "Software"), to deal|in the Software without restriction, including without limitation the rights|to use, copy, modify, merge, publish, distribute, sublicense, and/or sell|copies of the Software, and to permit persons to whom the Software is|furnished to do so, subject to the following conditions:||The above copyright notice and this permission notice shall be included in all|copies or substantial portions of the Software.||THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR|IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,|FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE|AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER|LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,|OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE|SOFTWARE.|
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+BatchMode=0|0|0=Normal working mode, prompts user when needed|1=Does not display any window, takes the first movie found|2=Same as 1, but it uses the URL field if available to update movie information
+PosterImageSize=3|3|0=Don't import poster|1=x200|2=x500|3=x700|4=x1100|5=x1500|6=x2000|7=Max size
+MultipleValuesCategory=1|1|0=Only take first genre for Category|1=Take all genres
+MultipleValuesCountry=0|0|0=Only take first country|1=Take all countries
+ActorsLimit=0|0|0=5|1=10|2=15|3=25|4=50|5=250
+ActorsImage=0|0|0=Don't import|1=Import
+ActorsImageSize=2|2|1=x200|2=x500|3=x700|4=x1100|5=x1500|6=x2000|7=Max size
+GetCharacters=0|0|0=Do nothing|1=Pair the actors with the characters
+GetCharactersFormat=0|0|0=name ... character [on separate lines]|1=name (as character) [all cast on one line]
+TitleSelection=3|3|1=Retrieve max 5 titles|2=Retrieve max 10 titles|3=Retrieve max 25 titles
+SearchMethod=1|1|0=Normal search|1=Fuzzy search
+SearchWithYear=1|1|0=Do nothing|1=Try to search with a year (a year can be included at the end of a title)
+SearchYearDeviation=1|1|0=No deviation|1=deviation by 1 year|2=deviation by 3 years
+Description=0|0|0=Prefer a short summary|1=Prefer a long summary (aka Storyline)
+DescriptionLanguage1st=4|4|0=English|1=German|2=French (Canada)|3=French (France)|4=Spanish (Spain)|5=Spanish (Mexico)|6=Italian|7=Portuguese|8=Japanese|9=Hindi
+DescriptionLanguage2nd=0|0|0=English|1=German|2=French (Canada)|3=French (France)|4=Spanish (Spain)|5=Spanish (Mexico)|6=Italian|7=Portuguese|8=Japanese|9=Hindi
+TranslateToSpanish=2|2|0=Do not auto-translate|1=Auto-translate plot to Spanish (only if not already Spanish)|2=Auto-translate plot (if needed) and the review/comment to Spanish
+Tagline=0|0|0=Do not import tagline|1=Prepend the top tagline to Description
+Trivia=0|0|0=Do not import trivia|1=Append trivia to Description|2=Append trivia to Comments|3=Replace Description with trivia|4=Replace Comments with trivia
+TriviaLimit=0|0|0=1|1=10|2=25|3=50|4=250
+TriviaFormat=0|0|0=Separated by blank lines|1=Without blank lines, prefixed with "-"
+AKAs=0|0|0=Do nothing|1=Import all AKA titles to Translated Title field.
+ShortCountryName=0|0|0=Do nothing|1=Use UK/USA
+ConvertToASCII=0|0|0=Do not change special characters and accents.|1=Replace special characters and accents by basic ASCII characters
+RoundRating=0|0|0=Do nothing|1=Round rating to nearest integer
+
+[Parameters]
+IMDB_userID=|ur00000000|Your IMDb userID to get "My Rating", your ratings must be set to public.
+Replace_delimiter=|default|Your delimiter to replace default in Country, Category fields.
+userCountryCode=ES|US|Affects Translated Title and some other stuff. (default is US)
+
+***************************************************)
+
+(*************** Version History *****************************************************************************
+
+3.5.0 - (2026/05/10) - Reworked country importing.
+                       Bugfix: The script failure when no country was present.
+                       Change: Added a '15' option for ActorsLimit.
+
+3.4.0 - (2026/05/03) - New feature: You can now select the plot language with DescriptionLanguage1st.
+                                    DescriptionLanguage2nd is fallback if a plot with 1st language is not found.
+                                    If 2nd language is not found then it falls back to English.
+
+3.3.0 - (2026/04/17) - Regression bugfix: Version 3.1.0 broke "Actor image importing" [3.0.0] due to a Pascal syntax typo.
+
+3.2.0 - (2026/04/12) - Bugfix: Incorrect line break in Actors field when a character name contains a comma.
+
+3.1.0 - (2026/04/11) - Improvement: Untie actor image importing from CanSetField(fieldActors) dependency.
+
+3.0.0 - (2026/04/09) - New feature: Actor image importing. [new options: 'ActorsImage', 'ActorsImageSize']
+                       Change: Renamed 'ImageSize' to 'PosterImageSize'.
+                       Change: 'ActorsLimit' rework.
+
+2.3.0 - (2026/04/08) - New feature: New option 'GetCharactersFormat'.
+                       New feature: New option 'RoundRating' to round IMDB ratings to nearest integer.
+                                    Useful when "Do not display decimals..." is turned on in AMC preferences.
+                       New feature: New option 'TriviaFormat'.
+                       
+2.2.0 - (2026/04/07) - New feature: New option 'Description'. Can import a long summary (aka Storyline).
+                       New feature: New option 'Tagline'. Can be turned off.
+
+2.1.0 - (2026/01/31) - Fixed: AKAs didn't import a primary title.
+
+2.0.0 - (2026/01/30) - New feature: New parameter 'userCountryCode'. Affects Translated Title, Trivia, Certification...
+                       New feature: New option 'AKAs'. [ignores dupes and the titles with unrecognized chars]
+                       Improvement: Import a category and other stuff for Trivia.
+                       Improvement: Added safety in dedot for the titles containing dots originally.
+                       Improvement: Added support for a year in brackets. ['SearchWithYear']
+                       Fixed: Attribute wasn't added if there was no character for an actor. ['GetCharacters']
+
+1.5.1 - (2026/01/27) - Improvement: Import attributes too when GetCharacters is enabled. [voice, uncredited, ect.]
+                       Improvement: Remove escapes from tagline.
+                       Improvement: Replace 'null' with 'x' if authorRating is not set in a comment.
+
+1.5.0 - (2026/01/27) - New feature: Added Replace_delimiter parameter
+                       New feature: Added Trivia importing
+
+1.4.0 - (2026/01/25) - Fixed: Issues passing unicode chars in query with PostPage3() [returns nothing in normal search]
+                              Solution: Fix the titles with UTF8EncodeToUnicodeEscapes()
+                              The title examples to test:
+                              "Schönberg" (www.imdb.com/title/tt0100560)
+                              "Les Misérables" (www.imdb.com/title/tt1707386) [user report, but worked for me]
+
+1.3.0 - (2025/12/04) - Regression bugfix: 1.1.0 broke "More options for ImageSize" [1.0.9]
+
+1.2.0 - (2025/12/03) - New feature: Added fuzzy search. [can be enabled with 'SearchMethod' option]
+                     - Improvement: Changed default ImageSize to 3.
+
+1.1.0 - (2025/07/06) - Improvement: Get the most helpful review instead of "featured" nonsense.
+                     - Moved less important options to the bottom.
+                     - Remove the escapes from Description.
+
+1.0.9 - (2025/07/05) - Improvement: More options for ImageSize.
+
+1.0.8 - (2025/07/05) - Improvement: Optimized some code - now the script is 4 times faster.
+
+1.0.7 - (2025/07/04) - Improvement: If alt versions available then add all runtimes to Description.
+                     - Fixed bug with Comments field.
+
+1.0.6 - (2025/07/02) - Fixed rare Cloudflare/API timeout bug by changing a credits endpoint to a faster one.
+                     - Reworked all credits.
+                     - Renamed CreditsLimit to ActorsLimit.
+                     - Added support to pair the actors with the characters. [GetCharacters option]
+                     - Improvement: Adds tagline to Description.
+
+1.0.5 - (2025/06/29) - Added support for "My ratings" field. [IMDB_userID must be set]
+                     - Added CreditsLimit option.
+                     - Reworked Director/Writer/Actors.
+                     - Fixed country errors: 'West Germany','East Germany','Soviet Union','Czechoslovakia',
+                                             'Yugoslavia','Zaire','Serbia and Montenegro','Burma'.
+                     - Fixed country names: 'Vietnam', 'Czech Republic'.
+                     - Fixed: The title search didn't include the adult titles.
+                     - Fixed few other bugs.
+
+1.0.4 - (2025/06/29) - Added support for Producer & Composer fields.
+                     - Fixed few bugs.
+
+1.0.3 - (2025/06/27) - Fixed: BatchMode 1/2 wasn't working properly.
+                     - Auto-remove dots from the titles as IMDb's advanced search doesn't like them
+                     - Removed unneeded scripts from "uses".
+
+1.0.2 - (2025/06/27) - Fixed few country names
+                     - Remove the escapes from Comment
+
+1.0.1 - (2025/06/27) - File changed to UTF8 [note: AMC does not support UTF8, use UTF8Decode]
+                     - The scripts title changed to "IMDB ( via API )"
+
+1.0.0 - (2025/06/26) - The first public release.
+
+*************************************************************************************************************)
+
+
+program IMDB_ALT;
+
+uses
+  StringUtils1;
+
+const
+  Query_Search_by_Title          = '{ "query": "query { advancedTitleSearch( first: replace_max_titles constraints: { titleTextConstraint:{searchTerm:\"replace_search_string\"} explicitContentConstraint: { explicitContentFilter: INCLUDE_ADULT } } ) { edges { node { title { titleText { text } releaseYear { year } titleType { text } id principalCredits { category { id } credits { name { nameText { text } } } } } } } } }" }';
+  Query_Search_by_Title_and_Year = '{ "query": "query { advancedTitleSearch( first: replace_max_titles constraints: { titleTextConstraint:{searchTerm:\"replace_search_string\"} explicitContentConstraint: { explicitContentFilter: INCLUDE_ADULT } releaseDateConstraint: {releaseDateRange: {start:\"replace_start_year-01-01\",end:\"replace_end_year-12-31\"}} } ) { edges { node { title { titleText { text } releaseYear { year } titleType { text } id principalCredits { category { id } credits { name { nameText { text } } } } } } } } }" }';
+  Query_FuzzySearch_by_Title          = '{ "query": "query { mainSearch(first: replace_max_titles, options: {searchTerm: \"replace_search_string\", includeAdult: true, isExactMatch: false, type: [TITLE]}) { edges { node { entity { __typename ... on Title { id titleText { text } releaseYear { year } titleType { text } principalCredits { category { id } credits { name { nameText { text } } } } } } } } } }" }';
+  Query_FuzzySearch_by_Title_and_Year = '{ "query": "query { mainSearch(first: replace_max_titles, options: {searchTerm: \"replace_search_string\", includeAdult: true, isExactMatch: false, type: [TITLE], titleSearchOptions: {releaseDateRange: {start: \"replace_start_year-01-01\", end: \"replace_end_year-12-31\"}}}) { edges { node { entity { __typename ... on Title { id titleText { text } releaseYear { year } titleType { text } principalCredits { category { id } credits { name { nameText { text } } } } } } } } } }" }';
+  Query_ID = '{ "query": "query { title(id: \"replace_imdbid\") { id titleText { text isOriginalTitle } originalTitleText { text } releaseYear { year } titleGenres { genres { genre { text } } } runtime { seconds } countriesOfOrigin { countries { text } } certificate { rating } titleType { id } taglines(first: 1) { edges { node { text } } } plots ( replace_plot_settings ) { edges { node { language { id } plotText { plainText } } } } ratingsSummary { aggregateRating } primaryImage { url } runtimes(first: 25) { edges { node { displayableProperty { value { plainText } } seconds attributes { text } country { text } } } } credits(first: 250, filter: { categories: [\"director\", \"producer\", \"writer\", \"composer\"] }) { edges { node { category { categoryId } name { nameText { text } } } } } reviews(first: 15) { edges { node { submissionDate authorRating helpfulness { score } author { nickName } summary { originalText } text { originalText { plainText } } } } } akas ( filter: EXCLUDE_IF_SAME_AS_PRIMARY, first: 250 ) { edges { node { text } } } } }" }';
+  Query_userRating = '{ "query": "query { title(id: \"replace_imdbid\") { userRating(userId: \"replace_userid\") { value } } }" }';
+  Query_actors = '{ "query": "query { title(id: \"replace_imdbid\") { credits(first: replace_max_actors, filter: { categories: [\"cast\"] }) { edges { node { name { id nameText { text } primaryImage { url } } } } } } }" }';
+  Query_actors_paired = '{ "query": "query { title(id: \"replace_imdbid\") { credits(first: replace_max_actors, filter: { categories: [\"cast\"] }) { edges { node { name { id nameText { text } primaryImage { url } } ... on Cast { characters { name } attributes { __typename ... on MiscellaneousCreditAttribute { text } ... on CreditedAsCreditAttribute { creditedAs text } } } } } } } }" }';
+  Query_trivia = '{ "query": "query { title ( id: \"replace_imdbid\" ) { trivia ( first: replace_max_trivia ) { edges { node { displayableArticle { body { plainText } } category { text } } } } } }" }';
+
+var
+  MovieName: string;
+
+
+//==============================================================================
+//    Helping functions
+//==============================================================================
+
+function GetJsonBlock(Json, SearchStr: string): string;
+var
+  SearchPos, BlockStart, NextOpen, NextClose, CurPos, Level: Integer;
+begin
+  Result := '';
+
+  SearchPos := Pos(SearchStr, Json);
+  if SearchPos = 0 then
+    Exit;
+
+  BlockStart := Pos('{', Copy(Json, SearchPos, Length(Json) - SearchPos + 1));
+  if BlockStart = 0 then
+    Exit;
+
+  BlockStart := BlockStart + SearchPos - 1;
+
+  CurPos := BlockStart + 1;
+  Level := 1;
+
+  while Level > 0 do
+  begin
+    NextOpen := Pos('{', Copy(Json, CurPos, Length(Json) - CurPos + 1));
+    if NextOpen > 0 then
+      NextOpen := NextOpen + CurPos - 1;
+
+    NextClose := Pos('}', Copy(Json, CurPos, Length(Json) - CurPos + 1));
+    if NextClose > 0 then
+      NextClose := NextClose + CurPos - 1;
+
+    if (NextOpen > 0) and ((NextOpen < NextClose) or (NextClose = 0)) then
+    begin
+      Level := Level + 1;
+      CurPos := NextOpen + 1;
+    end
+    else if NextClose > 0 then
+    begin
+      Level := Level - 1;
+      CurPos := NextClose + 1;
+    end
+    else
+      Exit;
+  end;
+  Result := Copy(Json, BlockStart, CurPos - BlockStart);
+end;
+
+
+// Quita las secuencias UTF-8 de 4 bytes (caracteres fuera del BMP: emojis, etc.)
+// El UTF8Decode viejo de AMC (UCS-2) se atraganta con ellas y devuelve vacio,
+// lo que hacia que TODA la respuesta se mostrara sin decodificar (mojibake).
+// AMC no puede mostrar emojis de todas formas, asi que se descartan.
+function StripNonBMP(S: string): string;
+var
+  i, L: Integer;
+  outp, c: string;
+begin
+  outp := '';
+  L := Length(S);
+  i := 1;
+  while i <= L do
+  begin
+    c := Copy(S, i, 1);
+    if Ord(c) >= 240 then // 0xF0: inicio de secuencia UTF-8 de 4 bytes
+      i := i + 4          // saltarla entera
+    else
+    begin
+      outp := outp + c;
+      i := i + 1;
+    end;
+  end;
+  Result := outp;
+end;
+
+
+function ConvertToASCII(AText: string): string;
+begin
+  AText := StripNonBMP(AText); // evitar que un emoji rompa el UTF8Decode entero
+  Result := UTF8Decode(AText);
+  if Result = '' then
+    Result := AText; // in case of a UTF8 decoding error
+  if GetOption('ConvertToASCII') = 1 then
+    Result := Cp1252ToASCII(Result);
+end;
+
+
+function UTF8EncodeToUnicodeEscapes(AText: string): string;
+var
+  firstChar, restChars, outStr: string;
+  d1, d2, d3, d4, CharCode: Integer;
+  c1, c2, c3, c4: Char;
+begin
+  outStr := '';
+
+  while RegExprSetExec('^(.)(.*)', AText) do
+  begin
+    firstChar := RegExprMatch(1);
+    restChars := RegExprMatch(2);
+
+    CharCode := Ord(firstChar);
+
+    d1 := (CharCode div 4096) mod 16;
+    d2 := (CharCode div 256)  mod 16;
+    d3 := (CharCode div 16)   mod 16;
+    d4 := CharCode mod 16;
+
+    if d1 < 10 then c1 := Chr(Ord('0') + d1) else c1 := Chr(55 + d1);
+    if d2 < 10 then c2 := Chr(Ord('0') + d2) else c2 := Chr(55 + d2);
+    if d3 < 10 then c3 := Chr(Ord('0') + d3) else c3 := Chr(55 + d3);
+    if d4 < 10 then c4 := Chr(Ord('0') + d4) else c4 := Chr(55 + d4);
+
+    if (CharCode >= 32) and (CharCode <= 127) then
+      outStr := outStr + firstChar
+    else
+      outStr := outStr + '\u' + c1 + c2 + c3 + c4;
+
+    AText := restChars;
+  end;
+
+  UTF8EncodeToUnicodeEscapes := outStr;
+end;
+
+
+//==============================================================================
+//    Select most helpful review
+//==============================================================================
+
+function GetMostHelpfulReview(Json: string): string;
+var
+  Block, ScoreStr: string;
+  Score, MaxScore: double;
+begin
+  Result := '';
+  MaxScore := -1;
+
+  while true do
+  begin
+    Block :=  GetJsonBlock(Json, '"node"');
+    if Block = '' then
+      break;
+
+    ScoreStr := TextBetween(Block, '"score":', '}');
+    if (ScoreStr <> '') and (AnsiCompareStr(ScoreStr, 'null') <> 0) then
+    begin
+      Score := StrToFloat(Trim(ScoreStr));
+      if Score > MaxScore then
+      begin
+        MaxScore := Score;
+        Result := Block;
+      end;
+    end;
+    Json := TextAfter(Json, Block);
+  end;
+end;
+
+
+//==============================================================================
+//    Extract the title runtimes of the alt versions
+//==============================================================================
+
+function ExtractAllRuntimes(Json: string): string;
+var
+  RuntimesBlock, NodeBlock, PlainText, Seconds, AttributeText, CountryText, ResultText: string;
+  Count: Integer;
+begin
+  ResultText := '';
+  RuntimesBlock := GetJsonBlock(Json, '"runtimes":{"edges"');
+  /////////////////// Exit if "node" is one or zero
+  Count := 0;
+  RegExprSet('"node"');
+  if RegExprExec(RuntimesBlock) then
+  begin
+    Count := Count + 1;
+    while RegExprExecNext do
+      Count := Count + 1;
+  end;
+  if Count < 2 then
+  begin
+    Result := '';
+    Exit;
+  end;
+  ///////////////////
+  while Pos('"node":{', RuntimesBlock) > 0 do
+  begin
+    NodeBlock := GetJsonBlock(RuntimesBlock, '"node"');
+
+    PlainText := TextBetween(NodeBlock, '"plainText":"', '"');
+    Seconds := TextBetween(NodeBlock, '"seconds":', ',');
+    if (AnsiCompareStr(Seconds, 'null') <> 0) and (Seconds <> '') then
+      Seconds := IntToStr(StrToInt(Seconds, 10) div 60)
+    else
+      Seconds := '0';
+
+    AttributeText := TextBetween(NodeBlock, '"attributes":[{"text":"', '"');
+    if AttributeText <> '' then
+      AttributeText := ' (' + AttributeText + ')'
+    else
+      AttributeText := '';
+
+    CountryText := TextBetween(NodeBlock, '"country":{"text":"', '"');
+    if CountryText <> '' then
+      CountryText := ' (' + CountryText + ')'
+    else
+      CountryText := '';
+
+    if ResultText <> '' then
+      ResultText := ResultText + #13#10;
+    ResultText := ResultText + PlainText + ' (' + Seconds + ' min)' + AttributeText + CountryText;
+
+    RuntimesBlock := TextAfter(RuntimesBlock, NodeBlock);
+  end;
+  Result := ResultText;
+end;
+
+
+//==============================================================================
+//    Pair Actors with Characters
+//==============================================================================
+
+function PairActorsWithCharacters(Json: string): string;
+var
+  OneCredit, Actor, CharacterBlock, Character, CharacterList, AttributesBlock, AttributesList, Attribute: string;
+begin
+  Result := '';
+  while Pos('{', Json) > 0 do
+  begin
+    OneCredit := GetJsonBlock(Json, '"node"');
+    Actor := TextBetween(OneCredit, '"nameText":{"text":"', '"');
+
+    if Pos('"characters":null', OneCredit) > 0 then
+    begin
+      CharacterList := '';
+    end else
+    begin
+      CharacterBlock := TextBetween(OneCredit, '"characters":[', ']');
+      CharacterList := '';
+
+      while Pos('"name":"', CharacterBlock) > 0 do
+      begin
+        Character := TextBetween(CharacterBlock, '"name":"', '"');
+        Character := StringReplace(Character, ',', '###');
+        if CharacterList = '' then
+          CharacterList := Character
+        else
+          CharacterList := CharacterList + ' / ' + Character;
+        CharacterBlock := TextAfter(CharacterBlock, Character);
+      end;
+    end;
+
+    if Pos('"attributes": null', OneCredit) > 0 then
+    begin
+      AttributesList := '';
+    end else
+    begin
+      AttributesBlock := TextBetween(OneCredit, '"attributes":[', ']');
+      AttributesList := '';
+
+      while Pos('"text":"', AttributesBlock) > 0 do
+      begin
+        Attribute := TextBetween(AttributesBlock, '"text":"', '"');
+        if AttributesList = '' then
+          AttributesList := '(' + Attribute + ')'
+        else
+          AttributesList := AttributesList + ' ' + '(' + Attribute + ')';
+        AttributesBlock := TextAfter(AttributesBlock, Attribute);
+      end;
+    end;
+
+    if Actor <> '' then
+    begin
+      if Result <> '' then
+        Result := Result + ', ';
+
+      if CharacterList <> '' then
+      begin
+        if GetOption('GetCharactersFormat') = 1 then
+          Result := Result + Actor + ' (as ' + CharacterList + ')'
+        else
+          Result := Result + Actor + ' ... ' + CharacterList;
+      end else
+        Result := Result + Actor;
+
+      if AttributesList <> '' then
+        Result := Result + ' ' + AttributesList;
+
+    end;
+    Json := TextAfter(Json, OneCredit);
+  end;
+end;
+
+
+//==============================================================================
+//    Query IMDb's API
+//==============================================================================
+
+function QueryIMDb_API(MovieTitleOrID: string): string;
+var
+  query, url, contentType, referer, headers, response, replace_max_titles, Year, replace_start_year, replace_end_year, StrVal1: string;
+  Deviation: Integer;
+  forceHTTP11, forceEncodeParams, foundYear: Boolean;
+begin
+  url := 'https://api.graphql.imdb.com';
+  contentType := 'application/json';
+  headers := 'Content-Type=application/json' + #13#10 +
+             'x-imdb-client-name=imdb-web-next-localized' + #13#10 +
+             'x-imdb-user-country=' + GetParam('userCountryCode');
+  referer := '';
+  forceHTTP11 := True;
+  forceEncodeParams := False;
+
+  if RegExprSetExec('tt[0-9]+', MovieTitleOrID) then
+  begin
+    query := Query_ID;
+    query := StringReplace(query, 'replace_imdbid', MovieTitleOrID);
+    if GetOption('DescriptionLanguage1st') = 0 then
+      query := StringReplace(query, 'replace_plot_settings', 'first: 2')
+    else
+      query := StringReplace(query, 'replace_plot_settings', 'first: 25, includeAllLocales: true');
+  end else
+  begin
+    if GetOption('SearchMethod') = 0 then
+      query := Query_Search_by_Title
+    else
+      query := Query_FuzzySearch_by_Title;
+    /////////////////////////////// SearchWithYear block
+    foundYear := False;
+    MovieTitleOrID := Trim(MovieTitleOrID);
+    if (GetOption('SearchWithYear') = 1) and (Length(MovieTitleOrID) > 6) then
+    begin
+      if RegExprSetExec('\d{4}$', MovieTitleOrID) then
+      begin
+        foundYear := True;
+        Year := RegExprMatch(0);
+        StrVal1 := StringReplace(MovieTitleOrID, Year, '');
+      end
+      else if RegExprSetExec('\(\d{4}\)$', MovieTitleOrID) then
+      begin
+        foundYear := True;
+        Year := RegExprMatch(0);
+        StrVal1 := StringReplace(MovieTitleOrID, Year, '');
+        Year := StringReplace(Year, '(', '');
+        Year := StringReplace(Year, ')', '');
+      end;
+    end;
+
+    if foundYear then
+    begin
+      if (Copy(Year, 1, 2) = '19') or (Copy(Year, 1, 2) = '20') then
+      begin
+        MovieTitleOrID := Trim(StrVal1);
+        case GetOption('SearchYearDeviation') of
+          0:  Deviation := 0;
+          1:  Deviation := 1;
+          2:  Deviation := 3;
+        end;
+        replace_start_year := IntToStr(StrToInt(Year, 10) - Deviation);
+        replace_end_year := IntToStr(StrToInt(Year, 10) + Deviation);
+        if GetOption('SearchMethod') = 0 then
+          query := Query_Search_by_Title_and_Year
+        else
+          query := Query_FuzzySearch_by_Title_and_Year;
+        query := StringReplace(query, 'replace_start_year', replace_start_year);
+        query := StringReplace(query, 'replace_end_year', replace_end_year);
+      end;
+    end;
+    ////////////////////////////////////////////////////
+    if GetOption('BatchMode') > 0 then
+      replace_max_titles := '1'
+    else
+      case GetOption('TitleSelection') of
+        1:  replace_max_titles := '5';
+        2:  replace_max_titles := '10';
+        3:  replace_max_titles := '25';
+    end;
+    query := StringReplace(query, 'replace_search_string', MovieTitleOrID);
+    query := StringReplace(query, 'replace_max_titles', replace_max_titles);
+  end;
+  response := PostPage3(url, query, contentType, referer, forceHTTP11, forceEncodeParams, headers);
+  response := ConvertToASCII(response);
+  Result := response;
+end;
+
+
+//==============================================================================
+//    Query IMDb's API2
+//==============================================================================
+
+function QueryIMDb_API2(MovieID: string; UserID: string; job: string): string;
+var
+  query, url, contentType, referer, headers, response, max: string;
+  forceHTTP11, forceEncodeParams: Boolean;
+begin
+  url := 'https://api.graphql.imdb.com';
+  contentType := 'application/json';
+  headers := 'Content-Type=application/json' + #13#10 +
+             'x-imdb-client-name=imdb-web-next-localized' + #13#10 +
+             'x-imdb-user-country=' + GetParam('userCountryCode');
+  referer := '';
+  forceHTTP11 := True;
+  forceEncodeParams := False;
+
+  if job = 'get_myrating' then
+  begin
+    query := Query_userRating;
+    query := StringReplace(query, 'replace_imdbid', MovieID);
+    query := StringReplace(query, 'replace_userid', UserID);
+  end
+
+  else if job = 'get_actors' then
+  begin
+    case GetOption('ActorsLimit') of
+      0:  max := '5';
+      1:  max := '10';
+      2:  max := '15';
+      3:  max := '25';
+      4:  max := '50';
+      5:  max := '250';
+    end;
+    query := Query_actors;
+    if GetOption('GetCharacters') = 1 then
+      query := Query_actors_paired;
+    query := StringReplace(query, 'replace_imdbid', MovieID);
+    query := StringReplace(query, 'replace_max_actors', max);
+  end
+
+  else if job = 'get_trivia' then
+  begin
+    case GetOption('TriviaLimit') of
+      0:  max := '1';
+      1:  max := '10';
+      2:  max := '25';
+      3:  max := '50';
+      4:  max := '250';
+    end;
+    query := Query_trivia;
+    query := StringReplace(query, 'replace_imdbid', MovieID);
+    query := StringReplace(query, 'replace_max_trivia', max);
+  end
+  else
+    ShowMessage('ERROR: Incorrect job for QueryIMDb_API2!');
+
+  response := PostPage3(url, query, contentType, referer, forceHTTP11, forceEncodeParams, headers);
+  response := ConvertToASCII(response);
+  Result := response;
+end;
+
+
+//==============================================================================
+//    Perform search and ask to select a movie from a list
+//==============================================================================
+
+procedure SearchForMovie(MovieTitleOrID: string);
+var
+  Json, imdbID: string;
+begin
+  Json := QueryIMDb_API(MovieTitleOrID);
+  if GetOption('BatchMode') = 0 then
+  begin
+    PickTreeClear;
+    PickTreeAdd('Titles search results', '');
+    AddMovieTitles(Json);
+    if PickTreeExec(MovieTitleOrID) then
+    begin
+      if RegExprSetExec('tt[0-9]+', MovieTitleOrID) then
+        MovieTitleOrID := RegExprMatch(0);
+      GetMovieInfo(MovieTitleOrID);
+    end;
+  end else
+  begin
+    imdbID := TextBetween(Json, ',"id":"', '"');
+    if (imdbID <> '') then
+    begin
+      GetMovieInfo(imdbID);
+    end;
+  end;
+end;
+
+
+//==============================================================================
+//    Adds the movie titles found on IMDB to a list
+//==============================================================================
+
+function AddMovieTitles(Json: string): Boolean;
+var
+  Item, Title, Year, TypeText, Id, TitleLine, url, Director: string;
+begin
+  Result := False;
+
+  while Pos('"node":', Json) > 0 do
+  begin
+    Item     := GetJsonBlock(Json, '"node"');
+    Title    := TextBetween(Item, '"titleText":{"text":"', '"}');
+    Year     := TextBetween(Item, '"releaseYear":{"year":', '}');
+    TypeText := TextBetween(Item, '"titleType":{"text":"', '"');
+    Id       := TextBetween(Item, ',"id":"', '"');
+    Director := TextBetween(Item, '"id":"director"},"credits":[{"name":{"nameText":{"text":"', '"');
+
+    if (Title <> '') and (Id <> '') then
+    begin
+      TitleLine := Title + ' (' + Year + ') - ' + TypeText + ' - ' + Director;
+      url := 'https://www.imdb.com/title/' + Id;
+      PickTreeAdd(TitleLine, url);
+      Result := True;
+    end;
+    Json := TextAfter(Json, '"node":');
+  end;
+end;
+
+
+//==============================================================================
+//    Traduccion al castellano de genero y pais (anadido)
+//==============================================================================
+
+function TraduceGenero(G: string): string;
+var Tmp: string;
+begin
+  Result := G;
+  case G of
+    'Action':      Result := 'Acción';
+    'Adventure':   Result := 'Aventuras';
+    'Animation':   Result := 'Animación';
+    'Biography':   Result := 'Biografía';
+    'Comedy':      Result := 'Comedia';
+    'Crime':       Result := 'Crimen';
+    'Documentary': Result := 'Documental';
+    'Drama':       Result := 'Drama';
+    'Family':      Result := 'Familiar';
+    'Fantasy':     Result := 'Fantástico';
+    'Film-Noir':   Result := 'Cine negro';
+    'Game-Show':   Result := 'Concurso';
+    'History':     Result := 'Histórico';
+    'Horror':      Result := 'Terror';
+    'Music':       Result := 'Música';
+    'Musical':     Result := 'Musical';
+    'Mystery':     Result := 'Misterio';
+    'News':        Result := 'Noticias';
+    'Reality-TV':  Result := 'Reality';
+    'Romance':     Result := 'Romance';
+    'Sci-Fi':      Result := 'Ciencia ficción';
+    'Short':       Result := 'Cortometraje';
+    'Sport':       Result := 'Deporte';
+    'Talk-Show':   Result := 'Programa de entrevistas';
+    'Thriller':    Result := 'Thriller';
+    'War':         Result := 'Bélico';
+    'Western':     Result := 'Western';
+    'Adult':       Result := 'Adulto';
+  end;
+  Tmp := UTF8Decode(Result);
+  if Tmp <> '' then Result := Tmp;
+end;
+
+function TraducePais(P: string): string;
+var Tmp: string;
+begin
+  Result := P;
+  case P of
+    'United States':  Result := 'Estados Unidos';
+    'United Kingdom': Result := 'Reino Unido';
+    'Spain':          Result := 'España';
+    'France':         Result := 'Francia';
+    'Germany':        Result := 'Alemania';
+    'West Germany':   Result := 'Alemania Occidental';
+    'East Germany':   Result := 'Alemania Oriental';
+    'Italy':          Result := 'Italia';
+    'Canada':         Result := 'Canadá';
+    'Mexico':         Result := 'México';
+    'Argentina':      Result := 'Argentina';
+    'Japan':          Result := 'Japón';
+    'China':          Result := 'China';
+    'South Korea':    Result := 'Corea del Sur';
+    'North Korea':    Result := 'Corea del Norte';
+    'India':          Result := 'India';
+    'Australia':      Result := 'Australia';
+    'New Zealand':    Result := 'Nueva Zelanda';
+    'Brazil':         Result := 'Brasil';
+    'Russia':         Result := 'Rusia';
+    'Soviet Union':   Result := 'Unión Soviética';
+    'Sweden':         Result := 'Suecia';
+    'Denmark':        Result := 'Dinamarca';
+    'Norway':         Result := 'Noruega';
+    'Finland':        Result := 'Finlandia';
+    'Iceland':        Result := 'Islandia';
+    'Netherlands':    Result := 'Países Bajos';
+    'Belgium':        Result := 'Bélgica';
+    'Switzerland':    Result := 'Suiza';
+    'Austria':        Result := 'Austria';
+    'Portugal':       Result := 'Portugal';
+    'Ireland':        Result := 'Irlanda';
+    'Poland':         Result := 'Polonia';
+    'Czech Republic': Result := 'República Checa';
+    'Czechoslovakia': Result := 'Checoslovaquia';
+    'Hungary':        Result := 'Hungría';
+    'Romania':        Result := 'Rumanía';
+    'Bulgaria':       Result := 'Bulgaria';
+    'Greece':         Result := 'Grecia';
+    'Turkey':         Result := 'Turquía';
+    'Croatia':        Result := 'Croacia';
+    'Serbia':         Result := 'Serbia';
+    'Yugoslavia':     Result := 'Yugoslavia';
+    'Ukraine':        Result := 'Ucrania';
+    'South Africa':   Result := 'Sudáfrica';
+    'Israel':         Result := 'Israel';
+    'Iran':           Result := 'Irán';
+    'Egypt':          Result := 'Egipto';
+    'Thailand':       Result := 'Tailandia';
+    'Taiwan':         Result := 'Taiwán';
+    'Hong Kong':      Result := 'Hong Kong';
+    'Philippines':    Result := 'Filipinas';
+    'Indonesia':      Result := 'Indonesia';
+    'Chile':          Result := 'Chile';
+    'Colombia':       Result := 'Colombia';
+    'Peru':           Result := 'Perú';
+    'Venezuela':      Result := 'Venezuela';
+    'Cuba':           Result := 'Cuba';
+    'Uruguay':        Result := 'Uruguay';
+    'Luxembourg':     Result := 'Luxemburgo';
+  end;
+  Tmp := UTF8Decode(Result);
+  if Tmp <> '' then Result := Tmp;
+end;
+
+
+//==============================================================================
+//    Traduccion automatica al espanol via Google Translate (anadido)
+//==============================================================================
+
+function Hex2(V: Integer): string;
+begin
+  Result := Copy('0123456789ABCDEF', (V div 16) + 1, 1) + Copy('0123456789ABCDEF', (V mod 16) + 1, 1);
+end;
+
+
+// URL-encode del cuerpo POST. Trata los bytes >=128 como Latin-1 y los
+// reencodea a UTF-8 (suficiente para acentos; el texto de origen es casi
+// siempre ingles en ASCII puro).
+function PercentEncodeUTF8(S: string): string;
+var
+  i, L, B: Integer;
+  c, outp: string;
+begin
+  outp := '';
+  L := Length(S);
+  i := 1;
+  while i <= L do
+  begin
+    c := Copy(S, i, 1);
+    B := Ord(c);
+    if ((B >= 65) and (B <= 90)) or ((B >= 97) and (B <= 122)) or
+       ((B >= 48) and (B <= 57)) or (c = '-') or (c = '_') or (c = '.') or (c = '~') then
+      outp := outp + c
+    else if B < 128 then
+      outp := outp + '%' + Hex2(B)
+    else
+      outp := outp + '%' + Hex2(192 + (B div 64)) + '%' + Hex2(128 + (B mod 64));
+    i := i + 1;
+  end;
+  Result := outp;
+end;
+
+
+// La respuesta de translate_a/single (dt=t) es un array anidado:
+// [[[trad1,orig1,...,[[[hash,modelo]]]],[trad2,orig2,...]],null,"en",...]
+// Cada segmento vive a profundidad 3 y su 1a cadena es la traduccion. Hay
+// arrays anidados mas profundos con metadata (hash del modelo "en_es_..md")
+// que contienen [" y NO deben cogerse -> se parsea por profundidad de [].
+// Se opera sobre la respuesta CRUDA y solo al final se hace UTF8Decode.
+function DecodeGoogleTranslation(Raw: string): string;
+var
+  outp, cch, s, tmp: string;
+  i, L, depth: Integer;
+  needTrans: Boolean;
+begin
+  Result := '';
+  L := Length(Raw);
+  outp := '';
+  depth := 0;
+  needTrans := False;
+  i := 1;
+  while i <= L do
+  begin
+    cch := Copy(Raw, i, 1);
+    if cch = '"' then
+    begin
+      // leer cadena JSON completa respetando escapes \" \\
+      s := '';
+      i := i + 1;
+      while i <= L do
+      begin
+        cch := Copy(Raw, i, 1);
+        if cch = '\' then
+        begin
+          s := s + cch + Copy(Raw, i + 1, 1);
+          i := i + 2;
+        end
+        else if cch = '"' then
+        begin
+          i := i + 1;
+          break;
+        end
+        else
+        begin
+          s := s + cch;
+          i := i + 1;
+        end;
+      end;
+      if needTrans then // 1a cadena del segmento = traduccion
+      begin
+        outp := outp + s;
+        needTrans := False;
+      end;
+    end
+    else if cch = '[' then
+    begin
+      depth := depth + 1;
+      if depth = 3 then // se abre un segmento nuevo
+        needTrans := True;
+      i := i + 1;
+    end
+    else if cch = ']' then
+    begin
+      depth := depth - 1;
+      if depth < 2 then // se cerro el array de segmentos: fin
+        break;
+      i := i + 1;
+    end
+    else
+      i := i + 1;
+  end;
+  outp := StringReplace(outp, '\n', #13#10);
+  outp := StringReplace(outp, '\', '');
+  tmp := UTF8Decode(outp);
+  if tmp <> '' then
+    outp := tmp;
+  Result := outp;
+end;
+
+
+// Limpia una resena: quita escapes JSON y aplana los saltos SUELTOS a espacios,
+// pero CONSERVA los saltos de parrafo (linea en blanco) para no perder la
+// estructura. Google respeta los \n\n y el parser los reconstruye.
+function LimpiarResena(S: string): string;
+begin
+  // escapes JSON -> caracteres reales (todos los saltos a LF #10)
+  S := StringReplace(S, '\r\n', #10);
+  S := StringReplace(S, '\n', #10);
+  S := StringReplace(S, '\r', #10);
+  S := StringReplace(S, '\t', ' ');
+  S := StringReplace(S, '\"', '"');
+  S := StringReplace(S, '\', '');
+  // colapsar 3+ saltos seguidos a 2 (un parrafo como maximo)
+  while Pos(#10#10#10, S) > 0 do
+    S := StringReplace(S, #10#10#10, #10#10);
+  // proteger parrafos (#1), aplanar saltos sueltos a espacio, restaurar parrafos
+  S := StringReplace(S, #10#10, #1);
+  S := StringReplace(S, #10, ' ');
+  S := StringReplace(S, #1, #10#10);
+  // colapsar espacios repetidos
+  while Pos('  ', S) > 0 do
+    S := StringReplace(S, '  ', ' ');
+  Result := Trim(S);
+end;
+
+
+// Traduce al espanol. Si algo falla, devuelve el texto original (nunca vacio).
+function TraducirES(Texto: string): string;
+var
+  url, body, ct, response, traducido: string;
+begin
+  Result := Texto;
+  if Trim(Texto) = '' then
+    Exit;
+  url := 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&ie=UTF-8&oe=UTF-8';
+  body := 'q=' + PercentEncodeUTF8(Texto);
+  ct := 'application/x-www-form-urlencoded';
+  response := PostPage3(url, body, ct, '', True, False, 'User-Agent=Mozilla/5.0' + #13#10 + 'Accept-Encoding=identity');
+  traducido := DecodeGoogleTranslation(response);
+  if Trim(traducido) <> '' then
+    Result := traducido;
+end;
+
+
+// Convierte una fecha ISO "AAAA-MM-DD" en "D de mes de AAAA" (en espanol).
+function FechaLarga(D: string): string;
+var
+  y, m, dia, mes: string;
+begin
+  Result := D;
+  if Length(D) < 10 then
+    Exit;
+  y := Copy(D, 1, 4);
+  m := Copy(D, 6, 2);
+  dia := Copy(D, 9, 2);
+  if Copy(dia, 1, 1) = '0' then
+    dia := Copy(dia, 2, 1);
+  mes := m;
+  case StrToInt(m, 10) of
+    1:  mes := 'enero';
+    2:  mes := 'febrero';
+    3:  mes := 'marzo';
+    4:  mes := 'abril';
+    5:  mes := 'mayo';
+    6:  mes := 'junio';
+    7:  mes := 'julio';
+    8:  mes := 'agosto';
+    9:  mes := 'septiembre';
+    10: mes := 'octubre';
+    11: mes := 'noviembre';
+    12: mes := 'diciembre';
+  end;
+  Result := dia + ' de ' + mes + ' de ' + y;
+end;
+
+
+//==============================================================================
+//    Fills the fields with a movie info
+//==============================================================================
+
+procedure GetMovieInfo(IMDbID: string);
+var
+  StrVal0, StrVal1, StrVal2, StrVal3, Json, Json2, originalTitle, TranslatedTitle, PictureHeight, Block, Directors, Writers, Actors, Genres, Countries, Producers, Composers, ActorsJson, ChosenLang: string;
+  runTime, IntVal1: Integer;
+  NeedTranslatePlot: Boolean;
+begin
+  Json := QueryIMDb_API(IMDbID);
+
+  // URL
+  if CanSetField(fieldURL) then
+  begin
+    StrVal1 := 'https://www.imdb.com/title/' + IMDbID;
+    SetField(fieldURL, StrVal1);
+  end;
+
+  // Original title
+  originalTitle := TextBetween(Json, '"originalTitleText":{"text":"', '"}');
+  if CanSetField(fieldOriginalTitle) then
+  begin
+    SetField(fieldOriginalTitle, originalTitle);
+  end;
+
+  // Translated title
+  if CanSetField(fieldTranslatedTitle) then
+  begin
+    if GetOption('AKAs') <> 0 then
+    begin
+      Json2 := GetJsonBlock(Json, '"akas"');
+      StrVal1 := '';
+      while Pos('"node":{', Json2) > 0 do
+      begin
+        Block := GetJsonBlock(Json2, '"node"');
+        StrVal2 := TextBetween(Block, '"text":"', '"}');
+        if StrVal1 = '' then
+          StrVal1 := TextBetween(Json, '"titleText":{"text":"', '",');
+        if (Pos(StrVal2, StrVal1) = 0) and (AnsiPosEx('???', StrVal2, False, False) = 0) then // if StrVal2 not present in StrVal1 AND no unrecognized chars (like Cyrillic titles)
+          StrVal1 := StrVal1 + ' || ' + StrVal2;
+        Json2 := TextAfter(Json2, Block);
+      end;
+      if Pos(' || ', StrVal1) = 1 then
+        StrVal1 := Copy(StrVal1, 5, Length(StrVal1));
+      SetField(fieldTranslatedTitle, StrVal1);
+    end else
+    begin
+      TranslatedTitle := TextBetween(Json, '"titleText":{"text":"', '",');
+      SetField(fieldTranslatedTitle, TranslatedTitle); // rellenar siempre, aunque coincida con el original
+    end;
+  end;
+
+  // Year
+  if CanSetField(fieldYear) then
+  begin
+    StrVal1 := TextBetween(Json, '"releaseYear":{"year":', '}');
+    SetField(fieldYear, StrVal1);
+  end;
+
+  // Poster
+  if CanSetPicture and (GetOption('PosterImageSize') <> 0) then
+  begin
+    case GetOption('PosterImageSize') of
+      1:  PictureHeight := '200';
+      2:  PictureHeight := '500';
+      3:  PictureHeight := '700';
+      4:  PictureHeight := '1100';
+      5:  PictureHeight := '1500';
+      6:  PictureHeight := '2000';
+      7:  PictureHeight := '9999';
+    end;
+    StrVal1 := TextBetween(Json, '"primaryImage":{"url":"', '"}');
+    if StrVal1 <> '' then
+    begin
+      StrVal1 := TextBefore(StrVal1, '._', '') + '._V1_SY' + PictureHeight + '_AL_.jpg';
+      GetPicture(StrVal1);
+    end;
+  end;
+
+  // Length
+  if CanSetField(fieldLength) then
+  begin
+    StrVal1 := TextBetween(Json, '"runtime":{"seconds":', '}');
+    if StrVal1 <> '' then
+    begin
+      StrVal1 := IntToStr(StrToInt(StrVal1, 10) div 60);
+      SetField(fieldLength, StrVal1);
+    end;
+  end;
+
+  // Category (Genres)
+  if CanSetField(fieldCategory) then
+  begin
+    Json2 := GetJsonBlock(Json, '"titleGenres"');
+    while Pos('{', Json2) > 0 do
+    begin
+      Block := GetJsonBlock(Json2, '"genre"');
+      Genres := Genres + ', ' + TraduceGenero(TextBetween(Block, '"text":"', '"'));
+      Json2 := TextAfter(Json2, Block);
+    end;
+    if Pos(', ', Genres) = 1 then
+      Genres := Copy(Genres, 3, Length(Genres));
+    if GetOption('MultipleValuesCategory') = 0 then
+      if RegExprSetExec('^[^,]+', Genres) then
+        Genres := RegExprMatch(0);
+    SetField(fieldCategory, Genres);
+  end;
+
+  // Rating
+  if CanSetField(fieldRating) then
+  begin
+    StrVal1 := TextBetween(Json, '"aggregateRating":', '}');
+    if (AnsiCompareStr(StrVal1, 'null') <> 0) and (StrVal1 <> '') then
+    begin
+      StrVal1 := Copy(StrVal1, 1, 3);
+      if GetOption('RoundRating') = 1 then
+        StrVal1 := IntToStr(Round(StrToFloat(StrVal1)));
+      SetField(fieldRating, StrVal1);
+    end;
+  end;
+
+  // Description (+Tagline) (+all runtimes)
+  if CanSetField(fieldDescription) then
+  begin
+    NeedTranslatePlot := False;
+    StrVal1 := TextBetween(Json, '"taglines":{"edges":[{"node":{"text":"', '"}');
+
+    if GetOption('DescriptionLanguage1st') = 0 then
+    begin
+      if GetOption('Description') = 1 then
+      begin
+        IntVal1 := LastPos('"plotText":{"plainText":"', Json);
+        StrVal2 := Copy(Json, IntVal1, Length(Json) - IntVal1 + 1);
+        StrVal2 := TextBetween(StrVal2, '"plotText":{"plainText":"', '"}');
+      end else
+        StrVal2 := TextBetween(Json, '"plotText":{"plainText":"', '"}');
+      NeedTranslatePlot := True; // se pidio en ingles
+    end;
+
+    if GetOption('DescriptionLanguage1st') <> 0 then
+    begin
+      Json2 := TextBetween(Json, '"plots":{"edges":[{', '}]');
+      case GetOption('DescriptionLanguage1st') of
+        0:  StrVal0 := 'en-US';
+        1:  StrVal0 := 'de-DE';
+        2:  StrVal0 := 'fr-CA';
+        3:  StrVal0 := 'fr-FR';
+        4:  StrVal0 := 'es-ES';
+        5:  StrVal0 := 'es-MX';
+        6:  StrVal0 := 'it-IT';
+        7:  StrVal0 := 'pt-BR';
+        8:  StrVal0 := 'ja-JP';
+        9:  StrVal0 := 'hi-IN';
+      end;
+      case GetOption('DescriptionLanguage2nd') of
+        0:  StrVal3 := 'en-US';
+        1:  StrVal3 := 'de-DE';
+        2:  StrVal3 := 'fr-CA';
+        3:  StrVal3 := 'fr-FR';
+        4:  StrVal3 := 'es-ES';
+        5:  StrVal3 := 'es-MX';
+        6:  StrVal3 := 'it-IT';
+        7:  StrVal3 := 'pt-BR';
+        8:  StrVal3 := 'ja-JP';
+        9:  StrVal3 := 'hi-IN';
+      end;
+
+      IntVal1 := Pos('"language":{"id":"' + StrVal0 + '"}', Json2);
+      if IntVal1 = 0 then
+        IntVal1 := Pos('"language":{"id":"' + StrVal3 + '"}', Json2);
+      if IntVal1 = 0 then
+        IntVal1 := Pos('"language":{"id":"en-US"}', Json2);
+
+      if IntVal1 <> 0 then
+        Json2 := Copy(Json2, IntVal1, Length(Json2));
+      ChosenLang := TextBetween(Json2, '"language":{"id":"', '"}');
+      if (ChosenLang <> 'es-ES') and (ChosenLang <> 'es-MX') then
+        NeedTranslatePlot := True; // el plot elegido no esta en espanol
+      StrVal2 := TextBetween(Json2, '"plotText":{"plainText":"', '"}');
+    end;
+
+    StrVal2 := StringReplace(StrVal2, '\', '');
+    if (GetOption('TranslateToSpanish') >= 1) and NeedTranslatePlot and (Trim(StrVal2) <> '') then
+      StrVal2 := TraducirES(StrVal2);
+    // A peticion del usuario, la Descripcion es SOLO la sinopsis (como en IMDb):
+    // sin "Tagline:" delante ni "All runtimes:" al final.
+    SetField(fieldDescription, StrVal2);
+  end;
+
+  // Country
+  if CanSetField(fieldCountry) then
+  begin
+    Json2 := TextBetween(Json, '"countriesOfOrigin":{"countries":[', ']}');
+    if Json2 <> '' then
+    begin
+      while Pos('{', Json2) > 0 do
+      begin
+        Block := TextBetween(Json2, '"text":"', '"');
+        Countries := Countries + ', ' + TraducePais(Block);
+        Json2 := TextAfter(Json2, Block);
+      end;
+
+      if GetOption('ShortCountryName') = 1 then
+      begin
+        Countries := StringReplace(Countries, 'United States,', 'USA,');
+        Countries := StringReplace(Countries, 'United Kingdom,', 'UK,');
+      end;
+
+      if Pos(', ', Countries) = 1 then
+        Countries := Copy(Countries, 3, Length(Countries));
+      if GetOption('MultipleValuesCountry') = 0 then
+        if RegExprSetExec('^[^,]+', Countries) then
+          Countries := RegExprMatch(0);
+      SetField(fieldCountry, Countries);
+    end;
+  end;
+
+  // Certification
+  if CanSetField(fieldCertification) then
+  begin
+    StrVal1 := TextBetween(Json, '"certificate":{"rating":"', '"}');
+    SetField(fieldCertification, StrVal1);
+  end;
+
+  // Comment
+  if CanSetField(fieldComments) then
+  begin
+    Json2 := GetJsonBlock(Json, '"reviews"');
+    if Json2 <> '' then
+    begin
+      Json2 := GetMostHelpfulReview(Json2);
+      StrVal0 := TextBetween(Json2, '"author":{"nickName":"', '"}');  // autor
+      StrVal1 := TextBetween(Json2, '"submissionDate":"', '"');        // fecha ISO
+      StrVal2 := TextBetween(Json2, '"text":{"originalText":{"plainText":"', '"}'); // cuerpo
+      if StrVal2 <> '' then
+      begin
+        if GetOption('TranslateToSpanish') >= 2 then
+          StrVal2 := TraducirES(LimpiarResena(StrVal2))
+        else
+          StrVal2 := StringReplace(StrVal2, '\n', #13#10);
+        // cabecera en espanol al estilo del usuario: "Comentario (por X el fecha)"
+        StrVal3 := 'Comentario (por ' + StrVal0 + ' el ' + FechaLarga(StrVal1) + ')' + #13#10 + #13#10 + StrVal2;
+        StrVal3 := StringReplace(StrVal3, '\', '');
+        SetField(fieldComments, StrVal3);
+      end;
+    end;
+  end;
+
+  // Director / Writer / Producer / Composer
+  if CanSetField(fieldDirector) or CanSetField(fieldWriter) or CanSetField(fieldProducer) or CanSetField(fieldComposer) then
+  begin
+    Json2 := GetJsonBlock(Json, '"credits":{"edges"');
+    while Pos('{', Json2) > 0 do
+    begin
+      Block := GetJsonBlock(Json2, '"node"');
+      if TextBetween(Block, '"categoryId":"', '"') = 'director' then
+      begin
+        StrVal1 := TextBetween(Block, '"nameText":{"text":"', '"');
+        if Directors <> '' then
+          Directors := Directors + ', ';
+        Directors := Directors + StrVal1;
+      end
+
+      else if TextBetween(Block, '"categoryId":"', '"') = 'writer' then
+      begin
+        StrVal1 := TextBetween(Block, '"nameText":{"text":"', '"');
+        if Writers <> '' then
+          Writers := Writers + ', ';
+        Writers := Writers + StrVal1;
+      end
+
+      else if TextBetween(Block, '"categoryId":"', '"') = 'producer' then
+      begin
+        StrVal1 := TextBetween(Block, '"nameText":{"text":"', '"');
+        if Producers <> '' then
+          Producers := Producers + ', ';
+        Producers := Producers + StrVal1;
+      end
+
+      else if TextBetween(Block, '"categoryId":"', '"') = 'composer' then
+      begin
+        StrVal1 := TextBetween(Block, '"nameText":{"text":"', '"');
+        if Composers <> '' then
+          Composers := Composers + ', ';
+        Composers := Composers + StrVal1;
+      end;
+
+      Json2 := TextAfter(Json2, Block);
+    end;
+    if CanSetField(fieldDirector) then
+      SetField(fieldDirector, Directors);
+    if CanSetField(fieldWriter) then
+      SetField(fieldWriter, Writers);
+    if CanSetField(fieldProducer) then
+      SetField(fieldProducer, Producers);
+    if CanSetField(fieldComposer) then
+      SetField(fieldComposer, Composers);
+  end;
+
+  // Actors / Actors + Characters
+  if CanSetField(fieldActors) then
+  begin
+    //Sleep(100);
+    Json2 := QueryIMDb_API2(IMDbID, 'none', 'get_actors');
+    ActorsJson := Json2;
+    if GetOption('GetCharacters') = 0 then
+    begin
+      while Pos('{', Json2) > 0 do
+      begin
+        Block := GetJsonBlock(Json2, '"node"');
+        StrVal1 := TextBetween(Block, '"nameText":{"text":"', '"');
+        if Actors <> '' then
+          Actors := Actors + ', ';
+        Actors := Actors + StrVal1;
+        Json2 := TextAfter(Json2, Block);
+      end;
+      SetField(fieldActors, Actors);
+    end
+
+    else if GetOption('GetCharacters') = 1 then
+    begin
+      Actors := PairActorsWithCharacters(Json2);
+      if Actors <> '' then
+      begin
+        if GetOption('GetCharactersFormat') = 0 then
+          Actors := StringReplace(Actors, ', ', #13#10);
+        Actors := StringReplace(Actors, '###', ',');
+        SetField(fieldActors, Actors);
+      end;
+    end;
+  end;
+
+  // My rating
+  if (GetParam('IMDB_userID') <> 'ur00000000') and (GetParam('IMDB_userID') <> '') then
+  begin
+    if CanSetField(fieldUserRating) then
+    begin
+      //Sleep(100);
+      Json2 := QueryIMDb_API2(IMDbID, GetParam('IMDB_userID'), 'get_myrating');
+      StrVal1 := TextBetween(Json2, '"userRating":{"value":', '}');
+      if (AnsiCompareStr(StrVal1, 'null') <> 0) and (StrVal1 <> '') then
+        SetField(fieldUserRating, StrVal1)
+      else if RegExprSetExec('FORBIDDEN', Json2) then
+        ShowMessage('ERROR: Your ratings are not public.')
+      else if RegExprSetExec('BAD_USER_INPUT', Json2) then
+        ShowMessage('ERROR: Wrong IMDB_userID.')
+    end;
+  end;
+
+  // Replace_delimiter
+  StrVal2 := GetParam('Replace_delimiter');
+  if (StrVal2 <> 'default') and (StrVal2 <> '') then
+  begin
+    if CanSetField(fieldCategory) then
+    begin
+      StrVal1 := StringReplace(GetField(fieldCategory), ',', ' ' + StrVal2);
+      SetField(fieldCategory, StrVal1);
+    end;
+
+    if CanSetField(fieldCountry) then
+    begin
+      StrVal1 := StringReplace(GetField(fieldCountry), ',', ' ' + StrVal2);
+      SetField(fieldCountry, StrVal1);
+    end;
+  end;
+
+  // Trivia
+  if ((GetOption('Trivia') <> 0) and (CanSetField(fieldDescription) or CanSetField(fieldComments))) then
+  begin
+    Json2 := QueryIMDb_API2(IMDbID, 'none', 'get_trivia');
+    StrVal2 := '';
+    if GetOption('TriviaFormat') = 1 then
+      StrVal3 := 'TRIVIA:' + #13#10
+    else
+      StrVal3 := 'TRIVIA:' + #13#10 + #13#10;
+
+    while Pos('"node":{', Json2) > 0 do
+    begin
+      Block := GetJsonBlock(Json2, '"node"');
+      StrVal0 := TextBetween(Block, '"category":{"text":"', '"}');
+      StrVal1 := TextBetween(Block, '"plainText":"', '"}');
+      if GetOption('TriviaFormat') = 1 then
+      begin
+        if StrVal2 <> '' then
+          StrVal2 := StrVal2 + #13#10;
+        if (StrVal0 <> '') and (StrVal0 <> 'Uncategorized') then
+          StrVal2 := StrVal2 + '- ' + StrVal0 + ': '
+        else
+          StrVal2 := StrVal2 + '- ';
+        StrVal2 := StrVal2 + StrVal1;
+      end else
+      begin
+        if StrVal2 <> '' then
+          StrVal2 := StrVal2 + #13#10 + #13#10;
+        if (StrVal0 <> '') and (StrVal0 <> 'Uncategorized') then
+          StrVal2 := StrVal2 + StrVal0 + ': ';
+        StrVal2 := StrVal2 + StrVal1;
+      end;
+      Json2 := TextAfter(Json2, Block);
+    end;
+
+    StrVal2 := StringReplace(StrVal2, '\', '');
+    if CanSetField(fieldDescription) then
+    begin
+      if (GetOption('Trivia') = 1) and (StrVal2 <> '') then
+      begin
+        StrVal1 := GetField(fieldDescription);
+        SetField(fieldDescription, StrVal1 + #13#10 + #13#10 + StrVal3 + StrVal2);
+      end
+      else if (GetOption('Trivia') = 3) and (StrVal2 <> '') then
+        SetField(fieldDescription, StrVal3 + StrVal2)
+      else if GetOption('Trivia') = 3 then
+        SetField(fieldDescription, ' ');
+    end;
+
+    if CanSetField(fieldComments) then
+    begin
+      if (GetOption('Trivia') = 2) and (StrVal2 <> '') then
+      begin
+        StrVal1 := GetField(fieldComments);
+        SetField(fieldComments, StrVal1 + #13#10 + #13#10 + StrVal3 + StrVal2);
+      end
+      else if (GetOption('Trivia') = 4) and (StrVal2 <> '') then
+        SetField(fieldComments, StrVal3 + StrVal2)
+      else if (GetOption('Trivia') = 4) then
+        SetField(fieldComments, ' ');
+    end;
+  end;
+
+  // Actors images
+  if (CanAddExtras) and (GetOption('ActorsImage') > 0) then
+  begin
+    if CanSetField(fieldActors) then
+      Json2 := ActorsJson
+    else
+      Json2 := QueryIMDb_API2(IMDbID, 'none', 'get_actors');
+
+    if CanDeleteExtras then
+      for IntVal1 := GetExtraCount - 1 downto 0 do
+        if GetExtraField(IntVal1, eCategory) = 'Actors' then
+          DeleteExtra(IntVal1);
+
+    case GetOption('ActorsImageSize') of
+      1:  PictureHeight := '200';
+      2:  PictureHeight := '500';
+      3:  PictureHeight := '700';
+      4:  PictureHeight := '1100';
+      5:  PictureHeight := '1500';
+      6:  PictureHeight := '2000';
+      7:  PictureHeight := '9999';
+    end;
+
+    while Pos('"node":{', Json2) > 0 do
+    begin
+      Block := GetJsonBlock(Json2, '"node"');
+      StrVal0 := TextBetween(Block, '"nameText":{"text":"', '"}');
+      StrVal1 := TextBetween(Block, '"primaryImage":{"url":"', '"');
+      StrVal2 := 'www.imdb.com/name/' + TextBetween(Block, '"id":"', '"');
+      StrVal3 := TextBetween(Block, '"name":"', '"');
+
+      if StrVal1 <> '' then
+      begin
+        IntVal1 := AddExtra;
+        SetExtraField(IntVal1, eCategory, 'Actors');
+        SetExtraField(IntVal1, eTitle, StrVal0);
+        SetExtraField(IntVal1, eURL, StrVal2);
+        SetExtraField(IntVal1, eDescription, StrVal3);
+        GetExtraPicture(IntVal1, TextBefore(StrVal1, '._', '') + '._V1_SY' + PictureHeight + '_.jpg');
+      end;
+      Json2 := TextAfter(Json2, Block);
+    end;
+  end;
+
+end;
+
+
+//============================================================================//
+//================================  MAIN  ====================================//
+//============================================================================//
+
+
+begin
+  // ShowMessage(MovieName); // Debug
+  // Check for current AMC version
+  if CheckVersion(4,2,3) then
+  begin
+    // workaround for the AMC bug with Parameters default values
+    if GetParam('userCountryCode') = '' then
+      SetParam('userCountryCode', 'US');
+    //
+    MovieName := '';
+    if GetOption('BatchMode') = 2 then
+    begin
+      MovieName := GetField(fieldURL);
+      if Pos('imdb.com', MovieName) = 0 then
+        MovieName := '';
+    end;
+    if MovieName = '' then
+      MovieName := GetField(fieldOriginalTitle);
+    if MovieName = '' then
+      MovieName := GetField(fieldTranslatedTitle);
+
+    if GetOption('BatchMode') = 0 then
+    begin
+      if not Input('IMDB Import', 'Enter the title or the IMDB ID/URL:', MovieName) then
+        Exit;
+    end else
+      Sleep(100);
+
+    MovieName := UTF8EncodeToUnicodeEscapes(MovieName);
+
+    if MovieName <> '' then
+    begin
+      if RegExprSetExec('tt[0-9]+', MovieName) then
+      begin
+        MovieName := RegExprMatch(0);
+        GetMovieInfo(MovieName);
+      end else
+      begin
+        if Pos(' ', MovieName) = 0 then // if space not present in MovieName // safety for the titles containing dots originally
+          MovieName := StringReplace(MovieName, '.', ' ');
+        SearchForMovie(MovieName);
+      end;
+    end;
+  end else
+    ShowInformation('This script requires a newer version of Ant Movie Catalog, at least the version 4.2.3');
+
+end.

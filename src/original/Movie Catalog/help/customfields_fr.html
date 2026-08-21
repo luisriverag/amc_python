@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Gestion des champs personnalisés</p>
+<hr />
+<p>Pas assez de champs ? Vous pouvez gérer (ajouter, modifier ou supprimer) un ou plusieurs champs personnalisés dans le catalogue courant.</p>
+<p>Les champs personnalisés sont visibles sur le panneau de droite dans le deuxième onglet "Champs personnalisés".
+  Vous pouvez <img src="img/fieldadd.png" width="16" height="16" alt="" /> ajouter, <img src="img/fieldmodify.png" width="16" height="16" alt="" /> modifier,
+  <img src="img/fielddel.png" width="16" height="16" alt="" /> supprimer, <img src="img/fieldmove.png" width="16" height="16" alt="" /> déplacer et redimensionner
+  les champs personnalisés directement dans cet onglet par un clic droit sur le champs personnalisé.
+  Vous pouvez aussi cliquer sur l'icône <img src="img/fieldmodify.png" width="16" height="16" alt="" /> Gérer les champs, dans le menu outils.</p>
+<p>Avec la fenêtre de gestion des champs personnalisés, vous pouvez gérer l'ensemble de vos champs.</p>
+<p>Pour ajouter un nouveau champ :</p>
+  <ul>
+    <li>Sélectionnez le champ '--- Nouveau champ ---'.</li>
+    <li>Entrez un tag pour le champ.</li>
+    <li>Cliquez sur l'icône <img src="img/fieldadd.png" width="16" height="16" alt="" /> Ajouter champ.</li>
+  </ul>
+<p>Si vous souhaitez changer le tag :</p>
+  <ul>
+    <li>Entrez un nouveau tag pour le champ.</li>
+    <li>Cliquez sur l'icône <img src="img/fieldmodify.png" width="16" height="16" alt="" /> Changer tag.</li>
+  </ul>
+<p>Le tag du champ peut seulement contenir les caractères 'a'-'z', 'A'-'Z', '0'-'9', '_' et ne peut pas commencer par un chiffre '0'-'9'.
+  Aussi, certains tags sont réservés pour les champs film (Number, OriginalTitle, TranslatedTitle, ...).</p>
+<p>Lorsqu'un champ est sélectionné, vous pouvez spécifier ses propriétés:
+<ul>
+  <li><b>Nom :</b> Le nom du champ.</li>
+  <li><b>Extension :</b> L'extension du champ, utilisé pour donner une précision sur la valeur du champ (ex: img/s, min., Mo).</li>
+  <li><b>Type :</b> Le type du champ.</li>
+  <li><b>Valeur par défaut :</b> La valeur à ajouter au champ lors de la création d'un nouveau film.</li>
+  <li><b>Importer info vidéos :</b> Permet de définir l'information à extraire des vidéos pour ce champ lors de l'importation de vidéos.</li>
+  <li><b>Valeurs multiples :</b> Donne la possibilité à un champ de contenir plusieurs valeurs séparés par un séparateur (',' par défaut).<br />
+    Lors du groupage sur ce champ, chaque valeur sera utilisée pour créer des groupes différents plutôt que de créer un seul groupe contenant toutes les valeurs.
+    <ul>
+      <li>Si la case "suppr. parenthèses" est coché, alors les valeurs entre parenthèses seront supprimées pour le nom du groupe (ex: Leonardo DiCaprio (Frank Abagnale Jr.) -> Leonardo DiCaprio).</li>
+      <li>Si le "patch" est coché, alors la première parenthèse devant des valeurs comme (I (...), (II (...), (XV (...), ..., (XXX (...) ne sera pas prises en compte.</li>
+    </ul>
+  </li>
+  <li><b>Liste de valeurs :</b> Permet de spécifier le contenu de la liste déroulante pour un champ de type 'Liste'.
+    <ul>
+      <li><b>Tri automatique :</b> Trie par ordre alphabétique le contenu de la liste.</li>
+      <li><b>Auto-complétion lors de la frappe :</b> Si activé, lorsque vous
+      tapez du texte dans une liste déroulante dans la fenêtre principale
+      il y aura une "suggestion" de la valeur dont le début correspond
+      à ce que vous avez tapé, comme lorsque vous tapez une adresse
+      dans un navigateur web. Cela peut causer des problèmes si vous avez
+      plusieurs éléments similaires.</li>
+      <li><b>Utiliser les valeurs du catalogue courant plutôt que la liste prédéfinie :</b>
+      N'utilise pas les valeurs entrées dans la liste prédéfinie, mais cherche dans le catalogue
+      courant les valeurs à afficher dans la liste déroulante.</li>
+      <li><b>Ajouter automatiquement les valeurs qui ne sont pas dans la liste :</b> Si
+      le contenu d'un champ n'est pas dans la liste déroulante de ce champ,
+      la valeur sera ajoutée à la liste (par exemple si vous entrez
+      un pays qui n'est pas dans la liste le programme va l'ajouter à la
+      liste).</li>
+    </ul>
+  </li>
+</ul></p>
+<p>Vous pouvez supprimer le champ sélectionné en cliquant sur l'icône <img src="img/fielddel.png" width="16" height="16" alt="" /> Supprimer champ.
+  Vous pouvez aussi effacer tout les champs en cliquant sur l'icône <img src="img/new.png" width="16" height="16" alt="" /> Effacer tout les champs.</p>
+<p>Vous pouvez exporter les champs du catalogue courant en cliquant sur l'icône <img src="img/export.png" width="16" height="16" alt="" /> Exporter champs.
+  De même, vous pouvez importer des champs à partir de champs exportés ou d'un autre catalogue (.amc, .xml) en cliquant sur l'icône <img src="img/import.png" width="16" height="16" alt="" /> Importer champs.</p> 
+<p>Concernant le déplacement des champs, en pressant la touche CTRL, il est possible de déplacer tous les champs se trouvant en dessous ou au même niveau que le champ sélectionné.
+  Ceci peut être très utile pour insérer un nouveau champ entre les champs existants lorsqu'il y a déjà beaucoup de champs.</p> 
+</body>
+</html>

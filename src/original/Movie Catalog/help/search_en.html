@@ -1,0 +1,216 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Search</p>
+<hr />
+<p>In this frame, accessible from icon <img src="img/search.png" width="16" height="16" alt="" /> in main toolbar,
+  you can search a value in 1 movie field or 1 custom field or 1 field of extras
+  or all fields at same time (extras included) to find one or more movies.</p>
+<!-- <p><img src="img/searchOnTitle.png" alt="SearchOnTitle" /></p> -->
+<p><img src="img/searchAll.png" alt="SearchAll" /></p>
+<p>Some options can be checked:
+  <ul>
+    <li><b>Whole field only</b>: return the movies whose the specified field contains exactly and only the specified value.</li>
+    <li><b>Reverse results</b>: return the movies which do not match search expression.</li>
+    <li><b>Display results</b>: display in movie list only the movies which match search expression.</li>
+  </ul>
+</p>
+
+<p>Since version 4.2.1 of AMC, it is now possible to launch an advanced search
+  in 1 or more movie fields or custom fields with more possibilities.</p>
+<p><img src="img/searchAdvanced.png" alt="SearchAdvanced" /></p>
+<p>To launch an advanced search, you just have to write a boolean expression with following elements:
+  <ul>
+    <li>Movie fields and/or custom fields name between brackets (e.g. [OriginalTitle]).</li>
+    <li>Operators listed bellow (e.g. =, &lt;&gt;, &gt;=, &lt;=).</li>
+    <li>String values between double quotes (e.g. "a string value").</li>
+    <li>Integer or Float values (e.g. 10, 9.5)</li>
+    <li>Date values in "YYYY-MM-DD" format or in user Windows format between double quotes (e.g. "2014-09-20").</li>
+  </ul>
+</p>
+<p>In order to facilitate the writing of the boolean expression, you can use &laquo; Fields &raquo; and &laquo; Operators &raquo; lists
+  which give you all fields and operators available.</p>
+<p>Here are the operators that can be used to make operations with fields and values:
+  <ul>
+    <li>Logical operations:
+      <ul>
+        <li>or  (Or)</li>
+        <li>and (And)</li>
+        <li>not (Not)</li>
+      </ul>
+    </li>
+    <li>Comparison operations:
+      <ul>
+        <li>= (Equal)</li>
+        <li>&lt;&gt; (Not equal)</li>
+        <li>&lt;-- (Left value contains right value)</li>
+        <li>&lt;== (Left value match regular expression specified in right value)</li>
+        <li>&gt; (Greater than)</li>
+        <li>&gt;= (Greater or equal than)</li>
+        <li>&lt; (Lower than)</li>
+        <li>&lt;= (Lower or equal than)</li>
+      </ul>
+    </li>
+    <li>Arithmetic operations and concatenation operations:
+      <ul>
+        <li>+ (Add)</li>
+        <li>- (Minus)</li>
+        <li>* (Multiply)</li>
+        <li>/ (Divide)</li>
+        <li>% (Modulo)</li>
+      </ul>
+    </li>
+    <li>Cast operations:
+      <ul>
+        <li>(bool)   (Cast in Boolean)</li>
+        <li>(date)   (Cast in Date)</li>
+        <li>(int)    (Cast in Integer)</li>
+        <li>(float)  (Cast in Float)</li>
+        <li>(string) (Cast in String)</li>
+        <li>(eval)   (Evaluate content and type of value like an standalone expression)</li>
+      </ul>
+    </li>
+    <li>Conditional operations:
+      <ul>
+        <li>? (If : return right operand if left operand is true else return an error)</li>
+        <li>: (Else : return right operand if left operand is an error else return left operand)</li>
+      </ul>
+    </li>
+  </ul>
+</p>
+
+<p>Here is order of operations precedence evaluated by group:
+  <ul>
+   <li>Cast operations</li>
+   <li>Arithmetic operations (*, /, %)</li>
+   <li>Arithmetic operations and concatenation operations (-, +)</li>
+   <li>Comparison operations</li>
+   <li>Logical operations (not)</li>
+   <li>Logical operations (and)</li>
+   <li>Logical operations (or)</li>
+   <li>Conditionnal operations (?, :)</li>
+  </ul>
+</p>
+
+<p>You can also use parenthesis to change precedence of operations.<br />
+  For example: (([Rating] = "") or ([UserRating] = "")) and ([Rating] &gt; 7 or [UserRating] &gt; 7)</p>
+
+<p>Operations are evaluated from left to right except for cast operations (evaluated from right to left).</p>
+
+<p>Here are the rules that explain how operations work with different types of operands (String, Boolean, Integer, Float, Date):
+  <ul>
+    <li>A comparison or concatenation is done between Strings if at least one operand is String type.</li>
+    <li>A comparison is done between Booleans only if both operands are Boolean type.</li>
+    <li>A comparison or arithmetic operation is done between Integers only if both operands are Integer type.</li>
+    <li>A comparison or arithmetic operation is done between Floats only if both operands are Float or Integer type and one operand is Float type.</li>
+    <li>A comparison or arithmetic operation is done between Dates only if both operands are Date or Integer type and one operand is Date type.</li>
+    <li>An arithmetic operation on dates (Add, Minus) is done with day unit for the operand containing Integer (e.g. "2014-01-20" + 4 = "2014-01-24").</li>
+  </ul>
+</p>
+
+<p>The type of field value is defined by field type by default.<br />
+  For example, field Year and Length are Integer type, field Rating and UserRating are Float type,
+  field DateAdded and DateWatched are Date type, field OriginalTitle is a String type.<br />
+  If a field value do not match field type for a movie, field type will become String for this movie.<br />
+  For example, if field Rating is empty for a movie, field type will become String for this movie because empty value is not a Float.<br />
+  You can see search expression examples 1 to 5 below for more details.</p>
+
+<p>In some cases, it can be useful to force the type of a field (or a value) to apply the good comparison or arithmetic operation.<br />
+  For this purpose, you can use a cast operator before a field (or a value) to force the type of the field (or the value) : (string), (bool), (int), (float), (date).<br />
+  You can also use the cast operator &laquo; (int) &raquo; to truncate Float values into Integer values.<br />
+  For example, the field Size and Framerate are String type historically but surely they contains Integer or Float values and you want to compare values as Integers or Floats.<br />
+  But be careful, if you cast a field (or value) with a type that does not match with the field value (or the value),
+  the cast will return an error (no visible) and search expression will return false for this movie.<br /> 
+  You can see search expression examples 6 to 17 below for more details.</p>
+
+<p>In some cases too, it can be useful to evaluate the content and the type of a field value (or a value) like a subexpression to obtain the good value.<br />
+  For this purpose, you can use the special cast operator &laquo; (eval) &raquo; before a field (or a value) to evaluate the content and the type like a subexpression.<br />
+  For example, the field Size is String type historically but it may contain a sum of multiple Integer values (e.g. 700+699+698).<br />
+  In this example, the special cast operator &laquo; (eval) &raquo; will return the Integer value 2097 instead of String value 700+699+698 without this one.<br />
+  But be careful, if you eval a no valid expression, the evaluation will return an error and search expression will return false for this movie.<br />
+  The special cast operator &laquo; (eval) &raquo; is recursive so you can eval multiple embedded expressions in string with this operator before.<br />
+  You can see search expression examples 18 and 21 below for more details.</p>
+
+<hr />
+
+<p>Example with catalog Sample_4.2.0.amc where we only set value <b>1000</b> in field Size of movie 3.<p/>
+
+<p>There are 7 movies :
+  <ul>
+    <li>Movie 1 : Year = 1999 ; Rating = 8.0 ; UserRating = 9.5     ; Size = [empty]</li>
+    <li>Movie 2 : Year = 1998 ; Rating = 6.0 ; UserRating = [empty] ; Size = [empty]</li>
+    <li>Movie 3 : Year = 1989 ; Rating = 8.0 ; UserRating = [empty] ; Size = <b>1000</b></li>
+    <li>Movie 4 : Year = 2000 ; Rating = 9.0 ; UserRating = [empty] ; Size = 622</li>
+    <li>Movie 5 : Year = 1993 ; Rating = 8.0 ; UserRating = [empty] ; Size = 694</li>
+    <li>Movie 6 : Year = 2001 ; Rating = 8.0 ; UserRating = [empty] ; Size = 692</li>
+    <li>Movie 7 : Year = 1997 ; Rating = 8.0 ; UserRating = [empty] ; Size = 645+215</li>
+  </ul>
+</p>
+ 
+<p><u>Search expression 1:</u> <b>[Year] &gt;= 1990 and [Year] &lt;= 2000</b> : return movies <b>1, 2, 4, 5, 7</b>.</p>
+
+<p><u>Search expression 2:</u> <b>[Rating] &gt; 7 and [UserRating] &gt; 7</b> : return movie <b>1</b>.<br />
+Why? Because comparison &laquo; [UserRating] &gt; 7 &raquo; is done on Strings and not on Integers when field UserRating is empty for movies 3, 4, 5, 6, 7.<br />
+<u>Search expression 3:</u> <b>not ([Rating] &gt; 7 and [UserRating] &gt; 7)</b> : return movies <b>2, 3, 4, 5, 6, 7</b>.</p>
+
+<p><u>Search expression 4:</u> <b>[Rating] &gt; 7 and ([UserRating] &gt; 7 or [UserRating] = "")</b> : return movies <b>1, 3, 4, 5, 6, 7</b>.<br />
+Why? Because comparison &laquo; [UserRating] = "" &raquo; return true for movies 3, 4, 5, 6, 7.<br />
+<u>Search expression 5:</u> <b>not ([Rating] &gt; 7 and ([UserRating] &gt; 7 or [UserRating] = ""))</b> : return movie <b>2</b>.</p>
+
+<p><u>Search expression 6:</u> <b>[Rating] &gt; 7 and (int)[UserRating] &gt; 7</b> : return movie <b>1</b>.<br />
+Why? Because cast in Integer &laquo; (int)[UserRating] &raquo; return an error when field UserRating is empty for movies 3, 4, 5, 6, 7.<br />
+<u>Search expression 7:</u> <b>not ([Rating] &gt; 7 and (int)[UserRating] &gt; 7)</b> : return movie <b>2</b> only.<br />
+Why? Because cast in Integer &laquo; (int)[UserRating] &raquo; return an error when field UserRating is empty for movies 3, 4, 5, 6, 7 so search expression return false
+and comparison &laquo; [Rating] &gt; 7 &raquo; return false for movie 2, so cast in Integer &laquo; (int)[UserRating] &raquo; is not done for this movie
+because left operand is false and operator &laquo; and &raquo; does not evaluate right operand if left operand is false (lazy evaluation).</p>
+
+<p><u>Search expression 8:</u> <b>[Rating] &gt; 7 and ((int)[UserRating] &gt; 7 or [UserRating] = "")</b> : return movie <b>1</b>.<br />
+Why? Because cast in Integer &laquo; (int)[UserRating] &raquo; return an error when field UserRating is empty for movies 3, 4, 5, 6, 7
+before to evaluate &laquo; [UserRating] = "" &raquo; so search expression return false.<br />
+<u>Search expression 9:</u> <b>not ([Rating] &gt; 7 and ((int)[UserRating] &gt; 7 or [UserRating] = ""))</b> : return movie <b>2</b> only.<br />
+Why? Because cast in Integer &laquo; (int)[UserRating] &raquo; return an error when field UserRating is empty for movies 3, 4, 5, 6, 7
+before to evaluate &laquo; [UserRating] = "" &raquo; so search expression return false
+and comparison &laquo; [Rating] &gt; 7 &raquo; return false for movie 2, so cast in Integer &laquo; (int)[UserRating] &raquo; is not done for this movie
+because left operand is false and operator &laquo; and &raquo; does not evaluate right operand if left operand is false (lazy evaluation).</p>
+
+<p><u>Search expression 10:</u> <b>[Rating] &gt; 7 and ([UserRating] = "" or (int)[UserRating] &gt; 7)</b> : return movies <b>1, 3, 4, 5, 6, 7</b>.<br />
+Why? Because comparison &laquo; [UserRating] = "" &raquo; return true for movies 3, 4, 5, 6, 7, so cast in Integer &laquo; (int)[UserRating] &raquo; is not done here
+because left operand is true and operator &laquo; or &raquo; does not evaluate right operand if left operand is true (lazy evaluation).<br />
+<u>Search expression 11:</u> <b>not ([Rating] &gt; 7 and ([UserRating] = "" or (int)[UserRating] &gt; 7))</b> : return movie <b>2</b>.</p>
+
+<p><u>Search expression 12:</u> <b>[Size] &gt; 650</b> : return movies <b>5, 6</b>.<br />
+Why? Because field Size is a String type so comparison &laquo; [Size] &gt; 650 &raquo; is done on Strings and not on Integers.<br />
+<u>Search expression 13:</u> <b>not ([Size] &gt; 650)</b> : return movies <b>1, 2, 3, 4, 7</b>.</p>
+
+<p><u>Search expression 14:</u> <b>(int)[Size] &gt; 650</b> : return movies <b>3, 5, 6</b>.<br />
+Why? Because cast in Integer &laquo; (int)[Size] &raquo; force comparison on Integers and return an error
+when field Size is not an Integer for movies 1, 2, 7 so search expression return false.<br />
+<u>Search expression 15:</u> <b>not ((int)[Size] &gt; 650)</b> : return movie <b>4</b> only.<br />
+Why? Because cast in Integer &laquo; (int)[Size] &raquo; force comparison on Integers and return an error
+when field Size is not an Integer for movies 1, 2, 7 so search expression return false.</p>
+
+<p><u>Search expression 16:</u> <b>((int)[Size] &gt; 650) : false</b> : return movies <b>3, 5, 6</b>.<br />
+Why? Because cast in Integer &laquo; (int)[Size] &raquo; force comparison on Integers and operator else &laquo; : &raquo; return false when left operand return an error for movies 1, 2, 7.<br />
+<u>Search expression 17:</u> <b>not (((int)[Size] &gt; 650) : false)</b> : return movies <b>1, 2, 4, 7</b>.<br />
+Why ? Because cast in Integer &laquo; (int)[Size] &raquo; force comparison on Integers and operator else &laquo; : &raquo; return false when left operand return an error for movies 1, 2, 7.</p>
+
+<p><u>Search expression 18:</u> <b>(eval)[Size] &gt; 650</b> : return movies <b>3, 5, 6, 7</b>.<br />
+Why? Because eval operator &laquo; (eval)[Size] &raquo; evaluates content and type of field Size like an expression,
+so comparison is done on Strings when field Size is empty for movies 1, 2
+and comparison is done on Integers when field Size contains an Integer for movies 3, 5, 6 or an arithmetic operation for movie 7 (645+215 = 860).<br />
+<u>Search expression 19:</u> <b>not ((eval)[Size] &gt; 650)</b> : return movies <b>1, 2, 4</b>.</p>
+
+<p><u>Search expression 20:</u> <b>(eval)"(eval)[Size]" &gt; 650</b> : return movies <b>3, 5, 6, 7</b>.<br />
+Why? Because eval operator &laquo; (eval)"(eval)[Size]" &raquo; is recursive,
+so it evaluates first content and type of field Size like an expression and it evaluates second result of evaluation &laquo; (eval)[Size] &raquo; like an expression,
+so comparison is done on Strings when field Size is empty for movies 1, 2
+and comparison is done on Integers when field Size contains an Integer for movies 3, 5, 6 or an arithmetic operation for movie 7 (645+215 = 860).<br />
+<u>Search expression 21:</u> <b>not ((eval)"(eval)[Size]" &gt; 650)</b> : return movies <b>1, 2, 4</b>.</p>
+<br />
+</body>
+</html>

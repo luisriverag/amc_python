@@ -1,0 +1,894 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="WebSite PRO 4.3" />
+  <title>Ant Movie Catalog Help</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+  <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+
+
+<p class="title">Tworzenie skryptów</p>
+<hr />
+<ul>
+  <li><a href="#constants">Stałe</a></li>
+  <li><a href="#functions">Funkcie i Procedury</a></li>
+  <li><a href="#classes">Klasy</a></li>
+  <li><a href="#properties">Parametry skryptu</a></li>
+  <li><a href="#debug">Narzędzia debugowania</a></li>
+</ul>
+<hr />
+
+
+<p>Plik skryptów są zwykłymi plikami tekstowymi, więc możesz jest modyfikować w dowolnym edytorze.
+   Ale używając wbudowanego w Ant Movie Catalog można łatwo ustalić nagłówek skryptu poprzez okno <a href="#properties">parametrów skryptu</a>.</p>
+<p>Język skryptu podobny jest do Pascala lub Delphi. Jeśli nigdy nie używałeś Pascala, ale znasz się nieco na programowaniu  (C, C++, PHP, Java lub inny)
+   powinieneś łatwo opanować zasady, studiując działanie istniejących skryptów.</p>
+<p>Używany tu silnik skryptowy, to 2 wersja Carlo Kok's Innerfuse Pascal Script.</p>
+<p>Wykorzystywana jest większość podstawowych funkcji. Dodano również kilka funkcji i stałych do wymiany danych z Ant Movie Catalog.
+Postaram się tutaj je przybliżyć.</p>
+<p>Skrypt rozpoczyna się blokiem komentarza, który nie jest widoczny podczas edycji w edytorze Ant Movie Catalog. Blok ten zawiera parametry,
+   które mogą być zmieniane przez okno <a href="#properties">parametrów skryptu</a>.</p>
+<p>Oczywiście zostaną znalezione i wyświetlone tylko te pliki skryptów, które znajdują się w folderze "Scripts". 
+  These must have a ".ifs" extensoin. The files with a ".pas" extension
+  are meant to be included by scripts, to provide additional functions. For example, StringUtils1.pas
+  contains a set of functions to help handling and parsing text strings.</p>
+<p>To include one of these files un de ces fichiers, a reference to it has to be put after the "uses"
+  keyword in the beginning of the code:</p>
+  <code>program NewScript;<br />
+  uses<br />
+  &nbsp; file1, file2;
+  </code>
+  <p>In this example, this will allow the script to call functions and variables contained in file1.pas and file2.pas.</p>
+<hr />
+
+
+<p class="subtitle" id="constants">Stałe</p>
+<p>Te stałe są identyfikatorami pól, używane do ustawiania lub odczytywania wartości pola filmu:</p>
+<p><code>
+  fieldNumber / fNumber<br />
+  fieldChecked / fChecked<br />
+  fieldColorTag / fColorTag<br />
+  fieldMedia / fMedia<br />
+  fieldMediaType / fMediaType<br />
+  fieldSource / fSource<br />
+  fieldDate / fDate<br />
+  fieldBorrower / fBorrower<br />
+  fieldDateWatched / fDateWatched<br />
+  fieldUserRating / fUserRating<br />
+  fieldRating / fRating<br />
+  fieldOriginalTitle / fOriginalTitle<br />
+  fieldTranslatedTitle / fTranslatedTitle<br />
+  fieldFormattedTitle / fFormattedTitle<br />
+  fieldDirector / fDirector<br />
+  fieldProducer / fProducer<br />
+  fieldWriter / fWriter<br />
+  fieldComposer / fComposer<br />
+  fieldActors / fActors<br />
+  fieldCountry / fCountry<br />
+  fieldYear / fYear<br />
+  fieldLength / fLength<br />
+  fieldCategory / fCategory<br />
+  fieldCertification / fCertification<br />
+  fieldURL / fURL<br />
+  fieldDescription / fDescription<br />
+  fieldComments / fComments<br />
+  fieldFilePath / fFilePath<br />
+  fieldVideoFormat / fVideoFormat<br />
+  fieldVideoBitrate / fVideoBitrate<br />
+  fieldAudioFormat / fAudioFormat<br />
+  fieldAudioBitrate / fAudioBitrate<br />
+  fieldResolution / fResolution<br />
+  fieldFrameRate / fFrameRate<br />
+  fieldLanguages / fLanguages<br />
+  fieldSubtitles / fSubtitles<br />
+  fieldSize / fSize<br />
+  fieldDisks / fDisks<br />
+  fieldPictureStatus / fPictureStatus</code>
+  fieldNbExtras / fNbExtras</code>
+</p>
+<p>Te stałe są identyfikatorami dodatkowych pól filmu, użyteczne,
+jeśli chcesz ustawić lub uzyskać wartość pola dodatku filmu:</p>
+<p><code>
+  extraFieldNumber / eNumber<br />
+  extraFieldChecked / eChecked<br />
+  extraFieldTag / eTag<br />
+  extraFieldTitle / eTitle<br />
+  extraFieldCategory / eCategory<br />
+  extraFieldURL / eURL<br />
+  extraFieldDescription / eDescription<br />
+  extraFieldComments / eComments<br />
+  extraFieldCreatedBy / eCreatedBy</code>
+</p>
+<p>Te stałe są identyfikatorami informacji z mediów,
+   przydatne, gdy chcemy uzyskać informacje z mediów:</p>
+<p><code>
+  mediaVolumeLabel<br />
+  mediaPath<br />
+  mediaPathName<br />
+  mediaPathNameExt<br />
+  mediaName<br />
+  mediaNameFiltered<br />
+  mediaNameExt<br />
+  mediaFolder<br />
+  mediaFolderFiltered<br />
+  mediaExt<br />
+  mediaExtWithoutDot<br />
+  mediaSize<br />
+  mediaDisks<br />
+  mediaPicture<br />
+  mediaLength<br />
+  mediaResolution<br />
+  mediaResHeight<br />
+  mediaResWidth<br />
+  mediaFramerate<br />
+  mediaVideoCodec<br />
+  mediaVideoBitrate<br />
+  mediaAudioCodec<br />
+  mediaAudioChannels<br />
+  mediaAudioCodecAndChannels<br />
+  mediaAudioBitrate<br />
+  mediaLanguages<br />
+  mediaSubtitles</code>
+</p>
+<p>Te stałe są identyfikatorami ewentualnego statusu obrazka w katalogu.
+   Użyteczne, gdy chcesz wywołać funkcję GetPictureStatus:</p>
+<p><code>
+  picStatusUndefined<br />
+  picStatusNone<br />
+  picStatusStored<br />
+  picStatusCopiedInCatDir<br />
+  picStatusCopiedInPicDir<br />
+  picStatusLinkAbs<br />
+  picStatusLinkRel</code>
+</p>
+<p>Te stałe są identyfikatorami metod importu obrazka do katalogu.
+   Użyteczne, gdy chcesz dołączyć funkcję ImportPicture2:</p>
+<p><code>
+  picImportStore<br />
+  picImportCopyInCatDir<br />
+  picImportCopyInPicDir<br />
+  picImportLinkAbs<br />
+  picImportLinkRel</code>
+</p>
+<p>Pozostałe stałe:</p>
+<p>
+  <code>dirApp: string;</code> zawiera ścieżkę programu (z '\' na końcu)<br />
+  <code>dirData: string;</code> zawiera ścieżkę danych programu (z '\' na końcu)<br />
+  <code>dirScripts: string;</code> zawiera ścieżkę do skryptów (z '\' na końcu)<br />
+  <code>dirTemplates: string;</code> zawiera ścieżkę do szablonów (z '\' na końcu)<br />
+  <code>dirCatalogs: string;</code> zawiera ścieżkę do katalogów (z '\' na końcu)<br />
+  <code>dirCurrentCatalog: string;</code> zawiera ścieżkę do aktualnego katalogu (z '\' na końcu)<br />
+  <code>fileCurrentCatalog: string;</code> zawiera plik aktualnego katalogu
+</p>
+
+<p class="subtitle" id="functions">Funkcje dotyczące skryptu</p>
+<p><code>function CheckVersion(Major, Minor, Revision: Integer): Boolean;</code><br />
+  Zwraca True, jeśli aktualna wersja programu jest przynajmniej wersją
+   określoną w parametrach.</p>
+<p><code>function AcceptLicense(LicenseVersion: Integer): Boolean;</code><br />
+  Wyświetla w oknie skryptu pole o treści "Licencja" określone w <a href="#properties">oknie właściwości</a> przyciski typu "Zgadzam się" i "Anuluj".
+  Gdy licencja została zaakceptowana, nie musisz akceptować jej ponownie, chyba że zmieniły się parametry numeru licencji.
+  Pozwala to wyświetlić okno dla wszystkich użytkowników po zmianie licencji, ale nie drażnić ich przy każdym wykonaniu skryptu.</p>
+  
+<p><code>function GetScriptFilename: string;</code><br />
+  Zwraca nazwę pliku ze skryptem.</p>
+<p><code>function GetScriptFullPath: string;</code><br />
+  Zwraca pełną ścieżkę do skryptu.</p>
+<p><code>function GetScriptAuthors: string;</code><br />
+  Zwraca autorów skryptów zdefiniowanych w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function GetScriptTitle: string;</code><br />
+  Zwraca tytuł skryptu zdefiniowany w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function GetScriptDescription: string;</code><br />
+  Zwraca opis skryptu zdefiniowany w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function GetScriptSite: string;</code><br />
+  Zwraca stronę skryptu zdefiniowaną w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function GetScriptVersion: string;</code><br />
+  Zwraca wersję skryptu zdefiniowaną w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function GetScriptComments: string;</code><br />
+  Zwraca komentarze skryptu zdefiniowane w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function GetScriptLicense: string;</code><br />
+  Zwraca licencję skryptu zdefiniowaną w <a href="#properties">oknie właściwości</a>.</p>
+
+<p><code>function GetOption(OptName: string): Integer;</code><br />
+  Zwraca wartość, że zastosowano wybrane dla określonej opcji. Nazwy opcji i ich wartości są zdefiniowane w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function SetOption(OptName: string; Value: Integer);</code><br />
+  Zmienia wartość określonej opcji. Nazwy opcji i ich wartości zdefiniowane są w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function GetParam(PrmName: string): string;</code><br />
+  Zwraca wartość, którą użytkownik może wprowadzić dla określonego parametru. Nazwy parametrów są zdefiniowane w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>function SetParam(PrmName: string; Value: string);</code><br />
+  Zmienia wartości określonego parametru. Nazwy parametrów są zdefiniowane w <a href="#properties">oknie właściwości</a>.</p>
+<p><code>procedure SetStatic(AName: string; AValue: string);<br />
+  function GetStatic(AName: string): string;</code><br />
+  Pozwala na odczyt/zapis "na stałe" zmiennej: wartości przypisane do zmiennej wirtualnej będą przechowywane pomiędzy kolejnymi realizacji programu,
+  w przeciwieństwie do zmiennych globalnych, które mogłyby zostać utracone po zakończeniu wykonywania skryptu na wybranych filmach.</p>
+<p><code>function GetIteration: Integer;</code><br />Zwraca aktualną iterację (pomiędzy 0 i GetIterationCount-1).</p>
+<p><code>function GetIterationCount: Integer;</code><br />Zwraca ilość iteracji (liczbę filmów do przetworzenia).</p>
+<p><code>function AddNewMovieToQueue: Integer;</code><br />Dodaje nowy film na koniec kolejki i zwraca liczbę filmów (unikalną).</p>
+<p><code>procedure Launch(command: string; parameters: string);</code><br />
+  Wykonanie zewnętrznego pliku. Może to być program, plik lub adres internetowy. "Parametry" mogą być pustym ciągiem znaków: ''.</p>
+<p><code>procedure Sleep(ATime: Integer);</code><br />
+  Czeka określoną w parametrze ilość milisekund (przydatne, aby uniknąć błędów połączenia z serwerem przy dużych importach).</p>
+<p><code>procedure Error;</code><br />
+  Zatrzymuje wykonywanie skryptu na aktualnej linii.</p>
+
+<p class="subtitle">Funkcje do pokazania / pobrania wiadomości</p>
+<p><code>procedure ShowMessage(message: string);</code><br />
+  Wywołuje okno "neutralne", które wyświetla komunikat.</p>
+<p><code>procedure ShowError(message: string);</code><br />
+  Okno błędu (ikona "x" w czerwonym kółku).</p>
+<p><code>procedure ShowInformation(message: string);</code><br />
+  Okno informacji (ikona "i" w dymku).</p>
+<p><code>function ShowWarning(message: string): Boolean;</code><br />
+  Okno ostrzeżenia (ikona "!" w żółtym trójkącie), z przyciskami "OK" (zwraca True) i "Anuluj" (zwraca False).</p>
+<p><code>function ShowConfirmation(message: string): Boolean;</code><br />
+  Okno potwierdzenia (ikona "?" w dymku), z przyciskami "Tak" (zwraca True) i "Nie" (zwraca False).</p>
+<p><code>procedure ShowMemo(message: string);</code><br />
+  "Neutralne" okno, w którym wyświetlany jest komunikat w memo.</p>
+<p> <code>function Input(caption, prompt: string; var value: string): Boolean;</code><br />
+  Wyświetla pola pozwalające użytkownikowi na wprowadzanie tekstu. Zwraca True, jeżeli użytkownik kliknie przycisk OK,
+  a False, jeśli użytkownik kliknie przycisk Anuluj.</p>
+
+<p class="subtitle">Funkcje do zarządzania PickTree</p>
+<p>PickTree jest oknem wyświetlającym drzewko używane do pokazania listy dostępnych filmów.</p>
+<p><code>procedure PickTreeTitle(Title: string);</code><br />
+  Zmienia tytuł okna PickTree.</p>
+<p><code>procedure PickTreeDefaultTitle;</code><br />
+  Przywraca domyślny tytuł okna PickTree.</p>
+<p><code>procedure PickTreeClear;</code><br />
+  Procedura czyszcząca zawartość okna - uruchom tę procedurę przed użyciem okna, ponieważ nigdy nie jest ono czyszczone automatycznie.</p>
+<p><code>procedure PickTreeAdd(Caption, Address: string);</code><br />
+  Procedura dodająca obiekt do okna. Jeśli zmienna Address jest pusta, obiekt zostanie dodany jako
+    obiekt na poziomie głównym (root). W przeciwnym wypadku zostanie on dodany jako obiekt pochodny.
+    Address jest zmienną zwracaną przez okno, kiedy użytkownik wybierze ten obiekt.</p>
+<p><code>procedure PickTreeCount: Integer;</code><br />
+  Zwraca liczbę elementów w oknie.</p>
+<p><code>procedure PickTreeCountAddresses: Integer;</code><br />
+  Zwraca liczbę elementów z adresem związanych z oknem.</p>
+<p><code>procedure PickTreeMoreLink(Address: string);</code><br />
+  Procedura ustawiająca adres wskazany przyciskiem "Znajdź więcej" w oknie PickTree. Wartość ta jest
+    czyszczona przez PickTreeClear i przycisk jest nieaktywny, jeśli opcja nie jest wprowadzona
+    przez PickTreeMoreLink.</p>
+<p><code>procedure PickTreeSort;</code><br />
+  Sortuje elementy drzewka.</p>
+<p><code>function PickTreeExec(var Address: string): Boolean;</code><br />
+  Funkcja pokazująca okno. Parametr Address będzie zawierał adres odnoszący się do wybranego obiektu.
+  Funkcja ta zwraca True, jeśli użytkownik wybrał przycisk OK i False, jeśli wybrał przycisk Anuluj.</p>
+<p><code>function PickTreeExec2(var Address: string; var AddressId: Integer): Boolean;</code><br />
+  Taka sama funkcja jak PickTreeExec, ale dodaje parametr AddressID odpowiadający pozycji (w kolejności dodawania) wybranego elementu.<br>
+  SelectedId = -1, jeśli użytkownik kliknie na Anuluj.<br>
+  SelectedId = -2, jeśli ożytkownik kliknie na Znajdź więcej.</p>
+<p><code>function PickTreeExec3(Message: string; var Address: string): Boolean;</code><br />
+  Taka sama funkcja jak PickTreeExec, ale dodaje parametr Message do wyświetlania wiadomości u góry okna PickTree.</p>
+<p><code>function PickTreeExec4(Message: string; var Address: string; var AddressId: Integer): Boolean;</code><br />
+  Taka sama funkcja jak PickTreeExec3, ale dodaje parametr Message do wyświetlania wiadomości u góry okna PickTree.</p>
+
+<p class="subtitle">Funkcje do zarządzania PickList</p>
+<p>PickList jest oknem wyświetlającym prostą listę, używanym do wyświetlania listy wartości
+   dostępnych dla jednego pola (tak jak opisy lub komentarze). Bieżąco wybrany obiekt jest wyświetlany
+   w dużym oknie tekstowym.</p>
+<p><code>procedure PickListTitle(Title: string);</code><br />
+  Zmienia tytuł okna PickList.</p>
+<p><code>procedure PickListDefaultTitle;</code><br />
+  Przywraca domyślny tytuł okna PickList.</p>
+<p><code>procedure PickListClear;</code><br />
+  Procedura czyszcząca zawartość okna - uruchom tę procedurę przed użyciem okna, ponieważ nigdy nie jest ono czyszczone automatycznie.</p>
+<p><code>procedure PickListAdd(Text: string);</code><br />
+  Dodaje element do okna.</p>
+<p><code>procedure PickListCount: Integer;</code><br />
+  Zwraca liczbę elementów w oknie.</p>
+<p><code>function PickListExec(WelcomeText: string; var Selected: string): Boolean;</code><br />
+  Pokazuje okno, w którym Powitanie jest wyświetlone w podglądzie, gdy żaden obiekt nie jest wybrany.
+  Parametr Selected powinien zawierać wybrany obiekt. <br>
+  Funkcja zwraca True, jeśli wybrano OK, lub False, jeśli - Anuluj.</p>
+<p><code>function PickListExec2(WelcomeText: string; var Selected: string; var SelectedId: Integer): Boolean;</code><br />
+  Taka sama funkcja jak PickListExec, ale dodaje parametr SelectedId odpowiadający położeniu wybranej pozycji na liście.<br>
+  SelectedId = -1, jeśli użytkownik kliknie na Anuluj.</p>
+  
+<p class="subtitle">Funkcje do wyciągania informacji z plików multimedialnych</p>
+<p><code>function LoadMedia(filename: string): Boolean;</code><br />
+  Wczytuje informacje z nośników i zwracają True, gdy wczytywanie zakończy się sukcesem.</p>
+<p><code>function GetMediaInfo(mediaInfo: Integer): String;</code><br />
+  Odczytuje i zwraca określone informacje z obecnie wczytanego nośnika.</p>
+<p><code>function GetMediaInfoLS(mediaInfo: Integer): String;</code><br />
+  Taka sama funkcja jak GetMediaInfo, ale zwraca wartość z Ustawień lokalnych (dla liczb rzeczywistych i daty).</p>
+
+<p class="subtitle">Functions to manage cookies</p>
+<!--
+<p><code>function GetCookies(url: string): string;</code><br />
+  Returns cookies (separed with ';') for specified url
+  (e.g. nameCookie1=valueCookieA; nameCookie2=valueCookieB).</p>
+<p><code>function GetCookiesWithProperties(url: string): string;</code><br />
+  Returns cookies (separed with line returns) with its properties (separed with ';') for specified url
+  (e.g. nameCookie1=valueCookieA; path=/; domain=www.example.com<br />
+  nameCookie2=valueCookieB; path=/; domain=www.example.com).</p>
+-->
+<p><code>procedure AddCookie(cookie: string; hostOrUrl: string);</code><br />
+  Adds a new cookie or change its value and its properties for specified host or url.<br />
+  Examples:<br />
+  - <code>AddCookie('cok=1; path=/film', 'http://www.example.com')</code>: 
+    Add cookie 'cok=1' for host 'www.example.com' with propertie 'path=/film'
+    (this cookie will be only visible for url starting with 'http://www.example.com/film/').<br />
+  - <code>AddCookie('cok=1; path=/', 'http://www.example.com')</code>: 
+    Add cookie 'cok=1' for host 'www.example.com' with propertie 'path=/'
+    (this cookie will be visible for url starting with 'http://www.example.com/').<br />
+  - <code>AddCookie('cok=1', 'http://www.example.com')</code>: 
+    Same as previous example, 'path=/' by default.<br />
+  - <code>AddCookie('cok=1; max-age=10', 'http://www.example.com')</code>: 
+    Add cookie 'cok=1' for host 'www.example.com' with propertie 'max-age=10' to delete this cookie in 10 seconds.<br />
+  - <code>AddCookie('cok=1; expires=Sun, 07-Aug-2016 16:43:12 GMT', 'http://www.example.com')</code>: 
+    Add cookie 'cok=1' for host 'www.example.com' with propertie 'expires=Sun, 07-Aug-2016 16:43:12 GMT' to delete this cookie after this date.<br />
+  - <code>AddCookie('cok=1; max-age=0', 'http://www.example.com')</code>: 
+    Add cookie 'cok=1' for host 'www.example.com' with propertie 'max-age=0' to delete this cookie immedialy.<br />
+  - <code>AddCookie('cok=1; expires=Thu, 01-Jan-1970 00:00:01 GMT', 'http://www.example.com')</code>: 
+    Add cookie 'cok=1' for host 'www.example.com' with propertie 'expires=Thu, 01-Jan-1970 00:00:01 GMT' to delete this cookie immedialy.<br />
+  - <code>AddCookie('cok=', 'http://www.example.com')</code>: 
+    Add cookie 'cok=' for host 'www.example.com' to delete this cookie immedialy.</p>
+<p><code>procedure SetCookies(cookies: string; hostOrUrl: string);</code><br />
+  Adds new cookies or changes its values for specified host
+  (e.g. nameCookie1=valueCookieC; nameCookie2=valueCookieD; nameCookie3=valueCookieE).<br />
+  This function do not support add of properties for cookies (use AddCookie function for this). The 'path' used for cookies is '/'.</p>
+<!--
+<p><code>procedure DeleteCookies(url: string);</code><br />
+  Deletes cookies for specified url.</p>
+<p><code>procedure DeleteAllCookies;</code><br />
+  Deletes all cookies.</p>
+-->
+
+<p class="subtitle">Funkcje do wyciągania informacji ze stron internetowych</p>
+<p><code>function GetPage(address: string): string;</code><br />
+  Pobiera stronę HTML (lub inny plik tekstowy) za pomocą metody GET i zwraca ją jako ciąg znaków.</p>
+<p><code>function GetPage2(address: string; referer: string): string;</code><br />
+  Taka sama funkcja jak GetPage, ale pozwala określić adres "referencyjny" (strony, która wywołała następną). The default value is an empty string.</p>
+<p><code>function GetPage3(address: string; referer: string; cookies: string): string;</code><br />
+  Taka sama funkcja jak GetPage2, ale pozwala określić pliki cookie jako ciąg znaków: np. "uid=120; pwd=FHNHESW".</p>
+<p><code>function GetPage4(address: string; referer: string; cookies: string; content: string): string;</code><br />
+  Same as GetPage3, but allows to specify the content-type as a string; by default for other versions the value is '*/*' for compatibility with old versions; you can pass '' for a more standard call.</p>
+<p><code>function GetPage5(address: string; referer: string; cookies: string; content: string; headers: string): string;</code><br />
+  Same as GetPage4, but allows to specify additional headers to provide to the server. They must be encoded using Delphi's TStrings format, i.e. a list of <em>name=value</em> items separated by linebreaks. The default value is an empty string.</p>
+<p><code>function PostPage(address: string; params: string): string;</code><br />
+  Pobiera stronę HTML (lub inny plik tekstowy) za pomocą metody POST i zwraca ją jako ciąg znaków.<br>
+  Parametry muszą być kodowane przy użyciu funkcji URLEncode.</p>
+<p><code>function PostPage2(address: string; params: string; content: string; referer: string; forceHTTP11: Boolean; forceEncodeParams: Boolean): string; </code><br />
+  Same as PostPage, but allows to specify also the content-type (instead of the default 'application/x-www-form-urlencoded'),
+  give a "referer" address (default value is an empty string), force the use of HTTP 1.1 (default value is False, for 1.0) and ask to the function to encode the parameters itself (default value is False).</p>
+<p><code>function PostPage3(address: string; params: string; content: string; referer: string; forceHTTP11: Boolean; forceEncodeParams: Boolean; headers: string): string; </code><br />
+  Same as PostPage2, but allows to specify additional headers to provide to the server. They must be encoded using Delphi's TStrings format, i.e. a list of <em>name=value</em> items separated by linebreaks. The default value is an empty string.</p>
+<p><code>procedure HTMLDecode(var Value: string);</code><br />
+  Dekoduje znaki HTML zawarte w łańcuchu "Value" (np. "&amp;eacute;" -&gt; "&eacute;").</p>
+<p><code>procedure HTMLRemoveTags(var Value: string);</code><br />
+  Usuwa znaki HTML zawarte w łańcuchu "Value".</p>
+<p><code>function URLEncode(source: string): string;<br />
+  function URLDecode(source: string): string;</code><br />
+  Konwertuje znaki w parametrach URL (np. " " -&gt; "+") i na odwrót.</p>
+<p><code>function GetPicture(address: string): Boolean;</code><br />
+  Pobiera obrazek i przypisuje go do bieżącego filmu.</p>
+<p><code>function GetPicture2(address: string; referer: string): Boolean;</code><br />
+  Taka sama funkcja jak GetPicture, ale pozwala określić adres "referencyjny" (stronę, która wywołała następną).</p>
+<p><code>function GetPicture3(address: string; referer: string; content: string): Boolean;</code><br />
+  Same as GetPicture2, but allows to specify the content-type as a string; by default for other versions the value is '*/*' for compatibility with old versions; you can pass '' for a more standard call.</p>
+<p><code>function GetExtraPicture(extraIndex: Integer; address: string): Boolean;</code><br />
+  Pobiera obrazek i przypisuje go do określonego dodatku dla aktualnego filmu.</p>
+<p><code>function GetExtraPicture2(extraIndex: Integer; address: string; referer: string): Boolean;</code><br />
+  Taka sama funkcja jak GetExtraPicture, ale pozwala określić adres "referencyjny" (stronę, która wywołała następną).</p>
+<p><code>procedure RaiseConnectionErrors(raise: Boolean);</code><br />
+  Shows or not an error message when a connection issue occurs during GetPage, PostPage, GetPicture, ...</p>
+
+<p class="subtitle">Funkcje do zarządzania wartościami pól i obrazkami filmu</p>
+<p><code>function IsSelected: Boolean;</code><br />
+  Zwraca True, jeśli aktualny film jest zaznaczony na liście filmów, inaczej False.</p>
+<p><code>procedure SetSelected(selected: Boolean);</code><br />
+  Wybiera lub nie aktualny film na liście filmów.</p>
+
+<p><code>function GetField(field: Integer): string;</code><br />
+  Odczytuje i zwraca wartość określonego pola z aktualnego filmu.</p>
+<p><code>function GetFieldLS(field: Integer): string;</code><br />
+  Taka sama funkcja jak GetField, ale zwraca wartość z ustawień lokalnych (dla liczb rzeczywistych i daty).</p>
+<p><code>procedure SetField(field: Integer; value: string);</code><br />
+  Przechowuje wartość w określonym polu z aktualnego filmu.</p>
+<p><code>function CanSetField(field: Integer): Boolean;</code><br />
+  Informuje skrypt, czy określone pole jest zaznaczone w modyfikowalnej liście pól, czy nie.
+  Skrypt nie musi martwić się o to, ponieważ SetField nic już nie zrobi, jeśli pole nie jest zaznaczone,
+  ale pozwala to, aby np. zapobiec pobieraniu źródła dodatkowej strony w sytuacji, gdy niektóre pola nie muszą być importowane.</p>
+<p><code>function GetFieldName(field: Integer): String;</code><br />
+  Zwraca nazwę określonego pola.</p>
+<p><code>function GetFieldType(field: Integer): String;</code><br />
+  Zwraca typ określonego pola: 'ftString', 'ftInteger', 'ftReal1' (1 miejsce po przecinku), 'ftReal2' (2 miejsca po przecinku), 'ftReal' (3 miejsca po przecinku), 'ftBoolean', 'ftDate', 'ftList', 'ftText', 'ftUrl', 'ftVirtual'.</p>
+<p><code>function GetFieldTag(field: Integer): String;</code><br />
+  Zwraca tag określonego pola.</p>
+<p><code>function GetFieldCount: Integer;</code><br />
+  Zwraca ilość pól (pola niestandardowe nie są wliczone).</p>
+
+<p><code>function GetCustomField(fieldTag: string): string;</code><br />
+  Odczytuje i zwraca wartość określonego niestandardowego pola bieżącego filmu (fieldTag = Tag skojarzony jest z polem niestandardowym).</p>
+<p><code>function GetCustomFieldLS(fieldTag: string): string;</code><br />
+  Taka sama funkcja jak GetCustomField, ale zwraca wartość z ustawień lokalnych (dla liczb rzeczywistych i daty).</p>
+<p><code>procedure SetCustomField(fieldTag: string; value: string);</code><br />
+  Przechowuje wartość w określonym polu niestandardowym bieżącego filmu.</p>
+<p><code>function CanSetCustomField(fieldTag: string): Boolean;</code><br />
+  Informuje skrypt, jeśli nie istnieje określone niestandardowe pole i sprawdza, czy nie ma go na modyfikowalnej liście pól.<br>
+  Skrypt nie musi martwić się o to, ponieważ SetCustomField nic już nie zrobi, jeśli pole nie jest zaznaczone,
+  ale pozwala to, aby np. zapobiec pobieraniu źródła dodatkowej strony w sytuacji, gdy niektóre pola nie muszą być importowane.</p>
+<p><code>function CustomFieldExists(fieldTag: string): Boolean;</code><br />
+  Informuje skrypt o istnieniu określonego pola niestandardowego.<br>
+  Skrypt nie musi się o to martwić, ponieważ SetCustomField nic już nie zrobi, jeśli pole
+   nie istnieje, ale funkcja ta umożliwia poinformowanie użytkownika, że takie pole nie istnieje.</p>
+<p><code>function GetCustomFieldName(fieldTag: string): String;</code><br />
+  Zwraca nazwę określonego pola niestandardowego.</p>
+<p><code>function GetCustomFieldType(fieldTag: string): String;</code><br />
+  Zwraca typ określonego pola niestandardowego: 'ftString', 'ftInteger', 'ftReal1' (1 miejsce po przecinku), 'ftReal2' (2 miejsca po przecinku), 'ftReal' (3 miejsca po przecinku), 'ftBoolean', 'ftDate', 'ftList', 'ftText', 'ftUrl', 'ftVirtual'.</p>
+<p><code>function GetCustomFieldTag(customfield: Integer): String;</code><br />
+  Zwraca znacznik określonego pola niestandardowego (pole niestandardowe między 0 i GetCustomFieldCount-1).</p>
+<p><code>function GetCustomFieldCount: Integer;</code><br />
+  Zwraca ilość pól niestandardowych.</p>
+
+<p><code>function ExportPicture(filename: string): Boolean;</code><br />
+  Eksport obrazka bieżącego filmu z określonego katalogu i o określonej nazwie.<br />
+  Możesz używać funkcji PictureExt znając rozszerzenie obrazka.</p>
+<p><code>function ImportPicture(filename: string): Boolean;</code><br />
+  Importowanie okładek z określonego pliku i przypisanie go do bieżącego filmu.</p>
+<p><code>function ImportPicture2(filename: string; picImportMethod: integer): Boolean;</code><br />
+  Taka sama funkcja jak ImportPicture, ale można określić metodę importu okładki do katalogu z parametrem picImportMethod.<br />
+  Parameter picImportMethod może przyjąć następujące wartości:<br />
+  - picImportStore (przechowuje obrazek w katalogu)<br />
+  - picImportCopyInCatDir (kopiuje obrazek do folderu katalogu)<br />
+  - picImportCopyInPicDir (kopiuje obrazek do folderu obrazków w katalogu)<br />
+  - picImportLinkAbs (tylko łączy okładkę linkiem bezwzględnym)<br />
+  - picImportLinkRel (tylko łączy okładkę linkiem względnym, jeśli to możliwe)</p>
+<p><code>function RemovePicture: Boolean;</code><br />
+  Usuwa obrazek aktualnego filmu.</p>
+<p><code>function CanSetPicture: Boolean;</code><br />
+  Podobnie do CanSetField, wskazuje, czy skrypt może pobrać obrazek.</p>
+<p><code>function PictureExists: Boolean;</code><br />
+  Wskazuje, czy aktualny film posada obrazek i czy on naprawdę istnieje (dla obrazków skopiowanych i połączonych).</p>
+<p><code>function GetPictureStatus: Integer;</code><br />
+  Zwraca status oobrazka dla aktualnego filmu:<br />
+  - picStatusUndefined (nie zdefiniowany)<br />
+  - picStatusNone (bez obrazka)<br />
+  - picStatusStored (obrazek przechowywany w katalogu)<br />
+  - picStatusCopiedInCatDir (obrazek skopiowany do folderu katalogu)<br />
+  - picStatusCopiedInPicDir (obrazek skopiowany do folderu obrazków w katalogu)<br />
+  - picStatusLinkAbs (obrazek jest połączony tylko linkiem bezwzględnym)<br />
+  - picStatusLinkRel (obrazek jest połączony tylko linkiem względnym)</p>
+<p><code>function GetPictureExt: string;</code><br />
+  Zwraca rozszerzenie obrazka, jeśli bieżący film ma obrazek, inaczej ''.</p>
+<p><code>function GetPicturePath: string;</code><br />
+  Zwraca ścieżkę do pliku obrazka, jeśli obrazek jest skopiowany lub połączony, inaczej ''.</p>
+<p><code>function GetPictureFullPath: string;</code><br />
+  Podobnie do PicturePath, ale zwraca ścieżkę bezwzględną.</p>
+<p><code>function GetPictureSize: Double;</code><br />
+  Zwraca rozmiar obrazka w bajtach, jeśli aktualny film posiada obrazek, inaczej -1.</p>
+<p><code>function GetPictureWidth: Integer;</code><br />
+  Zwraca szerokość obrazka w pikselach, jeśli aktualny film posiada obrazek, inaczej 0.</p>
+<p><code>function GetPictureHeight: Integer;</code><br />
+  Zwraca wysokość obrazka w pikselach, jeśli aktualny film posiada obrazek, inaczej 0.</p>
+<p><code>function ConvertPicture(maxWidth: Integer; maxHeight: Integer): Boolean;</code><br />
+  Zwraca True, jeśli obrazek aktualnego filmu został przekonwertowany do JPG, inaczej False.<br />
+  Konwersja zawsze zachowuje taki sam współczynnik obrazka i następuje tylko wtedy, gdy jest konieczna, aby uniknąć utraty jakości obrazka.<br />
+  (np. [maxWidth = 200, maxHeight = 0] -> Zmiana rozmiaru do określonej szerokości,<br />
+  [maxWidth = 0, maxHeight = 300] -> Zmiana rozmiaru do określonej wysokości,<br />
+  [maxWidth = 200, maxHeight = 300] -> Zmiana rozmiaru do określonej szerokości i wysokości (aby zmieścić się w określonym polu prostokątnym).</p>
+
+<p class="subtitle">Funkcje do zarządzania dodatkami dla filmu</p>
+<p><code>function GetExtraCount: Integer;</code><br />
+  Zwraca liczbę dodatków z listy dodatków dla bieżącego filmu.</p>
+<p><code>function FindExtra(extraTag: string): Integer;</code><br />
+  Zwraca indeks dodatków (pozycję dodatku na liście dodatków) z określonym tagiem (nie uwzględniana wielkości liter), inaczej -1.</p>
+<p><code>function AddExtra: Integer;</code><br />
+  Dodaje nowy dodatek. Zwraca indeks dodatków (pozycję dodatku na liście dodatków), jeśli dodatek zostanie dodany, inaczej -1.<br />
+  Uwaga 1: Numer pola dodatku zawsze równa się indeksowi dodatków + 1. Jeśli zmienisz pozycję dodatku na liście dodatków, zmieni się numer i odwrotnie.<br />
+  Uwaga 2: Gdy dodawany jest nowy dodatek, to pole dodatku "Utworzony przez" wypełnia się automatycznie tytułem skryptu.
+  W ten sposób będzie można znaleźć nowsze dodatki utworzone przez skrypt porównując pole "Utworzony przez" z tytułem skryptu (zobacz funkcję GetScriptTitle).</p>
+<p><code>function CanAddExtras: Boolean;</code><br />
+  Informuje skrypt, czy pole specjalne *Dodaj dodatki* jest zaznaczone lub nie w liście pól modyfikowalnych.
+  Skrypt nie musi się o to martwić, ponieważ AddExtra nic nie da, jeśli pole specjalne nie jest zaznaczone.</p>
+
+<p><code>function DeleteExtra(extraIndex: Integer): Boolean;</code><br />
+  Zwraca True, jeśli określony dodatkek dla bieżącego filmu został usunięty, inaczej False.</p>
+<p><code>function DeleteExtraCreatedBy(extraIndex: Integer; createdBy: string): Boolean;</code><br />
+  Taka sama funkcja jak DeleteExtra, ale usuwa określony dodatek tylko wtedy, gdy został on stworzony przez określoną nazwę (pole "Utworzony przez" = createdBy).</p>
+<p><code>function DeleteExtraOfScript(extraIndex: Integer): Boolean;</code><br />
+  Taka sama funkcja jak DeleteExtra, ale usuwa określone dodatki tylko wtedy, gdy zostały utworzone przez skrypt (pole "Utworzony przez" = GetScriptTitle).</p>
+<p><code>procedure ClearExtras;</code><br />
+  Czyści wszystkie dodatki.</p>
+<p><code>procedure ClearExtrasCreatedBy(createdBy: string);</code><br />
+  Taka sama funkcja jak ClearExtras, ale usuwa dodatki, które zostały utworzone przez określoną nazwą (pole "Utworzony przez" = createdBy).</p>
+<p><code>procedure ClearExtrasOfScript;</code><br />
+  Taka sama funkcja jak ClearExtras, ale usuwa dodatki, które zostały utworzone przez aktualny skrypt (pole "Utworzony przez" = GetScriptTitle).</p>
+<p><code>function CanDeleteExtras: Boolean;</code><br />
+  Informuje skrypt, czy pole specjalne *Usuń dodatki* jest zaznaczone lub nie w liście pól modyfikowalnych.
+  Skrypt nie musi się o to martwić, ponieważ DeleteExtra/ClearExtras nic nie da, jeśli specjalne pole
+   nie jest zaznaczone, a dodatkowo nie zostało utworzone w trakcie wykonywania skryptu.</p>
+
+<p><code>function IsExtraSelected(extraIndex: Integer): Boolean;</code><br />
+  Zwraca True, jeśli określony dodatek zostanie wybrany na liście dodatków dla bieżącego filmu, inaczej False.</p>
+<p><code>procedure SetExtraSelected(extraIndex: Integer; selected: Boolean);</code><br />
+  Wybiera lub nie określony dodatek na liście dodatków dla bieżącego filmu.</p>
+
+<p><code>function GetExtraField(extraIndex: Integer; extraField: Integer): string;</code><br />
+  Odczytuje i zwraca wartość z określonego pola określonych dodatków dla bieżącego filmu.</p>
+<p><code>procedure SetExtraField(extraIndex: Integer; extraField: Integer; value: string);</code><br />
+  Przechowuje wartość w określonych polu określonych dodatków dla bieżącego filmu.</p>
+<p><code>function CanModifyExtras(extraField: Integer): Boolean;</code><br />
+  Informuje skrypt, czy pole specjalne *Modyfikuj dodatki* jest zaznaczone lub nie w liście pól modyfikowalnych.
+  Skrypt nie musi się o to martwić, ponieważ SetExtraField nic nie da, jeśli specjalne pole
+   nie jest zaznaczone, a dodatki nie zostały utworzone w trakcie wykonywania skryptu.</p>
+<p><code>function CanSetExtraField(extraField: Integer): Boolean;</code><br />
+  Informuje skrypt, czy określone pole dodatku jest zaznaczone lub nie w liście pól modyfikowalnych.
+  Skrypt nie musi się o to martwić, ponieważ SetExtraField nic nie da, jeśli pole nie jest zaznaczone.</p>
+
+<p><code>function GetExtraFieldName(extraField: Integer): String;</code><br />
+  Zwraca nazwę określonego pola dodatku.</p>
+<p><code>function GetExtraFieldType(extraField: Integer): String;</code><br />
+  Zwraca typ określonego pola dodatku: 'ftString', 'ftInteger', 'ftReal1' (1 miejsce po przecinku), 'ftReal2' (2 miejsca po przecinku), 'ftReal' (3 miejsca po przecinku), 'ftBoolean', 'ftDate', 'ftList', 'ftText', 'ftUrl', 'ftVirtual'.</p>
+<p><code>function GetExtraFieldTag(extraField: Integer): String;</code><br />
+  Zwraca tag określonego pola dodatku.</p>
+<p><code>function GetExtraFieldCount: Integer;</code><br />
+  Zwraca ilość pól dodatków.</p>
+
+<p><code>function ExportExtraPicture(extraIndex: Integer; filename: string): Boolean;</code><br />
+  Eksportuje obraek z określonego dodatku dla bieżącego filmu do określonego katalogu z określoną nazwą.<br />
+  Aby użyć funkcji ExtraPictureExt musisz znać rozszerzenie obrazka.</p>
+<p><code>function ImportExtraPicture(extraIndex: Integer; filename: string): Boolean;</code><br />
+  Importuje obrazki z określonego pliku i przypisuje je do określonych dodatków dla bieżącego filmu.</p>
+<p><code>function ImportExtraPicture2(extraIndex: Integer; filename: string; picImportMethod: integer): Boolean;</code><br />
+  Taka sama funkcja jak ImportExtraPicture, ale można określić, jak importować obrazki do katalogu z parametrem picImportMethod.<br />
+  Parameter picImportMethod może przyjmować następujące wartości:<br />
+  - picImportStore (obrazek przechowywany w katalogu)<br />
+  - picImportCopyInCatDir (kopiowanie obrazka do folderu katalogu)<br />
+  - picImportCopyInPicDir (kopiowanie obrazka do folderu obrazków w folderze katalogu)<br />
+  - picImportLinkAbs (tylko obrazek powiązany linkiem bezwzględnym)<br />
+  - picImportLinkRel (tylko obrazek powiązany linkiem relatywnym, jeśli to możliwe)</p>
+<p><code>function RemoveExtraPicture(extraIndex: Integer): Boolean;</code><br />
+  Usuwa obrazek z określonego dodatku dla bieżącego filmu.</p>
+<p><code>function CanSetExtraPicture: Boolean;</code><br />
+  Podobne do CanSetExtraField, wskazuje, czy skrypt może uzyskać dodatkowy obrazek.</p>
+<p><code>function ExtraPictureExists(extraIndex: Integer): Boolean;</code><br />
+  Wskazuje, czy określony dodatek dla bieżącego filmu ma obrazek i czy on naprawdę istnieje (dla kopiowanych lub linkowanych obrazków).</p>
+<p><code>function GetExtraPictureStatus(extraIndex: Integer): Integer;</code><br />
+  Zwracanie status obrazka określonych dodatków dla bieżącego filmu:<br />
+  - picStatusUndefined (nie określono)<br />
+  - picStatusNone (brak obrazka)<br />
+  - picStatusStored (obrazek przechowywany w katalogu)<br />
+  - picStatusCopiedInCatDir (obrazek skopiowany do folderu katalogu)<br />
+  - picStatusCopiedInPicDir (obrazek skopiowany do folderu obrazków w folderze katalogu)<br />
+  - picStatusLinkAbs (obrazek jest tylko połączony linkiem absolutnym)<br />
+  - picStatusLinkRel (obrazek jest tylko połączony linkiem relatywnym)</p>
+<p><code>function GetExtraPictureExt(extraIndex: Integer): string;</code><br />
+  Zwraca rozszerzenie obrazka, jeśli określony dodatek dla bieżącego filmu ma obrazek, inaczej ''.</p>
+<p><code>function GetExtraPicturePath(extraIndex: Integer): string;</code><br />
+  Zwraca ścieżkę pliku obrazka, jeśli określony dodatek dla bieżącego filmu posiada skopiowany lub powiązany obrazek, inaczej ''.</p>
+<p><code>function GetExtraPictureFullPath(extraIndex: Integer): string;</code><br />
+  Podobne do ExtraPicturePath, ale zwraca ścieżkę absolutną.</p>
+<p><code>function GetExtraPictureSize(extraIndex: Integer): Double;</code><br />
+  Zwraca rozmiar obrazka w bajtach, jeśli określony dodatek dla bieżącego filmu ma obrazek, inaczej -1.</p>
+<p><code>function GetExtraPictureWidth(extraIndex: Integer): Integer;</code><br />
+  Zwraca szerokość obrazka w pikselach, jeśli określony dodatek dla bieżącego filmu ma obrazek, inaczej 0.</p>
+<p><code>function GetExtraPictureHeight(extraIndex: Integer): Integer;</code><br />
+  Zwraca wysokość obrazka w pikselach, jeśli określony dodatek dla bieżącego filmu ma obrazek, inaczej 0.</p>
+<p><code>function ConvertExtraPicture(extraIndex: Integer; maxWidth: Integer; maxHeight: Integer): Boolean;</code><br />
+  Zwraca True, jeśli obrazek określonego dodatku dla bieżącego filmu został przekonwertowany doo JPG, inaczej False.<br />
+  Konwersja zawsze zachowuje taki sam współczynnik obrazka i następuje tylko wtedy, gdy jest konieczna, aby uniknąć utraty jakości obrazka.<br />
+  (np. [maxWidth = 200, maxHeight = 0] -> Zmiana rozmiaru do określonej szerokości,<br />
+  [maxWidth = 0, maxHeight = 300] -> Zmiana rozmiaru do określonej wysokości,<br />
+  [maxWidth = 200, maxHeight = 300] -> Zmiana rozmiaru do określonej szerokości i wysokości (aby zmieścić się w określonym polu prostokątnym).</p>
+
+<p class="subtitle">Funkcje do manipulowania ciągami</p>
+<p><code>function StringReplace(S, Old, New: string): string;</code><br />
+  Zastępuje Old przez New do S i zwraca wynik (S nie jest modyfikowane). Użyj #13#10 (bez cudzysłowów), jeżeli chcesz zamienić linie łamania.</p>
+<p><code>function StringReplace2(S, Old, New: string; IgnoreCase, ReplaceAll: Boolean): string;</code><br />
+  Taka sama funkcja jak StringReplace, ale może ignorować zdarzenia lub nie (domyślnie wartość false) i zastępować wszystkie lub nie (domyślnie wartość true).</p>
+<p><code>function AnsiCompareStr(S1, S2: string): Integer;</code><br />
+  Porównuje ciągi s1 i s2. Zwraca 0, jeśli s1 = s2, -1 jeśli s1 < s2, 1 jeśli s1 > s2.</p>
+<p><code>function AnsiCompareText(S1, S2: string): Integer;</code><br />
+  Taka sama funkcja jak AnsiCompareStr, ale ignoruje przypadki.</p>
+<p><code>function AnsiCompare(S1, S2: string; IgnoreCase, IgnoreAccents: Boolean): Integer;</code><br />
+  Taka sama funkcja jak AnsiCompareStr ale ignouruje zdarzenie lub nie (domyślnie jest false) i może ignorować akcenty lub nie (domyślnie jest false).</p>
+<p><code>function AnsiNatCompareStr(S1, S2: string): Integer;</code><br />
+  Porównuje ciągi s1 i s2 w sposób naturalny (automatyczne wykrywanie liczb). Zwraca 0, jeśli s1 = s2, -1 jeśli s1 < s2, 1 jeśli s1 > s2.</p>
+<p><code>function AnsiNatCompareText(S1, S2: string): Integer;</code><br />
+  Taka sama funkcja jak AnsiNatCompareStr, ale ignoruje przypadki.</p>
+<p><code>function AnsiNatCompare(S1, S2: string; IgnoreCase, IgnoreAccents: Boolean): Integer;</code><br />
+  Taka sama funkcja jak AnsiNatCompareStr ale ignoruje zdarzenia lub nie (domyślnie jest false) i może ignorować akcenty lub nie (domyślnie jest false).</p>
+<p><code>function AnsiPosEx(SubStr, S: string; IgnoreCase, IgnoreAccents: Boolean): Integer;</code><br />
+  Zwraca pozycję pierwszego wystąpienia podciągu SubStr w ciągu S lub 0, jeżeli podciąg nie został znaleziony.</p>
+<p><code>function AnsiPosEx2(SubStr, S: string; IgnoreCase, IgnoreAccents: Boolean; StartPos: Integer): Integer;</code><br />
+  Taka sama funkcja jak AnsiPosEx ale może rozpocząć porównanie do danej pozycji (domyślnie jest 1).</p>
+<p><code>function AnsiLastPosEx(SubStr, S: string; IgnoreCase, IgnoreAccents: Boolean): Integer;</code><br />
+  Zwraca pozycję ostatniego wystąpienia podciągu SubStr w ciągu S lub 0, jeżeli podciąg nie został znaleziony.<br />
+  Uwaga: Porównanie ciągów odbywa się w odwrotny sposób (od ostatniej pozycji do pierwszej pozycji).</p>
+<p><code>function AnsiLastPosEx2(SubStr, S: string; IgnoreCase, IgnoreAccents: Boolean; StartPos: Integer): Integer;</code><br />
+  Taka sama funkcja jak AnsiLastPosEx ale może rozpocząć porównanie do danej pozycji (domyślnie jest Length(S)).</p>
+<p><code>function AnsiUpperCase(Value: string): string;</code><br />
+  Zmienia wszystkie litery ciągu na duże litery. *</p>
+<p><code>function AnsiLowerCase(Value: string): string;</code><br />
+  Zmienia wszystkie litery ciągu na małe litery. *</p>
+<p><code>function AnsiUpFirstLetter(Value: string): string;</code><br />
+  Zmienia pierwszą literę ciągu na dużą. Inne litery pozostają bez zmian. *</p>
+<p><code>function AnsiMixedCase(Value: string; Delimiters: string): string;</code><br />
+  Zmienia wszystkie litery następujące znaku "Ogranicznika" na wielkie litery (pierwsza litera jest również zmieniona).
+  Inne litery ciągu pozostają bez zmian. *<br />
+  Parametr delimiter jest ciągiem zawierającym znaki, w którym musi wystąpić duża litera, np.: ' -' będzie "This Is A Sample-Text".</p>
+<p><code>function AnsiBestFitUS(S: string): string;</code><br />
+  Dopasuj najlepszy ciąg wejściowy mający tylko us-ascii (usuń akcenty, ...).</p>
+<p>* Zaznaczone litery są również konwertowane z wykorzystaniem bieżących ustawień systemu Windows</p>
+<p><code>function UTF8Encode(Value: string): string;</code><br />
+  Zamienia standard ciągu do UTF8 (Unicode) i odwrotnie. Unicode tak naprawdę nie jest obsługiwany (za pomocą "string" zamiast "WideString"),
+  więc funkcja wstawia tylko znaki, które są dostępne w aktualnej stronie kodowej.</p>
+<p>Note that the UTF8Decode function does not support some recent 4-byte characters. As a workaround, if you encounter issues with decoding UTF8 texts
+  (the function returns then an empty string), you can use instead the function UTF8DecodeCorr from StringUtils1.pas, by referencing this unit:<br />
+  <code>program MyScript;<br />
+  uses<br />
+  &nbsp; StringUtils1;<br />
+  begin<br />
+  &nbsp; // ...<br />
+  &nbsp; // calling the function at some point:<br />
+  &nbsp; value := UTF8DecodeCorr(value);<br />
+  &nbsp; // ...
+</code></p>
+  
+<p class="subtitle">Funkcje do manipulowania ciągami z wyrażeniami regularnymi</p>
+<p><code>function RegExprSet(ExprStr: string): Boolean;</code><br />
+  Ustawia wyrażenie regularne ExprStr.<br />
+  Zwraca True, jeśli wyrażenie jest dobrze ukształtowane, w przeciwnym wypadku False.</p>
+<p><code>function RegExprExec(InputStr: string): Boolean;</code><br />
+  Znajduje pierwsze dopasowanie na wejściu ciągu InputStr z wyrażeniem regularnym.<br />
+  Zwraca True, jeśli na wejściu dopasuje regularne wyrażenie, inaczej zwraca False.</p>
+<p><code>function RegExprSetExec(ExprStr, InputStr: string): Boolean;</code><br />
+  Taka sama kompinacja z funkcjami RegExprSet i RegExprExec.<br />
+  Zwraca True, jeśli wyrażenie jest dobrze uformowane i na wejściu ciągu pasuje wyrażenie regularne, w przeciwnym wypadku False.</p>
+<p><code>function RegExprExecNext: Boolean;</code><br />
+  Znajduje następne dopasowanie w ciąg znaków z wyrażeniem regularnym.<br />
+  Zwraca True, jeśli znajdzie dopasowanie, w przeciwnym wypadku False.</p>
+<p><code>function RegExprExecPos(Pos: integer): Boolean;</code><br />
+  Znajduje dopasowanie na wejściu ciągu poczynając od określoniej pozycji Pos z regularnym wyrażeniem.<br />
+  Zwraca True, jeśli dopasowanie zostało znalezione, w przeciwnym wypadku False.</p>
+<p><code>function RegExprSubstitute(TemplateStr: string): string;</code><br />
+  Zwraca ciąg TemlateStrg '$&' lub '$0' zastąpiony w całości przez regularne wyrażenie i '$n' zastępuje wystąpienia podwyrażenia #n.<br/>
+  <ul>
+    <li>Jeśli chcesz umieścić w szblonie '$' lub '\', zastosuj prefiks '\'.</li>
+    <li>Na przykład: '1\$ is $2\\rub\\' -> '1$ is <RegExprMatch(2)>\rub\'.</li>
+    <li>Jeśli chcesz umieścić cyfrę po '$n' musisz oddzielić n klamrami '{}'.</li>
+    <li>Na przykład: 'a$12bc' -> 'a<RegExprMatch(12)>bc', 'a${1}2bc' -> 'a<RegExprMatch(1)>2bc'.</li>
+  </ul></p>
+<p><code>function RegExprSetSubstitute(ExprStr, InputStr, TemplateStr: string): string;</code><br />
+  Tak samo jak kombinacja z RegExprSet, RegExprExec i funkcją RegExprSubstitute.<br />
+  Zwraca ciąg TemlateStr z '$&' lub '$0' zastąpione w całości przez wystąpienie r.w. i '$n' zastąpione wystąpieniem podwyrażenia #n.</p>
+<p><code>function RegExprReplace(InputStr, ReplaceStr: string; UseSubstitution: boolean): string;</code><br />
+   Zwraca ciąg InputStr z występującym r.w. zastąpionym ciągiem ReplaceStr.<br />
+  Jeśli UseSubstitution jest True, to ciąg ReplaceStr zostanie użyty jako szablon dla metody Substitution.<br />
+  <ul>
+    <li>Na przykład: Wyrażenie := '(block|var)\s*\(\s*(.*)\s*\)\s*';</li>
+    <li>RegExprReplace('BLOCK( test1)', 'def "$1" value "$2"', True); -> 'def "BLOCK" value "test1"'</li>
+    <li>RegExprReplace('BLOCK( test1)', 'def "$1" value "$2"', False); -> 'def "$1" value "$2"'</li>
+  </ul></p>
+<p><code>function RegExprSetReplace(ExprStr, InputStr, ReplaceStr: string; useSubstitution: boolean): string;</code><br />
+  Takie same jak połączenie RegExprReplace i funkcji RegExprSet.<br />
+  Zwraca ciąg InputStr z rwyrażeniem regularnym zastąpionym przez ciąg ReplaceStr.<br />
+  Jeśli UseSubstitution jest True, to ciąg ReplaceStr zostanie użyty jako szablon dla metody Substitution.</p>
+<p><code>function SubExprMatchCount: Integer;</code><br />
+  Zwraca liczbę podwyrażeń stwierdzonych w ostatnim wywołaniu Exec*.<br />
+  Jeśli nie ma podwyrażenia, ale znaleziono całe wyrażenie (Exec* returned True), then SubExprMatchCount=0.<br />
+  Jeśli nie znaleziono podwyrażeń ani całych wyrażeń (Exec* returned False) then SubExprMatchCount=-1.<br />
+  Zauważ, że można nie znaleźć niektórych podwyrażeń i dla takich podwyrażeń RegExprMathPos=RegExprMatchLen=-1 and RegExprMatchStr=''.<br />
+  <ul>
+    <li>Na przykład: Wyrażenie := '(1)?2(3)?';</li>
+    <li>Exec ('123'): SubExprMatchCount=2, RegExprMatch(0)='123', (1)='1', (2)='3'</li>
+    <li>Exec ('12'): SubExprMatchCount=1, RegExprMatch(0)='12', (1)='1'</li>
+    <li>Exec ('23'): SubExprMatchCount=2, RegExprMatch(0)='23', (1)='', (2)='3'</li>
+    <li>Exec ('2'): SubExprMatchCount=0, RegExprMatch(0)='2'</li>
+    <li>Exec ('7'): Return False: SubExprMatchCount=-1</li>
+  </ul></p>
+<p><code>function RegExprMatch(SubExprIdx: Integer): string;</code><br />
+  Zwraca ciąg podwyrażeń SubExprIdx w ostatnim połączeniu Exec*.
+  (= Copy(InputStr, RegExprMatchPos(SubExprIdx), RegExprMatchLen(SubExprIdx)))<br/>
+  Pierwsze podwyrażenie posiada SubExprIdx=1, ostatnie posiada SubExprIdx=SubExprMatchCount, wszystkie wyrażenia regularne mają SubExprIdx=0.<br/>
+  Zwraca '' jeśli w regularnym wyrażeniu nie ma takiego podwyrażenia lub nie znaleziono go w ciągu wejściowym.</p>
+<p><code>function RegExprMatchPos(SubExprIdx: Integer): Integer;</code><br />
+  Zwraca pozycję podwyrażenia SubExprIdx w ostatnim połączeniu Exec*.<br />
+  Pierwsze podwyrażenie ma SubExprIdx=1, ostatnie ma SubExprIdx=SubExprMatchCount, wszystkie wyrażenia regularne mają SubExprIdx=0.<br />
+  Zwraca -1 jeśli w regularnym wyrażeniu nie ma takiego podwyrażenia lub nie znaleziono go w ciągu wejściowym.</p>
+<p><code>function RegExprMatchLen(SubExprIdx: Integer): Integer;</code><br />
+  Zwraca długość podwyrażenia SubExprIdx w ostatnim połączeniu Exec*.<br/>
+  Pierwsze podwyrażenie ma SubExprIdx=1, ostatnie ma SubExprIdx=SubExprMatchCount, wszystkie wyrażenia regularne mają SubExprIdx=0.<br/>
+  Zwraca -1 jeśli w regularnym wyrażeniu nie ma takiego podwyrażenia lub nie znaleziono go w ciągu wejściowym.</p>
+<p><code>function RegExprModifiers(Modifiers: string): Boolean;</code><br />
+  Ustawia wartości domyślne modyfikacji składni wyrażeń regularnych.<br />
+  Dodając modyfikator 'i','r','s','g','m','x' przed '-' ustawia ją na True i po '-' ustawia ją na False.<br />
+  Dla przykładu w ciągu 'g-xi' ustawia modyfikator 'g' na True i modyfikatory 'x', 'i' na False.<br />
+  Uwaga 1: Wszystkie modyfikatory są domyślnie inicjowane jako True.<br />
+  Uwaga 2: Możesz zastąpić domyślne wartości poprzez dodanie modyfikatorów w wyrażeniu regularnym '(?irsgmx-irsgmx) ...'<br />
+  <ul>
+    <li>ModifierI: Rozróżniania wielkość liter.</li>
+    <li>ModifierR: Używa wyrażeń regularnych z rozszerzoną składnią na rosyjski.<br />
+      Jeśli True, wówczas ŕ-˙  obejmuje dodatkowo rosyjską literę '¸', Ŕ-ß  dodatkowo zawiera '¨', a ŕ-ß zawiera wszystkie rosyjskie symbole.<br />
+      Musisz go wyłączyć, jeżeli może to kolidować ze twoim alfabetem.</li>
+    <li>ModifierS: '.' pracuje jak każdy char (również jako [^\n]).</li>
+    <li>ModifierG: Wyłączając modyfikator G przełącza wszystkie operatory w stylu non-greedy.<br />
+      Jeśli więc ModifierG = False, to wszystkie '*' pracują jako '*?', wszystkie '+' jako '+?', itd.</li>
+    <li>ModifierM: Traktuje ciąg jak wiele wierszy.<br />
+      Oznacza to zmianę `^' i `$' dla dopasowania tylko na początku lub końcu ciągu
+      na początku lub na końcu każdej linii w dowolnym miejscu w ciągu.</li>
+    <li>ModifierX: Użyj składni eXtended, aby umożliwić komentarze w wyrażeniach regularnych<br />
+      Pozwala na dodawanie komentarzy w wyrażeniach regularnych, np.: 'wyrażenie regularne # Komentarz'.</li>
+  </ul></p>
+<p><code>procedure RegExprDebug(Debug: Boolean);</code><br />
+  Jeśli Debug = True (False jest domyślne), to pojawi się komunikat, gdy wystąpi błąd.</p>
+<p><a href="https://regex.sorokin.engineer/en/latest/regular_expressions.html" onclick="window.open(this.href);return false;">Więcej informacji na temat składni wyrażeń regularnych w pomocy na stronie WWW regexpstudio.com</a></p>
+
+<p class="subtitle">Funkcje do manipulacji plikami i folderami</p>
+<p><code>functionGetCurrentDir: string;</code><br />
+  Zwraca aktualny folder (domyślnie folder katalogu).</p>
+<p><code>function SetCurrentDir(DirName: string): boolean;</code><br />
+  Zwraca True, jeśli dany katalog został ustawiony jako aktualny katalog.</p>
+<p><code>function ExpandFileName(FileName: string): string;</code><br />
+  Zwraca ścieżkę absolutną FileName według aktualnego katalogu.</p>
+<p><code>function ExtractRelativePath(BaseName: string; DestName: string): string;</code><br />
+  Zwraca ścieżkę relatywną przejścia z BaseName do DestName. Jeśli DestName jest na innym dysku to wszystkie DestName są zwracane.</p>
+<p><code>function FileExists(FileName: string): Boolean;</code><br />
+  Zwraca True, jeśli plik o podanej nazwie istnieje.</p>
+<p><code>function ExtractFileName(AFileName: string): string;</code><br />
+  Zwraca to, co następuje w nazwie po ostatnim "\".</p>
+<p><code>function ExtractFileExt(AFileName: string): string;</code><br />
+  Zwraca ostatnią "." i to, co poniej nastepuje.</p>
+<p><code>function ExtractFilePath(AFileName: string): string;</code><br />
+  Zwraca się do ostatniego "\" w nazwie (zawartego).</p>
+<p><code>function ChangeFileExt(AFileName: string; AExt: string): string;</code><br />
+  Zwraca nazwę z nowym rozszerzeniem. Rozszerzenie zawiera kropkę, która może również zostać wykorzystana do przekształcenia, np.: "Plik.abc" do "JakiśPlik.def".</p>
+<p><code>function IncludeTrailingPathDelimiter(AFileName: string): string;</code><br />
+  Zwraca ścieżkę z "\" dodanym na końcu, jeśli jeszcze nie było ani jednego.</p>
+<p><code>function ExcludeTrailingPathDelimiter(AFileName: string): string;</code><br />
+  Zwraca ścieżkę z usuniętym "\" na końcu, jeśli był jeden.</p>
+<p><code>function DeleteFile(AFileName: string): Boolean;</code><br />
+  Usuwa określony plik.</p>
+<p><code>function CopyFile(ASourceFileName: string; ATargetFileName: string; SkipIfExists: Boolean): Boolean;</code><br />
+  Kopiuje plik z docelową nazwą pliku. Jeśli ostatni parametr jest True, nie nadpisuje pliku docelowego, jeśli już istnieje.
+  Funkcja zwraca True, jeżeli plik został skopiowany.</p>
+<p><code>function MoveFile(ASourceFileName: string; ATargetFileName: string): Boolean;</code><br />
+  Przenieś/Zmień nazwę pliku z docelową nazwą pliku. Funkcja zwraca True, jeśli plik został również zmieniony.<br />
+  Funkcja ta może być również używana do przeniesienia lub zmiany nazwy folderu.</p>
+<p><code>function GetFileSize(AFileName: string): Double;</code><br />
+  Zwraca rozmiar pliku w bajtach, jesli istnieje, inaczej -1.</p>
+<p><code>function DirectoryExists(DirName: string): Boolean;</code><br />
+  Zwraca True, jeśli folder o podanej nazwie istnieje.</p>
+<p><code>function DirectoryIsEmpty(DirName: string): Boolean;</code><br />
+  Zwraca True, jeśli folder jest pusty.</p>
+<p><code>function ListDirectory(ADir: string; AMask: string): string;</code><br />
+  Zwraca zawartość folderu z kolumnami oddzielonymi tabulatorami (nazwa, rozmiar, data i czas, "D" jeśli katalog).
+  Linie są oddzielone łamaniem linii, więc ".Text" może być umieszczony we własności TStringList.</p>
+<p><code>function CreateFolder(DirName: string): Boolean;</code><br />
+  Zwraca True, jeśli folder został pomyślnie utworzony.</p>
+<p><code>function DeleteFolder(DirName: string; OnlyIfEmpty: Boolean): Boolean;</code><br />
+  Jeśli ostatni parametr jest True, to usunie folder tylko wtedy, gdy jest on pusty.
+  Funkcja zwraca True, jeśli folder zostanie pomyślnie usunięty.</p>
+<p><code>function CopyFolder(ASourceDir: string; ATargetDir: string): Boolean;</code><br />
+  Zwraca True, jeśli folder został pomyślnie skopiowany.</p>
+
+
+<p class="subtitle" id="classes">Klasa TStringList</p>
+<p>(Nie jestem programistą. Mam nadzieję, że zrozumiecie tłumaczenie (tł.))</p>
+<p>TStringList jest klasą używaną do obsługi listy ciągów tekstowych. Jest wykorzystywana do obsługi stron internetowych,
+   ponieważ pozwala w prosty sposób operować pojedynczymi liniami.</p>
+<p>
+Deklaracja: <code>aList: TStringList;</code><br />
+Utworzenie: <code>aList := TStringList.Create;</code><br />
+Destrukcja: <code>aList.Free;</code></p>
+<p>Dostępne są następujące metody i właściwości:<br />
+  <code>procedure LoadFromFile(FileName: string);</code> - wczytuje plik tekstowy do listy<br />
+  <code>procedure SaveToFile(FileName: string);</code> - zapisuje zawartość listy do pliku<br />
+  <br />
+  <code>function Add(Line: string): Integer;</code> - dodaje linię<br />
+  <code>procedure AddStrings(Strings: TStringList);</code> - dodaje wszystkie linie z innego TStringList<br />
+  <code>procedure Insert(LineNr: Integer; Line: string);</code> - wstawia linię<br />
+  <code>procedure Move(CurLineNr, NewLineNr: Integer);</code> - przenosi linię na nową pozycję<br />
+  <code>procedure Exchange(LineNr1, LineNr2: Integer);</code> - wymienia dwie linie<br />
+  <code>procedure Delete(LineNr: Integer);</code> - usuwa linię<br />
+  <code>procedure Clear;</code> - czyści wszystkie linie<br />
+  <code>function IndexOf(Line: string): Integer;</code> - położenie linii<br />
+  <code>function GetString(LineNr: Integer): string;</code> - odczytuje linię<br />
+  <code>procedure SetString(LineNr: Integer; Line: string);</code> - ustawia linię<br />
+  <code>procedure Sort;</code> - sortuje całą listę<br />
+  <br />
+  <code>function IndexOfName(Name: string): Integer;</code> - pozycja linii dowiązanej do nazwy (name=value)<br />
+  <code>function GetValue(Name: string): string;</code> - pobiera wartości linii dowiązanej do nazwy (name=value)<br />
+  <code>procedure SetValue(Name: string; Value: string);</code> - ustawia wartość linii dowiązanej do nazwy (name=value)<br />
+  <code>function GetName(LineNr: Integer): string;</code> - pobiera nazwę linii (name=value)<br />
+  <br />
+  <code>property Count: string</code> - zwraca ilość linii w liście<br />
+  <code>property Sorted: boolean;</code> - określa, czy cała lista jest sortowana<br />
+  <code>property CaseSensitive: boolean;</code> - określa, czy sortowana jest wielkość liter<br />
+  <code>property Text: string;</code> - własność pozwalająca odczytać lub ustawić całą listę jako prosty łańcuch tekstowy (używany np. z funkcją GetPage)<br />
+  <code>property CommaText: string;</code> - własność pozwalająca ustawić całą listę jako prosty ciąg rozgraniczony przez przecinki i cytaty
+  (np. line1,line2,"line 3","line 4","line5 A, B","line 6 ""A""")<br />
+  <code>property DelimitedText: string;</code> - własność pozwalająca ustawić całą listę jako prosty ciąg rozgraniczony przez separatory i cytaty
+  (, i " - domyślne) (np. line1,line2,"line 3","line 4","line5 A, B","line 6 ""A""")<br />
+  <code>property Delimiter: Char;</code> - definiuje separator używany przez DelimitedText (domyślnie ,)<br />
+  <code>property QuoteChar: Char;</code> - definiuje znak cytatu używany przez DelimitedText (domyślnie ")</p>
+
+
+<p class="subtitle" id="classes">Klasa TStringListEx</p>
+<p>Taka sama jak TStringList, ale z dodatkowymi metodami i własnościami.</p>
+<p>
+Deklaracja: <code>aList: TStringListEx;</code><br />
+Utworzenie: <code>aList := TStringListEx.Create;</code><br />
+Destrukcja: <code>aList.Free;</code></p>
+<p>Dostępne są następujące metody i własności:<br />
+  <code>procedure NaturalSort;</code> - sortuje całą listę w sposób naturalny (wykrywa numery automatycznie)<br />
+  <code>property DelimitedCSVText: string;</code> - tak samo jak DelimitedText, ale zezwala na ciągi ze spacjami bez cudzysłowów
+  (np. line1,line2,line 3,line 4,"line5 A, B","line 6 ""A""")<br />
+  <code>property DelimitedAMCText: string;</code> - tak samo jak DelimitedCSVText, ale nie używa cytatów, przechodzi przez ograniczniki między nawiasami, przycina ciągi i dodaje spację po każdym ograniczniku
+  (np. line1, line2, line 3, line 4, line5 A B, line 6 "A", line 7 (text7 A), line 8 (text8 A, B), line 9 (text9 A, B (C, D)))<br />
+  Ta właściwość powinna pomóc w prostszym formatowaniu/sortowaniu pól z wieloma wartościami, tj. aktorzy, kategorie...</p>
+
+
+<p class="subtitle">TJvSimpleXml i klasy pochodne</p>
+<p>Jest to prawie kompletny parser XML, pozwalający łatwo obsługiwać dokumenty XML.
+  Nie wszystkie funkcje są dostępne przez skrypt, więc poniższa lista zostanie rozszerzona później po dodaniu ich do silnika skryptów.</p>
+<p>Tworzenie obiektów jest podobne do TStringList przedstawionej powyżej.</p>
+<p>Ma ona następujące metody i właściwości:<br />
+  <code>procedure LoadFromString(Value: string);</code> - wczytuje dokument XML ze zmiennej<br />
+  <code>procedure LoadFromFile(FileName: string);</code> - wczytuje dokument XML z pliku<br />
+  <code>procedure SaveToString: string;</code> - zachowuje bieżący dokument XML w zmiennej tekstowej<br />
+  <code>procedure SaveToFile(FileName: string);</code> - zachowuje bieżący dokument XML w pliku<br />
+  <code>property Root: TJvSimpleXmlElemClassic;</code> - koresponduje z elementem "root" dokumentu XML</p>
+<p>Różne elementy dokumentu to TJvSimpleXmlElemClassic, oparte na TJvSimpleXmlElem.
+  Ten ostatni ma następujące metody i właściwości:<br />
+  <code>property Name: string;</code> element name: &lt;name&gt;<br />
+  <code>property Value: string;</code> element value: &lt;name&gt;value&lt;/name&gt;<br />
+  <code>property Items: TJvSimpleXmlElems;</code> lista składników elementu<br />
+  <code>property Properties: TJvSimpleXmlProps;</code> lista właściwości (atrybutów) elementu: &lt;name attr1="val1" attr2="val2"&gt;<br />
+  <code>property Parent: TJvSimpleXmlElem</code> element nadrzędny<br />
+  <code>function GetChildIndex(AChild: TJvSimpleXmlElem): Integer;</code> pozycja w liście (Items) podanego elementu pochodnego<br />
+  <code>procedure Clear;</code> usuwa wszystkie składniki i właściwości elementu</p>
+<p>Klasa TJvSimpleXmlElems ma następujące metody i właściwości:<br />
+  <code>property Count: Integer</code> zwraca ilość składników w liście<br />
+  <code>function GetItem(Index: Integer): TJvSimpleXmlElem;</code> daje dostęp do składnika listy przez podanie jego pozycji<br />
+  <code>function GetItemNamed(Name: string): TJvSimpleXmlElem;</code> daje dostęp do składnika listy przez podanie jego nazwy<br />
+  <code>procedure Clear;</code> usuwa wszystkie składniki listy<br />
+  <code>procedure Delete(Index: Integer);</code> usuwa składnik na podanej pozycji<br />
+  <code>procedure DeleteNamed(Name: string);</code> usuwa składnik o podanej nazwie<br />
+  <code>function Add(Name: string): TJvSimpleXmlElemClassic;</code> tworzy i dodaje składnik do listy</p>
+<p>Atrybuty każdego składnika to TJvSimpleXmlProp, który ma następujące właściwości:<br />
+  <code>property Name: string;</code> nazwa atrybutu<br />
+  <code>property Value: string;</code> wartość atrybutu</p>
+<p>Są one przechowywane i obsługiwane przez klasę TJvSimpleXmlProps, która ma następujące metody i właściwości:<br />
+  <code>property Count: Integer;</code> zwraca ilość właściwości w liście<br />
+  <code>function GetItem(Index: Integer): TJvSimpleXmlProp;</code> daje dostęp do właściwości listy przez podanie jej pozycji<br />
+  <code>function GetItemNamed(Name: string): TJvSimpleXmlProp;</code> daje dostęp do właściwości listy przez podanie jej nazwy<br />
+  <code>procedure Clear;</code> usuwa wszystkie właściwości listy<br />
+  <code>procedure Delete(Index: Integer);</code> usuwa właściwość na podanej pozycji<br />
+  <code>procedure DeleteNamed(Name: string);</code> usuwa właściwość o podanej nazwie<br />
+  <code>function Add(Name: string; Value: string): TJvSimpleXmlProp;</code> tworzy i dodaje właściwość do listy</p>
+<hr />
+
+
+<p class="subtitle" id="properties">Parametry skryptu</p>
+<p>Tytuł, opis i wszystkie pozostałe atrybuty/parametry skryptu mogą być zdefiniowane przy użyciu tego okna.
+   Jest ono dostępne przez ikonę <img src="img/properties.png" width="16" height="16" alt="" /> "Właściwości" w edytorze skryptu.</p>
+<p>Tytuł skryptu powinien być dość krótki; zazwyczaj jest to nazwa strony z której pobierane są dane.
+   Pole "Pobieranie z internetu" wskazuje czy skrypt może być użyty do pobierania danych z Internetu.
+   Tylko skrypty ze znacznikiem "True" są widoczne w oknie skryptów dostępnych przez "Pobierz informacje" -&gt; "z Internetu używając skryptu".
+   Kiedy okno jest wywoływane przez menu "Skrypty", wszystkie skrypty są widoczne.</p>
+<p>Dla każdej opcji, którą zdefiniujesz, możesz określić dostępne wartości (dodatnie liczby całkowite, związane z opisem).</p>
+<hr />
+
+
+<p class="subtitle" id="debug">Narzędzia debugowania</p>
+<p>Pasek narzędziowy w edytorze skryptów mają komendy podobne do tych dostępnych w Delphi:</p>
+<ul>
+  <li><b>Przełącznik punktu przerwania</b>: umieszcza punkt przerwania w bieżącej linii, zatem skrypt zatrzyma się  po wykonaniu tej linii.
+      Linia będzie podświetlona na czerwono. Możesz umieścić punkt przerwania klikając na lewym marginesie edytora.
+      Tylko punkty przerwania umieszczone na poprawnej linii są używane.
+      Niestety nie jest możliwe oznaczyć wizualnie, które punkty przerwania są niewłaściwe, co robi Delphi podczas wykonywania programu.
+      Gdy wykonywanie skryptu jest zatrzymane, możesz przenieść się do następnej linii przez przycisk "Krok dalej" lub kontynuując wykonywanie przyciskiem "Uruchom".</li>
+  <li><b>Czyść punkty przerwania</b>: jednym kliknięciem wszystkie punkty przerwania określone w skrypcie.</li>
+  <li><b>Krok dalej</b>: wykonuje bieżącą linię skryptu (podświetloną na niebiesko) i przechodzi do następnej instrukcji.</li>
+  <li><b>Uruchom do kursora</b>: wykonuje skrypt do osiągnięcia bieżącej linii (tworzy zatem "wirtualny" punkt przerwania).</li>
+  <li><b>Analizuj zmienne</b>: wyświeta zawartość zmiennej wskazanej przez kursor.</li>
+  <li><b>Dodaj śledzenie zmiennej</b>: dodaje do listy śledzenia zmienną wskazaną przez pozycję kursora. Pozwala to określić wartość zmiennej w każdym momencie.</li>
+</ul>
+
+
+</body>
+</html>

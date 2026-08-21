@@ -1,0 +1,47 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TIfPascalParser</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_utl.html">ifs_utl.pas</a><br /><br />
+<b>TIFPascalParser</b><br /><br />
+TIfPascalParser is used by the script engine to parse a pascal text file into a list of tokens.<br /><br />
+<b>Type:</b><br />
+TIFParserErrorKind = (iNoError, iCommentError, iStringError, iCharError, iSyntaxError);<br />
+TIFParserError = <b>record</b><br />
+&nbsp;&nbsp;  Kind: TIFParserErrorKind;<br />
+&nbsp;&nbsp;  Position: Cardinal;<br />
+<b>end</b>;<br /><br />
+TIfPascalParser = <b>class</b><br />
+<b>procedure</b> Next;<br />
+Jump to the next token.<br /><br />
+<b>function</b> GetToken: <b>string</b>;<br />
+Returns the current token if it is a token that can not be read from it's token type.<br /><br />
+<b>property</b> CurrTokenPos: Cardinal <b>read</b> GetCurrTokenPos <b>write</b> SetCurrTokenPos; <br />
+Returns the current position in the script.<br /><br />
+<b>function</b> CurrTokenID: <a href="tifpastoken.html">TIFPasToken</a>; <br />
+Returns the current token type.<br /><br />
+<b>procedure</b> Clear;<br />
+Clears the data inside the script engine.<br /><br />
+<b>function</b> SetText(<b>const</b> Data: <b>string</b>; <b>var</b> ErrRec: TIFParserError): Boolean;<br />
+Assigns a text file to the parser and processes it.<br /><br />
+<b>function</b> SetData(<b>const</b> Data: <b>string</b>): Boolean;<br />
+Assigns a data file.<br /><br />
+<b>function</b> GetData(<b>var</b> Data: <b>string</b>): Boolean;<br />
+Retreive the data in a file.<br /><br />
+<b>constructor</b> Create;<br />
+Create an instance of this object.<br /><br />
+<b>destructor</b> Destroy; <b>override</b>;<br />
+Destroy an instance of this object.<br /><br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

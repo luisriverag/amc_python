@@ -1,0 +1,29 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TPropertyDef</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_var.html">ifs_var.pas</a><br /><br />
+<b>PPropertyDef</b><br /><br />
+PProperty Def is used to store the definition of a property in an CSV_Class type.<br /><br />
+<B>Type</B><br />
+PPropertyDef = ^TPropertyDef;<br />
+TPropertyDef = <b>packed record</b><br />
+&nbsp;&nbsp;Name: <B>string</b>;<br />
+&nbsp;&nbsp;CV_Type: <a href="ttyperec.html">PTypeRec</a>;<br />
+&nbsp;&nbsp;Cv_PropRead,<br />
+&nbsp;&nbsp;CV_PropWrite: Pointer;<br />
+&nbsp;&nbsp;CV_PropFlags: Word;<br />
+<b>end</B>;<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

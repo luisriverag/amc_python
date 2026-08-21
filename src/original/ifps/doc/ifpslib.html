@@ -1,0 +1,37 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifpslib.pas</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Back to </b><a href="library.html">Libraries</a><br /><br />
+<b>ifpslib.pas</b><br /><br />
+<b>function</b> GetTIFStringList(SE: TIFPasScript; P: PCreatedClass): TIfStringList;<br>
+This function returns a pointer to the TIfStringList pointer that has been created for P.<br><br>
+<b>procedure</b> RegisterTIfStringList(p: TIfPasScript);<br>
+Registers the TIfStringList class.<br><br>
+<tt>
+TIfStringList = class(TObject)<br>
+public<br>
+constructor Create;<br>
+destructor Destroy; override;<br>
+<br>
+procedure Clear;<br>
+function GetItem(I: Integer): string;<br>
+procedure SetItem(I: Integer; S: string);<br>
+function Count: Integer;<br>
+function Add(s: string): Integer;<br>
+procedure Delete(I: Integer);<br>
+end;<br>
+</tt>
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

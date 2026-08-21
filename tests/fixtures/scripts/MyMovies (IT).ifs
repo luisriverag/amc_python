@@ -1,0 +1,71 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=Fulvio53s03, MrObama & seraphico (Original by Claudio Rinaldi). Thanks to Vjncenzo.
+Title=MyMovies
+Description=Get movie info from MyMovies.it
+Site=https://www.mymovies.it
+Language=IT
+Version=5.1.0    18.04.2026
+Requires=4.2.3.3
+Comments=Based on original MyMovies script, this program uses an external unit MyMoviesPas.pas. This is a common unit used by ItalianMultisite (IT).ifs, so if you want to contribute and improve the unit please check it still works when included in ItalianMultisite (IT).ifs
+License=This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+Modalita' batch=0|0|0=Modalita' normale (default)|1=Modalita' batch (nessuna finestra di input)
+Ricerca con Regista e Anno=1|1|0=Ricerca solo per titolo|1=Ricerca mirata utilizzando anche i valori "Regista" e "Anno", se disponibili (default)
+Ricerca da URL=0|0|0=Ricerca per titolo (default)|1=Ricerca utilizzando il campo "URL", se valorizzato (ha la priorita' sull'opzione "Ricerca con Regista e Anno")
+Sovrascrivi campi=1|1|0=Non sovrascrivere i campi se già valorizzati|1=Sovrascrivi il valore dei campi (default)
+
+[Parameters]
+
+***************************************************)
+
+program MyMoviesIT;
+
+uses
+  MyMoviesPas;
+
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------
+// DEBUG UNIT START: (HOW TO START DEBUG) COMMENT "uses MyMoviesPas;" AND COPY & PASTE ALL UNIT CODE HERE, EXCEPT THE FIRST AND THE LAST LINE
+
+
+
+
+
+
+// DEBUG UNIT END: (HOW TO FINISH DEBUG) REMOVE THE CODE WHEN DONE AND REMOVE COMMENT FROM "uses MyMoviesPas;"
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+begin
+  // insert here proprietary parameters and option check, if any // 
+
+  // all checks, setup, starting sets, then retrieve movie name
+  if MM_UnitVersion < 6 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di MyMoviesPas.pas (versione 6 o successiva)');
+    exit;
+  end;
+  if SH_UnitVersion < 9 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di ItalianSharedPas.pas (versione 9 o successiva)');
+    exit;
+  end;      
+  SharedInitStandAlone('MyMovies');
+
+  // retrieve key elements for searching
+  if (SharedGetForceExit()) then
+    exit;
+
+  if (SharedGetMoviesFound() = 0) then // Analyze search page and get movie url (user choice)
+    myMoviesSearchResults();
+  if (SharedGetMoviesFound() > 0) then // Analyze movie page and set movie fields
+    myMoviesSetMovieFields();
+end.

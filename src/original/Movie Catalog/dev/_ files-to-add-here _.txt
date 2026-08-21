@@ -1,0 +1,8 @@
+Take the following files from https://update.antp.be/amc/amc_full.rar and put them here:
+
+To allow HTTPS in scripts:
+- libeay32.dll
+- ssleay32.dll
+
+To retrive info from media files:
+- MediaInfo.dll

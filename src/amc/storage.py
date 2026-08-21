@@ -35,7 +35,7 @@ _XML_FIELDS = {
     "Date": "date", "Borrower": "borrower",
     # "Disks" and "Size" match Ant Movie Catalog's own field-tag table
     # (Movie Catalog/fields.pas: strTagFields), confirmed against a genuine
-    # AMC 4.2.2 XML export: every one of that file's 7161 movies used these
+    # AMC 4.2.2 XML export: every movie in that file used these
     # two exact attribute names. AMC Python previously used the invented
     # names "MediaCount" and "FileSize" here, which do not appear anywhere
     # in the upstream Delphi source and silently routed every real AMC XML

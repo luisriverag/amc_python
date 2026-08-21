@@ -728,12 +728,12 @@ script execution at all — see the checked sub-item below.
     sample-table reason bitrate is only an average. `docs/architecture.md`'s
     "Deliberate prototype boundaries" section is updated to match.
   - [x] Two real bugs found and fixed against a genuine AMC 4.2.2 XML export
-    a user contributed for local debugging (7161 movies, not committed to
-    the repository — the first genuine upstream-generated data used to
-    validate this port): `_XML_FIELDS` used invented attribute names
+    a user contributed for local debugging (a large real catalog, not
+    committed to the repository — the first genuine upstream-generated data
+    used to validate this port): `_XML_FIELDS` used invented attribute names
     `"MediaCount"`/`"FileSize"` that appear nowhere in the Delphi source;
     the real names, confirmed against `fields.pas`'s `strTagFields` table
-    and present on every one of the 7161 real movies, are `"Disks"`/
+    and present on every one of the real movies, are `"Disks"`/
     `"Size"`. Fixing the name alone would have introduced a second bug:
     `Size` is free-form text upstream (a multi-part release is
     `"+"`-joined, e.g. a real `"698+696"`), which the existing lenient
@@ -753,7 +753,7 @@ script execution at all — see the checked sub-item below.
     Validated
     locally against the same genuine 4.2.2 export above and that export's
     own real full/individual templates: both rendered with zero leftover
-    `$$` placeholders across all 7161 movies. The `$$ITEM_EXTRA_*`
+    `$$` placeholders across the whole catalog. The `$$ITEM_EXTRA_*`
     supplementary-record loop and upstream picture/rating-icon file
     copying are explicitly out of scope (documented in the module
     docstring). This is distinct from — and does not reduce the scope of

@@ -31,7 +31,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 16 functional package modules, 6 repository tools, 514 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 16 functional package modules, 6 repository tools, 525 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -96,7 +96,10 @@ confidence.
 - Upstream website script compilation/execution, network/provider APIs, result
   selection and merge, license-acceptance workflow, debugging, and static session
   state (metadata and public settings only).
-- Full media analysis and codec mapping (portable facts and PCM WAV/FLAC/AIFF/MP3 only; MP4 and OGG remain unimplemented).
+- Full media analysis and codec mapping (portable facts plus PCM WAV/FLAC/AIFF/
+  MP3/MP4/OGG duration and bitrate; video-track resolution, framerate, and a
+  real codec/container-vs-codec distinction remain unimplemented, since they
+  need per-track sample-table parsing this port does not do).
 - Upstream verification of grouped-loan and TSV history encoding/consumption.
 - Localization resources.
 - Printing and reports (FreeReport's own report designer/renderer — distinct
@@ -339,6 +342,44 @@ confidence.
     destination now asks whether to use an Ant Movie Catalog template instead of
     the default table export). Not registered as `verified`, for the same reason
     as finding 26.
+28. `amc.media` now covers MP4/M4A/MOV and OGG Vorbis duration/bitrate, closing
+    the last gap this port's own compressed-codec evaluation (D0 in
+    `IMPLEMENTATION_PLAN.md`) had left open behind a deferred codec-provider
+    interface — that evaluation turned out to be premature for duration/bitrate
+    specifically: MP4's ISOBMFF box tree and Ogg's page-granule-position scheme
+    are both bounded and fully public, the same properties that made WAV,
+    FLAC, and AIFF tractable without a real decoder, once MP3's first-frame
+    scan proved a compressed format didn't strictly need one either.
+    `_inspect_mp4_movie_header` walks top-level boxes (skipping each one's
+    payload via `seek`, since `mdat` — the actual media data — can be
+    arbitrarily large) to the mandatory `moov/mvhd` box for a movie-level
+    timescale and duration; there is no per-codec bitrate at this level, so
+    bitrate is only a whole-file average, the same trade-off already made for
+    AIFF-C's non-PCM branch and MP3's VBR files. `.mp4`/`.m4v`/`.mov` populate
+    `Movie`'s previously-unused `video_format`/`video_bitrate` fields rather
+    than `audio_format`/`audio_bitrate` — these are typically video files in a
+    movie catalog, and the two field pairs already existed distinctly for
+    exactly this reason; `.m4a` uses the audio fields, since it is an MP4
+    container restricted to audio. `_inspect_ogg_vorbis` reads the mandatory
+    Vorbis identification packet from an Ogg file's first page for sample rate
+    and a nominal bitrate, then searches backward from the end of the file
+    (Ogg pages carry no leading index of where the stream ends) for the last
+    page's granule position (total PCM samples) to compute duration, falling
+    back to a whole-file average bitrate when the nominal bitrate field is
+    absent (0), matching real Vorbis encoders under quality-mode VBR.
+    Deliberately out of scope, the same way MP3 never attempted VBR-exact
+    duration without a parsed Xing/VBRI header: Ogg files multiplexing more
+    than one logical bitstream (e.g. Theora video alongside Vorbis audio) and
+    Opus streams (`OpusHead` instead of `\x01vorbis`) are rejected with a
+    clear error rather than guessed at; video-track resolution, framerate,
+    and a real codec name remain unimplemented for MP4, the same sample-table
+    reason bitrate is only an average. No upstream-generated MP4/OGG fixture
+    exists in this repository (unlike finding 26/27's genuine AMC 4.2.2
+    export), so this is not an upstream-compatibility claim at all — MP4 and
+    OGG are Python-owned, format-spec-derived parsing exactly like WAV/FLAC/
+    AIFF/MP3 already were (`Common/MediaInfo.pas` shows upstream delegates all
+    of this to a third-party DLL, so there is no Delphi-native mechanism to
+    compare against in the first place).
 
 ## Gap matrix against the original application
 
@@ -354,7 +395,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop, bounded poster display, and atomic batch set/clear | Upstream import modes, naming/copy/move rules, conversion options, and genuine embedded/linked fixtures |
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
 | Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings | IFPS compiler/runtime, complete API inventory, HTTP/browser interactions, license acceptance, debugger, results UI, safe merge preview, timeouts/cache/rate limits, and recorded provider tests |
-| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3 analysis (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec) | MediaInfo integration/version checks, MP4/OGG parsing, the full tag map, stream selection, filters, and field merge behavior |
+| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration and bitrate (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec — MP4 from the `moov/mvhd` box, OGG from the Vorbis identification header and the stream's last granule position) | MediaInfo integration/version checks, video-track resolution/framerate/real codec name (needs per-track sample-table parsing this port does not do), the full tag map, stream selection, filters, and field merge behavior |
 | HTML export | `export.pas`, `ConstValues.pas` (`strTagFields`/`TAG_*`), `fields.pas` | Safe bounded Python table/templates, plus `amc.html_template` rendering upstream's own `$$TAG_NAME` general/item/rating/picture/custom-field tags and the `$$ITEM_BEGIN`/`$$ITEM_END` full+individual document loop, validated locally against a genuine AMC 4.2.2 export's own real templates | The `$$ITEM_EXTRA_*` supplementary-record loop (with its category/checked/range filter syntax), upstream picture/rating-icon file copying, multi-file/SQL export, and fixture comparison of rendered tag values against genuine upstream output |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
 | Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |

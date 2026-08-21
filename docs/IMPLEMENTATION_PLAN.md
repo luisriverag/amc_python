@@ -206,11 +206,15 @@ all omitted or opaque data is reported.
   movie, picture, and extra-field permissions; execution, timeouts, caching, and
   rate limits remain intentionally absent).
 - [ ] Add image download and full media-file analysis as optional capabilities
-  (portable file facts and dependency-free PCM WAV/FLAC/AIFF/MP3 analysis are
-  available; MP3 duration/bitrate come from the first MPEG audio frame header
-  and file size, exact for CBR and approximate for VBR files without a parsed
-  Xing/VBRI header; MP4 and OGG still need either bounded dependency-free
-  parsing or an optional codec provider).
+  (portable file facts and dependency-free PCM WAV/FLAC/AIFF/MP3/MP4/OGG
+  duration and bitrate are available; MP3 comes from the first MPEG audio
+  frame header and file size, exact for CBR and approximate for VBR files
+  without a parsed Xing/VBRI header; MP4 comes from the `moov/mvhd` box
+  (movie-level duration only, no per-codec bitrate) and OGG from the Vorbis
+  identification header plus the stream's last granule position — both
+  averaging bitrate over the whole file the same way MP3's VBR case does.
+  Video-track resolution, framerate, and real codec name still need an
+  optional codec provider; image download is still unimplemented).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
 - [x] Reproduce upstream HTML template/tag semantics: `amc.html_template`
   renders real AMC `$$TAG_NAME` HTML export templates (see D6 below); safe
@@ -349,7 +353,12 @@ indented, non-canonical checkbox markers that the port-progress count in
 
 D0 is now complete: the remaining media-analysis gap is entirely the
 optional codec-provider design for compressed formats, which is deferred
-work rather than an open backlog item here.
+work rather than an open backlog item here. This framing turned out to be
+premature for duration/bitrate specifically: D6's "compressed media codecs"
+item below later found frame-by-frame/container-walking scanning tractable
+without a real decoder after all, for MP3, MP4, and OGG alike — the codec-
+provider interface remains deferred only for video/audio codec name,
+resolution, and framerate, which do need real decoding.
 
 ### D1 — picture workflow completion
 
@@ -619,11 +628,13 @@ tier's next unchecked item before returning to D4.
 
 ### D6 — remaining "not ported at all" subsystems
 
-Four subsystems in `PORT_AUDIT.md`'s "Not ported" list have no code at all:
-website script execution, localization, printing/reports, and compressed
+Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
+all: website script execution, localization, printing/reports, and compressed
 media codecs (MP3/MP4/OGG). They are not comparable in size or in what
 "proceeding" means for each — this tier records that per item rather than
-treating them as one uniform backlog.
+treating them as one uniform backlog. Compressed media codecs is now the one
+of the four with dependency-free duration/bitrate coverage for all three
+named formats; the other three remain unstarted below.
 
   - [x] MP3 duration/bitrate, the most tractable of the four: a
     dependency-free MPEG audio frame header parser (`amc.media._inspect_mp3`)
@@ -641,6 +652,39 @@ treating them as one uniform backlog.
     MP4 and OGG remain unimplemented; each needs its own container-walking
     parser (ISOBMFF box tree for MP4, page-granule-position scanning for
     OGG) following the same pattern.
+  - [x] MP4/M4A/MOV and OGG Vorbis duration/bitrate, following exactly the
+    container-walking pattern the item above predicted. `_inspect_mp4_movie_header`
+    walks the ISOBMFF top-level box sequence (skipping each box's payload via
+    `seek` rather than reading it, since `mdat` — the actual media data — can be
+    arbitrarily large) until it finds the mandatory `moov` box, then its `mvhd`
+    child for a movie-level timescale and duration (handling both the 32-bit
+    and 64-bit `mvhd` versions, and a box's size-0 "extends to end of file" and
+    size-1 64-bit-extended-size cases). There is no per-codec bitrate at this
+    level — that lives in codec-specific sample tables this reader does not
+    parse, the same reason it does not attempt resolution, framerate, or a
+    real codec name — so bitrate is only a whole-file average, the same
+    trade-off already made for AIFF-C's non-PCM branch and MP3's VBR files.
+    `.mp4`/`.m4v`/`.mov` populate the previously-unused `video_format`/
+    `video_bitrate` `Movie` fields instead of `audio_format`/`audio_bitrate`,
+    since these are typically video files in a movie catalog and the two
+    field pairs already existed distinctly on `Movie` for exactly this reason;
+    `.m4a` (an MP4 container restricted to audio) uses the audio fields.
+    `_inspect_ogg_vorbis` reads the mandatory Vorbis identification packet
+    (`\x01vorbis`) from an Ogg file's first page for sample rate and a nominal
+    bitrate, then finds the stream's last page by searching backward from the
+    end of the file (Ogg pages carry no leading index of where the stream
+    ends, the same reason MP3 duration is estimated from a bounded search
+    window) for its granule position (total PCM samples) to compute duration;
+    falls back to a whole-file average bitrate when the nominal bitrate is
+    absent (0), matching upstream Vorbis encoders that sometimes omit it under
+    quality-mode VBR. Deliberately out of scope, consistent with how MP3 never
+    attempted VBR-exact duration without a parsed Xing/VBRI header: Ogg files
+    multiplexing more than one logical bitstream (e.g. Theora video alongside
+    Vorbis audio) and Opus streams (`OpusHead` instead of `\x01vorbis`) are
+    rejected with a clear error rather than guessed at; video-track resolution,
+    framerate, and codec name for MP4 remain unimplemented for the same
+    sample-table reason bitrate is only an average. `docs/architecture.md`'s
+    "Deliberate prototype boundaries" section is updated to match.
   - [x] Two real bugs found and fixed against a genuine AMC 4.2.2 XML export
     a user contributed for local debugging (7161 movies, not committed to
     the repository — the first genuine upstream-generated data used to

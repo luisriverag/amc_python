@@ -371,6 +371,210 @@ def test_inspect_media_mp3_scans_past_a_false_sync_before_a_real_frame(tmp_path:
     assert info.audio_bitrate == 128
 
 
+def _ogg_page(
+    *, payload: bytes, granule: int, serial: int = 42, sequence: int = 0,
+    header_type: int = 0,
+) -> bytes:
+    """Build one Ogg page: a 27-byte fixed header, its lacing segment
+    table, then the payload. The checksum field is left zero since
+    `_inspect_ogg_vorbis` never validates it (Ogg's CRC uses a non-standard
+    polynomial not worth reimplementing for a synthetic fixture)."""
+    segments = []
+    remaining = len(payload)
+    while True:
+        chunk = min(remaining, 255)
+        segments.append(chunk)
+        remaining -= chunk
+        if chunk < 255:
+            break
+    header = (
+        b"OggS" + bytes([0, header_type])
+        + granule.to_bytes(8, "little", signed=True)
+        + serial.to_bytes(4, "little") + sequence.to_bytes(4, "little")
+        + b"\x00\x00\x00\x00"
+        + bytes([len(segments)]) + bytes(segments)
+    )
+    return header + payload
+
+
+def _vorbis_identification_packet(
+    *, sample_rate: int = 44100, bitrate_nominal: int = 128000, channels: int = 2,
+) -> bytes:
+    return (
+        b"\x01vorbis" + (0).to_bytes(4, "little") + bytes([channels])
+        + sample_rate.to_bytes(4, "little")
+        + (0).to_bytes(4, "little", signed=True)
+        + bitrate_nominal.to_bytes(4, "little", signed=True)
+        + (0).to_bytes(4, "little", signed=True)
+        + bytes([0, 1])
+    )
+
+
+def _write_ogg_vorbis(
+    target: Path, *, sample_rate: int = 44100, bitrate_nominal: int = 128000,
+    total_samples: int = 44100 * 5, serial: int = 42,
+) -> None:
+    identification = _vorbis_identification_packet(
+        sample_rate=sample_rate, bitrate_nominal=bitrate_nominal
+    )
+    first_page = _ogg_page(
+        payload=identification, granule=0, serial=serial, sequence=0, header_type=0x02
+    )
+    last_page = _ogg_page(
+        payload=b"\x00" * 16, granule=total_samples, serial=serial, sequence=1,
+        header_type=0x04,
+    )
+    target.write_bytes(first_page + last_page)
+
+
+def test_inspect_media_reads_ogg_vorbis_duration_and_nominal_bitrate(tmp_path: Path):
+    target = tmp_path / "audio.ogg"
+    _write_ogg_vorbis(
+        target, sample_rate=44100, bitrate_nominal=128000, total_samples=44100 * 5
+    )
+
+    info = inspect_media(target)
+
+    assert info.audio_format == "OGG"
+    assert info.audio_bitrate == 128
+    assert info.length_seconds == 5
+
+
+def test_inspect_media_ogg_vorbis_falls_back_to_average_bitrate_when_nominal_is_zero(
+    tmp_path: Path,
+):
+    target = tmp_path / "vbr.ogg"
+    _write_ogg_vorbis(
+        target, sample_rate=44100, bitrate_nominal=0, total_samples=44100 * 4
+    )
+
+    info = inspect_media(target)
+
+    assert info.length_seconds == 4
+    expected_bitrate = round(target.stat().st_size * 8 / 4 / 1000)
+    assert info.audio_bitrate == expected_bitrate
+
+
+def test_inspect_media_rejects_ogg_without_a_marker(tmp_path: Path):
+    target = tmp_path / "not-really.ogg"
+    target.write_bytes(b"not an ogg file" * 10)
+    with pytest.raises(ValueError, match="missing OggS marker"):
+        inspect_media(target)
+
+
+def test_inspect_media_rejects_ogg_with_a_non_vorbis_first_packet(tmp_path: Path):
+    target = tmp_path / "opus.ogg"
+    payload = b"OpusHead" + b"\x00" * 16
+    target.write_bytes(_ogg_page(payload=payload, granule=0, header_type=0x02))
+    with pytest.raises(ValueError, match="missing Vorbis identification header"):
+        inspect_media(target)
+
+
+def _mp4_box(box_type: bytes, payload: bytes) -> bytes:
+    return (8 + len(payload)).to_bytes(4, "big") + box_type + payload
+
+
+def _mvhd_box(*, timescale: int, duration: int, version: int = 0) -> bytes:
+    if version == 1:
+        payload = (
+            bytes([1, 0, 0, 0]) + b"\x00" * 8 + b"\x00" * 8
+            + timescale.to_bytes(4, "big") + duration.to_bytes(8, "big")
+        )
+    else:
+        payload = (
+            bytes([0, 0, 0, 0]) + b"\x00" * 4 + b"\x00" * 4
+            + timescale.to_bytes(4, "big") + duration.to_bytes(4, "big")
+        )
+    payload += b"\x00" * (36 + 4 + 2 + 10 + 36 + 24 + 4)  # rest of mvhd, unused
+    return _mp4_box(b"mvhd", payload)
+
+
+def _write_mp4(
+    target: Path, *, timescale: int = 600, duration: int = 3000, version: int = 0,
+    padding: bytes = b"\x00" * 500,
+) -> None:
+    ftyp = _mp4_box(b"ftyp", b"isom" + (0).to_bytes(4, "big") + b"isomiso2mp41")
+    moov = _mp4_box(b"moov", _mvhd_box(timescale=timescale, duration=duration, version=version))
+    mdat = _mp4_box(b"mdat", padding)
+    target.write_bytes(ftyp + moov + mdat)
+
+
+def test_inspect_media_reads_mp4_duration_and_average_bitrate(tmp_path: Path):
+    target = tmp_path / "movie.mp4"
+    _write_mp4(target, timescale=600, duration=3000)
+
+    info = inspect_media(target)
+
+    assert info.video_format == "MP4"
+    assert info.length_seconds == 5
+    assert info.video_bitrate == round(target.stat().st_size * 8 / 5 / 1000)
+    assert info.audio_format == ""
+    assert info.audio_bitrate is None
+
+
+def test_inspect_media_reads_mp4_mvhd_version_1_with_64_bit_fields(tmp_path: Path):
+    target = tmp_path / "movie64.mp4"
+    _write_mp4(target, timescale=1000, duration=8000, version=1)
+
+    info = inspect_media(target)
+
+    assert info.length_seconds == 8
+    assert info.video_bitrate == round(target.stat().st_size * 8 / 8 / 1000)
+
+
+def test_inspect_media_mp4_skips_a_large_preceding_box_via_seek(tmp_path: Path):
+    """A box before `moov` must be skipped by seeking past its declared
+    size, not by reading its payload into memory (`mdat` can be huge)."""
+    target = tmp_path / "faststart.mp4"
+    ftyp = _mp4_box(b"ftyp", b"isom" + (0).to_bytes(4, "big") + b"isomiso2mp41")
+    free = _mp4_box(b"free", b"\x00" * 200_000)
+    moov = _mp4_box(b"moov", _mvhd_box(timescale=600, duration=3000))
+    target.write_bytes(ftyp + free + moov)
+
+    info = inspect_media(target)
+
+    assert info.length_seconds == 5
+
+
+def test_inspect_media_m4a_uses_audio_fields_not_video(tmp_path: Path):
+    target = tmp_path / "song.m4a"
+    _write_mp4(target, timescale=600, duration=1200)
+
+    info = inspect_media(target)
+
+    assert info.audio_format == "M4A"
+    assert info.length_seconds == 2
+    assert info.audio_bitrate == round(target.stat().st_size * 8 / 2 / 1000)
+    assert info.video_format == ""
+    assert info.video_bitrate is None
+
+
+def test_inspect_media_mov_suffix_reports_its_own_label(tmp_path: Path):
+    target = tmp_path / "clip.mov"
+    _write_mp4(target, timescale=600, duration=3000)
+
+    info = inspect_media(target)
+
+    assert info.video_format == "MOV"
+
+
+def test_inspect_media_rejects_mp4_without_a_moov_box(tmp_path: Path):
+    target = tmp_path / "no-moov.mp4"
+    ftyp = _mp4_box(b"ftyp", b"isom" + (0).to_bytes(4, "big") + b"isomiso2mp41")
+    mdat = _mp4_box(b"mdat", b"\x00" * 32)
+    target.write_bytes(ftyp + mdat)
+    with pytest.raises(ValueError, match="missing moov box"):
+        inspect_media(target)
+
+
+def test_inspect_media_rejects_mp4_moov_without_an_mvhd_box(tmp_path: Path):
+    target = tmp_path / "no-mvhd.mp4"
+    moov = _mp4_box(b"moov", _mp4_box(b"iods", b"\x00" * 8))
+    target.write_bytes(moov)
+    with pytest.raises(ValueError, match="missing mvhd box"):
+        inspect_media(target)
+
+
 def test_cli_import_media_is_atomic_before_save(tmp_path: Path):
     catalog = tmp_path / "catalog.json"
     good = tmp_path / "good.mkv"

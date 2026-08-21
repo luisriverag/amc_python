@@ -146,16 +146,23 @@ whether redistribution is permitted. Synthetic fixtures must be clearly labeled.
 
 - `scripts.py` reads leading metadata comments only. It never invokes IFPS or
   executes Pascal source, and static values are deliberately omitted.
-- `media.py` provides portable filesystem facts and PCM WAV/FLAC/AIFF/MP3
-  metadata, parsed directly from each format's own public specification using
-  only the standard library (AIFF deliberately reimplements its 80-bit
-  extended-float sample rate rather than using the deprecated, Python-3.13-
-  removed `aifc` module; MP3 duration/bitrate comes from the first MPEG audio
-  frame header, exact for CBR and an approximation for VBR files without a
-  parsed Xing/VBRI header). MP4 and OGG remain unimplemented; full codec
-  inspection for those, and any other compressed/lossy format, belongs behind
-  a future optional provider with timeouts and bounds if dependency-free
-  parsing isn't added first.
+- `media.py` provides portable filesystem facts and PCM WAV/FLAC/AIFF/MP3/
+  MP4/OGG metadata, parsed directly from each format's own public
+  specification using only the standard library (AIFF deliberately
+  reimplements its 80-bit extended-float sample rate rather than using the
+  deprecated, Python-3.13-removed `aifc` module; MP3 duration/bitrate comes
+  from the first MPEG audio frame header, exact for CBR and an approximation
+  for VBR files without a parsed Xing/VBRI header; MP4 duration/bitrate comes
+  from the `moov/mvhd` ISOBMFF box, skipping every other top-level box's
+  payload via `seek` rather than reading it since `mdat` can be arbitrarily
+  large, with only a whole-file average bitrate since there is no per-codec
+  bitrate at this level; OGG duration/bitrate comes from the Vorbis
+  identification header plus a backward search for the stream's last page,
+  rejecting multiplexed streams and Opus with a clear error rather than
+  guessing). Real codec inspection — video-track resolution, framerate, and
+  a genuine codec name distinct from the container — remains unimplemented
+  for all of these and belongs behind a future optional provider with
+  timeouts and bounds if dependency-free parsing isn't added first.
 - `preferences.py` is deliberately the one place in the codebase that treats
   a missing, corrupt, or unwritable file as "use the defaults" rather than a
   reportable error. It stores no catalog data, so silently falling back

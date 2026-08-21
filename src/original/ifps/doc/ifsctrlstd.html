@@ -1,0 +1,70 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>ifsctrlstd.pas</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Back to </b><a href="library.html">Libraries</a><br /><br />
+<b>ifsctrlstd</b><br /><br />
+<B>procedure</b> RegisterStdControlsLibrary(p: TIfPasScript);<br>
+This function will register some standard controls.<br>
+Before registering this, you must also register the forms library.<br>
+<br>
+<tt>
+type<br>
+TMemo = class(TControl)<br>
+private<br>
+function GetText: string;<br>
+procedure SetText(S: String);<br>
+function GetReadonly: Boolean;<br>
+procedure SetReadonly(B: Boolean);<br>
+public<br>
+Constructor Create(AParent: TControl);<br>
+property Text: string read GetText write SetText;<br>
+property readonly: Boolean read GetReadonly write SetReadonly;<br>
+end;<br>
+TButton = class(TControl)<br>
+private<br>
+function GetDefault: Boolean;<br>
+procedure SetDefault(b: Boolean);<br>
+function GetCancel: Boolean;<br>
+procedure SetCancel(b: Boolean);<br>
+function GetCaption: string;<br>
+procedure SetCaption(s: string);<br>
+public<br>
+Constructor Create(AParent: TControl);<br>
+property Caption: string read GetCaption write SetCaption;<br>
+property Cancel: Boolean read GetCancel write SetCancel;<br>
+property Default: Boolean read GetDefault write SetDefault;<br>
+end;<br>
+TEdit = class(TControl)<br>
+private<br>
+function GetReadonly: Boolean;<br>
+procedure SetReadonly(B: Boolean);<br>
+funtion GetText: string;<br>
+procedure SetText(s: string);<br>
+public<br>
+constructor Create(AParent: TControl);<br>
+property Text: string read GetText write SetText;<br>
+property readonly: Boolean read GetReadonly write SetReadonly;<br>
+end;<br>
+TLabel = class(TControl)<br>
+private<br>
+function GetCaption: string;<br>
+procedure SetCaption(s: string);<br>
+public<br>
+constructory Create(Aparent: TControl);<br>
+property Caption: string read GetCaption write SetCaption;<br>
+end;<br>
+</tt>
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.05.03"/>
+    <PROJECT value="dcleltB5.bpl"/>
+    <OBJFILES value="Design\frmItemCol.obj Design\frmItemsProp.obj Design\TreeDsgn.obj
+      Design\frmSectEdit.obj Design\frmSectProp.obj ElReg.obj dcleltB5.obj"/>
+    <RESFILES value="dcleltB5.res"/>
+    <IDLFILES value=""/>
+    <IDLGENFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) Design\frmItemCol.dfm Design\frmItemsProp.dfm Design\frmSectEdit.dfm 
+      Design\frmSectProp.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value=""/>
+    <SPARELIBS value="VCL50.lib"/>
+    <PACKAGES value="vclx50.bpi VCL50.bpi elpackB5.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;Design"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="ilink32"/>
+    <USERDEFINES value=""/>
+    <SYSDEFINES value="NO_STRICT;_RTLDLL;_VIS_NOLIB;USEPACKAGES"/>
+    <MAINSOURCE value="dcleltB5.cpp"/>
+    <INCLUDEPATH value="design;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="$(BCB)\lib\release;design;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <WARNINGS value="-w-par -w-8027 -w-8026"/>
+    <WARNOPTSTR value=""/>
+  </MACROS>
+  <OPTIONS>
+    <IDLCFLAGS value="-src_suffix cpp -Idesign -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <CFLAG1 value="-O2 -Hc -Vx -Ve -Tkh30000 -X- -a8 -4 -b- -k- -vi -c -tWM"/>
+    <PFLAGS value="-$YD -$L- -$I- -$D- -$C- -v -JPHNE -M -LUvcl50"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zn"/>
+    <LFLAGS value="-D&quot;EldoS Tree (Design-Time)&quot; -aa -Tpp -Gpd -x -Gn -Gl -Gi"/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0pkg32.obj $(PACKAGES) Memmgr.Lib sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mti.lib"/>
+  </LINKER>
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=1
+AutoIncBuild=1
+MajorVer=2
+MinorVer=7
+Release=6
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=1
+Locale=1033
+CodePage=1252
+
+[Version Info Keys]
+CompanyName=EldoS
+FileDescription=EldoS Visual Components
+FileVersion=2.7.6.0
+InternalName=ElPack
+LegalCopyright=(c) 1998-2000 EldoS
+LegalTrademarks=
+OriginalFilename=ElPack
+ProductName=ElPack
+ProductVersion=2.7.6.0
+Comments=
+
+[Debugging]
+DebugSourceDirs=
+
+[Parameters]
+RunParams=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=0
+LinkCGLIB=0
+
+[CORBA]
+AddServerUnit=1
+AddClientUnit=1
+PrecompiledHeaders=1
+  </IDEOPTIONS>
+</PROJECT>

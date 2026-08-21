@@ -1,0 +1,528 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=J (Original) - API Version = Claude AI
+Title=IMDB ( Actor images via API )
+Description=Import of multiple actors: name, character, image and personal page referrer from IMDB. See options for details.
+Site=us.imdb.com
+Language=EN
+Version=2.0.2 - 05/04/2026
+Requires=4.2.2
+Comments=Use this script to fill your extra data with actor pictures, names, character names and links from IMDB.|This script uses parts of original IMDB script v3.80||Image importation method is set in the AMC preferences!||V 1.0.1|- Changed to UTF8 title search|- Fix for picture link||V 1.1 (The somehow lost version)|- Batch mode integrated|- Special characters are now correctly shown|- Script now tries to detect a different movie when replacing pictures and adds five additional pictures instead of replacing||V1.2|- Added possibility to select number of actors for import|- Added option to exchange selected actor(s)|- Added option for image demand||V1.2.1|- Added used movie URL in first actors comments|- Script deletes actors name from role "(as ...)"||V1.2.2|- Added connection error handling||V1.2.3|- Added option for title search||V1.2.4|- Fix for new structure||V1.3|- Adaption to new IMDB page structure
+License=This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+ExactTitle=0|0|0=Popular Search|1=Exact title is needed
+BatchMode=2|0|0=Normal working mode, prompts user when needed|1=Does not display any window, takes the first movie found|2=Same as 1, but it uses the URL field if available to update movie information
+SelectionMode=0|0|0=ADD images (Standard)|1=REPLACE selected images|2=EXCHANGE actors
+NumberOfActors=7|1|0=choose ONE actor|1=choose TWO actors|2=choose THREE actors|3=choose FOUR actors|4=choose FIVE actors|5=first FIVE actors|6=first TEN actors|7=add ALL actors
+ActorImage=1|0|0=No actor image needed|1=Import only actors with image
+ImageLayout=2|2|0=Original uncut image (huge!)|1=Image from movie page (fast)|2=Image from actor page (slow)
+
+[Parameters]
+
+***************************************************)
+
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=J (Original Script) Claude AI (API Version)
+Title=IMDB (Actor images) API
+Description=Import of multiple actors: name, character, image and personal page referrer from IMDB GraphQL API. See options for details.
+Site=api.graphql.imdb.com
+Language=EN
+Version=2.0.2 - 05/04/2026
+Requires=4.2.2
+Comments=Use this script to fill your extra data with actor pictures, names, character names and links from IMDB API.|This script uses IMDb GraphQL API||Image importation method is set in the AMC preferences!||V 1.0.1|- Changed to UTF8 title search|- Fix for picture link||V 1.1 (The somehow lost version)|- Batch mode integrated|- Special characters are now correctly shown|- Script now tries to detect a different movie when replacing pictures and adds five additional pictures instead of replacing||V1.2|- Added possibility to select number of actors for import|- Added option to exchange selected actor(s)|- Added option for image demand||V1.2.1|- Added used movie URL in first actors comments|- Script deletes actors name from role "(as ...)"||V1.2.2|- Added connection error handling||V1.2.3|- Added option for title search||V1.2.4|- Fix for new structure||V1.3|- Adaption to new IMDB page structure||V1.4.0|- Migrated to mobile IMDB site (m.imdb.com) to bypass scraping blocks||V2.0.0|- Complete rewrite using IMDb GraphQL API||V2.0.1|- ImageLayout 2 now uses GraphQL API (Query_Actor_Image) instead of scraping m.imdb.com||V2.0.2|- ImageLayout 2 now fetches image width from API and computes centered X offset for correct portrait crop
+License=This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+ExactTitle=0|0|0=Popular Search|1=Exact title is needed
+BatchMode=2|0|0=Normal working mode, prompts user when needed|1=Does not display any window, takes the first movie found|2=Same as 1, but it uses the URL field if available to update movie information
+SelectionMode=0|0|0=ADD images (Standard)|1=REPLACE selected images|2=EXCHANGE actors
+NumberOfActors=1|1|0=choose ONE actor|1=choose TWO actors|2=choose THREE actors|3=choose FOUR actors|4=choose FIVE actors|5=first FIVE actors|6=first TEN actors|7=add ALL actors
+ActorImage=1|0|0=No actor image needed|1=Import only actors with image
+ImageLayout=2|2|0=Original uncut image (huge!)|1=Image from movie page (fast)|2=Image from actor page (slow)
+
+[Parameters]
+
+***************************************************)
+
+program IMDB_Actor_images_API;
+
+//Default: ET 0, BM 0, SM 0, NOA 1, AI 0, IL 2
+
+uses
+  StringUtils1;
+
+const
+  Query_Search_by_Title = '{ "query": "query { advancedTitleSearch( first: replace_max_titles constraints: { titleTextConstraint:{searchTerm:\"replace_search_string\"} explicitContentConstraint: { explicitContentFilter: INCLUDE_ADULT } } ) { edges { node { title { titleText { text } releaseYear { year } titleType { text } id } } } } }" }';
+  Query_Actors_With_Images = '{ "query": "query { title(id: \"replace_imdbid\") { credits(first: replace_max_actors, filter: { categories: [\"cast\"] }) { edges { node { name { id nameText { text } primaryImage { url } } ... on Cast { characters { name } } } } } } }" }';
+  Query_Actor_Image = '{ "query": "query { name(id: \"replace_nameid\") { primaryImage { url width height } } }" }';
+
+var
+  MovieName, ErrorMessage: string;
+
+//==============================================================================
+//    Helping functions
+//==============================================================================
+
+function GetJsonBlock(Json, SearchStr: string): string;
+var
+  SearchPos, BlockStart, NextOpen, NextClose, CurPos, Level: Integer;
+begin
+  Result := '';
+  SearchPos := Pos(SearchStr, Json);
+  if SearchPos = 0 then Exit;
+
+  BlockStart := Pos('{', Copy(Json, SearchPos, Length(Json) - SearchPos + 1));
+  if BlockStart = 0 then Exit;
+
+  BlockStart := BlockStart + SearchPos - 1;
+  CurPos := BlockStart + 1;
+  Level := 1;
+
+  while Level > 0 do
+  begin
+    NextOpen := Pos('{', Copy(Json, CurPos, Length(Json) - CurPos + 1));
+    if NextOpen > 0 then NextOpen := NextOpen + CurPos - 1;
+
+    NextClose := Pos('}', Copy(Json, CurPos, Length(Json) - CurPos + 1));
+    if NextClose > 0 then NextClose := NextClose + CurPos - 1;
+
+    if (NextOpen > 0) and ((NextOpen < NextClose) or (NextClose = 0)) then
+    begin
+      Level := Level + 1;
+      CurPos := NextOpen + 1;
+    end
+    else if NextClose > 0 then
+    begin
+      Level := Level - 1;
+      CurPos := NextClose + 1;
+    end
+    else
+      Exit;
+  end;
+  Result := Copy(Json, BlockStart, CurPos - BlockStart);
+end;
+
+function ConvertToASCII(AText: string): string;
+begin
+  Result := UTF8Decode(AText);
+  if Result = '' then Result := AText;
+end;
+
+function StringToInteger(S: string): Integer;
+var
+  i, place: Integer;
+  digits: string;
+  c: string;
+begin
+  Result := 0;
+  place := 1;
+  digits := '0123456789';
+  for i := Length(S) downto 1 do
+  begin
+    c := Copy(S, i, 1);
+    Result := Result + (Pos(c, digits) - 1) * place;
+    place := place * 10;
+  end;
+end;
+
+//==============================================================================
+//    Query IMDb's GraphQL API
+//==============================================================================
+
+function QueryIMDb_API(QueryTemplate, IMDbID, MaxResults: string): string;
+var
+  query, url, contentType, headers, response: string;
+  forceHTTP11, forceEncodeParams: Boolean;
+begin
+  url := 'https://api.graphql.imdb.com';
+  contentType := 'application/json';
+  headers := 'Content-Type=application/json';
+  forceHTTP11 := True;
+  forceEncodeParams := False;
+
+  query := QueryTemplate;
+  query := StringReplace(query, 'replace_imdbid', IMDbID);
+  query := StringReplace(query, 'replace_search_string', MovieName);
+  query := StringReplace(query, 'replace_max_titles', MaxResults);
+  query := StringReplace(query, 'replace_max_actors', MaxResults);
+  query := StringReplace(query, 'replace_nameid', IMDbID);
+
+  response := PostPage3(url, query, contentType, '', forceHTTP11, forceEncodeParams, headers);
+  response := ConvertToASCII(response);
+  Result := response;
+end;
+
+// ***** analyzes IMDB's results page that asks to select a movie from a list *****
+procedure AnalyzeResultsPage(SearchQuery: string);
+var
+  Json: string;
+  Value, IMDbID: string;
+begin
+  Json := QueryIMDb_API(Query_Search_by_Title, '', SearchQuery);
+
+  if Json = '' Then
+    begin
+      SetStatic(ErrorMessage, GetStatic(ErrorMessage) + 'API Error at #' + GetField(fnumber) + ' - ' + GetField(fOriginalTitle) + #13#10);
+      if GetOption('BatchMode') = 0 then ShowMessage('Error connecting to IMDb API.');
+      Exit;
+    end;
+
+  if Pos('"edges":[]', Json) > 0 then
+    begin
+      if GetOption('BatchMode') = 0 then ShowMessage('No movie found for this search.');
+      Exit;
+    end;
+
+  if GetOption('BatchMode') = 0 then
+    begin
+      PickTreeClear;
+      PickTreeAdd('Titles search results for: "' + URLDecode(MovieName) + '"', '');
+      AddMovieTitles(Json);
+      if PickTreeExec(SearchQuery) then
+        begin
+          IMDbID := SearchQuery;
+          AnalyzeMoviePage(IMDbID);
+        end;
+    end
+  else
+    begin
+      IMDbID := TextBetween(Json, ',"id":"', '"');
+      if IMDbID <> '' then AnalyzeMoviePage(IMDbID);
+    end;
+end;
+
+// ***** adds the movie titles found on IMDB's results page *****
+function AddMovieTitles(Json: string): Boolean;
+var
+  Item, Title, Year, TypeText, Id, TitleLine: string;
+begin
+  Result := False;
+
+  while Pos('"node":', Json) > 0 do
+  begin
+    Item := GetJsonBlock(Json, '"node"');
+    Title := TextBetween(Item, '"titleText":{"text":"', '"}');
+    Year := TextBetween(Item, '"releaseYear":{"year":', '}');
+    TypeText := TextBetween(Item, '"titleType":{"text":"', '"');
+    Id := TextBetween(Item, ',"id":"', '"');
+
+    if (Title <> '') and (Id <> '') then
+    begin
+      TitleLine := Title + ' (' + Year + ') - ' + TypeText;
+      PickTreeAdd(TitleLine, Id);
+      Result := True;
+    end;
+    Json := TextAfter(Json, '"node":');
+  end;
+end;
+
+// ***** analyzes the page containing actors information *****
+procedure AnalyzeMoviePage(IMDbID: string);
+var
+  Json, ActorBlock, ActorNode, MaxActorsStr, TempActorBlock : string;
+  Value2, Value3 : string;
+  index, count, maxactor : Integer;
+
+begin
+  // Determine how many actors to fetch
+  case GetOption('NumberOfActors') of
+    0: MaxActorsStr := '250';
+    1: MaxActorsStr := '250';
+    2: MaxActorsStr := '250';
+    3: MaxActorsStr := '250';
+    4: MaxActorsStr := '250';
+    5: MaxActorsStr := '25';
+    6: MaxActorsStr := '50';
+    7: MaxActorsStr := '250';
+  end;
+
+  Json := QueryIMDb_API(Query_Actors_With_Images, IMDbID, MaxActorsStr);
+
+  if Json = '' Then
+    begin
+      Sleep(2000);
+      Json := QueryIMDb_API(Query_Actors_With_Images, IMDbID, MaxActorsStr);
+    end;
+
+  if Json = '' Then
+    begin
+      SetStatic(ErrorMessage, GetStatic(ErrorMessage) + 'Credits API Error at #' + GetField(fnumber) + #13#10);
+      Exit;
+    end;
+
+  ActorBlock := GetJsonBlock(Json, '"credits":{"edges"');
+
+  case GetOption('SelectionMode') of
+    1: // Replace images
+	  begin
+		index := GetExtraCount;
+		for count := 0 to index - 1 do
+		  begin
+			if (GetExtraField(count, eCategory) = 'Actors') and (IsExtraSelected(count) = TRUE) then
+			  begin
+				Value3 := GetExtraField(count, eURL);
+				if POS(Value3, ActorBlock) = 0 then //Wrong movie? --> 5 new pictures
+				  begin
+					SetOption('SelectionMode', 0);
+					SetOption('NumberOfActors', 5);
+					AnalyzeMoviePage(IMDbID);
+					SetOption('SelectionMode', 1);
+					exit;
+				  end;
+				Value2 := ActorBlock;
+				while POS('"id":"' + Value3 + '"', Value2) > 0 do
+				  begin
+				    Value2 := TextAfter(Value2, '"id":"' + Value3 + '"');
+				    GetActorImage(TextBetween(Value2, '"primaryImage":{"url":"', '"'), Value3, count);
+				    break;
+				  end;
+			  end;
+		  end;
+	  end;
+    0: // Get new images
+	  begin
+		if ActorBlock = '' then exit;
+		case GetOption('NumberOfActors') of
+		  0: count := 1;
+		  1: count := 2;
+		  2: count := 3;
+		  3: count := 4;
+		  4: count := 5;
+		  5: count := 5;
+		  6: count := 10;
+		  7: count := 250;
+		else count := 5;
+		end;
+		maxactor := count;
+		if GetOption('NumberOfActors') <= 4 then // choose actors from list
+		  begin
+			while count > 0 do
+			begin
+			  TempActorBlock := ActorBlock;
+			  GetActorList(TempActorBlock);
+			  index := AddExtra;
+			  PickTreeTitle('Please choose actor ' + IntToStr(maxactor - count + 1) + ' of ' + IntToStr(maxactor) + ':');
+			  if PickTreeExec(ActorNode) then GetActor(ActorNode, index)
+			  else break;
+			  count := count - 1;
+			end;
+		  end
+		else while count > 0 do // get first 5,10
+		  begin
+			if POS('"node":', ActorBlock) = 0 then exit;
+			ActorNode := GetJsonBlock(ActorBlock, '"node"');
+			if ActorNode = '' then exit;
+			index := AddExtra;
+			GetActor(ActorNode, index);
+			ActorBlock := TextAfter(ActorBlock, ActorNode);
+			if count = maxactor then SetExtraField(index, eComments, 'Actor pictures from movie: ' + #13#10 + 'https://www.imdb.com/title/' + IMDbID);
+			if (GetOption('ActorImage') = 1) and (ExtraPictureExists(index) = False) then DeleteExtra(index) else count := count - 1;
+		  end;
+	  end;
+	2: // Exchange actor(s)
+	  begin
+		GetActorList(ActorBlock);
+		index := GetExtraCount;
+		for count := 0 to index - 1 do
+		  begin
+			if (GetExtraField(count, eCategory) = 'Actors') and (IsExtraSelected(count) = TRUE) then
+			  begin
+				PickTreeTitle('Please choose an actor in exchange for - ' + GetExtraField(count, eTitle) + ':');
+				RemoveExtraPicture(count);
+				if PickTreeExec(ActorNode) then GetActor(ActorNode, count);
+			  end;
+		  end;
+	  end;
+  end;
+end;
+
+// ***** Get actor list *****
+procedure GetActorList(ActorBlock: String);
+var
+  ActorNode, ActorName, ActorID, ImageURL: String;
+
+begin
+	PickTreeClear;
+	while POS('"node":', ActorBlock) > 0 do
+	  begin
+		ActorNode := GetJsonBlock(ActorBlock, '"node"');
+		if ActorNode = '' then break;
+
+		ActorName := TextBetween(ActorNode, '"nameText":{"text":"', '"');
+		ActorID := TextBetween(ActorNode, '"id":"', '"');
+		ImageURL := TextBetween(ActorNode, '"primaryImage":{"url":"', '"');
+
+		if GetOption('ActorImage') = 1 then
+		  begin
+		    if ImageURL = '' then
+		      begin
+		        ActorBlock := TextAfter(ActorBlock, ActorNode);
+		        continue;
+		      end;
+		  end;
+
+		if ActorName <> '' then PickTreeAdd(ActorName, ActorNode);
+		ActorBlock := TextAfter(ActorBlock, ActorNode);
+	  end;
+end;
+
+// ***** Get actor *****
+function GetActor(ActorNode: String; index: Integer): String;
+var
+  ActorName, ActorID, Character, CharacterBlock, CharacterList, ImageURL: String;
+
+begin
+	// Category
+	SetExtraField(index, eCategory, 'Actors');
+
+	// Get actor data from JSON
+	ActorID := TextBetween(ActorNode, '"id":"', '"');
+	ActorName := TextBetween(ActorNode, '"nameText":{"text":"', '"');
+	ImageURL := TextBetween(ActorNode, '"primaryImage":{"url":"', '"');
+
+	// Page Link (Name ID)
+	SetExtraField(index, eURL, ActorID);
+
+	// Picture
+	if ImageURL <> '' then GetActorImage(ImageURL, ActorID, index);
+
+	// Name
+	if ActorName <> '' then SetExtraField(index, eTitle, ActorName);
+
+	// Character(s)
+	if Pos('"characters":', ActorNode) > 0 then
+	  begin
+	    CharacterBlock := TextBetween(ActorNode, '"characters":[', ']');
+	    CharacterList := '';
+
+	    while Pos('"name":"', CharacterBlock) > 0 do
+	      begin
+	        Character := TextBetween(CharacterBlock, '"name":"', '"');
+	        if CharacterList = '' then
+	          CharacterList := Character
+	        else
+	          CharacterList := CharacterList + ' / ' + Character;
+	        CharacterBlock := TextAfter(CharacterBlock, Character);
+	      end;
+
+	    if CharacterList <> '' then SetExtraField(index, eDescription, CharacterList);
+	  end;
+end;
+
+// ***** Apply centered crop to an image URL using actor ID for dimensions *****
+function ApplyCenteredCrop(ImageURL: String; ActorID: String): String;
+var
+	ApiResponse: string;
+	ImgWidth, ImgHeight, ScaledWidth: Integer;
+	XOffset, YOffset: string;
+begin
+	ApiResponse := QueryIMDb_API(Query_Actor_Image, ActorID, '');
+	if ApiResponse = '' Then
+	begin
+		Result := TextBefore(ImageURL, '._V1', '') + '._V1_UY450_CR0,0,300,450_.jpg';
+		Exit;
+	end;
+	ImgWidth := 0;
+	ImgHeight := 0;
+	XOffset := TextBetween(ApiResponse, '"width":', ',"height"');
+	YOffset := TextBetween(ApiResponse, '"height":', '}');
+	XOffset := Trim(XOffset);
+	YOffset := Trim(YOffset);
+	if XOffset <> '' then ImgWidth := StringToInteger(XOffset);
+	if YOffset <> '' then ImgHeight := StringToInteger(YOffset);
+
+	if (ImgHeight > 0) and (ImgWidth > 0) then
+	begin
+		ScaledWidth := (ImgWidth * 450) div ImgHeight;
+		if ScaledWidth > 300 then
+			XOffset := IntToStr((ScaledWidth - 300) div 2)
+		else
+			XOffset := '0';
+		Result := TextBefore(ImageURL, '._V1', '') + '._V1_UY450_CR' + XOffset + ',0,300,450_.jpg';
+	end
+	else
+		Result := TextBefore(ImageURL, '._V1', '') + '._V1_UY450_CR0,0,300,450_.jpg';
+end;
+
+// ***** Get actor image *****
+procedure GetActorImage(Value2: String; Value3: String; index: Integer);
+begin
+	case GetOption('ImageLayout') of
+		0:
+			Value2 := TextBefore(Value2, '._V1', ''); // Original Uncut photo
+		1:
+			Value2 := ApplyCenteredCrop(Value2, Value3); // Movie page image, centered crop
+		2:
+			Value2 := ApplyCenteredCrop(Value2, Value3); // Actor page image, centered crop
+	end;
+	if GetExtraPicture(index, Value2) = False Then SetStatic(ErrorMessage, GetStatic(ErrorMessage) + 'Picture Error at movie #' + GetField(fnumber) + ' - ' + GetField(fOriginalTitle) + #13#10);
+end;
+
+// ***** beginning of the program *****
+begin
+  // Check for current AMC version
+  if CheckVersion(4,2,2) then
+  begin
+	RaiseConnectionErrors(False);
+	if GetIteration = 0 then SetStatic(ErrorMessage, '');
+
+    MovieName := '';
+    if GetOption('BatchMode') = 2 then
+    begin
+      MovieName := GetField(fieldURL);
+      if Pos('imdb.com', MovieName) = 0 then
+        MovieName := '';
+    end;
+    if MovieName = '' then
+      MovieName := GetField(fieldOriginalTitle);
+    if MovieName = '' then
+      MovieName := GetField(fieldTranslatedTitle);
+
+    if GetOption('BatchMode') = 0 then
+    begin
+      if not Input('IMDB Import', 'Enter the title or the IMDB ID/URL of the movie:', MovieName) then
+        Exit;
+    end
+    else
+      Sleep(500);
+
+    if MovieName <> '' then
+    begin
+      if RegExprSetExec('tt[0-9]+', MovieName) then
+      begin
+        MovieName := RegExprMatch(0);
+        AnalyzeMoviePage(MovieName);
+      end
+      else if RegExprSetExec('nm[0-9]+', MovieName) then
+      begin
+        // Direct actor ID - not supported in this version
+        ShowMessage('Please enter a movie title or movie ID (tt#######)');
+      end
+      else
+      begin
+		MovieName := StringReplace(MovieName, #180, #39); // ´ -> '
+		if GetOption('BatchMode') = 0 then
+		  AnalyzeResultsPage('10')
+		else
+		  AnalyzeResultsPage('1');
+      end;
+    end;
+    if (GetIteration = GetIterationCount-1) AND (GetStatic(ErrorMessage) <> '') then ShowError(GetStatic(ErrorMessage));
+  end
+  else
+    ShowMessage('This script requires a newer version of Ant Movie Catalog (at least v4.2.2)');
+end.

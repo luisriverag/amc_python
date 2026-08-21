@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog - Aide</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Création de rapports (modèles pour l'impression)</p>
+<hr />
+<p>Pour lancer le Report Designer, cliquez sur le bouton "Ouvrir le Designer" dans la fenêtre d'impression.
+  Vous pouvez aussi utiliser le raccourci qui a été ajouté dans le Menu Démarrer, ou encore lancer AMCReport.exe
+  qui est situé dans le même dossier que Ant Movie Catalog.</p>
+<p>Ce Designer est celui de FreeReport, et n'a presque pas été modifié (il est plutôt complexe, je vais donc
+  probablement le laisser tel qu'il est actuellement).</p>
+<p>Cette page montre les différentes étapes de la création d'un rapport.</p>
+<hr />
+<p class="subtitle">Sélection de la taille de la page</p>
+<p>Allez dans File -&gt; Page Options pour sélectionner la taille du papier. En général ce sera A4 (ou Letter).
+  Vous pouvez aussi sélectionner l'orientation Lanscape (Paysage) à la place de Portrait si vous voulez. Dans
+  cette fenêtre vous pouvez également choisir le nombre de colonnes que vous désirez avoir sur votre page.</p>
+<p class="subtitle">Bandes</p>
+<p>Pour être reconnus, les champs doivent être placés sur des "Bands" (bandes). Pour mettre une bande sur la page,
+  cliquez sur l'icône Band <img src="img/print_band.png" alt="band" /> et ensuite cliquez sur la page, là où vous
+  voulez placer la bande. Ensuite vous pouvez sélectionner quel type de bande il faut placer :</p>
+<p><img src="img/print_bandtype.png" alt="Band type" /></p>
+<p>Certains types ne seront jamais utilisés ici. Ceux que vous allez probablement utiliser sont  :</p>
+<ul>
+  <li>Report title &amp; Report summary : Titre et résumé du rapport ; n'apparaissent que sur la première page</li>
+  <li>Page header &amp; Page footer : En-tête et pied de page de chaque page</li>
+  <li>Master data : Ceci est la bande la plus importante, c'est celle qui sera répétée pour chaque film</li>
+</ul>
+<p>Sélectionnez "Master data" et cliquez "OK". Une autre fenêtre vous demandera de sélectionner la source, laissez
+  le choix par défaut ("None") et cliquez "OK".</p>
+<p class="subtite">Zones de texte</p>
+<p>Pour placer une zone de texte sur la bande Master data, sélectionnez l'icône Rectangle object
+  <img src="img/print_rectangle.png" alt="rectangle" /> et placez-le sur la bande (attention: ne le placez pas en-dehors
+  de la bande, où il  risque de ne pas apparaître sur le rapport final).</p>
+<p>L'éditeur de texte est affiché :</p>
+<p><img src="img/print_texteditor.png" alt="Text editor" /></p>
+<p>Vous pouvez entrer le texte que vous voulez, puis cliquer "OK". Pour accéder à nouveau à cette fenêtre, double-cliquez
+  sur une zone de texte.</p>
+<p>Dans le menu contextuel (clic de droite) de ces objets, il y a trois options :</p>
+<ul>
+  <li>Stretched : Si activé, la hauteur du dernier champ sera augmentée si nécessaire. Cela ne semble pas fonctionner
+    pour les autres champs.</li>
+  <li>Word wrap : Force un retour à la ligne si le texte est plus large que le champ.</li>
+  <li>Autosize : Augmente la largeur du champ si nécessaire.</li>
+</ul>
+<p class="subtitle">Variables (champs des films et autres)</p>
+<p>Pour placer un champ de film, ajoutez une zone de texte (Rectangle object). Dans ses propriétés, spécifiez le nom du
+  champ entre crochets [ ]. La liste des noms de champs est disponible via le bouton "Variables" de la fenêtre d'édition
+  de texte :</p>
+<p><img src="img/print_variables.png" alt="Variables" /></p>
+<p>Concernant les champs personnalisés, le nom du champ est définie par le tag du champ personnalisé, le tout entre crochets [ ].</p>
+<p>Concernant les champs des extras, le nom du champ est définie par :</p>
+<ul>
+  <li>Le nom du champ de l'extra + # + le tag de l'extra, le tout entre crochets [ ] (ex: [ETitle#Trailer])</li>
+  <br /><b>ou</b>
+  <li>Le nom du champ de l'extra + ## + la position (ou numéro) de l'extra + # + la catégorie de l'extra (optionnel) + # + la valeur de la case à cocher de l'extra (True/False optionnel),
+    le tout entre crochets [ ] (ex : [ETitle##1#Actors#True] ou [ETitle##1] où 1 est le numéro de l'extra dans le dernier exemple).
+    Utiliser le modèle d'impression "DVD + Extras" avec le catalogue "Sample_4.2.0.amc" pour voir un exemple.</li>
+</ul>
+<p>Les noms de champs peuvent eux-aussi être obtenus via des variables. Il suffit de mettre le préfixe "label:" devant le
+  nom de la variable, le tout étant entre crochets. Cela permet de faire des rapports multilingues (qui s'adaptent
+  à la langue dans laquelle le programme est utilisé).</p>
+<p>Dans la liste déroulante vous pouvez sélectionner "Other" pour voir les champs spéciaux tels que le numéro de page,
+  la date, etc...</p>
+<p>Vous pouvez mélanger du texte normal et des variables dans une même zone de texte.</p>
+<p class="subtitle">Images</p>
+<p>Pour placer une image, utilisez l'icône Insert picture <img src="img/print_picture.png" alt="picture" />. La fenêtre
+  d'image ressemble à ceci :</p>
+<p><img src="img/print_picturewin.png" alt="Picture" /></p>
+<p>Si vous voulez que cette image affiche l'image du film courant, cliquez sur le bouton "Memo" et entrez "[Picture]"
+  (ou sélectionnez-le dans la liste des variables).</p>
+<p>Si vous voulez que cette image affiche l'image d'un extra du film courant, cliquez sur le bouton "Memo" et entrez
+  "[EPicture#Tag]" ou "[EPicture##Pos#Category#Checked]" (ou sélectionnez-le dans la liste des variables) et replacez Tag, Pos, Category et Checked
+  par les valeurs de l'extra désiré (ex: [EPicture#Trailer] ou [EPicture##1#Actors#True] ou [EPicture##1]).
+  Utiliser le modèle d'impression "DVD + Extras" avec le catalogue "Sample_4.2.0.amc" pour voir un exemple.</p>
+<p>Dans le menu contextuel de la zone d'image, il y a trois options :</p>
+<ul>
+  <li>Stretched : Redimensionne l'image pour qu'elle ne dépasse pas de l'objet</li>
+  <li>Center picture : Centre l'image dans l'objet</li>
+  <li>Keep aspect ratio : Conserve les proportions de l'image</li>
+</ul>
+<p>Vous pouvez aussi dessiner des lignes, via l'icône Draw line <img src="img/print_lines.png" alt="lines" />.</p>
+<p class="subtitle">Scripts</p>
+<p>Dans la fenêtre d'édition du contenu des zones de texte et des images, une option "Script" peut être cochée.
+  La partie inférieure de la fenêtre vous permet alors d'entrer un script. Les scripts utilisés ici n'ont rien
+  à voir avec ceux utilisés par Ant Movie Catalog, mis à part que le langage utilisé est lui-aussi basé sur du
+  Pascal. Voici quelques exemples :</p>
+<ul>
+  <li><p>Si vous désirez ne faire apparaître une image que pour les films d'action, placez le code suivant dans la
+    partie "Script" du memo de l'image :</p>
+<pre>begin
+  Visible := [Category] = 'Action';
+end;</pre>
+  </li>
+  <li><p>Si vous désirez placer l'année entre parenthèses derrière le titre seulement si elle est spécifiée pour le
+    film (pour éviter de se retrouver avec des parenthèses vides), placez le code suivant dans la partie "Script"
+    d'une zone de texte :</p>
+<pre>begin
+if ([Year] &lt;&gt; '') then
+  tmp1 := [OriginalTitle] + ' (' + [Year] + ')'
+else
+  tmp1 := [OriginalTitle]
+end;</pre>
+  <p>Placez ensuite dans la zone de texte le code <code>[tmp1]</code> pour utiliser le résultat du script comme
+    étant une nouvelle variable.</p>
+  </li>
+</ul>
+<p>Voici la liste de quelques functions de base disponibles pour les scripts :</p>
+<ul>
+  <li><p><code>Length(&lt;string&gt;)</code>: Retourne la taille de la chaine de caractères.</p></li>
+  <li><p><code>Pos(&lt;substring&gt;, &lt;string&gt;)</code>: Retourne la première position de la sous-chaine dans la chaine (même que la fonction Delphi).</p></li>
+  <li><p><code>LastPos(&lt;substring&gt;, &lt;string&gt;)</code>: Retourne la dernière position de la sous-chaine dans la chaine.</p></li>
+  <li><p><code>Copy(&lt;string&gt;, &lt;from&gt;, &lt;count&gt;)</code>: Retourne une portion de la chaine (même que la fonction Delphi).</p></li>
+  <li><p><code>StringReplace(&lt;s&gt;, &lt;old&gt;, &lt;new&gt;)</code>: Remplace la chaine old par new dans la chaine s (sensible à la casse).</p></li>
+  <li><p><code>StringReplaceIgnoreCase(&lt;s&gt;, &lt;old&gt;, &lt;new&gt;)</code>: Même que StringReplace mais non sensitive à la casse.</p></li>
+  <li><p><code>RegExprSetSubstitute(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;TemplateStr&gt;)</code>: Retourne la chaine TemplateStr avec '$&' ou '$0' remplacé par l'ensemble des occurrences de l'e.r. et '$n' remplacé par l'occurrence de la sous-expression #n.</p></li>
+  <li><p><code>RegExprSetReplace(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;ReplaceStr&gt;)</code>: Retourne la chaine InputStr avec les occurrences de l'e.r. remplacées par la chaine ReplaceStr (avec substitution).</p></li>
+  <li><p><code>RegExprSetReplaceSimple(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;ReplaceStr&gt;)</code>: Retourne la chaine InputStr avec les occurrences de l'e.r. remplacées par la chaine ReplaceStr (sans substitution).</p></li>
+  <li><p><code>UpperCase(&lt;string&gt;)</code>: Convertit toutes les lettres de la chaîne en majuscule.</p></li>
+  <li><p><code>LowerCase(&lt;string&gt;)</code>: Convertit toutes les lettres de la chaîne en minuscule.</p></li>
+  <li><p><code>NameCase(&lt;string&gt;)</code>: Convertit toutes les lettres de la chaîne en minuscule à part la première lettre en majuscule.</p></li>
+
+  <li><p><code>Str(&lt;value&gt;)</code>: Convertit un nombre vers une chaine de caractères.</p></li>
+  <li><p><code>FormatFloat(&lt;formatstr&gt;, &lt;value&gt;)</code>: Convertit une valeur numérique vers une chaine, en utilisant le masque formatstr (même format qu'en Delphi).</p></li>
+  <li><p><code>FormatDateTime(&lt;formatstr&gt;, &lt;value&gt;)</code>: Convertit une date/heure vers une chaine, en utilisant le masque formatstr (même format qu'en Delphi).</p></li>
+  <li><p><code>StrToDate(&lt;string&gt;)</code>: Convertit une chaine vers une date.</p></li>
+  <li><p><code>StrToTime(&lt;string&gt;)</code>: Convertit une chaine vers une heure.</p></li>
+
+  <li><p><code>Int(&lt;value&gt;)</code>: Retourne la partie entière d'un nombre.</p></li>
+  <li><p><code>Frac(&lt;value&gt;)</code>: Retourne la partie fractionnaire d'un nombre.</p></li>
+  <li><p><code>Round(&lt;value&gt;)</code>: Retourne la valeur arrondie d'un nombre.</p></li>
+  <li><p><code>value1 Mod value2</code>: Retourne le reste de la division value1 / value2.</p></li>
+
+  <li><p><code>DATE</code>: Retourne la date courante.</p></li>  
+  <li><p><code>TIME</code>: Retourne l'heure courante.</p></li> 
+  <li><p><code>PAGE#</code>: Retourne le numéro de la page courante du rapport généré.</p></li>
+  <li><p><code>TOTALPAGES</code>: Retourne le nombre total de pages du rapport généré. Pour utiliser cette fonction, le rapport doit avoir l'option "Two pass report" d'activée.</p></li>
+  <li><p><code>RECORD#</code>: Retourne le numéro de l'enregistrement courant du rapport généré.</p></li>
+  <li><p><code>TOTALRECORDS</code>: Retourne le nombre total d'enregistrements du rapport généré. Pour utiliser cette fonction, le rapport doit avoir l'option "Two pass report" d'activée.</p></li>
+  <li><p><code>TEMPLATEPAGE#</code>: Retourne le numéro de la page modèle courante du rapport généré.</p></li>
+  <li><p><code>TOTALTEMPLATEPAGES</code>: Retourne le nombre total de pages modèles du rapport généré.</p></li>
+  <li><p><code>CURRENT#</code>: Retourne le numéro de l'enregistrement courant dans la page modèle courante du rapport généré.</p></li>
+  <li><p><code>TOTALRECORDSTEMPLATEPAGE</code>: Retourne le nombre total d'enregistrements dans la page modèle courante du rapport généré. Pour utiliser cette fonction, le rapport doit avoir l'option "Two pass report" d'activée.</p></li>
+</ul>
+<hr />
+<p>Beaucoup de fonctions du Report Designer ne sont pas utilisées ici, comme par exemple les champs DB, l'aperçu avant
+  impression (Print Preview), les Subreports, ... (pour l'aperçu avant impression, sauvez le modèle et cliquez ensuite
+  sur "Rafraîchir" dans la fenêtre d'impression de Ant Movie Catalog, une fois que le bon modèle est choisi dans la liste
+  bien sûr).</p>
+<p>Si vous avez des problèmes avec des champs de films, assurez-vous qu'ils sont placés sur une bande "Master data".
+  Si des champs tels que "Total pages" ne fonctionnent pas, assurez-vous que l'option "Two pass report" est activée dans File -&gt; Report Options.</p>
+</body>
+</html>

@@ -1,0 +1,46 @@
+package eltreeB3;
+
+{$I 'Design\elpack.inc'}
+{$R *.RES}
+{$R 'Source\Checkctl.res'}
+{$ALIGN ON}
+{$ASSERTIONS OFF}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS OFF}
+{$LOCALSYMBOLS OFF}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $00400000}
+{$DESCRIPTION 'EldoS Visual Components'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl35;
+
+contains
+  ElVCLUtils,
+  ElStrUtils,
+  ElTools,
+  ElContBase,
+  ElList,
+  ElStack,
+  ElHeader,
+  ElTree,
+  ElScrollBar,
+  ElHintWnd;
+
+end.

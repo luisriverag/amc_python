@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="WebSite PRO 4.3" />
+  <title>Ant Movie Catalog Help</title>
+       <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+       <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Zarządzanie polami niestandardowymi</p>
+<hr />
+<p>Za mało pól? Możesz teraz zarządzać (dodawać, modyfikować, usuwać) jednym lub kilkoma własnymi polami w katalogu.</p>
+<p>Niestandardowe pola są widoczne na prawym panelu w drugiej zakładce "Pola niestandardowe".
+  Można <img src="img/fieldadd.png" width="16" height="16" alt="" /> dodawać, <img src="img/fieldmodify.png" width="16" height="16" alt="" /> modyfikować,
+  <img src="img/fielddel.png" width="16" height="16" alt="" /> usuwać, <img src="img/fieldmove.png" width="16" height="16" alt="" /> przesuwać i zmieniać rozmiar
+  pól niestandardowych bezpośrednio na zakładce za pomocą PPM.
+  Można także kliknąć na ikonę <img src="img/fieldmodify.png" width="16" height="16" alt="" /> <b>'Zarządzanie polami'</b> w menu <b>'Narzędzia'</b>.</p>
+<p>W oknie <b>'Menedżera niestandardowych pól'</b> można zarządzać wszystkimi polami.</p>
+<p>Aby dodać nowe pole:</p>
+  <ul>
+    <li>Wybierz pole '--- Nowe pole ---'</li>
+    <li>Wstaw tag pola</li>
+    <li>Kliknij na ikonę <img src="img/fieldadd.png" width="16" height="16" alt="" /> <b>'Dodaj pole'</b></li>
+  </ul>
+<p>Jeśli chcesz zmienić tag pola:</p>
+  <ul>
+    <li>Wstaw nowy tag pola</li>
+    <li>Kliknij na ikonę <img src="img/fieldmodify.png" width="16" height="16" alt="" /> <b>'Zmień tag'</b></li>
+  </ul>
+<p>Tag pola może tylko zawierać znaki 'a'-'z', 'A'-'Z', '0'-'9', '_' i nie może zaczynać się od cyfr '0'-'9'.
+  Również niektóre tagi są zarezerwowane dla pól filmu (Number, OriginalTitle, TranslatedTitle, ...).</p>
+<p>Jeśli pole jest zaznaczone, można określić jego właściwości:
+<ul>
+  <li><b>Nazwa:</b> Nazwa pola.</li>
+  <li><b>Rozszerzenie:</b> Rozszerzenie pola, używane w celu precyzyjnego określenia wartości pola (np. fps, min., MB).</li>
+  <li><b>Typ:</b> Typ pola.</li>
+  <li><b>Domyślna wartość:</b> Wartość do dodania do tego pola, gdy nowy film jest tworzony.</li>
+  <li><b>Importuj info o mediach:</b> Umożliwia zdefiniowanie informacji wyciągnej z mediów dla tego pola podczas importu pliku multimedialnego.</li>
+  <li><b>Wartości wieloczłonowe:</b> Przewiduje możliwość występowania w polu daanych zawierających wiele wartości oddzielonych separatorem (domyślny ',').<br />
+    Podczas grupowania, każda wartość tego pola będzie używana do tworzenia różnych grup, zamiast tworzenia jednej grupy z wszystkich wartości.
+    <ul>
+      <li>Jeśli pole "Usuń nawiasy" jest zaznaczone, wtedy wartości w nawiasach będą usuwane z nazwy grupy (np. Leonardo DiCaprio (Frank Abagnale Jr.) -> Leonardo DiCaprio).</li>
+      <li>Jeśli pole "Ścieżka" jest zaznaczone, wtedy pierwszy nawias przed wartościami, takimi jak (I (...), (II (...), (XV (...), ..., (XXX (...) nie będzie brany pod uwagę.</li>
+    </ul>
+  </li>
+  <li>b>Lista warości:</b> Pozwala na określenie zawartości listy rozwijanej w polach typu "Lista".
+    <ul>
+      <li><b>Automatycznie sortuj elementy:</b> Sortuje zawartość listy alfabetycznie</li>
+      <li><b>Autouzupełnianie podczas wpisywania:</b> Jeśli opcja jest włączona, to podczas wpisywania tekstu w rozwijanej liście w oknie głównym
+             pojawi się "sugestia" z dopasowaną wartością, jak podczas wpisania adresu w przeglądarce internetowej. Funkcja ta może powodować problemy,
+             jeśli masz kilka elementów, które są podobne.</li>
+      <li><b>Użyj wartości z bieżącego katalogu zamiast ze zdefiniowanej listy:</b> Nie używa wartości wpisanych na zdefiniowaną listę,
+             ale przeszukuje w bieżącym katalogu wartości do wyświetlenia w liście rozwijanej.</li>
+      <li><b>Automatyczne dodawanie wartości, które nie są na liście:</b> Jeżeli zawartość pola nie jest na liście tego polu, to wartość zostanie dodana
+             do listy (np. jeśli wpisujesz kraj, który nie jest jeszcze na liście, program automatycznie doda go do listy).</li>
+    </ul>
+  </li>
+</ul></p>
+<p>Możesz usuwać wybrane pola za pomocą ikony <img src="img/fielddel.png" width="16" height="16" alt="" /> <b>'Usuń pole'</b>.
+  Jeśli chcesz usunąć wszystkie pola, kliknij na ikonę <img src="img/new.png" width="16" height="16" alt="" /> <b>'Czyść wszystkie pola'</b>.</p>
+<p>Można eksportować pola aktualnego katalogu klikając na ikonę <img src="img/export.png" width="16" height="16" alt="" /> <b>'Eksportuj pola'</b>.
+  W ten sam sposób można importować pola z eksportowanych pól lub innych katalogów (.amc, .xml), klikając na ikonę <img src="img/import.png" width="16" height="16" alt="" /> <b>'Importuj pola'</b>.</p>  
+</body>
+</html>

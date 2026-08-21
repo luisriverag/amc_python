@@ -1,0 +1,36 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TTypeRec</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_var.html">ifs_var.pas</a><br /><br />
+<b>TTypeRec</b><br /><br />
+TTypeRec is used to store all type definition.<br /><br />
+<b>Type:</b><br />
+PTypeRec = ^TTypeRec;<br />
+TTypeRec = <b>record</b><br />
+&nbsp;&nbsp;Ident: <b>string</b>;<br />
+&nbsp;&nbsp;atypeid: Word;<br />
+&nbsp;&nbsp;ext: Pointer;<br />
+<b>end</b>;<br /><br />
+Ext can be of type:<br />
+CSV_Record: <a href="tifsrecordtype.html">PIFSRecordType</a><br />
+CSV_Array: <a href="ttyperec.html">PTypeRec</a><br />
+CSV_Class: <a href="tifsclasstype.html">PIFSClassType</a><br />
+CSV_ClassRef: <a href="ttyperec.html">PTypeRec</a><br />
+CSV_Property: <a href="ttyperec.html">PTypeRec</a><br />
+CSV_TypeCopy: <a href="ttyperec.html">PTypeRec</a><br />
+CSV_ProcVar: <a href="tifsproctype.html">PIfsProcType</a><br />
+CSV_ExternalObject: <a href="ifs_obj.html">PIFSCustomObjectType</a><br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TIFSClassType</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_var.html">ifs_var.pas</a><br /><br />
+<B>TIFSClassType</B><br /><br />
+TIFSClassType is used to store the definition of classes.<br /><br />
+<B>Type:</B><br /><br />
+PIFSClassType = ^TIFSClassType;<br />
+TIFSClassType = <b>packed record</b><br />
+&nbsp;&nbsp;InheritsFrom: <a href="ttyperec.html">PTypeRec</a>; <i>{ this is nil for TObject }</i><br />
+&nbsp;&nbsp;PropStart, VarNoStart, VarCount: Cardinal;<br />
+&nbsp;&nbsp;Variables: <a href="tifsrecordtype.html">TIFsRecordType</a>;<br />
+&nbsp;&nbsp;Properties: <a href="tiflist.html">TIFList</a>; <i>{ of <a href="tpropertydef.html">PPropertyDef</a> }</i><br />
+&nbsp;&nbsp;Procedures: <a href="tiflist.html">TIfList</a>; <i>{ of <a href="tprocedure.html">PProcedure</a> }</i><br />
+<b>end</b>;<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

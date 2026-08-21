@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Custom fields management</p>
+<hr />
+<p>Not enough fields? You can manage (add, modify, delete) one or several custom fields in current catalog.</p>
+<p>The custom fields are visibles on right panel in the second tab 'Custom fields'.
+  You can <img src="img/fieldadd.png" width="16" height="16" alt="" /> add, <img src="img/fieldmodify.png" width="16" height="16" alt="" /> modify,
+  <img src="img/fielddel.png" width="16" height="16" alt="" /> delete, <img src="img/fieldmove.png" width="16" height="16" alt="" /> move and resize
+  custom fields directly in this tab by a right click on it.
+  You can also click on <img src="img/fieldmodify.png" width="16" height="16" alt="" /> Manage fields icon, in tools menu.</p>
+<p>With custom fields manager window, you can manage all your fields.</p>
+<p>To add a new field:</p>
+  <ul>
+    <li>Select field '--- New Field ---'.</li>
+    <li>Enter a field tag.</li>
+    <li>Click on <img src="img/fieldadd.png" width="16" height="16" alt="" /> Add field icon.</li>
+  </ul>
+<p>If you want to change field tag:</p>
+  <ul>
+    <li>Enter a new field tag.</li>
+    <li>Click on <img src="img/fieldmodify.png" width="16" height="16" alt="" /> Change tag icon.</li>
+  </ul>
+<p>The field tag can only containts 'a'-'z', 'A'-'Z', '0'-'9', '_' characteres and can not start with a digit '0'-'9'.
+  Also, some tags are reserved for movie fields (Number, OriginalTitle, TranslatedTitle, ...).</p>
+<p>When a field is selected, you can specify its properties:
+<ul>
+  <li><b>Name:</b> The field name.</li>
+  <li><b>Extension:</b> The field extension, used to give a precision on field value (e.g. fps, min., MB).</li>
+  <li><b>Type:</b> The field type.</li>
+  <li><b>Default value:</b> Value to add to this field when a new movie is created.</li>
+  <li><b>Import media info:</b> Allows you to define information to extract from media for this field when media file importation.</li>
+  <li><b>Multiples values:</b> Provides the possibility for a field to contain multiple values separated by a separator (',' by default).<br />
+    When grouping on this field, each value will be used to create different groups rather than creating a single group with all values.
+    <ul>
+      <li>If the checkbox "Del. parentheses" is checked, then the values in parentheses will be removed for the group name (e.g. Leonardo DiCaprio (Frank Abagnale Jr.) -> Leonardo DiCaprio).</li>
+      <li>If the checkbox "Patch" is checked, then the first parenthesis before values such as (I (...), (II (...), (XV (...), ..., (XXX (...) will be not take into account.</li>
+    </ul>
+  </li>
+  <li><b>List values:</b> Allows you to specify the content of the drop-down list for a field type 'List'.
+    <ul>
+      <li><b>Auto-sort items:</b> Sort list contents alphabetically</li>
+      <li><b>Auto-complete while typing:</b> If enabled, when you type text in a drop-down
+        list in the main window there will be a "suggestion" of a matching
+        value, like when you type an address in a web browser. This feature may
+        cause problems if you have several items that are similar.</li>
+      <li><b>Use values of current catalog instead of predefined list:</b> Does not use
+        the values entered in the predefined list, but searchs in the current catalog for
+        values to display in the drop-down list.</li>
+      <li><b>Automatically add values that are not in list:</b> If the contents of a field is not
+        in the list of this field, the value will be added to the list (e.g. if
+        you enter a country that is not yet in the list, the program will add it
+        to the list).</li>
+    </ul>
+  </li>
+</ul></p>
+<p>You can delete selected field by clicking on <img src="img/fielddel.png" width="16" height="16" alt="" /> Delete field icon.
+  You can also delete all fields by clicking on <img src="img/new.png" width="16" height="16" alt="" /> Clear all fields icon.</p>
+<p>You can export fields of current catalog by clicking on <img src="img/export.png" width="16" height="16" alt="" /> Export fields icon.
+  In the same way, you can import fields from exported fields or other catalog (.amc, .xml) by clicking on <img src="img/import.png" width="16" height="16" alt="" /> Import fields icon.</p>  
+<p>About the moving of fields, by pressing the key CTRL, you can move all the fields located below or at the same level of the selected field.
+   This can be very useful to insert a new field between existing fields when there are already a lot of fields.</p> 
+</body>
+</html>

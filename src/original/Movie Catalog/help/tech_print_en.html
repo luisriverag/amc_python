@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Reports (templates for printing) creation</p>
+<hr />
+<p>To launch the Report Designer, click on the "Open report designer" button in the Print window. You can
+  also use the shorcut that was added in the Start menu, or launch AMCReport.exe that is located in the
+  same folder than Ant Movie Catalog.</p>
+<p>This Report Designer is the FreeReport Designer, and it was nearly not modified (it is rather complex,
+  so I'll probably leave it like it is now).</p>
+<p>This page will show the different steps of the creation of a report.</p>
+<hr />
+<p class="subtitle">Paper size selection</p>
+<p>Go to File -&gt; Page Options to select the paper size. Usually it will be A4 (or Letter). You can also
+  select Lanscape orientation instead of Portrait if you want. In this window, in the "Options" tab, you
+  can also specify the number of columns that you want on your page.</p>
+<p class="subtitle">Bands</p>
+<p>To be recognized, the fields have to be on "Bands". To put a band on the page, click on the Band icon
+  <img src="img/print_band.png" alt="band" /> and then click on the page, where you can to place this band.
+  Then you can select which band type you want to place:</p>
+<p><img src="img/print_bandtype.png" alt="Band type" /></p>
+<p>Some types will never be used here. Those that you may want to use are:</p>
+<ul>
+  <li>Report title &amp; Report summary: They only appear on the first page</li>
+  <li>Page header &amp; Page footer: Header and Footer of each page</li>
+  <li>Master data: This is the most important band. It is the one that will be repeated for each movie</li>
+</ul>
+<p>Select "Master data" and click "OK". Another window asks you to select the source, leave the default
+  choice ("None") and click "OK".</p>
+<p class="subtite">Text items</p>
+<p>To put a text item on the Master data band, select the Rectangle object icon
+  <img src="img/print_rectangle.png" alt="rectangle" /> and place it on the band (warning: do not place it
+  outside the band, or it may not appear on the final report).</p>
+<p>The Text editor is displayed:</p>
+<p><img src="img/print_texteditor.png" alt="Text editor" /></p>
+<p>You can enter the text that you want here, then click "OK". To get this window again, simply double-click
+  on a text object.</p>
+<p>In the contextual menu (right-click) of these rectangle objects, there are three options:</p>
+<ul>
+  <li>Stretched: If enabled, the last field's height will be increased if necessary. This does not seem to
+    work for other fields</li>
+  <li>Word wrap: Wraps lines if larger than field</li>
+  <li>Autosize: Increases field's width if necessary</li>
+</ul>
+<p class="subtitle">Variables (movie fields and others)</p>
+<p>To put a movie field, simply add a text item (Rectangle object). In its properties, specify the field name
+  between square brackets [ ]. The list of field names is available from the "Variables" button in the Text editor window:</p>
+<p><img src="img/print_variables.png" alt="Variables" /></p>
+<p>Concerning custom fields, the field name is defined by custom field tag between square brackets [ ].</p>
+<p>Concerning extra fields, the field name is defined by:</p>
+<ul>
+  <li>Extra field name + # + extra tag between square brackets [ ] (e.g. [ETitle#Trailer])</li>
+  <br /><b>or</b>
+  <li>Extra field name + ## + extra position (or number) + # + extra category (optional) + # + extra checkbox value (True/False optional)
+    between square brackets [ ] (e.g. [ETitle##1#Actors#True] or [ETitle##1] where 1 is extra number in last example).
+    Use print template "DVD + Extras" with catalog "Sample_4.2.0.amc" to see an example.</li>
+</ul>
+<p>The field names can also be printed using variables. For that, you have to put the "label:" prefix in front
+  of the field name, the whole name+prefix being still between square brackets. This is useful to make multilingual
+  reports (that follow the language used in the program).</p>
+<p>In the drop-down list you can also select "Other" to see special fields such as Page number, date, etc...</p>
+<p>You can put normal text and variables in the same text object.</p>
+<p class="subtitle">Graphics</p>
+<p>To put a picture, use the Insert picture icon <img src="img/print_picture.png" alt="picture" />. The Picture window looks like that:</p>
+<p><img src="img/print_picturewin.png" alt="Picture" /></p>
+<p>If you want to specify that this picture should display current movie's picture, click on the "Memo" button and enter "[Picture]"
+  (or take it from the Variables list).</p>
+<p>If you want to specify that this picture should display an extra picture of current movie, click on the "Memo" button and enter
+  "[EPicture#Tag]" or "[EPicture##Pos#Category#Checked]" (or take it from the Variables list) and replace Tag, Pos, Category and Checked
+  by values of desired extra (e.g. [EPicture#Trailer] or [EPicture##1#Actors#True] or [EPicture##1]).
+  Use print template "DVD + Extras" with catalog "Sample_4.2.0.amc" to see an example.</p>
+<p>In the contextual menu of the picture object, there are three options:</p>
+<ul>
+  <li>Stretched: Resize the picture to fit in the object</li>
+  <li>Center picture</li>
+  <li>Keep aspect ratio</li>
+</ul>
+<p>You can also draw lines, with the Draw line icon <img src="img/print_lines.png" alt="lines" />.</p>
+<p class="subtitle">Scripts</p>
+<p>In the window used for editing text items and pictures, a "Script" option can be checked.
+  Then, the bottom part of the window allows to enter a script. The scripts used here are not related
+  to those used by Ant Movie Catalog, except that the language used is also based on Pascal. Here are
+  few examples:</p>
+<ul>
+  <li><p>If you want an image to appear only for Action movies, put the following code in the "Script" part of image's memo:</p>
+<pre>begin
+  Visible := [Category] = 'Action';
+end;</pre>
+  </li>
+  <li><p>If you want to put the year between parenthesis after the title only if the year is specified for the
+    movie (to prevent empty parenthesis), put the following code in the "Script" part of a text item:</p>
+<pre>begin
+if ([Year] &lt;&gt; '') then
+  tmp1 := [OriginalTitle] + ' (' + [Year] + ')'
+else
+  tmp1 := [OriginalTitle]
+end;</pre>
+  <p>Then place in the text area the code <code>[tmp1]</code> to use the script result as a new variable.</p>
+  </li>
+</ul>
+<p>Here is a list of some basic functions available for scripts:</p>
+<ul>
+  <li><p><code>Length(&lt;string&gt;)</code>: Returns the length of a string.</p></li>
+  <li><p><code>Pos(&lt;substring&gt;, &lt;string&gt;)</code>: Returns the first position of a substring in string (same as Delphi function).</p></li>
+  <li><p><code>LastPos(&lt;substring&gt;, &lt;string&gt;)</code>: Returns the last position of a substring in string.</p></li>
+  <li><p><code>Copy(&lt;string&gt;, &lt;from&gt;, &lt;count&gt;)</code>: Returns a portion of a string (same as Delphi function).</p></li>
+  <li><p><code>StringReplace(&lt;s&gt;, &lt;old&gt;, &lt;new&gt;)</code>: Replaces old by new string in string s (case sensitive).</p></li>
+  <li><p><code>StringReplaceIgnoreCase(&lt;s&gt;, &lt;old&gt;, &lt;new&gt;)</code>: Same as StringReplace but not case sensitive.</p></li>
+  <li><p><code>RegExprSetSubstitute(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;TemplateStr&gt;)</code>: Returns string TemplateStr with '$&' or '$0' replaced by whole r.e. occurence and '$n' replaced by occurence of subexpression #n.</p></li>
+  <li><p><code>RegExprSetReplace(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;ReplaceStr&gt;)</code>: Returns string InputStr with r.e. occurencies replaced by string ReplaceStr (with substitution).</p></li>
+  <li><p><code>RegExprSetReplaceSimple(&lt;ExprStr&gt;, &lt;InputStr&gt;, &lt;ReplaceStr&gt;)</code>: Returns string InputStr with r.e. occurencies replaced by string ReplaceStr (without substitution).</p></li>
+  <li><p><code>UpperCase(&lt;string&gt;)</code>: Changes all the letters of a string to uppercase.</p></li>
+  <li><p><code>LowerCase(&lt;string&gt;)</code>: Changes all the letters of a string to lowercase.</p></li>
+  <li><p><code>NameCase(&lt;string&gt;)</code>: Changes all the letters of a string to lowercase except first letter in uppercase.</p></li>
+
+  <li><p><code>Str(&lt;value&gt;)</code>: Converts a number into a string.</p></li>
+  <li><p><code>FormatFloat(&lt;formatstr&gt;, &lt;value&gt;)</code>: Converts a numerical value to a string, making use of mask in formatstr (same format as in Delphi).</p></li>
+  <li><p><code>FormatDateTime(&lt;formatstr&gt;, &lt;value&gt;)</code>: Converts a date/time to a string, making use of mask in formatstr (same format as in Delphi).</p></li>
+  <li><p><code>StrToDate(&lt;string&gt;)</code>: Converts a string to date.</p></li>
+  <li><p><code>StrToTime(&lt;string&gt;)</code>: Converts a string to time.</p></li>
+
+  <li><p><code>Int(&lt;value&gt;)</code>: Returns whole part of a number.</p></li>
+  <li><p><code>Frac(&lt;value&gt;)</code>: Returns fractional part of a number.</p></li>
+  <li><p><code>Round(&lt;value&gt;)</code>: Returns rounded value of a number.</p></li>
+  <li><p><code>value1 Mod value2</code>: Returns remainder of division value1 / value2.</p></li>
+
+  <li><p><code>DATE</code>: Returns current date.</p></li>  
+  <li><p><code>TIME</code>: Returns current time.</p></li> 
+  <li><p><code>PAGE#</code>: Returns current page number in formed report.</p></li>
+  <li><p><code>TOTALPAGES</code>: Returns total amount of pages in formed report. For use of this function a report must have option "Two pass report" activated.</p></li>
+  <li><p><code>RECORD#</code>: Returns current record number in formed report.</p></li>
+  <li><p><code>TOTALRECORDS</code>: Returns total amount of records in formed report. For use of this function a report must have option "Two pass report" activated.</p></li>
+  <li><p><code>TEMPLATEPAGE#</code>: Returns current template page number in formed report.</p></li>
+  <li><p><code>TOTALTEMPLATEPAGES</code>: Returns total amount of template pages in formed report.</p></li>
+  <li><p><code>CURRENT#</code>: Returns current record number in current template page of formed report.</p></li>
+  <li><p><code>TOTALRECORDSTEMPLATEPAGE</code>: Returns total amount of records in current template page of formed report. For use of this function a report must have option "Two pass report" activated.</p></li>
+</ul>
+<hr />
+<p>Lots of functions of the Report Designer are not used here, such as the DB fields, the print preview, subreports, ...
+  (for the print preview, save the template and then click "Refresh" in Ant Movie Catalog's script window, once
+  the good template is selected in the list of course).</p>
+<p>If you have problems with movie fields, be sure that they are on a "Master data" band.
+  If fields such as "Total pages" do not work, be sure that the "Two pass report" option is checked in File -&gt; Report Options.</p>
+</body>
+</html>

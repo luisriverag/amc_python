@@ -1,0 +1,444 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Préférences</p>
+<hr />
+<ul id="options">
+  <li><a href="#display">Affichage</a>
+  <ul>
+    <li><a href="#customizetoolbar">Barre d'outils</a></li>
+  </ul></li>
+  <li><a href="#files">Fichiers</a></li>
+  <li><a href="#movielist">Liste de films</a>
+  <ul>
+    <li><a href="#formattedtitle">Format des titres</a></li>
+    <li><a href="#grouping">Groupage</a></li>
+  </ul></li>
+  <li><a href="#extralist">Liste des extras</a>
+  <li><a href="#movieinfo">Infos des films / extras</a>
+  <ul>
+    <li><a href="#dropdown">Listes déroulantes</a></li>
+    <li><a href="#mediafilesimport">Importation de vidéos</a></li>
+    <li><a href="#pictureimport">Importation d'images</a></li>
+    <li><a href="#searchinternet">Recherche sur internet</a></li>
+  </ul></li>
+  <li><a href="#scripting">Scripting</a></li>
+  <li><a href="#export">Exportation</a></li>
+  <li><a href="#folders">Dossiers</a></li>
+</ul>
+<hr />
+<p class="subtitle" id="display">Affichage</p>
+<blockquote>
+  <p>Icônes : Permet de sélectionner une collection d'icônes
+    qui apparaissent dans les barres d'outils. Ces collections sont des simples
+    fichiers bitmap (".bmp") stockés dans le dossier "Toolbars".
+    Quelques collections sont fournies avec le programme.</p>
+  <p>Coloration : Spécifie comment les icônes des barres d'outils
+    doivent apparaître lorsque le curseur de la souris n'est pas au-dessus.
+    Les valeurs disponibles sont "Automatique", "Grisées quand inactives" (style
+    Windows 98/2000), "éclaircies quand inactives" (style Office/Windows
+    XP), "Foncées quand inactives" ou "Toujours colorées".</p>
+  <p>Style Office XP : Donne aux menus et barres d'outils le même aspect que dans
+    Microsoft Office XP.</p>
+  <p>Images dans les menus : Afficher des images à gauche des éléments
+    des menus. Ces images sont les mêmes que celles utilisées dans
+    les barres d'outils.</p>
+  <p>Bordure légère pour la liste de films, les informations et
+    le cadre d'image : Lorsque cette option est activée, les éléments
+    spécifiés (de la fenêtre principale) apparaissent avec
+    un bord "moins enfoncé" que par défaut. Cela peut donner mieux si vous utilisez
+    Windows XP avec un thème d'affichage.</p>
+  <p>Afficher le logo : Le logo de l'application (splash screen) est affiché
+    au démarrage.</p>
+</blockquote>
+<p class="subtitle" id="customizetoolbar">Barre d'outils</p>
+<blockquote>
+  <p>Vous pouvez sélectionner quelles icônes doivent être affichées
+    dans la barre d'outils principale. Consultez <a href="toolbar_fr.html">cette
+    page</a> pour plus d'information sur chaque icône.</p>
+</blockquote>
+<p class="subtitle" id="files">Fichiers</p>
+<blockquote>
+  <p>Toujours créer une copie de secours : Chaque fois que le catalogue
+    est sauvé, l'ancien est renommé en ".bak".</p>
+  <p>Au démarrage, ouvrir le fichier suivant ... : Permet de spécifier
+    un fichier à ouvrir plutôt que d'en créer un nouveau.
+    L'option "Réouvrir le dernier fichier utilisé" ouvre
+    le dernier fichier utilisé plutôt que le fichier spécifié.</p>
+  <p>Nombre de fichiers récents dans le menu : Les derniers fichiers utilisés
+    apparaissent dans le menu "Fichier", au-dessus de la commande "Quitter",
+    pour pouvoir réouvrir ces fichiers rapidement. Vous pouvez sélectionner
+    le nombre de fichiers à y afficher.</p>
+  <p>Réparer les associations de fichiers : Réécrit dans
+    la base de registres les informations permettant d'ouvrir les fichiers .amc
+    avec ANSYsoft Movie Catalog en double-cliquant dessus.</p>
+  <p>Importer les champs personnalisés d'un fichier pour les nouveaux catalogues : Lors de la création
+    d'un nouveau catalogue, les champs personnalisés du fichier sélectionné seront ajoutés automatiquement.</p>
+  <p>Stocker l'historique des prêts : Enregistre toutes les entrées/sorties
+    de films dans un fichier texte avec des colonnes délimitées par des
+    tabulations (que vous pouvez donc ouvrir avec des programmes tels que Microsoft Excel).
+    Par défaut le fichier est stocké dans le dossier de l'application, sous le
+    nom "Loans history.csv". Le même fichier est partagé par toutes les instances
+    de Ant Movie Catalog, donc vous pouvez rencontrer des problèmes si vous utilisez
+    la fenêtre de gestion des prêtes dans plusieurs instances (cela
+    sera corrigé plus tard).</p>
+  <p>Template HTML: Fichier du template HTML utilisé pour l'affichage HTML.
+    Par défaut le fichier est stocké dans le dossier des templates, sous le nom "HTMLDefaultTemplate.html".
+    Vous pouvez changer le fichier avec un autre template HTML.
+    Consultez <a href="export_html_fr.html">cette page</a> pour plus d'informations sur les templates HTML.</p>
+</blockquote>
+<p class="subtitle" id="movielist">Liste de films</p>
+<blockquote>
+  <p>Cases à cocher : Si cette option est activée, des cases à
+    cocher sont affichées dans la liste de films dans la fenêtre principale
+    (Clic gauche pour cocher/décocher, droit pour changer l'étiquette couleur du film).
+    L'utilisation de cette case à cocher est libre : elles peuvent par
+    exemple servir à indiquer les films vus, les films déjà acquis, ou n'importe quoi d'autre.
+    Ces cases à cocher peuvent servir de filtre pour l'exportation, l'impression et l'exécution
+    de scripts.</p>
+  <p>Cases à cocher dans l'affichage en miniatures : Si cette option est activée, des cases à
+    cocher sont affichées sous les miniatures de films dans la fenêtre
+    principale lorsque l'affiche en miniatures est sélectionné (Clic gauche pour cocher/décocher, droit pour changer l'étiquette couleur du film).</p>
+  <p>Cases à cocher avec couleur de fond : Si cette option est activée, les cases à cocher s'affiche avec une couleur de fond associée à l'étiquette couleur du film.</p>
+  <p>Lignes avec couleur de fond : Si cette option est activé, les lignes de la liste s'affiche avec une couleur de fond associée à l'étiquette couleur du film.</p>
+  <p>Soulignement lors du passage de la souris ("Hot track") : Souligne
+    les éléments des listes lorsque le curseur passe dessus.</p>
+  <p>Barres de défilement améliorées : Utilise des barres de défilement améliorées pour
+    La fenêtre principale et la fenêtre de gestion des prêts.</p>
+  <p>Colonne "Numéro de film" : Affiche ou non la colonne contenant les numéros de films à gauche des titres
+    dans la liste principales. Si vous ne vous souciez pas des numéros, cacher cette colonne vous permet
+    de gagner de la place à l'écran.</p>
+  <p>Nombre de caractère par section en mode tableau: Défini le nombre de caractères à afficher par section en mode tableau
+  (Les sections Titre formaté, Titre Original et Titre traduit ne sont pas affectées).
+  Par défaut, le nombre de caractères est défini à 32.
+  Pour supprimer cette limitation sur l'ensemble des sections, mettez 0 mais l'affichage en mode tableau peut être fortement ralenti.</p>
+  <p>Etirer la liste automatiquement lors de l'affichage en mode tableau: Si cette option est activée, la liste est étirée automatiquement lorsque vous sélectionnez/désélectionnez l'affichage en mode tableau.</p>
+  <p>Etirer la liste automatiquement lors de l'affichage en miniatures: Si cette option est activée, la liste est étirée automatiquement lorsque vous sélectionnez/désélectionnez l'affichage en miniatures.</p>
+  <p>Confirmer la suppression : Demande confirmation avant de supprimer un film
+    de la liste.</p>
+  <p>Confirmer l'annulation : Demande confirmation avant d'annuler les changements
+    apportés à un film.</p>
+  <p>Touches de raccourci, Film précédent/suivant : Permet de définir
+    une touche de raccourci utilisée pour passer au film précédent
+    ou suivant dans la liste sans que le champ actif ne perde le focus. Ceci est
+    utile lors de la modification d'un champ dans plusieurs films, pour ne pas
+    devoir utiliser la souris pour sélectionner le film suivant. Par défaut
+    les touches sont Ctrl + Page Up/Down, ce qui équivaut à Ctrl
+    + 9/3 du pavé numérique.</p>
+  <p class="subtitle" id="formattedtitle">Format des titres</p>
+  <blockquote>
+    <p>Titre à afficher :</p>
+    <ul>
+      <li>Titre original : Affiche le titre original uniquement.</li>
+      <li>Titre traduit : Affiche le titre traduit s'il est disponible, sinon le
+        titre original est utilisé.</li>
+      <li>Titre original (Titre traduit) : Affiche d'abord le titre original et
+        ensuite le titre traduit s'il est disponible.</li>
+      <li>Titre traduit (Titre original) : Affiche d'abord le titre traduit et ensuite
+        le titre original. Si le titre traduit n'est pas disponible, seul le titre
+        original est affiché.</li>
+      <li>Label : Affiche le contenu du champ "Label du support".</li>
+    </ul>
+    <p>Placer les préfixes suivant à la fin du titre : Vous pouvez
+      spécifier ici une liste de préfixes qui seront placés
+      à la fin du nom du film (ex. "The Matrix" deviendra "Matrix,
+      The"). Par défaut la liste contient les préfixes anglais
+      et fran&ccedil;ais.<br />
+      Entrez simplement les préfixes, un par ligne, sans espaces ni apostrophes
+      (un préfixe sera reconnu si, dans le titre du film, il est suivi par
+      un espace ou une apostrophe).<br />
+      Je n'inclurai pas d'autres langues pour le moment, car cela peut cause des
+      problèmes, ex. "Die" en allemand ("Le") provoquera
+      l'affichage de "Hard, Die" pour le film "Die Hard", ce
+      qui est incorrect. Mais vous pouvez changer les préfixes vous-mêmes
+      pour les ajuster à votre langue.</p>
+  </blockquote>
+  <p class="subtitle" id="grouping">Groupage</p>
+  <blockquote>
+    <p>Afficher le nombre de films de chaque groupe : En mode "Groupé", affiche le nombre de films de chaque groupe près du nom du groupe.</p>
+    <p>Arborescence ouverte par défaut : Lorsque la fonction "Affichage groupé..." est active, ouvre tous les groupes
+      lors du rafraîchissement de la liste.</p>
+    <p>Faire des groupes avec les valeurs des champs multiples séparées par : Défini le séparateur qui sépare les différentes valeurs d'un champ multiple
+    (Type de support, Origine, Réalisateur, Producteur, Scénariste, Compositeur, Acteurs, Pays, Catégorie, Format vidéo, Format audio, Langues, Sous-titres).
+    Par exemple, le champs catégorie avec la valeur "Action, Thriller" appartiendra aux groupes "Action" et "Thriller" si le séparateur est ici ",".
+    Cette option peut être activée ou non en cochant la case associée.</p>
+    <p>Supprime les valeurs entre parenthèses de tous les champs multiples : Cocher cette option pour supprimer les valeurs entre parenthèses de tous les champs multiples.
+    Les valeurs entre parenthèses du champ acteur sont déjà retirées par défaut.</p>
+    <p>Ajoute un patch pour ignorer les parenthèses des valeurs (I, (II, (II, (IV... (XXX : Cocher cette option pour appliquer le patch (Coché par défaut).</p>
+    <p>Tri les groupes en fonction du nombre de films par groupe : Cocher cette option pour trier les groupes en fonction du nombre de films par groupe plutôt que par ordre alphabétique.</p>
+    <p>Emplacement : Spécifier si les groupes doivent être placés avant ou après les groupes communs (Valeur vide "&lt; aucun &gt;", Erreur de parenthèses "&lt; ?()? &gt;").</p>
+    <p>Mettre dans un groupe commun les films qui auraient été seuls dans leur groupe : Crée un groupe "&lt; autres &gt;" avec les films qui auraient été seuls dans leur groupe.</p>
+  </blockquote>
+</blockquote>
+<p class="subtitle" id="extralist">Liste des extras</p>
+<blockquote>
+  <p>Cases à cocher : Si cette option est activée, des cases à
+    cocher sont affichées dans la liste des extras dans la fenêtre principale.
+    L'utilisation de cette case à cocher est libre. Elle peuvent servir de filtre pour l'exportation HTML et l'exécution de scripts.</p>
+  <p>Afficher le numéro de l'extra avec le titre de l'extra: Si cette option est activée, le numéro de l'extra sera ajouté devant le titre de l'extra lors de l'affichage du titre dans la liste des extras.</p>
+  <p>Confirmer la suppression : Demande confirmation avant de supprimer un ou plusieurs extras de la liste.</p>
+  <p>Afficher le nombre d'extras de chaque groupe : En mode "Groupé", affiche le nombre d'extras de chaque groupe près du nom du groupe.</p>
+  <p>Arborescence ouverte par défaut : Lorsque la fonction "Affichage groupé..." est active, ouvre tous les groupes lors du rafraîchissement de la liste.</p>
+  <p>Faire des groupes avec les valeurs des champs multiples séparées par : Défini le séparateur qui sépare les différentes valeurs d'un champ multiple (Catégorie).
+  Par exemple, le champs catégorie avec la valeur "Trailer, Vidéo" appartiendra aux groupes "Trailer" et "Vidéo" si le séparateur est ici ",".
+  Cette option peut être activée ou non en cochant la case associée.</p>
+  <p>Supprime les valeurs entre parenthèses des champs multiples : Cocher cette option pour supprimer les valeurs entre parenthèses des champs multiples.</p>
+  <p>Tri les groupes en fonction du nombre de films par groupe : Cocher cette option pour trier les groupes en fonction du nombre de films par groupe plutôt que par ordre alphabétique.</p>
+  <p>Emplacement : Spécifier si les groupes doivent être placés avant ou après les groupes communs (Valeur vide "&lt; aucun &gt;", Erreur de parenthèses "&lt; ?()? &gt;").</p>
+</blockquote>
+<p class="subtitle" id="movieinfo">Infos des films / extras</p>
+<blockquote>
+  <p>Demander le numéro : Lors de l'ajout d'un film, une fenêtre
+    vous permettra de choisir le numéro du nouveau film. Si l'option est
+    désactivée le numéro du film sera la valeur par défaut,
+    c'est-à-dire le plus haut numéro + 1, sauf si vous changez l'option
+    suivante :</p>
+  <p>Utiliser le premier numéro disponible ... : Utilisera le premier numéro
+    disponible plutôt que le plus haut numéro + 1.</p>
+  <p>Ouvrir la fenêtre "Extraction d'informations ..." : Lors
+    de l'ajout d'un film, la fenêtre de script ou d'importation de fichiers
+    s'ouvrira.</p>
+  <p>Modifier les valeurs par défaut : Ouvre une autre fenêtre, permettant de modifier les
+    valeurs qui sont pré-remplies lors de l'ajout d'un nouveau film dans la liste.</p>
+  <p>Modifier les valeurs par défaut d'un extra : Ouvre une autre fenêtre, permettant de modifier les
+    valeurs qui sont pré-remplies lors de l'ajout d'un nouveau extra dans la liste.</p>
+  <p>Note - Ne pas afficher les décimales : Lorsque cette option est activée, la note 
+    est affichée comme un nombre entier comme dans les anciennes versions.</p>
+  <p>Couleur de fond (Image): Permet de sélectionner quelle couleur devra être
+    utilisée pour le fond de la fenêtre d'image. Par exemple, un
+    fond blanc peut donner mieux si les images utilisées sont prévues
+    pour être utilisées sur une page web à fond blanc. La
+    valeur par défaut est BtnFace, qui correspond à la couleur des
+    boîtes de dialogues et des boutons dans Windows.</p>
+  <p>Adapter la taille de l'image à la fenêtre : Agrandit/Réduit
+    l'image pour éviter d'avoir des barres de défilement dans la
+    fenêtre d'image.</p>
+  <p>Couleur de fond (Cadre champs film): Permet de sélectionner quelle couleur devra être
+    utilisée pour le fond du cadre des champs film et personnalisés.
+    La valeur par défaut est clWindow (blanc) avec thèmes et BtnFace (gris clair) sans thèmes.</p>
+  <p class="subtitle" id="dropdown">Listes déroulantes</p>
+  <blockquote>
+    <p>Mêmes options pour toutes les listes : Conserve les options pour toutes les listes.</p>
+    <p>Tri automatique : Trie par ordre alphabétique le contenu des listes</p>
+    <p>Auto-complétion lors de la frappe : Si activé, lorsque vous
+      tapez du texte dans une liste déroulante dans la fenêtre principale
+      il y aura une "suggestion" de la valeur dont le début correspond
+      à ce que vous avez tapé, comme lorsque vous tapez une adresse
+      dans un navigateur web. Cela peut causer des problèmes si vous avez
+      plusieurs éléments similaires.</p>
+    <p>Utiliser les valeurs du catalogue courant plutôt que les listes prédéfinies :
+      N'utilise pas les valeurs entrées pour les listes, mais cherche dans le catalogue
+      courant les valeurs à afficher dans les listes.</p>
+    <p>Ajouter automatiquement les valeurs qui ne sont pas dans la liste : Si
+      le contenu d'un champ n'est pas dans la liste déroulante de ce champ,
+      la valeur sera ajoutée à la liste (par exemple si vous entrez
+      un pays qui n'est pas dans la liste le programme va l'ajouter à la
+      liste).</p>
+    <p>Modifier le contenu : Ceci vous permet de modifier le contenu des listes.</p>
+  </blockquote>
+  <p class="subtitle" id="mediafilesimport">Importation de vidéos</p>
+  <blockquote>
+    <p>Extraction d'infos de fichiers : Spécifie les actions à effectuer
+      lorsqu'un fichier vidéo est déposé sur la fenêtre principale (par
+      exemple à partir de l'Explorateur Windows) or lorsqu'un utilisateur
+      demande à importer les informations de fichiers (depuis le menu).</p>
+    <ul>
+      <li>Importer le label du support : Prend le nom de volume du disque sur lequel est
+        le fichier et le copie dans le champ "Label du support".</li>
+      <li>Importer le nom de fichier comme titre : Copie le nom de fichier dans le champ
+        "Titre original". Il est aussi possible de définir les paramètres de filtrage du
+        nom de fichier en cliquant sur le bouton 'Filtrer le nom de fichier'.</li>
+      <li>Importer le chemin complet comme chemin de fichier : Place le nom de fichier ainsi que son chemin
+        complet dans le champ du chemin de fichier.</li>
+      <li>Importer le chemin complet comme adresse : Place le nom de fichier ainsi que son chemin
+        complet dans le champ d'adresse.</li>
+      <li>Importer la taille : Lit la taille des fichiers sélectionnés. La somme peut être calculée
+        ou simplement affichée avec un "+" entre chaque taille, selon l'option choisie.</li>
+      <li>Importer la durée : Lit la durée du fichier (en minutes) et la place dans le champ "Durée".</li>
+      <li>Permettre de vider les champs ... : Permet de vider les champs ou non lorsque la nouvelle valeur à importer est vide.</li>
+      <li>Utiliser le module interne ... : Par défaut, MediaInfo.dll est utilisé pour tous les types
+        de fichiers vidéo à part les AVI, parce que Ant Movie Catalog a son propre module pour cela
+        et qu'il est plus rapide (mais moins précis).</li>
+      <li>Extensions: Ici vus pouvez ajouter, supprimer, modifier les extensions des fichiers vidéos pris en compte.
+        Ceci peut être très utile pour ajouter d'autres formats vidéos.</li>
+    </ul>
+    <p>Infos à prendre dans les flux vidéo &amp; audio : Place ces infos dans les champs du même nom.
+      Les noms des codecs sont définis dans le fichier "Codecs.ini".</p>
+  </blockquote>
+  <p class="subtitle" id="pictureimport">Importation d'images</p>
+  <blockquote>
+    <p>Importation d'images de l'extérieur : Lorsque vous importez une image, vous pouvez l'associer au film ou à l'extra de
+      plusieurs manières :</p>
+    <ul>
+      <li>Stocker l'image dans le catalogue : Conserve le fichier d'image dans le catalogue ; cela ne fonctionne
+        que pour les catalogues au format ".amc" et non ".xml". Selon la taille des images, cela peut rendre
+        votre catalogue assez volumineux et donc plus gourmand en mémoire et plus lent à charger. Avec de grandes
+        images cette option n'est donc pas recommandée.</li>
+      <li>Copier l'image vers le dossier du catalogue, et la lier à celui-ci : Copie le fichier d'image dans le dossier
+        où est situé le catalogue et crée ensuite un lien relatif vers l'image (ne stocke donc que le nom de l'image).</li>
+      <li>Copier l'image vers le dossier images du catalogue, et la lier à celui-ci : Copie le fichier d'image dans le dossier
+        images (nom du catalogue + '_pics') où est situé le catalogue et crée ensuite un lien relatif vers l'image
+        (ne stocke donc que le nom du dossier image et le nom de l'image).</li>
+      <li>Seulement lier l'image : Ne stocke que le chemin vers l'image dans le catalogue. L'option "Créer un chemin relatif"
+        peut être utilisée si le dossier du catalogue et celui des images sont assez proches, par exemple si le catalogue est dans
+        "mes documents\catalogues\films.amc" et que les images sont dans "mes documents\mes images\affiches". Cela vous permet
+        de ne pas être dépendant de l'endroit où sont situés les dossiers "catalogues" et "mes images". Par contre,
+        si vous voulez pouvoir déplacer le catalogue sans devoir déplacer les images, il vaut mieux ne pas utiliser
+        les chemins relatifs.</li>
+    </ul>
+    <p>Les mêmes options sont affichées dans la fenêtre de sélection d'image.</p>
+    <p>La troisième option n'est pas disponible pour l'instant pour les scripts car seuls les liens "locaux"
+      sont supportés (par opposition aux liens "internet").</p>
+    <p>Les images stockées dans le même dossier que le catalogue sont supposées "appartenir" au catalogue
+      et sont donc supprimées lorsqu'elles ne sont plus utilisées par un film (par exemple si
+      vous associez une nouvelle image à un film, l'ancienne n'est plus nécessaire). Si vous
+      voulez éviter cela, je vous conseiller de placer manuellement les images par exemple dans un
+      sous-dossier "Images" lorsque vous voulez les ajouter au catalogue, et d'ensuite utiliser les liens
+      relatifs afin que le catalogue et ses images restent "mobiles".</p>
+  </blockquote>
+  <p class="subtitle" id="searchinternet">Recherche sur internet</p>
+  <blockquote>
+    <p>Ceci vous permet de personnaliser le menu "Rechercher sur internet".
+      Il contient les adresses de sites web. Lorsque vous sélectionnez
+      un élément dans le menu, le navigateur par défaut est
+      lancé pour aller sur le site. Le titre du film est inséré
+      à l'endroit où il y a un "%s" dans l'URL.</p>
+    <p>Vous pouvez aussi utiliser d'autres champs film dans l'adresse en utilisant
+      le mot clé [Champ] plutôt que "%s" où Champ correspond à l'étiquette du champ à insérer.
+      La liste des champs est directement disponible dans la liste déroulante
+      juste à droite du champ de saisie adresse.<br />
+      Ex 1 : [TranslatedTitle] pour utiliser la valeur du champ titre traduit.<br />
+      Ex 2 : [EAN] pour utiliser la valeur du champ personnalisé EAN s'il existe.</p>
+    <p>Les noms doivent être uniques. Si vous voulez insérer un séparateur,
+      vous devez commencer le nom de l'élément par un "-"
+      ; l'adresse est alors ignorée.</p>
+  </blockquote>
+</blockquote>
+<p class="subtitle" id="scripting">Scripting</p>
+<blockquote>
+  <p>Retenir le dernier script ... : Recharge le dernier script utilisé,
+    et le sélectionne dans la liste des scripts</p>
+  <p>Exécuter le script à l'ouverture de la fenêtre : Exécute 
+    le script lorsque la fenêtre est ouvert.</p>
+  <p>Utiliser un proxy pour l'accès à internet : Vous permet de 
+    spécifier des informations de connexion à un serveur proxy si 
+    nécessaire.</p>
+  <p>Garder ouverte la connexion au serveur : Par défaut la connexion au serveur
+    est refermée après chaque requête (page ou image). Si cette option est cochée,
+    la connexion ne sera pas automatiquement fermée. Cela peut améliorer un petit
+    peu les performances lors de la récupération de fichiers venant du web, mais
+    je le laisse en tant qu'option car beaucoup de personnes avaient des problèmes
+    lorsque la connexion restait ouverte. Si vous obtenez des messages d'erreur similaires
+    à "Connection closed gracefully" lorsque l'option est activée, ne l'utilisez pas.</p>
+</blockquote>
+<p class="subtitle" id="export">Exportation</p>
+<blockquote>
+  <p>Recharger automatiquement le dernier modèle utilisé : Conserve
+    le nom du dernier modèle utilisé, pour le recharger la prochaine
+    fois que la fenêtre est affichée.</p>
+  <p>Les "retour à la ligne" seront remplacés par ...
+    : Permet de modifier le tag utilisé lors de l'insertion d'un retour
+    de ligne. étant donné qu'il s'agit du seul tag que le programme
+    ne prend pas dans le modèle, vous pouvez le définir ici. Si
+    vous utilisez du HTML vous choisirez probablement le tag par défaut
+    &lt;br&gt;, mais vous pouvez vouloir &lt;br /&gt; pour du XHTML ou XML. Vous
+    pouvez aussi simplement laisser ce champ vide si vous ne voulez pas que les
+    retour à la ligne soient remplacés par quelque chose d'autre.</p>
+  <p>Forcer la taille de l'image avec les attributs : Permet de spécifier une valeur pour
+    les attributs HTML height et width pour les images des films et des extras.
+    Si vous laissez un de ces champs vide (ou les deux), l'attribut ne sera pas ajouté.</p>
+  <p>Format de la date SQL : Permet de définir quel format utiliser pour la date
+    lors de l'exportation SQL. Si vous laissez ce champ vide, le format de date court
+    défini dans Windows sera utilisé. Les caractères pour le masque sont utilisés dans Delphi :
+    yy et yyyy = année (sur 2 ou 4 chiffres), m et mm = mois (sans ou avec le zéro non significatif),
+    d et dd = jour (sans ou avec le zéro non significatif), et les caractères devant rester inchangés
+    doivent être placés entre apostrophes (ex : yyyy'/'mm'/'dd).</p>
+  <p>Retenir le nom du dernier fichier exporté : Utilise le nom du dernier
+    fichier exporté plutôt que le nom du catalogue.</p>
+  <p>Ouvrir le fichier créé ... : Lance le fichier après
+    exportation </p>
+  <p>Style des noms des pages individuelles et des images : Permet de spécifier
+    comment le programme doit créer les noms des multiples fichiers qui accompagnent le
+    fichier exporté.</p>
+  <p>
+    Exemple, si vous exportez le fichier "Mes films.amc" vers "Ma liste.html":</p>
+  <blockquote>
+    <table>
+      <tr>
+        <td style="font-style: italic;">Fichier exporté + Numéro de film</td>
+        <td style="font-style: italic;">Num du catalogue + Numéro de film</td>
+        <td style="font-style: italic;">Titre du film</td>
+        <td style="font-style: italic;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td>ma liste.html</td>
+        <td>ma liste.html</td>
+        <td>ma liste.html</td>
+        <td>Liste complète</td>
+      </tr>
+      <tr>
+        <td>ma liste_1.html</td>
+        <td>mes films_1.html</td>
+        <td>matrix.html</td>
+        <td>Premier film</td>
+      </tr>
+      <tr>
+        <td>ma liste_2.html</td>
+        <td>mes films_2.html</td>
+        <td>starwars - episode one.html</td>
+        <td>Deuxième film</td>
+      </tr>
+      <tr>
+        <td>etc...</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+    </table>
+  </blockquote>
+  <p>Extension à ajouter : Permet de forcer une autre extension pour les fichiers individuels.
+    Ceci peut être utile si par exemple votre liste principale est un fichier .html, mais
+    que vous voulez des fichiers .php pour chaque fiche de film individuelle. Si le champ est vide
+    l'extension du fichier principal est utilisée pour les fichiers individuels.</p>
+  <p>Ajouter des zéros devant les petits nombres : si activée, des zéros seront ajoutés à gauche
+    du nombre si nécessaire afin d'avoir un tri correct dans tous les gestionnaires de fichiers
+    (seul l'Explorateur de Windows XP semble détecter les nombres dans les noms lors du tri).</p>
+  <p>Copier les images dans le même dossier que le fichier créé
+    : Extrait ou copie les images du catalogue vers le même dossier que
+    le fichier exporté.</p>
+  <p>Copier les images dans un sous dossier images
+    : Extrait ou copie les images du catalogue vers un sous-dossier images (nom du fichier exporté + '_pics') dans le même dossier que
+    le fichier exporté plutôt que de copier les images directement dans le même dossier que le fichier exporté.</p>
+  <p>Copier uniquement si le fichier de destination n'existe pas : Si l'option
+    est activée, l'image d'un film ou d'un extra ne sera pas copiée si une image
+    du même nom existe déjà (seul le nom est comparé,
+    donc l'image ne sera pas écrasée même si elle est différente).</p>
+  <p>Inclure les images des extras : Inclut l'extraction ou la copie des images des extras en plus des images des films.</p>
+</blockquote>
+<p class="subtitle" id="folders">Dossiers</p>
+<blockquote>
+  <p>Vous pouvez définir ici le comportement des boîtes de dialogue
+    de sélection de fichier pour :</p>
+  <ul>
+    <li>Ouverture et sauvegarde des catalogues (<i>Load/save catalogs</i>)</li>
+    <li>Sélection d'une image (<i>Load movie picture</i>)</li>
+    <li>Exportation</li>
+    <li>Ouverture et sauvegarde des modèles (<i>Load/save templates</i>)</li>
+    <li>Importation</li>
+    <li>Extraction d'infos de fichiers</li>
+    <li>Sauvegarde du graphique</li>
+    <li>Ouverture et sauvegarde des scripts</li>
+  </ul>
+</blockquote>
+<blockquote>
+  <p>L'option "Mêmes options pour toutes les fenêtres" permet
+    de définir le même dossier par défaut pour toutes les
+    fenêtres.</p>
+</blockquote>
+</body>
+</html>

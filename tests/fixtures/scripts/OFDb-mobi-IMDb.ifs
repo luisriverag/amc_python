@@ -1,0 +1,1588 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=Gerol
+Title=OFDb-mobi-IMDb
+Description=Combined OFDb.de / IMDb |f.e.: German Title, Picture, FSK, Description and Comments from OFDb|All other from IMDb
+Site=https://www.ofdb.de/
+Language=DE,EN
+Version=2.6
+Requires=4.2.1
+Comments=Import from Online-Filmdatenbank (OFDb.de) https://www.ofdb.de |and Internet Movie Database (IMDb) https://www.imdb.com. Some parts of the script are from the IMDb script (version 4.024).
+License=This program is free software; you can redistribute it and/or modify it under the  terms of the GNU General Public License as published by the Free Software Foundation;  either version 2 of the License, or (at your option) any later version. |
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+Language=0|0|0=German (default)|1=English
+AskForMovieTitle=0|0|0=Only ask for movie title input when there is no title on Original or Translated Title fields (default)|1=Always ask for movie title input
+AllFromOFDB=0|0|0=Import most Values from IMDB (default)|1=Import all Values from OFDB
+ActorsFromOFDB=0|0|0=Import Actors from IMDB (default)|1=Import Actors from OFDB
+DirectorsFromOFDB=0|0|0=Import Directors from IMDB (default)|1=Import Directors from OFDB
+WritersFromOFDB=0|0|0=Import Writers from IMDB (default)|1=Import Writers from OFDB
+ProducersFromOFDB=0|0|0=Import Producers from IMDB (default)|1=Import Producers from OFDB
+ComposersFromOFDB=0|0|0=Import Composers from IMDB (default)|1=Import Composers from OFDB
+OriginalTitleFromOFDB=1|1|0=Import OriginalTitle from IMDB|1=Import OriginalTitle from OFDB (default)
+TranslatedTitleFromOFDB=1|1|0=Import TranslatedTitle from IMDB|1=Import TranslatedTitle from OFDB (default)
+CountryFromOFDB=1|1|0=Import Country from IMDB|1=Import Country from OFDB (default)
+CategoryFromOFDB=1|1|0=Import Category from IMDB|1=Import Category from OFDB (default)
+YearFromOFDB=0|0|0=Import Year from IMDB (default)|1=Import Year from OFDB
+RatingFromOFDB=0|0|0=Import Rating from IMDB (default)|1=Import Rating from OFDB
+DescriptionOrigin=0|0|0=Import Description from OFDb (default)|1=Import Description from IMDb (short)|2=Import Description from IMDb (long)
+ActorsFromOFDbRole=0|0|0=Import only actors from OFDb with role specification (default)|1=Import all actors from OFDb
+CommentContent=0|0|0=Import from OFDB-User Reviews (->CommentSearch) (default)|1=Import from IMDB-User Reviews (->CommentType)
+CommentType=0|0|0=Top user review (default)|1=10 most useful user reviews|2=No user comment, clear current field contents|3=No user comment, keep current field contents (all points only IMDb, may cause problem for multiple imports on the same movie if other options append text to the comment field)
+CommentSearch=0|0|0=always get the first OFDB-Review (default, faster)|2=search for OFDB-User with the most calls|3=search for OFDB-User with the most reviews (slow!!)
+ActorsLayout=0|0|0=Separate actors by comma (default)|1=Separate actors by slash|2=Separate actors by linebreak
+DirectorsLayout=0|0|0=Separate directors by comma (default)|1=Separate directors by slash
+ProducersLayout=0|0|0=Separate producers by comma (default)|1=Separate producers by slash
+WritersLayout=0|0|0=Separate writers by comma (default)|1=Separate writers by slash
+ComposersLayout=0|0|0=Separate composers by comma (default)|1=Separate writers by slash
+LanguageLayout=0|0|0=Separate languages by comma (default)|1=Separate languages by slash
+CountryLayout=0|0|0=Separate countries by comma (default)|1=Separate countries by slash
+CategoryLayout=0|0|0=Separate categories by comma (default)|1=Separate categories by slash
+AudioFormatLayout=0|0|0=Separate Audio-Format by comma (default)|1=Separate Audio-Format by slash
+AspectRatio=0|0|0=don't import Aspect Ratio (default)|1=Import Aspect Ratio to resolution field|2=Import Aspect Ratio to video format field
+Audio=0|0|0=don't import Sound Mix (Tonverfahren) (default)|1=Import Sound Mix (Tonverfahren) to audio format field
+FSK=1|1|0=don't import certification (Altersfreigabe)|1=Add certification (Altersfreigabe) to description field (default)|2=Import certification (Altersfreigabe) to comments field
+FSKOrigin=2|2|0=FSK from OFDb|1=FSK from IMDb|2=FSK from OFDb, if possible, otherwise from IMDb (default)
+PictureSize=0|0|0=OFDb (small) (default)|1=OFDb (medium) (Experimental: only for lucky hits)|2=IMDb (small)|3=IMDb (large!)
+
+[Parameters]
+
+***************************************************)
+
+(***************************************************
+
+***************************************************)
+
+program OFDB_MOBI_IMDB;
+
+
+(***************************************************
+ *                                                 *
+ *  (c) 2023, 2024, 2025 Gerol                     *
+ *                                                 *
+ * I thank all other authors (and in particular    *
+ * the authors of IMDb) for their                  *
+ * important preliminary work.                     *
+ *                                                 *
+ ***************************************************)
+
+uses
+  stringUtils1, StringUtils7552;
+
+const
+//  CRLF = #13#10;
+  Tabulator = #9;
+  BASEURL = 'https://www.ofdb.de/';
+var
+  MovieName, NoHit, NoResult, AskForOtherTitle, AskForTitle, NoIMDbEntry, UseOFDB: string;
+	TooMuch, EntriesFound, TitlePrec: string;
+  IMDbURLMain, IMDbURL, IMDbURLRef, IMDbURLReviews, OFDBURLMain, ofdbFSK, imdbFSK: string;
+  ActorsSeparator, DirectorsSeparator, ProducersSeparator, WritersSeparator, ComposersSeparator, CountriesSeparator, LanguagesSeparator, CategoriesSeparator: string;
+  AudioFormatSeparator: string;
+  ImdbFound: boolean;
+  Site: TStringList;
+
+procedure SetSeparators;
+  begin
+    case GetOption('ActorsLayout') of
+      0: ActorsSeparator := ', ';
+      1: ActorsSeparator := ' / ';
+    end;
+    case GetOption('DirectorsLayout') of
+      0: DirectorsSeparator := ', ';
+      1: DirectorsSeparator := ' / ';
+    end;
+    case GetOption('ProducersLayout') of
+      0: ProducersSeparator := ', ';
+      1: ProducersSeparator := ' / ';
+    end;
+		case GetOption('WritersLayout') of
+			0: WritersSeparator := ', ';
+			1: WritersSeparator := ' / ';
+		end;
+		case GetOption('ComposersLayout') of
+			0: ComposersSeparator := ', ';
+			1: ComposersSeparator := ' / ';
+		end;
+    case GetOption('CountryLayout') of
+      0: CountriesSeparator := ', ';
+      1: CountriesSeparator := ' / ';
+    end;
+    case GetOption('LanguageLayout') of
+      0: LanguagesSeparator := ', ';
+      1: LanguagesSeparator := ' / ';
+    end;
+    case GetOption('CategoryLayout') of
+      0: CategoriesSeparator := ', ';
+      1: CategoriesSeparator := ' / ';
+    end;
+		case GetOption('AudioFormatLayout') of
+      0: AudioFormatSeparator := ', ';
+      1: AudioFormatSeparator := ' / ';
+    end;
+end;
+
+function StringToValue(S:String):Longint;
+var 
+	L:Integer;
+	I:Integer;
+	A:Byte;
+	goodstring:String;
+begin
+	goodstring:='';
+	for A:=1 to Length(S) do if (pos(Copy(S,A,1), '0123456789')) > 0 then
+			goodstring := goodstring + Copy(S,A,1);
+	if goodstring='' then L:=0 else L:=StrToInt(goodstring, 0);
+	StringToValue:=L;
+end;
+
+function ConvertToASCII(AText: string): string;
+begin
+  Result := UTF8Decode(AText);
+  if Result = '' then
+    Result := AText; // in case of a UTF8 decoding error
+  if GetOption('ConvertToASCII') = 1 then
+    Result := Cp1252ToASCII(Result);
+end;
+
+procedure AnalyzePage(Address: string);
+var
+  Page: TStringList;
+  LineNr: Integer;
+  Line: string;
+
+begin
+  Page := TStringList.Create;
+  Page.Text := GetPage(Address);
+
+  if pos('<td><a target="_blank"', Page.Text) > 0 then
+	begin
+    PickTreeClear;
+    LineNr := FindLine('<td><a target="_blank"', Page, 0);
+    if LineNr > 0 then
+    begin
+      PickTreeAdd('Suche nach "' + MovieName + '" ergab:', '');
+      AddMoviesTitles(Page, LineNr);
+			if PickTreeExec(Address) then
+			begin
+				OFDBURLMain := Address;
+				Page.Text := GetPage(Address);
+				AnalyzeMoviePage(Page);
+			end;
+		end;	
+		end else
+		begin
+			ShowMessage(NoHit);			
+	end;	
+  Page.Free;
+end;
+
+
+procedure AnalyzeMoviePage(Page: TStringList);
+var
+  Line, Temp, Value, Value2, Value3, Value4, FullValue, ReviewLink: string;
+  LineNr, LineNrTmp, BeginPos, EndPos, Minute: Integer;
+  ReviewRanking, p, ReviewTmp, ReviewLinkNr: Integer;
+  Page02: TStringList;
+	Rolle: boolean;
+
+begin
+  Page02 := TStringList.Create;
+  //OFDb.de is loaded, address in fieldURL
+  //search for IMDb address
+  ImdbFound := True;
+  LineNr :=Findline('href="http://www.imdb', Page, 0);
+  Line := Page.GetString(LineNr);
+  Temp := TextBetween(Line, 'title', '/" target');
+	//some links are wrong on ofdb:
+  Temp := StringReplace(Temp, '/tttt', '');
+  Temp := StringReplace(Temp, '/tt', '');
+  if Temp <> '' then
+  begin
+		ImdbFound := true;
+		IMDbURLMain := ('https://www.imdb.com/title/tt' + Temp + '/');
+    IMDbURL := ('https://www.imdb.com/title/tt' + Temp + '/fullcredits/');
+		IMDbURLRef := ('https://www.imdb.com/title/tt' + Temp + '/reference/');
+		IMDbURLReviews := ('https://www.imdb.com/title/tt' + Temp + '/reviews/');
+  end else
+  begin
+		ImdbFound := false;
+		ShowMessage(NoIMDbEntry + #13#10 + UseOFDB);
+  end;
+
+///////////////////////////////////////
+//From here on, the actual data is entered,
+//first retrieve IMDb and if necessary OFDb.
+//////////////////////////////////////
+
+		if ImdbFound and (GetOption('AllFromOFDB') = 0) then
+		begin
+//IMDb fullcredits////////////////
+			Page.Text := GetPage(IMDbURL);
+//Page.SaveToFile('D:\Temp\IMDB-fullcredits.html');
+			if CanSetField(fieldYear) then
+			begin	
+  // Year
+				if (GetOption('YearFromOFDB') = 0) then
+				begin
+					LineNr := FindLine('<title>', Page, 0);
+					if LineNr > -1 then
+					begin
+						Line := Page.GetString(LineNr);
+						BeginPos := pos('<title>', Line);
+						Line := copy(Line, BeginPos, Length(Line));
+						EndPos := pos(')', Line);
+						BeginPos := EndPos - 4;
+						if EndPos > 0 then
+						begin
+							Value := copy(Line, BeginPos, EndPos - BeginPos);
+							if StringToValue(Value) > 0 then SetField(fieldYear, IntToStr(StringToValue(Value)));
+						end;
+					end;
+				end;
+			end;
+	
+	// Directors
+		if CanSetField(fieldDirector) then
+		begin
+			if (GetOption('DirectorsFromOFDB') = 0) then
+			begin
+				LineNr := FindLine('>Director</span>', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Value2 := '';		
+					Line := Page.GetString(LineNr);
+					Line := TextBetween(Line, '>Director</span>', '/div></section><section');
+					BeginPos := pos('ttfc_fcr_1', Line);
+					Line := copy(Line, BeginPos + 10, Length(Line));
+					
+					if Value2 <> TextBetween(Line, '">', '</a></div>') then
+					begin
+						Value2 := TextBetween(Line, '">', '</a></div>');
+						Value := Value2;
+					end;
+					repeat
+						BeginPos := pos('ttfc_fcr_1', Line);
+						Line := copy(Line, BeginPos + 10, Length(Line));
+						if Value2 <> TextBetween(Line, '">', '</a>') then
+						begin
+							Value2 := TextBetween(Line, '">', '</a>');
+							Value := Value + DirectorsSeparator + Value2;
+						end;
+
+					until pos ('ttfc_fcr_1', Line) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					SetField(fieldDirector, Value);
+				end;
+			end;	
+		end;
+
+// Writers
+		if CanSetField(fieldWriter) then
+		begin
+			if (GetOption('WritersFromOFDB') = 0) then
+			begin
+				LineNr := FindLine('>Writers</span>', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Value2 := '';		
+					Line := Page.GetString(LineNr);
+					Line := TextBetween(Line, '>Writers</span>', '/div></section><section');
+					BeginPos := pos('ttfc_fcr_2', Line);
+					Line := copy(Line, BeginPos + 10, Length(Line));			
+					
+					if Value2 <> TextBetween(Line, '">', '</a></div>') then
+					begin
+						Value2 := TextBetween(Line, '">', '</a></div>');
+						Value := Value2;
+					end;
+					repeat
+						BeginPos := pos('ttfc_fcr_2', Line);
+						Line := copy(Line, BeginPos + 10, Length(Line));
+						if Value2 <> TextBetween(Line, '">', '</a>') then
+						begin
+							Value2 := TextBetween(Line, '">', '</a>');
+							Value := Value + WritersSeparator + Value2;
+						end;
+
+					until pos ('ttfc_fcr_2', Line) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					SetField(fieldWriter, Value);
+				end;
+			end;	
+		end;
+
+// Actors
+		if CanSetField(fieldActors) then
+		begin
+			if (GetOption('ActorsFromOFDB') = 0) then
+			begin
+				LineNr := FindLine('>Cast</span>', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Value2 := '';		
+					Line := Page.GetString(LineNr);
+					Line := TextBetween(Line, '>Cast</span>', '/div></section><section');
+					BeginPos := pos('ttfc_fcr_3', Line);
+					Line := copy(Line, BeginPos + 10, Length(Line));
+					if copy(Line, pos('" ', Line) + 2, 10) = 'aria-label' then
+					begin
+						BeginPos := pos('ttfc_fcr_3', Line);
+						Line := copy(Line, BeginPos + 10, Length(Line));			
+					end;
+					if Value2 <> TextBetween(Line, '">', '</a></div>') then
+					begin
+						Value2 := TextBetween(Line, '">', '</a></div>');
+						Value := Value2;
+					end;
+					repeat
+						BeginPos := pos('ttfc_fcr_3', Line);
+						EndPos := pos('/characters/', Line);
+						Line := copy(Line, BeginPos + 10, Length(Line));
+						if copy(Line, pos('" ', Line) + 2, 10) = 'aria-label' then
+						begin
+							BeginPos := pos('ttfc_fcr_3', Line);
+							Line := copy(Line, BeginPos + 10, Length(Line));			
+						end;											
+						if Value2 <> TextBetween(Line, '">', '</a>') then
+						begin
+							if (EndPos > 0) and (EndPos < BeginPos) then
+								Rolle := True;
+							if Rolle then
+							begin
+								Value3 := TextBetween(Line, '</a></div>', '</li>');
+								If (pos('<span>', Value3)) = 1 then
+								begin
+									Value := Value + ' (als ' + TextBetween(Line, '">', '</a>') + ' ' + TextBetween(Value3, '<span>', '</span>') + ')';
+								
+								end else
+								begin
+									Value := Value + ' (als ' + TextBetween(Line, '">', '</a>') + ')';
+								end;
+								Rolle := false;
+							end else
+							begin
+								Value2 := TextBetween(Line, '">', '</a>');
+								Value := Value + ActorsSeparator + Value2;
+							end;
+						end;
+
+					until pos ('ttfc_fcr_3', Line) < 1;
+					Value := StringReplace(Value, ') (als', ',');
+					Value := UTF8Decode(Value);				
+					HTMLDecode(Value);
+					SetField(fieldActors, Value);
+				end;
+			end;	
+		end;
+
+
+// Producers
+		if CanSetField(fieldProducer) then
+		begin
+			if (GetOption('ProducersFromOFDB') = 0) then
+			begin
+				LineNr := FindLine('>Producers</span>', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Value2 := '';		
+					Line := Page.GetString(LineNr);
+					Line := TextBetween(Line, '>Producers</span>', '/div></section><section');
+					BeginPos := pos('ttfc_fcr_4', Line);
+					Line := copy(Line, BeginPos + 10, Length(Line));
+					
+					if Value2 <> TextBetween(Line, '">', '</a></div>') then
+					begin
+						Value2 := TextBetween(Line, '">', '</a></div>');
+						Value := Value2;
+					end;
+					repeat
+						BeginPos := pos('ttfc_fcr_4', Line);
+						Line := copy(Line, BeginPos + 10, Length(Line));
+						if Value2 <> TextBetween(Line, '">', '</a>') then
+						begin
+							Value2 := TextBetween(Line, '">', '</a>');
+							Value := Value + ProducersSeparator + Value2;
+						end;
+
+					until pos ('ttfc_fcr_4', Line) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					SetField(fieldProducer, Value);
+				end;
+			end;	
+		end;
+
+// Composers
+		if CanSetField(fieldComposer) then
+		begin
+			if (GetOption('ComposersFromOFDB') = 0) then
+			begin
+				LineNr := FindLine('>Composer</span>', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Value2 := '';		
+					Line := Page.GetString(LineNr);
+					Line := TextBetween(Line, '>Composer</span>', '/div></section><section');
+					BeginPos := pos('ttfc_fcr_5', Line);
+					Line := copy(Line, BeginPos + 10, Length(Line));
+					
+					if Value2 <> TextBetween(Line, '">', '</a></div>') then
+					begin
+						Value2 := TextBetween(Line, '">', '</a></div>');
+						Value := Value2;
+					end;
+					repeat
+						BeginPos := pos('ttfc_fcr_5', Line);
+						Line := copy(Line, BeginPos + 10, Length(Line));
+						if Value2 <> TextBetween(Line, '">', '</a>') then
+						begin
+							Value2 := TextBetween(Line, '">', '</a>');
+							Value := Value + ComposersSeparator + Value2;
+						end;
+
+					until pos ('ttfc_fcr_5', Line) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					SetField(fieldComposer, Value);
+				end;
+			end;	
+		end;
+
+	
+//IMDb Main////////////////
+
+	Page.Text := GetPage(IMDbURLMain);
+	
+  // Language
+		if CanSetField(fieldLanguages) then
+		begin
+			LineNr := FindLine('Language:', Page, 0);
+			if LineNr > -1 then
+			begin
+				Value := '';
+				repeat
+					LineNr := FindLine('href="/search/title?title_type=feature&primary_language', Page, LineNr) + 1;
+					Line := Page.GetString(LineNr);
+					BeginPos := pos('>', Line) + 1;
+					EndPos := pos('</a>', Line);
+					If Value <> '' then
+						Value := Value + LanguagesSeparator;
+					Value := Value + copy(Line, BeginPos, EndPos - BeginPos);
+					LineNr := LineNr + 1;
+				until FindLine('href="/search/title?title_type=feature&primary_language', Page, LineNr) < 1;
+				Value := UTF8Decode(Value);
+				HTMLDecode(Value);
+				SetField(fieldLanguages, Value);
+			end else
+			begin
+				LineNr := FindLine('primary_language', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Line := Page.GetString(LineNr);
+					repeat
+						BeginPos := pos('primary_language', Line) + 17;
+						Line := copy(Line, BeginPos, Length(Line) - BeginPos);
+						BeginPos := pos('>', Line) + 1;
+						EndPos := pos('</a>', Line);
+						If Value <> '' then
+							Value := Value + LanguagesSeparator;
+						Value := Value + copy(Line, BeginPos, EndPos - BeginPos);
+						Line := copy(Line, BeginPos, Length(Line) - BeginPos);
+					until pos('primary_language', Line) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					SetField(fieldLanguages, Value);
+				end;
+			end;
+		end;
+	
+  // Countries
+		if CanSetField(fieldCountry) then
+		begin
+			if (GetOption('CountryFromOFDB') = 0) then
+			begin
+				LineNr := FindLine('/search/title/?country_of_origin', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Line := Page.GetString(LineNr);
+					repeat
+						Line := TextAfter(Line, '/search/title/?country_of_origin');
+						BeginPos := pos('>', Line) + 1;
+						EndPos := pos('</a>', Line);
+						If Value <> '' then
+							Value := Value + CountriesSeparator;
+						Value := Value + copy(Line, BeginPos, EndPos - BeginPos);
+					until pos('/search/title/?country_of_origin', Line) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					SetField(fieldCountry, Value);
+				end;
+			end;
+		end;
+
+  // Categories
+		if CanSetField(fieldCategory) then
+		begin
+			if (GetOption('CategoryFromOFDB') = 0) then
+			begin
+				LineNr := FindLine('Genres:', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					repeat
+						LineNr := FindLine('<a href="/search/title?genres', Page, LineNr) + 1;
+						Line := Page.GetString(LineNr);
+						BeginPos := pos('>', Line) + 2;
+						EndPos := pos('</a>', Line);
+						If Value <> '' then
+							Value := Value + CategoriesSeparator;
+						Value := Value + copy(Line, BeginPos, EndPos - BeginPos);
+						LineNr := LineNr + 1;
+					until FindLine('<a href="/search/title?genres', Page, LineNr) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					SetField(fieldCategory, Value);
+				end else
+				begin
+					LineNr := FindLine('"genre":', Page, 0);
+					if LineNr > -1 then
+					begin
+						Line := Page.GetString(LineNr);
+						BeginPos := pos('"genre":', Line) + 9;
+						EndPos := pos(',"datePublished":', Line);
+						Value := copy(Line, BeginPos, EndPos - BeginPos);
+						Value := StringReplace(Value, '[', '');
+						Value := StringReplace(Value, ']', '');
+						Value := StringReplace(Value, '"', '');
+						Value := StringReplace(Value, ',', CategoriesSeparator);
+						SetField(fieldCategory, Value);
+					end;
+				end;
+			end;
+		end;
+
+  //AspectRatio
+		if GetOption('AspectRatio') > 0 then
+		begin
+			LineNr := FindLine('Aspect Ratio:', Page, 0);
+			if LineNr > -1 then
+			begin
+				Line := Page.GetString(LineNr);
+				BeginPos := pos('Aspect Ratio:', Line) + 19;
+				Line := copy(Line, BeginPos , Length(Line) - BeginPos + 2);
+				if (CanSetField(fieldResolution)) and (GetOption('AspectRatio') = 1) then
+					SetField(fieldResolution, Line);
+				if (CanSetField(fieldVideoFormat)) and (GetOption('AspectRatio') = 2) then
+					SetField(fieldVideoFormat, Line);
+			end else
+			begin
+				LineNr := FindLine('{"aspectRatio":"', Page, 0);
+				if LineNr > -1 then
+				begin
+					Line := Page.GetString(LineNr);
+					BeginPos := pos('{"aspectRatio":"', Line) + 16;
+					Line := copy(Line, BeginPos , 8);
+					if (CanSetField(fieldResolution)) and (GetOption('AspectRatio') = 1) then
+						SetField(fieldResolution, Line);
+					if (CanSetField(fieldVideoFormat)) and (GetOption('AspectRatio') = 2) then
+						SetField(fieldVideoFormat, Line);
+				end;
+			end;
+		end;
+  
+  // Audio
+		if CanSetField(fieldAudioFormat) then
+		begin
+			if GetOption('Audio') > 0 then
+			begin
+				LineNr := FindLine('{"soundMixes"', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Line := Page.GetString(LineNr);
+					Line := TextBetween(Line, '{"soundMixes"', '"SoundMixes"}');
+					repeat
+						Line := TextAfter(Line, ',"text":"');
+						EndPos := pos('","attributes"', Line);
+						If Value <> '' then
+							Value := Value + AudioFormatSeparator;
+						Value := Value + copy(Line, 1, EndPos - 1);
+					until pos(',"text":"', Line) < 1;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					if Value <> '' then
+						SetField(fieldAudioFormat, Value);
+				end;
+			end;
+		end;
+
+//IMDb reference////////////////
+
+Page.Text := GetPage(IMDbURLRef);
+
+  // Length (from imdb.com, if possible)
+		if CanSetField(fieldLength) then
+		begin
+			Value := TextBetween(Page.Text, '"runtime":{"seconds":', ',"__typename":"Runtime"');
+			if Value <> '' then
+			begin
+			  Minute := (StringToValue(Value) div 60);
+				Value := IntToStr(Minute);
+				SetField(fieldLength, Value);
+			end;		
+		end;
+
+  // IMDb Rating
+		if CanSetField(fieldRating) then
+		begin
+			if (GetOption('RatingFromOFDB') = 0) then
+			begin
+				Value := TextBetween(Page.Text, '<span class="ipc-rating-star--rating">', '</span><span class="ipc-rating-star--maxRating">');
+				if (Value <> '') and (Value <> '0') then
+					SetField(fieldRating, StringReplace(Value, '.', ','));
+			end;
+		end;
+
+
+  // Description
+		if CanSetField(fieldDescription) then
+		begin
+			if (GetOption('DescriptionOrigin') > 0) then
+			begin
+				Value := '';
+				if (GetOption('DescriptionOrigin') > 0) then
+				begin
+					Value := TextBetween(Page.Text, 'IMDb</title><meta name="description" content="', '" data-id="main"/><meta name="keywords" content');
+				end;
+				if (GetOption('DescriptionOrigin') = 2) then
+				begin
+					Value := TextBetween(Page.Text, '<div class="ipc-html-content-inner-div" role="presentation">', '<span style="display:inline-block">');
+					if Value = '' then // no long description on the page, taking the short one
+					begin
+						Value := TextBetween(Page.Text, 'IMDb</title><meta name="description" content="', '" data-id="main"/><meta name="keywords" content');
+					end;
+				end;
+				HTMLRemoveTags(Value);
+				HTMLDecode(Value);
+				Value := StringReplace(Value, ConvertToAscii('See more »'), '');
+				Value := RemoveSpaces(Value, true);
+				if UTF8Decode(Value) <> '' then
+					Value := UTF8Decode(Value);
+				SetField(fieldDescription, Value);
+			end;
+		end;
+  
+	// Originaltitle
+		if CanSetField(fieldOriginalTitle) then
+		begin
+			if (GetOption('OriginalTitleFromOFDB') = 0) then
+			begin
+				Value:= TextBetween (Page.text, '"originalTitleText":{"text":"', '","__typename":"TitleText"');
+				HTMLRemoveTags(Value);
+				HTMLDecode(Value);
+				Value := UTF8Decode(Value);
+				if (Value <> '') then
+					SetField(fieldOriginalTitle, FullTrim(Value));
+			end;
+		end;
+
+	// Translatedtitle
+		if CanSetField(fieldTranslatedTitle) then
+		begin
+			if (GetOption('TranslatedTitleFromOFDB') = 0) then
+			begin
+				Value:= TextBetween (Page.text, '<span class="hero__primary-text" data-testid="hero__primary-text">', '</span><span class="hero__primary-text');
+				HTMLRemoveTags(Value);
+				HTMLDecode(Value);
+				Value := UTF8Decode(Value);
+				if (Value <> '') then
+					SetField(fieldTranslatedTitle, FullTrim(Value));
+			end;
+		end;
+
+  
+  // Comments
+		if (GetOption('CommentContent') > 0) then
+		begin
+
+			if CanSetField(fieldComments) then
+			begin
+				case GetOption('CommentType') of
+					0, 1:
+						begin
+							Value2 := '';
+							p := 0;
+							FullValue := ConvertToASCII(GetPage(IMDbURLReviews));
+							FullValue := TextAfter(FullValue, '<section class="ipc-page-section ipc-page-section--base ipc-page-section--sp-pageMargin">');
+							while FullValue <> '' do
+							begin
+								Value := TextBetween(FullValue, '<article','</article>');
+								if Value = '' then
+								begin
+									Break;
+								end;
+								Value3 := TextBetween(Value, '<div class="ipc-html-content-inner-div" role="presentation">','</div>');
+								Value3 := StringReplace(Value3, #13#10, ' ');
+								Value3 := StringReplace(Value3, '<br/><br/>', #13#10);
+								Value3 := StringReplace(Value3, '<br/>', #13#10);
+								HtmlRemoveTags(Value3);
+								Value3 := FullTrim(Value3);
+								if Value3 = '' then
+								begin
+									FullValue := TextAfter(FullValue, '</article>');
+									Continue;
+								end;
+								if GetOption('CommentType') = 1 then
+								begin
+									p := p + 1;
+									Value2 := Value2 + inttostr(p) + '. ';
+								end;
+								Value2 := Value2 + TextBetween(Value, '<h3 class="ipc-title__text">','</h3>');
+								Value2 := Value2 + ' (by ' + TextAfter (TextBetween(Value, 'data-testid="author-link"','</a>'),'>');
+								Value2 := Value2 + #32 + 'on ' + TextBetween(Value, '<li role="presentation" class="ipc-inline-list__item review-date">', '</li>') + ')' ;
+								Value2 := Value2 + #13#10 + #13#10 + Value3;
+								if (GetOption('CommentType') = 0) or (p = 10) then
+								begin
+									Break;
+								end;
+								FullValue := TextAfter(FullValue, '</article>');
+								if FullValue <> '' then
+								begin
+									Value2 := Value2 +  #13#10 + #13#10;
+								end;
+							end;
+							HTMLRemoveTags(Value2);
+							HTMLDecode(Value2);
+							SetField(fieldComments, Value2);
+						end;
+					2:
+						begin
+							SetField(fieldComments, '');
+						end;
+				end;
+			end;
+		end;
+ 
+  // Picture
+		if CanSetPicture then
+		begin
+			if (GetOption('PictureSize') > 1) then
+			begin
+				if (GetOption('PictureSize') = 2) then
+				begin
+					Value := TextBetween(Page.Text, 'class="ipc-image" loading="eager" src="', '" srcSet="');
+					if (Value <> '') then
+					begin
+						GetPicture(Value);
+					end;
+				end;
+
+				if (GetOption('PictureSize') = 3) then
+				begin
+					Value := TextBetween(Page.Text, '<meta property="twitter:image" content="', '"/><meta property="twitter:image:alt"');
+					if (Value <> '') then
+					begin
+						GetPicture(Value);
+					end;
+				end;
+			end;
+		end;
+  
+//IMDb parentalguide#certification////////////////
+
+  //FSK
+		if (GetOption('FSKOrigin') >0) then
+		begin
+			imdbFSK := '';
+			Value := '';
+			Page.Text := GetPage(IMDbURLMain + 'parentalguide/?ref_=tt_stry_pg');
+			LineNr := FindLine('Germany","ratings":[{"rating":"', Page, 0);
+			if LineNr > -1 then
+			begin
+				Line := Page.GetString(LineNr);
+				BeginPos := pos('Germany","ratings":[{"rating":"', Line);
+				Line := copy(Line, BeginPos, Length(Line));
+				BeginPos := pos('Germany","ratings":[{"rating":"', Line) + 31;
+				if BeginPos > 31 then
+				begin
+					Line := copy(Line, BeginPos, Length(Line));
+					EndPos := pos('","searchUrl', Line) - 1;
+					Value := copy(Line, 1, EndPos);
+				end;
+				if Value <> '' then
+					imdbFSK := Value;
+			end;
+		end;
+		
+  end;
+	
+//////////////////////////////////
+//back to OFDb///////////////////
+////////////////////////////////
+
+  Page.Text := GetPage(OFDbURLMain);
+  
+	//Description from OFDb///////////////
+		if CanSetField(fieldDescription) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('DescriptionOrigin') = 0) then
+			begin
+				LineNr := Findline('plot/">Weiterlesen<', Page, 0);
+				if LineNr > -1 then
+				begin
+					Line := Page.GetString(LineNr);
+					Value := TextBetween(Line, '<a href="', '">Weiterlesen<');
+					Page.Text := GetPage(Value);
+					LineNr :=Findline('<h4 class="mb15">', Page, 0);
+					Line := Page.GetString(LineNr);
+					Value := TextBetween(Line, '<h4 class="mb15">', '</h4>');
+					LineNr := LineNr + 1;
+					Line := Page.GetString(LineNr);
+					Value := Value + TextAfter(Line, '<p>');
+					if pos('</p>', Line) < 1 then
+					begin
+						repeat
+							LineNr := LineNr + 1;
+							Line := Page.GetString(LineNr);
+							Value := Value + FullTrim(Line);
+						until pos('</p>', Line) > 0; 
+					end;
+					Value := UTF8Decode(Value);
+					HTMLDecode(Value);
+					HTMLRemoveTags(Value);
+					Value := StringReplace(Value,'...... ','');
+					SetField(fieldDescription, FullTrim(Value));
+				end else
+				begin
+					LineNr := Findline('itemprop="description">', Page, 0);
+					if LineNr > -1 then
+					begin
+						Value := TextBetween(Page.Text, 'itemprop="description">', '</span>');
+						Value := UTF8Decode(Value);
+						HTMLDecode(Value);
+						HTMLRemoveTags(Value);
+						Value := StringReplace(Value,'...... ','');
+						SetField(fieldDescription, FullTrim(Value));	
+					end;
+				end;
+			end;
+
+  Page.Text := GetPage(OFDbURLMain);
+
+	//Comments from OFDb///////////////
+		if CanSetField(fieldComments) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('CommentContent') = 0) then
+			begin
+				LineNr := Findline('keine Reviews unserer Community', Page, 0);
+				if LineNr < 0 then
+				begin
+					LineNr := Findline('<th>Datum</th>', Page, 0);
+					if LineNr > -1 then
+					begin
+						if (GetOption('CommentSearch') = 2) then
+						begin
+							ReviewTmp := 0;
+							ReviewLinkNr := 0;
+							Reviewranking := 0;
+							LineNr := LineNr + 6;
+							ReviewTmp := LineNr;
+							Line := Page.GetString(LineNr);
+							While pos('<td><a class', Line) > 0 Do
+							begin
+								LineNr := LineNr + 1;
+								ReviewTmp := LineNr;
+								Line := Page.GetString(LineNr);
+								Value := TextBetween(Line, '<td>', '</td>');
+								Value := StringReplace(Value, '.' , '');
+								if StrToInt(Value, 0) > Reviewranking then
+								begin
+									Reviewranking := StrToInt(Value, 0);
+									ReviewLinkNr := ReviewTmp;
+								end;
+								LineNr := LineNr + 5;
+								Line := Page.GetString(LineNr);
+							end;
+							LineNr := ReviewLinkNr - 7;
+						end;
+  
+						if (GetOption('CommentSearch') = 3) then
+						begin
+							ReviewTmp := 0;
+							ReviewLinkNr := 0;
+							Reviewranking := 0;
+							LineNr := LineNr + 6;
+							Line := Page.GetString(LineNr);	
+							While pos('<td><a class', Line) > 0 Do
+							begin
+								ReviewTmp := LineNr;
+								Page02.Text := GetPage(TextBetween(Line, 'href="', '">'));//Review-Seite
+								LineNrTmp := Findline('itemprop="author"', Page02, 0);
+								Temp := Page02.GetString(LineNrTmp);
+								Page02.Text := GetPage(TextBetween(Temp, '<a href="', '" itemprop'));//Author-Seite
+								LineNrTmp := Findline('Lokale Reviews:', Page02, 0);
+								LineNrTmp := LineNrTmp + 3;
+								Temp := Page02.GetString(LineNrTmp);
+								Value := TextBetween(Temp, '">', '</a>');
+								Value := StringReplace(Value, '.' , '');
+								if StrToInt(Value, 0) > Reviewranking then
+								begin
+									Reviewranking := StrToInt(Value, 0);
+									ReviewLinkNr := ReviewTmp;
+								end;
+								LineNr := LineNr + 6;
+								Line := Page.GetString(LineNr);
+							end;
+							LineNr := ReviewLinkNr - 6;
+						end;
+  
+						Line := Page.GetString(LineNr + 6);
+						Value := TextBetween(Line, 'href="', '">');
+						Value2 := UTF8Decode(TextBetween(Line, '/review/">', '</a>'));
+						Line := Page.GetString(LineNr + 8);
+						Value3 := TextBetween(Line, '<td>', '</td>');
+						Line := Page.GetString(LineNr + 5);
+						Value4 := TextBetween(Line, '<td>', '</td>');	
+						Page.Text := GetPage(Value);
+						Value := TextBetween(Page.Text, '<p class="mt30">', '</span>');
+						Value := StringReplace(Value, #13#10, ' ');
+						Value := StringReplace(Value, '  ', ' ');
+						Value := UTF8Decode(Value);
+						HTMLDecode(Value);
+						HTMLRemoveTags(Value);
+						Value := FullTrim(Value) + ' (von ' + Value2 + ', ' + Value3 + ', Note ' + Value4 + ' von 10)';
+						SetField(fieldComments, Value);
+					end;
+				end;
+			end;
+		end;
+
+Page.Text := GetPage(OFDBURLMain);
+
+	//FSK from OFDb///////////////
+		if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('FSKOrigin') = 0) then
+		begin
+			ofdbFSK := '';
+			LineNr := FindLine('Freigabe: FSK', Page, 0);
+			if LineNr > -1 then
+			begin
+				Line := Page.GetString(LineNr);
+				ofdbFSK := TextBetween(Line, 'Freigabe: FSK ', '</a>');
+			end; 
+		end;//FSK
+
+	//Picture
+		if CanSetPicture then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('PictureSize') < 2) then
+			begin
+				Value := '';
+				if (GetOption('PictureSize') = 0) then
+				begin
+					LineNr := FindLine('itemprop="image">', Page, 0);
+					if LineNr > -1 then
+					begin
+						Line := Page.GetString(LineNr);
+						Value := TextBetween(Line, '<img src="', '" class=');
+						Value := StringReplace(Value, './', '/');
+						if (Value <> '') and (pos('.jpg', Value) > 0) then
+						begin
+							Value := 'https://www.ofdb.de' + Value;
+							GetPicture(Value);
+						end;
+					end; 
+				end;//PictureSize=0
+
+				if (GetOption('PictureSize') = 1) then//Experimental!
+				begin
+					Page.Text := GetPage(OFDBURLMain);
+					Value := '';	
+					LineNr := FindLine('Shop-Artikel', Page, 0);
+					if LineNr > -1 then
+					begin
+						LineNr := LineNr + 3;
+						Line := Page.GetString(LineNr);
+						Value := TextBetween(Line, '<a href="', '"><span');
+						if Value = '' then
+							Value := TextBetween(Line, '<a href="', '"><img class');		
+						if Value <> '' then
+						begin
+							Page.Text := GetPage(Value);
+							LineNr := FindLine('<a href="./images/fassung_galerie', Page, 0);
+							Value := '';
+							if LineNr > -1 then
+							begin
+								Line := Page.GetString(LineNr);
+								Value := TextBetween(Line, '<a href="./images/fassung_galerie/', '" title=');
+								Value := 'https://www.ofdb.de/images/fassung_galerie/' + Value; 
+							end else
+							begin
+								LineNr := FindLine('<a href="./images/fassung/', Page, 0);
+								if LineNr > -1 then
+								begin
+									Line := Page.GetString(LineNr);
+									Value := TextBetween(Line, '<a href="./images/fassung/', '" title=');
+									Value := 'https://www.ofdb.de/images/fassung/' + Value;	  
+								end;
+							end;	
+						end;
+					end;
+					if Value <> '' then
+					begin
+						GetPicture(Value);
+					end;
+				end;
+			end;	
+		end;
+
+  Page.Text := GetPage(OFDBURLMain);
+
+  //ActorsFromOFDB
+		if CanSetField(fieldActors) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('ActorsFromOFDB') = 1) then
+			begin	
+				Value := '';//actor
+				Value2 := '';//Rolle
+				FullValue := '';//actorlist
+				LineNr := FindLine('Darsteller', Page, 0);
+				if LineNr > -1 then
+				begin			
+					LineNr := Findline('>Alle Details anzeigen<', Page, 0);
+					if LineNr > -1 then
+					begin
+						Line := Page.GetString(LineNr);
+						Value3 := (TextBetween(Line, '<a href="', '">'));
+						if Findline('Rollen-Galerie<', Page, 0) > -1 then
+							Value3 := StringReplace(Value3, 'details', 'rollengalerie');
+						Page.Text := GetPage(Value3);
+						LineNr := FindLine('Rollenname', Page, 0);
+						if LineNr > -1 then
+						begin
+							repeat
+								Line := Page.GetString(LineNr);
+								Value2 := ' (als ' + TextBetween(Line, '</b> ', '</p>') + ')';
+								LineNr := LineNr - 1;
+								Line := Page.GetString(LineNr);
+								Value := TextBetween(Line, '<h4>', '</h4>');
+								if Value = '' then
+								begin
+									LineNr := LineNr - 1;
+									Line := Page.GetString(LineNr);
+									Value := TextBetween(Line, '<h4>', '</h4>');
+								end;					
+								FullValue := FullValue + Value + Value2 + ActorsSeparator;
+								LineNr := LineNr + 3;
+								LineNr := FindLine('Rollenname', Page, LineNr);
+							until LineNr < 0;						
+						end;
+
+//actors without role specification
+						if (Getoption('ActorsFromOFDbRole') = 1) then
+						begin		
+							Value := '';
+							LineNr := Findline('anlegen?</p>', Page, 0);
+							if LineNr > -1 then
+							begin						
+								LineNr := 1;
+								repeat
+									LineNr := Findline('anlegen?</p>', Page, LineNr);
+									Line := Page.GetString(LineNr - 2);
+									Value := TextBetween(Line, '">', '</a>');
+									if Value <> '' then
+										FullValue := FullValue + Value + ActorsSeparator;	
+									LineNr := LineNr + 4;
+								until LineNr < 4;							
+							end;
+						end;
+					end else
+					begin
+						LineNr := FindLine('<li itemprop="actor"', Page, LineNr);
+						if LineNr > -1 then
+						begin
+							repeat
+								Line := Page.GetString(LineNr + 1);
+								Value := TextBetween(Line, '<span itemprop="name">', '</span>');
+								FullValue := FullValue + Value + ActorsSeparator;
+								LineNr := LineNr + 1;
+								LineNr := FindLine('<li itemprop="actor"', Page, LineNr);
+							until LineNr < 0;
+						end;								
+					end;			
+					FullValue := UTF8Decode(FullValue);
+					HTMLRemoveTags(FullValue);
+					HTMLDecode(FullValue);
+					if FullValue <> '' then
+					begin
+						FullValue := Trim(copy(FullValue, 1, Length(FullValue) - Length(ActorsSeparator)));
+						SetField(fieldActors, FullValue);				
+					end;
+				end;
+			end;
+		end;
+	end;
+
+  Page.Text := GetPage(OFDBURLMain);
+  
+  //DirectorsFromOFDB
+		if CanSetField(fieldDirector) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('DirectorsFromOFDB') = 1) then
+			begin
+				Value := '';
+				FullValue := '';
+				LineNr := Findline('<span itemprop="director"', Page, 0);
+				if LineNr > -1 then
+				begin
+					repeat
+						LineNr := LineNr + 1;
+						Line := Page.GetString(LineNr);
+						Value := TextBetween(Line, '<span itemprop="name">', '</span>');
+						FullValue := FullValue + Value + DirectorsSeparator;
+						LineNr := LineNr + 1;
+						LineNr := FindLine('<span itemprop="director"', Page, LineNr);
+					until LineNr < 0;	  
+					FullValue := UTF8Decode(FullValue);
+					HTMLRemoveTags(FullValue);
+					HTMLDecode(FullValue);
+					if FullValue <> '' then
+					begin
+						FullValue := Trim(copy(FullValue, 1, Length(FullValue) - Length(DirectorsSeparator)));
+						SetField(fieldDirector, FullValue);
+					end;
+				end;
+			end;
+		end;
+  
+  Page.Text := GetPage(OFDBURLMain);
+  
+	//WritersFromOFDB
+		if CanSetField(fieldWriter) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('WritersFromOFDB') = 1) then
+			begin
+				Value := '';
+				FullValue := '';
+				LineNr := Findline('Alle Details anzeigen', Page, 0);
+				if LineNr > -1 then
+				begin
+					Line := Page.GetString(LineNr);
+					Page.Text := GetPage(TextBetween(Line, '<a href="', '">'));//Detailseite laden
+					LineNr := Findline('Drehbuchautor', Page, 0);
+					if LineNr > -1 then
+					begin
+						LineNrTmp := Findline('<h5 class="', Page, LineNr + 1);
+						if LineNr > -1 then
+						begin
+							While (LineNr < LineNrTmp) and (LineNr > 4) do
+							begin
+								LineNr := Findline('"><h4>', Page, LineNr);
+								if LineNr > -1 then
+								begin
+									Line := Page.GetString(LineNr);
+									Value := TextBetween(Line, '"><h4>', '</h4>');
+									FullValue := FullValue + Value + WritersSeparator;
+									LineNr := LineNr + 4;
+								end;
+							end;
+							FullValue := UTF8Decode(FullValue);
+							HTMLRemoveTags(FullValue);
+							HTMLDecode(FullValue);
+							if FullValue <> '' then
+							begin
+								FullValue := Trim(copy(FullValue, 1, Length(FullValue) - Length(WritersSeparator)));
+								SetField(fieldWriter, FullValue);
+							end;
+						end;
+					end;
+				end;
+			end;
+		end;
+	
+	Page.Text := GetPage(OFDBURLMain);
+	
+	//ProducersFromOFDB
+		if CanSetField(fieldProducer) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('ProducersFromOFDB') = 1) then
+			begin
+				Value := '';
+				FullValue := '';
+				LineNr := Findline('Alle Details anzeigen', Page, 0);
+				if LineNr > -1 then
+				begin
+					Line := Page.GetString(LineNr);
+					Page.Text := GetPage(TextBetween(Line, '<a href="', '">'));//Detailseite laden
+					LineNr := Findline('Produzent', Page, 0);
+					LineNrTmp := Findline('<h5 class="', Page, LineNr + 1);
+					if LineNr > -1 then
+					begin
+						While (LineNr < LineNrTmp) and (LineNr > 4) do
+						begin 
+							LineNr := Findline('"><h4>', Page, LineNr);
+							if LineNr > -1 then
+							begin
+								Line := Page.GetString(LineNr);
+								Value := TextBetween(Line, '"><h4>', '</h4>');
+								FullValue := FullValue + Value + ProducersSeparator;
+								LineNr := LineNr + 4;
+							end;
+						end;	  
+						FullValue := UTF8Decode(FullValue);
+						HTMLRemoveTags(FullValue);
+						HTMLDecode(FullValue);
+						if FullValue <> '' then
+						begin
+							FullValue := Trim(copy(FullValue, 1, Length(FullValue) - Length(ProducersSeparator)));
+							SetField(fieldProducer, FullValue);
+						end;
+					end;
+				end;
+			end;
+		end;
+
+	Page.Text := GetPage(OFDBURLMain); 
+
+	//ComposersFromOFDB
+		if CanSetField(fieldComposer) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('ComposersFromOFDB') = 1) then
+			begin
+				Value := '';
+				FullValue := '';
+				LineNr := Findline('Alle Details anzeigen', Page, 0);
+				if LineNr > -1 then
+				begin
+					Line := Page.GetString(LineNr);
+					Page.Text := GetPage(TextBetween(Line, '<a href="', '">'));//Detailseite laden
+					LineNr := Findline('Komponist', Page, 0);
+					LineNrTmp := Findline('<h5 class="', Page, LineNr + 1);
+					if LineNr > -1 then
+					begin
+						While (LineNr < LineNrTmp) and (LineNr > 4) do					
+						begin 
+							LineNr := Findline('"><h4>', Page, LineNr);
+							if LineNr > -1 then
+							begin
+								Line := Page.GetString(LineNr);
+								Value := TextBetween(Line, '"><h4>', '</h4>');
+								FullValue := FullValue + Value + ComposersSeparator;
+								LineNr := LineNr + 4;
+							end;
+						end;	  
+						FullValue := UTF8Decode(FullValue);
+						HTMLRemoveTags(FullValue);
+						HTMLDecode(FullValue);
+						if FullValue <> '' then
+						begin
+							FullValue := Trim(copy(FullValue, 1, Length(FullValue) - Length(ComposersSeparator)));
+							SetField(fieldComposer, FullValue);
+						end;
+					end;
+				end;
+			end;
+		end;
+	
+	Page.Text := GetPage(OFDBURLMain);
+ 
+ // Category from OFDb
+		if CanSetField(fieldCategory) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1)  or (GetOption('CategoryFromOFDB') = 1) then
+			begin
+				LineNr := Findline('"genre">', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value:= '';
+					Line:= Page.GetString(LineNr);
+					repeat
+						Line := TextAfter(Line, '"genre">');
+						Temp := TextBefore(Line, '</span></a>', '');
+						if Temp <> '' then Value := Value + ', ' + Temp ;
+						LineNr := Findline('"genre">', Page, LineNr + 1);
+						Line:= Page.GetString(LineNr);
+					until (LineNr < 0);
+					Value:= Copy(Value, 3, Length(Value) - 1);
+					Value := UTF8Decode(Value);
+					HtmlRemoveTags(Value);
+					Value := StringReplace(Value, ', ', CategoriesSeparator);
+					SetField(fieldCategory, Value);
+				end;
+			end;
+		end;
+
+	// Year from OFDb
+		if CanSetField(fieldYear) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('YearFromOFDB') = 1) then
+			begin
+				LineNr := Findline('Erscheinungsjahr:', Page, 0);
+				if LineNr > -1 then
+				begin
+					LineNr := LineNr + 1;
+					Line:= Page.GetString(LineNr);
+					Delete(Line, 1, Pos('">', Line) - 3);
+					Value := TextBetween(Line, '">', '</a></dd>');
+					if Value <> '' then SetField(fieldYear, Value);
+				end;
+			end;
+		end;
+
+	// Country from OFDb
+		if CanSetField(fieldCountry) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('CountryFromOFDB') = 1) then
+			begin
+				LineNr := Findline('Herstellungsland:', Page, 0);
+				if LineNr > -1 then
+				begin
+					FullValue := '';
+					Value:= '';
+					LineNr := LineNr + 1;
+					repeat
+						Line:= Page.GetString(LineNr);
+						Value := TextBetween(Line, 'Origin">', '</span>');
+						FullValue := FullValue + Value + CountriesSeparator;
+						LineNr := LineNr + 1;
+						LineNr := Findline('Origin">', Page, LineNr);
+					until LineNr < 0;
+					FullValue := Trim(copy(FullValue, 1, Length(FullValue) - Length(ActorsSeparator)));
+					FullValue := UTF8Decode(FullValue);
+					HTMLRemoveTags(FullValue);
+					SetField(fieldCountry, FullValue);
+				end;
+			end;
+		end;
+
+	// Rating from OFDb
+		if CanSetField(fieldRating) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('RatingFromOFDB') = 1) then
+			begin
+				LineNr := Findline('span itemprop="ratingValue">', Page, 0);
+				if LineNr > -1 then
+				begin
+					Value := '';
+					Line:= Page.GetString(LineNr);
+					Value := TextBetween(Line, 'span itemprop="ratingValue">', '</span>');
+					Value := StringReplace(Value,'.',',');
+					if Value <> '0' then
+						SetField(fieldRating, Value);
+				end;
+			end;
+		end;
+
+	// Translated Title from OFDb
+		if CanSetField(fieldTranslatedTitle) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('TranslatedTitleFromOFDB') = 1) then
+			begin
+				LineNr := Findline('<title>OFDb - ', Page, 0);
+				if LineNr > -1 then
+				begin
+					Line := Page.GetString(LineNr);
+					Line := TextAfter(Line, '<title>OFDb - ');
+					Line := RemoveYear(Line);
+					Line := UTF8Decode(Line);
+					HTMLRemoveTags(Line);
+					Line := Trim(Line);
+					if Line <> '' then SetField(fieldTranslatedTitle,Line);
+				end;
+			end;
+		end;
+
+	//OriginalTitleFromOFDB	
+		if CanSetField(fieldOriginalTitle) then
+		begin
+			if not ImdbFound or (GetOption('AllFromOFDB') = 1) or (GetOption('OriginalTitleFromOFDB') = 1) then
+			begin
+				LineNr := Findline('Originaltitel:', Page, 0);
+				if LineNr > -1 then
+				begin
+					Line := Page.GetString(LineNr + 1);
+					Line := UTF8Decode(Line);
+					HTMLRemoveTags(Line);
+					HTMLDecode(Line);
+					Line := FullTrim(Line);
+					if Line <> '' then SetField(fieldOriginalTitle, Line);
+				end;
+			end;
+		end;
+
+	//Length from OFDb: not available
+	//AspectRatio (Resolution or Videoformat) from OFDb: not available
+	//Languages from OFBb: not available
+	//Audioformat from OFBb: not available
+
+//set URL////////////////////////////////
+		if ImdbFound and (GetOption('AllFromOFDB') = 0) then
+		begin
+			SetField(fieldURL, IMDbURLMain);
+		end else
+		begin
+			SetField(fieldURL, OFDbURLMain);
+		end;
+		 	
+//set FSK/////////////////////////
+		Value := '';
+		if (GetOption('FSKOrigin') = 0) Then
+			Value := ofdbFSK;
+		if (GetOption('FSKOrigin') = 1) Then
+			Value := imdbFSK;
+		if (GetOption('FSKOrigin') = 2) and (ofdbFSK = '') Then
+			Value := imdbFSK;
+		if Value <> '' then
+		begin
+			Value := UTF8Decode(Value);
+			HTMLDecode(Value);
+			HTMLRemoveTags(Value);
+			if (Value = 'o.Al.') or (Value = 'o.A.') or (Value = '0') then
+				Value := 'Ohne Altersbeschränkung';
+			if (Copy(Value,1,5)) = 'Keine' then
+				Value := '18';
+			if (CanSetField(fieldCertification)) then
+				SetField(fieldCertification, Value);
+			if (CanSetField(fieldDescription)) and (GetOption('FSK') = 1) then
+			begin
+				Value := 'FSK: ' + (Value + #13#10 + GetField(fieldDescription));
+				SetField(fieldDescription, Value);
+			end;
+			if (CanSetField(fieldComments)) and (GetOption('FSK') = 2) then
+			begin
+				Value := 'FSK: ' + (Value + #13#10 + GetField(fieldComments));
+				SetField(fieldComments, Value);
+			end;
+		end;
+
+end;
+
+procedure AddMoviesTitles(Page: TStringList; var LineNr: Integer);
+var
+  Line, MovieTitle, MovieAddress, CutMark, CutMarkAddress, Jahr: string;
+  StartPos, EndPos, PageCounter: Integer;
+
+begin
+  Line := Page.GetString(LineNr);
+	PageCounter := 0;
+  repeat
+    CutMark := '">';
+    CutMarkAddress := '">';
+    StartPos := Pos('<td><a target="_blank" href="', Line);
+    if StartPos > 0 then
+    begin
+      Delete(Line, 1, StartPos + 28);
+      MovieAddress := TextBefore(Line, CutMarkAddress, '');
+      MovieTitle := TextBefore(Line, '</span></a>', CutMarkAddress);
+      HTMLRemoveTags(MovieTitle);
+			HTMLDecode(MovieTitle);
+			if UTF8Decode(MovieTitle) <> '' then
+				MovieTitle := UTF8Decode(MovieTitle); // in case of a UTF8 decoding error
+			if UTF8Decode(MovieTitle) <> '' then
+				MovieTitle := UTF8Decode(MovieTitle); // in case of a UTF8 decoding error
+      if (MovieAddress <> '') And (MovieTitle <> '') then
+			begin
+				PageCounter := PageCounter + 1;	
+				LineNr := LineNr + 1;
+				LineNr := FindLine('<td>', Page, LineNr);
+			  Line := Page.GetString(LineNr);
+				Jahr := TextBetween(Line, '<td>', '</td>');
+				if Jahr <> '' then
+					MovieTitle := Movietitle + ' (' + Jahr + ')';
+        PickTreeAdd(MovieTitle, MovieAddress);				
+				LineNr := FindLine('<td><a target="_blank" href="', Page, LineNr);
+			  Line := Page.GetString(LineNr);
+      end else
+        StartPos := -1; // Error - Leave the Loop
+
+    end;
+  until (StartPos < 1) or (PageCounter > 100);
+	if PageCounter > 100 then
+		ShowMessage(TooMuch + IntToStr(PageCounter) 
+		+ EntriesFound + #13#10 + TitlePrec);
+
+end;
+
+
+begin
+  Site := TStringList.Create;
+  if CheckVersion(4,2,1) then
+  begin
+    if (GetOption('Language') = 0) then
+		begin
+			NoHit := 'Kein Ergebnis';
+			NoResult := '" nicht gefunden.';
+			AskForOtherTitle := 'Bitte einen anderen Titel eingeben :';
+			AskForTitle := 'Bitte Titel eingeben :';
+			NoIMDbEntry := 'Keine IMDB-Nr. gefunden';
+			UseOFDB := 'Hole Daten von OFDB';
+			TooMuch := 'Über ';
+			EntriesFound := ' Einträge wurden gefunden.';
+			TitlePrec := 'Bitte den Titel genauer angeben.' + #13#10;
+		end else
+		begin
+			NoHit := 'No Result';
+			NoResult := '" not found.';
+			AskForOtherTitle := 'Please enter a different title :';
+			AskForTitle := 'Please enter a title :';
+			NoIMDbEntry := 'No IMDB number found';
+			UseOFDB := 'Retrieve data from OFDB';
+			TooMuch := 'Over ';
+			EntriesFound := ' entries were found.';
+			TitlePrec := 'Please specify the title more precisely.' + #13#10;
+		end;
+    MovieName := GetField(fieldTranslatedTitle);
+    if MovieName = '' then
+      MovieName := GetField(fieldOriginalTitle);
+    if (MovieName = '') or (GetOption('AskForMovieTitle') = 1) then
+      if not Input('OFDb-mobi-IMDb', AskForTitle, MovieName) then
+        Exit;
+    begin
+      MovieName := StringReplace(MovieName,'.',' ');
+			Site.Text := GetPage(BASEURL + 'suchergebnis/?' + UrlEncode(MovieName));
+			if pos('<td><a target="_blank"', Site.Text) < 1 then    
+			begin
+				if (Pos('das', AnsiLowerCase(MovieName)) = 1) or 
+					(Pos('der', AnsiLowerCase(MovieName)) = 1) or 
+					(Pos('die', AnsiLowerCase(MovieName)) = 1) or 
+					(Pos('ein', AnsiLowerCase(MovieName)) = 1) or 
+					(Pos('eine', AnsiLowerCase(MovieName)) = 1) then
+				begin
+					MovieName := Trim(Copy(MovieName, 5, Length(MovieName)));
+					Site.Text := GetPage(BASEURL + 'suchergebnis/?' + UrlEncode(MovieName));;
+				end;
+			end;
+		
+			if pos('<td><a target="_blank"', Site.Text) < 1 then
+      begin
+				repeat
+					if not (Input('"' + MovieName + NoResult, AskForOtherTitle, MovieName)) then
+						Exit;
+					if (MovieName <> '') then
+					begin
+						Site.Text := GetPage(BASEURL + 'suchergebnis/?' + UrlEncode(MovieName));
+					end;
+				until pos('<td><a target="_blank"', Site.Text) > 0;
+			end;
+			SetSeparators;
+			AnalyzePage(BASEURL + 'suchergebnis/?' + UrlEncode(MovieName));
+				
+    end;
+  end else
+    ShowMessage('This script requires a newer version of Ant Movie Catalog (at least the version 4.2.1)');
+end.

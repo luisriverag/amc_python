@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="WebSite PRO 4.3" />
+  <title>Ant Movie Catalog Help</title>
+       <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+       <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Eksport do HTML</p>
+<hr />
+<p>Opcja "Eksport do HTML" pozwala na stworzenie pliku HTML, który będzie zawierał pełny katalog
+   w przenośnym formacie. Możesz umieścić listę na stronę WWW lub dać ją komukolwiek, kto ma
+   przeglądarkę internetową.</p>
+<p>Wygenerowany plik HTML jest oparty na rzeczywistym pliku HTML. Program zastępuje informacjami specjalne tagi z filmu i katalogu.</p>
+<hr />
+<p>Są dwa szablony: "Ogólny" i "Indywidualny". Stare wersje mają tylko szablon "Ogólny". Szablon "Ogólny"
+   jest tylko jednym plikiem z listą filmów (wykorzystywanym np. jako spis dla indywidualnego). Jego nazwa jest nazwą, którą wybierasz kiedy klikasz na "Eksport".
+   Szablon indywidualny jest plikiem dotyczącym jednego filmu. Domyślnie jego nazwa ustalana jest na podstawie podanej po kliknięciu "Eksport",
+   z numerem filmu dołączonym na końcu (możesz to zmienić w oknie <a href="options_pl.html#export">Ustawień</a>).</p>
+<p>Zatem, jeśli eksportujesz filmy do pliku "Moje filmy.html" otrzymasz:</p>
+<ul>
+ <li>Moje filmy.html -&gt; Lista filmów, oparta na wczytanym pełnym szablonie</li>
+  <li>Moje filmy_1.html -&gt; Pierwszy film, oparty na szablonie wczytanym w oknie "Indywidualny"</li>
+  <li>Moje filmy_2.html -&gt; Drugi film, oparty na szablonie wczytanym w oknie "Indywidualny"</li>
+  <li>itd... </li>
+</ul>
+<p>Po prawej stronie przycisków wyboru szablonów (przyciski "Ogólny" / "Indywidualny") możesz wybrać
+   czy chcesz eksportować oba szablony, czy tylko aktualnie wybrany.</p>
+<hr />
+<p>Wszystkie tagi zaczynają się od "$$". Nie musisz ich znać ponieważ możesz je dodać w menu "Wstaw dodatkowy tag".
+Zawierają one wszystkie te informacje, które możesz wprowadzić dla filmu w głównym oknie, a także całkowitą ilość filmów, nazwę katalogu,
+bieżącą datę i czas.</p>
+<p>Są dwa bardzo ważne tagi dla szablonu "ogólnego": $$ITEM_BEGIN i $$ITEM_END. Kiedy tworzysz plik
+   HTML, program powtórzy kod HTML, który jest pomiędzy tymi dwoma tagami dla każdego filmu.
+   Zatem wszystkie tagi zaczynające się $$ITEM_ muszą zostać umiejscowione pomiędzy tymi dwoma tagami.
+   Z drugiej strony, te tagi są bezużyteczne dla szablonu "indywidualnego".</p>
+<p>Aplikacja zawiera przykładowe szablony, które możesz użyć lub przerobić. Oczywiście, możesz stworzyć
+   nowy szablon jeśli wolisz, ale zalecałbym przyjrzeć się najpierw temu podstawowemu szablonowi:</p>
+<pre>&lt;html&gt;
+  &lt;head&gt;&lt;title&gt;$$FILENAME&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;&lt;table&gt;
+    $$ITEM_BEGIN
+      &lt;tr&gt;
+        &lt;td&gt;$$ITEM_NUMBER&lt;/td&gt;
+        &lt;td&gt;$$ITEM_ORIGINALTITLE&lt;/td&gt;
+        &lt;td&gt;$$ITEM_TRANSLATEDTITLE&lt;/td&gt;
+        &lt;td&gt;$$ITEM_DESCRIPTION&lt;/td&gt;
+      &lt;/tr&gt;
+    $$ITEM_END
+  &lt;/table&gt;&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>Możemy tutaj zauważyć, że strona będzie nazwą pliku jak w tytule, z tabelą zawierającą wszystkie
+   filmy. Program po tagu &lt;table&gt; powtórzy sekwencję &lt;tr&gt;...&lt;/tr&gt; dla
+   każdego filmu, ponieważ jest pomiędzy $$ITEM_BEGIN i $$ITEM_END.</p>
+<p>Oto lista dostępnych tagów:</p>
+<ul>
+  <li>$$DATE = Bieżąca data</li>
+  <li>$$TIME = Bieżący czas</li>
+</ul>
+<blockquote>
+  <p>Właściwości pliku katalogu:</p>
+</blockquote>
+<ul>
+  <li>$$FILENAME = Nazwa katalogu</li>
+  <li>$$FILEPATH = Nazwa katalogu z pełną ścieżką</li>
+  <li>$$TOTALMOVIES = Ilość filmów w katalogu</li>
+</ul>
+<ul>
+  <li>$$OWNER_NAME = Nazwa podana we właściwościach katalogu</li>
+  <li>$$OWNER_MAIL = E-mail</li>
+  <li>$$OWNER_SITE = Strona WWW</li>
+  <li>$$DESCRIPTION = Opis</li>
+</ul>
+<ul>
+  <li>$$ITEM_FILEINDIV = Nazwa indywidualnej strony dla bieżącego filmu</li>
+  <li>$$ITEM_BEGIN = Początek listy filmów</li>
+  <li>$$ITEM_END = Koniec listy filmów
+  <li>$$ITEM_RECNR = Licznik</li>
+</ul>
+<blockquote>
+    <p>Etykiety pól filmowych (zgodnie z wybranym językiem):</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_NUMBER = Numer</li>
+  <li>$$LABEL_CHECKED = Zaznaczony/niezaznaczony</li>
+  <li>$$LABEL_COLORTAG = Tag koloru</li>
+  <li>$$LABEL_MEDIA = Etykieta filmu/kod kreskowy</li>
+  <li>$$LABEL_TYPE = Rodzaj nośnika</li>
+  <li>$$LABEL_SOURCE = Źródło</li>
+  <li>$$LABEL_DATEADD = Data dodania</li>
+  <li>$$LABEL_BORROWER = Komu wypożyczony</li>
+  <li>$$LABEL_DATEWATCHED = Data obejrzenia</li>
+  <li>$$LABEL_USERRATING = Moja ocena (od 0 do 10)</li>
+  <li>$$LABEL_RATING = Ocena (od 0 do 10)</li>
+  <li>$$LABEL_ORIGINALTITLE = Tytuł oryginalny</li>
+  <li>$$LABEL_TRANSLATEDTITLE = Tytuł polski</li>
+  <li>$$LABEL_FORMATTEDTITLE = Tytuł sformatowany</li>
+  <li>$$LABEL_DIRECTOR = Reżyser</li>
+  <li>$$LABEL_PRODUCER = Producent</li>
+  <li>$$LABEL_WRITER = Szcenariusz</li>
+  <li>$$LABEL_COMPOSER = Muzyka</li>
+  <li>$$LABEL_ACTORS = Obsada</li>
+  <li>$$LABEL_COUNTRY = Kraj</li>
+  <li>$$LABEL_YEAR = Rok produkcji</li>
+  <li>$$LABEL_LENGTH = Czas trwania w minutach</li>
+  <li>$$LABEL_CATEGORY = Kategoria</li>
+  <li>$$LABEL_CERTIFICATION = Certyfikacja</li>
+  <li>$$LABEL_URL = Adres strony www</li>
+  <li>$$LABEL_DESCRIPTION = Opis</li>
+  <li>$$LABEL_COMMENTS = Komentarze</li>
+  <li>$$LABEL_FILEPATH = Ścieżka pliku</li>
+  <li>$$LABEL_VIDEOFORMAT = Format wideo/kodek</li>
+  <li>$$LABEL_VIDEOBITRATE = Przepływność wideo</li>
+  <li>$$LABEL_AUDIOFORMAT = Format audio/kodek</li>
+  <li>$$LABEL_AUDIOBITRATE = Przepływność audio</li>
+  <li>$$LABEL_RESOLUTION = Rozdzielczość wideo</li>
+  <li>$$LABEL_FRAMERATE = Ilość klatek na sekundę</li>
+  <li>$$LABEL_LANGUAGES = Język</li>
+  <li>$$LABEL_SUBTITLES = Napisy</li>
+  <li>$$LABEL_SIZE = Rozmiary plików</li>
+  <li>$$LABEL_DISKS = Ilość dysków lub kaset</li>
+  <li>$$LABEL_PICTURESTATUS = Status obrazka</li>
+  <li>$$LABEL_NBEXTRAS = Ilość dodatków</li>
+  <li>$$LABEL_PICTURE = Obrazek</li>
+  <li>$$LABEL_AUDIOKBPS' = Jednostka przepływności audio</li>
+  <li>$$LABEL_VIDEOKBPS' = Jednostka przepływności wideo</li>
+  <li>$$LABEL_UNIT' = Jednostka wielkości pliku</li>
+  <li>$$LABEL_FPS' = Jednostka klatek na sekundę</li>
+</ul>
+<blockquote>
+    <p>Etykiety pól niestandardowych:</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_CF_ + TAG niestandardowych pól wielkimi literami = Etykieta pola niestandardowego</li>
+</ul>
+<blockquote>
+    <p>Etykiety pól dodatkowych (zgodnie z wybranym językiem):</p>
+</blockquote>
+<ul>
+  <li>$$LABEL_EXTRA_NUMBER = Numer</li>
+  <li>$$LABEL_EXTRA_CHECKED = Zaznaczony/niezaznaczony</li>
+  <li>$$LABEL_EXTRA_TAG = Tag</li>
+  <li>$$LABEL_EXTRA_TITLE = Tytuł</li>
+  <li>$$LABEL_EXTRA_CATEGORY = Kategoria</li>
+  <li>$$LABEL_EXTRA_URL = Adres WWW lub ścieżka do pliku</li>
+  <li>$$LABEL_EXTRA_DESCRIPTION = Opis</li>
+  <li>$$LABEL_EXTRA_COMMENTS = Komentarze</li>
+  <li>$$LABEL_EXTRA_CREATEDBY = Utworzony przez</li>
+  <li>$$LABEL_EXTRA_PICTATUS = Status obrazka</li>
+  <li>$$LABEL_EXTRA_PICTURE = Obrazek</li>
+</ul>
+<blockquote>
+    <p>Pola filmu:</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_NUMBER = Numer</li>
+  <li>$$ITEM_CHECKED = Zaznaczony/niezaznaczony</li>
+  <li>$$ITEM_COLORTAG = Kolor zaznaczenia (liczba między 0 i 12)</li>
+  <li>$$ITEM_COLORHTML = Kolor zaznaczenia (kolor HTML, t.j. #FFFFFF)</li>
+  <li>$$ITEM_MEDIA = Etykieta filmu/kod kreskowy</li>
+  <li>$$ITEM_TYPE = Rodzaj nośnika</li>
+  <li>$$ITEM_SOURCE = Źródło</li>
+  <li>$$ITEM_DATEADD = Data dodania</li>
+  <li>$$ITEM_BORROWER = Komu wypożyczony</li>
+  <li>$$ITEM_DATEWATCHED = Data obejrzenia</li>
+  <li>$$ITEM_USERRATING = Moja ocena (od 0 do 10)</li>
+  <li>$$ITEM_USERRATING10 = Moja ocena (od 0 to 10 bez wartości dziesiętnych)</li>
+  <li>$$ITEM_USERRATING4 = Moja ocena (od 0 do 4 bez wartości dziesiętnych)</li>
+  <li>$$ITEM_USERAPP4 = Moje uznanie, od 0 do 4 gwiazdek, używając plików appr*.gif</li>
+  <li>$$ITEM_USERAPPR10 = Moje uznanie, od 0 do 10 gwiazdek, używając plików appr10_*.gif</li>
+  <li>$$ITEM_RATING = Ocena (od 0 do 10)</li>
+  <li>$$ITEM_RATING10 = Ocena (od 0 do 10 bez wartości dziesiętnych)</li>
+  <li>$$ITEM_RATING4 = Ocena (od 0 do 4 bez wartości dziesiętnych)</li>
+  <li>$$ITEM_APPRECIATION = Uznanie, od 0 do 4 gwiazdek, używając plików appr*.gif</li>
+  <li>$$ITEM_APPR10 = Uznanie, od 0 do 10 gwiazdek, używając plików appr10_*.gif</li>
+  <li>$$ITEM_ORIGINALTITLE = Tytuł oryginalny</li>
+  <li>$$ITEM_TRANSLATEDTITLE = Tytuł polski</li>
+  <li>$$ITEM_FORMATTEDTITLE = Tytuł sformatowany zgodnie z definicją w <a href="options_pl.html#formattedtitle">Ustawieniach</a></li>
+  <li>$$ITEM_FORMATTEDTITLE1 = Tytuł sformatowany, jako "Tytuł oryginalny (Tytuł polski)"</li>
+  <li>$$ITEM_FORMATTEDTITLE2 = Tytuł sformatowany, jako "Tytuł polski (Tytuł oryginalny)"</li>
+  <li>$$ITEM_DIRECTOR = Reżyser</li>
+  <li>$$ITEM_PRODUCER = Producent</li>
+  <li>$$ITEM_WRITER = Scenariusz</li>
+  <li>$$ITEM_COMPOSER = Muzyka</li>
+  <li>$$ITEM_ACTORS = Obsada</li>
+  <li>$$ITEM_COUNTRY = Kraj</li>
+  <li>$$ITEM_YEAR = Rok produkcji</li>
+  <li>$$ITEM_LENGTH = Czas trwania w minutach</li>
+  <li>$$ITEM_CATEGORY = Kategoria</li>
+  <li>$$ITEM_CERTIFICATION = Certyfikacja</li>
+  <li>$$ITEM_URL = Adres strony WWW (bez łącza)</li>
+  <li>$$ITEM_DESCRIPTION = Opis</li>
+  <li>$$ITEM_COMMENTS = Komentarze</li>
+  <li>$$ITEM_FILEPATH = Ścieżka pliku</li>
+  <li>$$ITEM_VIDEOFORMAT = Format wideo/kodek</li>
+  <li>$$ITEM_VIDEOBITRATE = Przepływność wideo</li>
+  <li>$$ITEM_AUDIOFORMAT = Format audio/kodek</li>
+  <li>$$ITEM_AUDIOBITRATE = Przepływność audio</li>
+  <li>$$ITEM_RESOLUTION = Rozdzielczość wideo</li>
+  <li>$$ITEM_FRAMERATE = Ilość klatek na sekundę</li>
+  <li>$$ITEM_LANGUAGES = Język</li>
+  <li>$$ITEM_SUBTITLES = Napisy</li>
+  <li>$$ITEM_SIZE = Rozmiary plików</li>
+  <li>$$ITEM_DISKS = Ilość dysków lub kaset</li>
+  <li>$$ITEM_PICTURESTATUS = Status obrazka</li>
+  <li>$$ITEM_NBEXTRAS = Ilość dodatków</li>
+  <li>$$ITEM_PICTURE = Obrazek, osadzony w tagu &lt;img&gt;</li>
+  <li>$$ITEM_PICTUREFILENAME = Nazwa pliku obrazka</li>
+</ul>
+<blockquote>
+    <p>Pola niestandardowe:</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_CF_ + TAG pól niestandardowych wielkimi literami = Wartość pola niestandardowego</li>
+</ul>
+<blockquote>
+    <p>Pola dodatków dla filmu:</p>
+</blockquote>
+<ul>
+  <li>$$ITEM_EXTRA_BEGIN(<i>dodatek</i> CATEGORY <i>[opcjonalnie]</i>, <i>dodatek</i> CHECKED <i>[opcjonalnie]</i>, START <i>[opcjonalnie]</i>, END <i>[opcjonalnie]</i>) = Początek listy dodatków z filtrowaniem lub nie</li>
+  <li>$$ITEM_EXTRA_END = Koniec listy dodatków dla filmu</li>
+  <li>$$ITEM_EXTRA_RECNR = Licznik</li>
+  <li>$$ITEM_EXTRA_NUMBER(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Numer</li>
+  <li>$$ITEM_EXTRA_CHECKED(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Zaznaczony/niezaznaczony</li>
+  <li>$$ITEM_EXTRA_TAG(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Tag</li>
+  <li>$$ITEM_EXTRA_TITLE(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Tytuł</li>
+  <li>$$ITEM_EXTRA_CATEGORY(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Kategoria</li>
+  <li>$$ITEM_EXTRA_URL(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Adres WWW lub ścieżka pliku</li>
+  <li>$$ITEM_EXTRA_DESCRIPTION(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Opis</li>
+  <li>$$ITEM_EXTRA_COMMENTS(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Komentarze</li>
+  <li>$$ITEM_EXTRA_CREATEDBY(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Utworzony przez</li>
+  <li>$$ITEM_EXTRA_PICSTATUS(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Status obrazka</li>
+  <li>$$ITEM_EXTRA_PICTURE(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Obrazek</li>
+  <li>$$ITEM_EXTRA_PICFILENAME(TAG <i>dodatku</i> <i>[opcjonalnie, jeśli interesuje Cię lista dodatków]</i>) = Nazwa pliku obrazka</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,948 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Historique des versions</p>
+<hr />
+<ul id="versions">
+	<li>4.2.3 (19/05/2023)
+	<li>4.2.3 [BETA] (06/02/2023)
+		<ul>
+			<li> Nouvelles fonctions GetPage4, GetPage5 et GetPicture3 permettant de spécifier le content-type et des en-têtes addtionnels.</li>
+			<li> Mise à jour de MediaInfo.</li>
+		</ul>
+	</li>
+	<li>4.2.3 [BETA] (16/03/2021)
+		<ul>
+			<li> Support des pages avec encodage gzip.</li>
+			<li> Mise à jour de MediaInfo.</li>
+		</ul>
+	</li>
+	<li>4.2.2 (16/02/2019)
+		<ul>
+			<li> Correction d'une incohérence dans la sensibilité à la casse des emprunteurs dans la fenêtre de gestion des prêts.
+		</ul>
+	</li>
+	<li>4.2.2 [BETA] (10/04/2018)
+		<ul>
+			<li> Mise à jour vers la version 10 des composants Indy pour le support de TLS 1.2 dans les connexions HTTPS.</li>
+			<li> Mise à jour de l'interface MediaInfo pour supporter son nouveau système de numérotation de version.</li>
+			<li> Nettoyage des formats d'import/export obsolètes.</li>
+		</ul>
+	</li>
+  <li>4.2.1 (04/11/2017) par Mickaël Vanneufville
+    <ul>
+      <li> Correction du "hint" dans la fenêtre de renumérotation des films.</li>
+      <li> Mise à jour de l'aide (fonction GetPage3).</li>
+      <li> Mise à jour des scripts.</li>
+    </ul>
+  </li>
+  <li>4.2.1 [BETA] mise à jour (10/08/2015) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité d'activer ou non le défilement de l'élément sous le pointeur plutôt que l'élément sélectionné (voir préférences).</li>
+      <li> Ajout de nouvelles fonctions pour les scripts permettant la gestion complète des cookies (voir aide).</li>
+      <li> Correction de la fonction GetPage3 pour les scripts qui ne gérait pas les cookies spécifiés correctement.</li>
+      <li> Correction et amélioration des composants IdCookie et IdCookieManager d'Indy 9 qui ne géraient pas les propriétés expires, max-age et path correctement.</li>
+      <li> Correction du défilement de la liste de films qui pouvait défilait en même temps qu'un autre composant avec certains drivers de souris.</li>
+      <li> Mise à jour des fichiers de traduction.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.1 [BETA] mise à jour (26/07/2015) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité de faire défiler la légende pour les statistiques.</li>
+      <li> Mise à jour des fichiers de traduction.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.1 [BETA] mise à jour (18/05/2015) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout et utilisation de OpenSSL pour se connecter aux sites utilisant le protocole HTTPS.</li>
+      <li> Ajout de la possibilité d'utiliser tous les champs dans l'adresse du site web pour rechercher un film sur internet (voir aide).</li>
+      <li> Ajout de la possibilité de déplacer tous les champs personnalisés se trouvant en dessous ou au même niveau que le champ sélectionné (voir aide).</li>
+      <li> Ajout d'un nouveau thème d'icônes Fresh créé par James Anderson Jr. (voir aide).</li>
+      <li> Correction d'un possible bug de redimensionnement des champs personnalisés lorsque les barres de défilement sont visibles.</li>
+      <li> Mise à jour et correction des fichiers de traduction.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.1 [BETA] (11/11/2014) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la recherche avancée permettant maintenant de rechercher sur plusieurs champs avec plus de possibilités en utilisant des expressions booléennes (voir aide).</li>
+      <li> Ajout de nouvelles variables pour l'impression afin d'afficher le nombre d'enregistrements (films) et autres (voir aide).</li>
+      <li> Ajout de nouveaux tags images pour les modèles HTML afin de ne plus afficher de pop-up lorsque l'on clique sur l'image d'un film ou d'un extra dans l'affichage HTML (voir aide).</li>
+      <li> Ajout des propriétés du catalogue courant pour le nouveau catalogue généré lors de l'export.</li>
+      <li> Ajout de quelques options pour mieux redimensionner et changer la position des champs films en utilisant le fichier de traduction.</li>
+      <li> Ajout d'une option dans les préférences pour afficher les infos de l'extra plutôt que l'image lorsqu'il n'y en a pas.</li>
+      <li> Ajout d'une option dans les préférences pour afficher des bordures autour des cellules des extras.</li>
+      <li> Ajout des champs d'extras "Commentaire" and "Créé par" dans l'affichage des infos de l'extra lorsque c'est possible.</li>
+      <li> Amélioration de l'affichage du champ "Adresse" dans l'affichage des infos de l'extra pour afficher le nom du fichier avant le chemin lorsque la valeur du champ est trop grande.</li>
+      <li> Amélioration du redimensionnement des champs personnalisés pour éviter la barre de défilement horizontale/verticale si possible lorsque la barre de défilement verticale/horizontale apparait.</li>
+      <li> Correction et amélioration des fonctions avancées de comparaison de chaines (AnsiCompareEx, AnsiNatCompare, AnsiPosEx, ...) pour fonctionner correctement avec toutes les langues (Tchèque, Coréen, Japonais, Chinois, ...).</li>
+      <li> Correction d'un bug sur le tri avancé des films pour l'impression qui ne prenait pas en compte les champs personnalisés.</li>
+      <li> Correction du message d'avertissement qui apparait avant l'enregistrement d'un catalogue au format 4.2 vers le format 3.5.</li>
+      <li> Mise à jour et correction des fichiers de traduction.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.0 (20/04/2014) par Mickaël Vanneufville
+    <ul>
+      <li> Optimisation pour appliquer le lissage amélioré des images uniquement lorsqu'elles sont redimensionnées.</li>
+      <li> Durant l'importation de fichiers vidéos, le champ contenant le chemin du fichier est maintenant défini en tant que champ clé lorsque l'option "Essayer de raccorder automatiquement les champs aux colonnes" est cochée.</li>
+      <li> Ajout d'une option permettant d'activer ou désactiver l'importation automatique de l'image associée à un fichier vidéo (portant le même nom) lors de l'importation via drag &amp; drop.</li>
+      <li> Amélioration de la fonction HTMLDecode pour les scripts afin d'ajouter la conversion des codes numériques supérieurs à 255 si possible.</li>
+      <li> Ajout de la possibilité de désigner un extra par sa position (ou numéro), sa catégorie et la valeur de sa case cocher plutôt que par son tag uniquement dans les modèles d'impression (voir aide).</li>
+      <li> Correction d'un bug lors de la conversion des images non JPG qui pouvait écraser des images JPG existantes portant le même nom.</li>
+      <li> Correction d'un bug lors de l'export SQL sur le champ date d'ajout qui avait 6 quotes au lieu de 2.</li>
+      <li> Correction de quelques bugs durant l'édition des extras.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.0 [BETA] mise à jour (03/11/2013) par Mickaël Vanneufville
+    <ul>
+      <li> Amélioration du lissage pour l'ensemble des images.</li>
+      <li> Ajout du fichier HTMLDisplayExcludedTemplates.txt dans le dossier Templates contenant la liste des modèles HTML à exclure pour l'affichage HTML.</li>
+      <li> Lorsque aucun film n'est requis pour un script, il est maintenant possible de sélectionner les champs modifiables et d'afficher la fenêtre de résultats
+           pour les nouveaux films ajoutés (peut être utile pour des scripts ajoutant des films par eux-même).</li>
+      <li> Correction de l'erreur 1400 (invalid WindowHandle) et autres bugs liés pouvant se produire suite à l'affichage de la fenêtre des extras.</li>
+      <li> Correction du rafraichissement de l'affichage HTML lorsque le champ Checked/ColorTag est affiché dans le modèle et qu'on change sa valeur.</li>
+      <li> Correction du couper sur les champs de type URL/Entier/Réel pour bien supprimer la valeur et pouvoir annuler la suppression si besoin (CTRL + Z).</li>
+      <li> Correction d'autres bugs mineurs.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.0 [BETA] mise à jour (13/10/2013) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité d'ouvrir un catalogue par défaut avec un chemin relatif (dossier de base = Catalogs).</li>
+      <li> Ajout de la possibilité d'importer automatiquement l'image associée à un fichier vidéo ou .film (portant le même nom) lors de l'importation via drag & drop.</li>
+      <li> Ajout de la fonction RaiseConnectionErrors pour les scripts afin d'afficher ou cacher les erreurs liées aux problèmes de connexion.</li>
+      <li> Modification de la fonction HTMLDecode pour l'étendre au charset windows-1252.</li>
+      <li> Correction d'un bug sur les images JPG copiées ou liées qui ne se redimensionnaient pas correctement dans la fenêtre image flottante.</li>
+      <li> Correction d'un bug sur l'affichage HTML dont les valeurs des champs personnalisés virtuels ne s'affichaient pas.</li>
+      <li> Correction d'un bug lors de l'enregistrement du catalogue dans un autre dossier dont le chemin relatif du champ FilePath n'était pas réévalué.</li>
+      <li> Correction d'un bug lors de l'importation d'une image dont le dossier images n'était pas supprimé lorsqu'il devenait vide.</li>
+      <li> Correction d'un bug sur le répertoire par défaut affiché lors de la sauvegarde d'un nouveau script avec le bouton sauver (fonctionnait bien avec le bouton sauver sous).</li>
+      <li> Correction d'un bug d'affichage sur les champs modifiés par un script qui ne s'affichaient plus en noir une fois grisés précédemment dans la fenêtre de résultats.</li>
+      <li> Correction d'un bug lors de l'exécution répété d'un script qui ne requiert pas de films.</li>
+      <li> Correction d'un bug sur les champs des extras exclus lors de l'exécution d'un script qui n'étaient plus exclus après le rechargement du script.</li>
+      <li> Correction d'un bug sur la fonction ListDirectory pour les scripts dont la taille des fichier était affichée comme un entier signé au lieu d'un entier non signé.</li>
+      <li> Correction de quelques bugs sur les fonctions DelimitedCSVText et DelimitedAMCText de la classe TStringListEx pour les scripts.</li>
+      <li> Correction d'autres bugs mineurs.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.0 [BETA] mise à jour (08/07/2013) par Mickaël Vanneufville
+    <ul>
+      <li> Augmentation de la largeur du champ Classification (précédemment nommé Certification) quand c'est possible.</li>
+      <li> Correction d'un bug lorsque les extras étaient inclus dans un template HTML pour l'affichage HTML ou l'export HTML.</li>
+      <li> Correction d'un bug lors de l'import de la note du film qui pouvait être différente de la note originale à cause d'une erreur d'arrondi.</li>
+      <li> Correction d'un petit bug lors de l'export HTML et SQL : on utilise maintenant un slash au lieu d'un backslash pour les liens relatifs des images copiées dans un sous-dossier.</li>
+      <li> Correction d'autres bugs mineurs.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.2.0 [BETA] mise à jour (10/05/2013) par Mickaël Vanneufville
+    <ul>
+      <li> Correction d'un petit bug durant le copier/coller d'extras lorsque l'image était stockée.</li>
+    </ul>
+  </li>
+  <li>4.2.0 [BETA] (05/05/2013) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de nouveaux champs films (Date vu, Note de l'utilisateur, Scénariste, Compositeur, Classification, Chemin du fichier).</li>
+      <li> Ajout d'extras pour les films : vous pouvez maintenant stocker tous les suppléments souhaités pour un film dans différentes catégories comme des affiches, fanarts, images du film, casting, bandes-annonces, vidéos, ...</li>
+      <li> Ajout du support complet des extras pour les films (affichage, édition, recherche, scripts, modèles HTML, impression, import, export).</li>
+      <li> Nouveau format AMC 4.2 pour stocker les nouveaux champs films et les extras (non compatible avec AMC 3.5 ou 4.1).<br />
+      Cependant, vous pouvez continuer à stocker le catalogue au format AMC 3.5 ou 4.1 mais vous perdrez les nouveaux champs films et les extras.</li>
+      <li> Extension du format XML pour stocker le catalogue avec les nouveaux champs films et les extras (peut être lu par AMC 3.5 ou 4.1).</li>
+      <li> Ajout de la possibilité d'afficher ou cacher les champs concernant le support et/ou la vidéo sur la fenêtre des champs films.</li>
+      <li> Ajout de la possibilité d'utiliser la même image copiée pour plusieurs films ou extras : l'image copiée sera seulement supprimée lorsqu'elle n'est plus utilisée dans le catalogue.</li>
+      <li> Ajout de la possibilité de nommer les images des films et extras avec plus d'options pour le catalogue et l'export.</li>
+      <li> Ajout de la possibilité d'ajouter une image par défaut lors de l'ajout d'un nouveau film ou d'un nouveau extra.</li>
+      <li> Ajout de la possibilité de convertir et de redimensionner les images des films et des extras en JPG.</li>
+      <li> Ajout de la possibilité de forcer le rafraichissement de la liste de films lorsque la valeur d'un champ change.</li>
+      <li> Ajout de nouvelles fonctions pour les scripts (GetFileSize, GetPictureSize, GetPictureWidth, GetPictureHeight, ConvertPicture, ...).</li>
+      <li> Correction de bugs mineurs.</li>
+      <!-- * All picture export options was not handled well during catalog export (e.g. Store picture in catalog if picture is copied)
+           * Video size problem when size is stored in bytes and video size > 2 GB
+           * ...
+      -->
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.1.2 mise à jour (10/02/2013) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de plus de champs et des champs personnalisés pour les statistiques.</li>
+      <li> Correction de bugs mineurs.</li>
+      <!-- * "Don't use margins" option for printing didn't work well.
+           * Modify/Delete a custom field from custom fields frame didn't select this field on custom fields manager opening
+           * Scripts with "Requires movies" option to False are now displayed when the script window is called through "Get information" > "From Internet using a script" (F6)
+           * Add and fix some templates (BlueBasic, Indigo)
+           * Fix display bugs in search toolbar and script execution options with high DPI (e.g. 120 instead of 96 dpi) 
+      -->
+    </ul>
+  </li>
+  <li>4.1.2 (26/12/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Définition dynamique de l'ordre de tabulation pour les champs personnalisées en fonction de leurs positions dans le cadre associée.</li>
+      <li> Correction de bugs mineurs.</li>
+      <!-- * Some custom fields in associated frame could be resized during destroy of components and generated an exception.
+           * Fix a bug during import/export to CSV when we have linebreak between quotes. 
+           * Copy picture with a good name (new number, new formattedTitle) in catalog or pictures folder during import from import window.
+           * Override windows 7 behavior when InitialDir is not empty to use this folder by default and don't use last visited folder...
+           * Line break separator '|' used for XML is only replaced by #13#10 on load if it is a field with multiple lines.
+      -->
+    </ul>
+  </li>
+  <li>4.1.2 [BETA] mise à jour (09/12/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité de copier/coller un film sur plusieurs films en même temps avec la possibilité de sélectionner les champs à inclure ou non.</li>
+      <li> Les champs désélectionnés pour le copier/coller d'un film sont maintenant enregistrés en mémoire et dans le fichier "prefs.xml".</li>
+      <li> Ajout de la possibilité de définir un titre formaté personnalisé pouvant regrouper plusieurs champs en utilisant un modèle.</li>
+      <li> Ajout de la possibilité de créer des champs personnalisés de type virtuel pouvant regrouper plusieurs champs en utilisant un modèle.</li>
+      <li> Ajout de la possibilité d'effectuer un tri avancé sur la liste de films.</li>
+      <li> Ajout de la possibilité d'inverser l'ordre de tri d'un ou plusieurs champs du tri avancé (liste de films, renommage, exportation, impression).</li>
+      <li> Ajout de la possibilité d'importer le nombre de canaux audio (2.0, 5.1, ...) lors de l'extraction des infos des fichiers vidéos.</li>
+      <li> Ajout d'un nouveau moteur pour redimensionner automatiquement les champs personnalisés dans le cadre associé.</li>
+      <li> Ajout d'une nouvelle propriété pour les scripts "Requiert des films" afin de spécifier si un script requiert ou non de films du catalogue pour fonctionner.
+           Si un script n'a pas besoin de films, alors aucune sélection de films ne sera demandé avant l'exécution et aucun film ne sera passé au script.
+           Ceci peut être utile pour des scripts comme "UpdateScripts", "AddNewMovies", ...</li>
+      <li> Ajout des fonctions IsSelected et SetSelected pour les scripts afin de pouvoir sélectionner ou non des films dans la liste de films.</li>
+      <li> Ajout des fonctions SetOption et SetParam pour les scripts afin de pouvoir changer la valeur d'une option ou d'un paramètre.</li>
+      <li> Ajout de nouvelles fonctions de base pour la création de rapports pour l'impression : RegExprSetSubstitute, RegExprSetReplace et RegExprSetReplaceSimple.</li>
+      <li> Correction de quelques bugs lors de l'impression (orientation du texte 180/270°, marges des pages, bordure des objets...) et correction de quelques modèles.</li>
+      <li> Ajout d'un petit délai avant de tout rafraichir après la sélection de films et la saisie du texte à rechercher pour éviter de ralentir une navigation ou une saisie rapide.</li>
+      <li> Ajout de nouvelles fonctionnalités (Ctrl + Up/Down/Left/Right/Enter) et quelques corrections sur le composant rkSmartView.</li>
+      <li> Ajout des propriétés SearchFontTextColor, SearchBackTextColor et NoMoviePage pour l'affichage HTML dans le fichier "prefs.xml" pour les utilisateurs qui voudraient les modifier.</li>
+      <li> Correction de bugs mineurs.</li>
+      <!-- * Add some not recognized methods of TStringList (clear, delete, insert, indexof) because of abstract declaration in TStrings or using of const not supported.
+           * Abort script batch process from a dialog windows didn't work if only one movie was selected.
+           * Messages in Imput and PickTree windows are now centered vertically and justified to left.
+           * Formatting options "Extract year of dates" and "Extract year and month of dates" not worked with dates formatted as 'yyyy-mm-dd' (default format).
+           * Search text was not highlighted in HTML display if string case was different.
+           * Change function StringReplaceCaseSensitive by StringReplaceIgnoreCase for print script and set StringReplace case sensitive as AMC scripts.
+           * Fix a bug during import of AMC/XML catalogs with different custom fields.
+      -->
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.1.2 [BETA] mise à jour (29/10/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout d'options de formatage sur les groupes lors du groupage sur un champ : Extraire la première lettre, extraire l'année des dates, arrondir les nombres, ...</li>
+      <li> Amélioration de la recherche de films pour ne pas prendre en compte les accents.</li>
+      <li> Ajout des fonctions AnsiCompare, AnsiNatCompare, AnsiPosEx, AnsiLastPosEx et AnsiBestFitUS pour les scripts afin de comparer et rechercher des chaines avec plus d'options (ignorer la casse ou non, ignorer les accents ou non, ...).</li>
+      <li> Ajout de la possibilité d'ajouter des paramètres aux scripts, en plus des options, afin de pouvoir entrer des valeurs comme le tag d'un champ personnalisé par exemple.</li>
+      <li> Amélioration de la fenêtre permettant de gérer les propriétés, options et paramètres du script.</li>
+      <li> Affichage de la progression du script dans l'en-tête de la fenêtre lorsqu'il est en cours d'exécution.</li>
+      <li> Correction de bugs mineurs.</li>
+      <!-- * Use local field value for search (for reals and dates).
+           * Improve NatCompare function to have the same behaviour than AnsiCompare with accents: All characters in the string are first.
+             compared without regard to accents and, if the strings are equal, a second pass over the strings is performed to compare accents.
+           * Improve the way the search text is highlighted in HTML display.
+           * Change 'Framerate' by 'Frame rate' or 'Frame Rate'.
+           * Add a lot of optimized functions to compare and search strings with or without case/accents/... in functions_str.pas.
+      -->
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.1.2 [BETA] mise à jour (04/10/2012) par Mickaël Vanneufville
+    <ul>
+      <li> L'encodage des caractères spécifié dans les propriétés du catalogue et utilisé pour l'enregistrement de catalogues XML est maintenant défini en fonction de la langue utilisateur par défaut.</li>
+      <li> Ajout de la possibilité de supprimer les anciennes images copiées d'un catalogue lorsque ce dernier est remplacé par un nouveau catalogue durant un sauver sous ou un export.</li>
+      <li> Ajout de nouvelles fonctions pour les scripts : GetCurrentDir, SetCurrentDir, ExpandFileName et ExtractRelativePath.</li>
+      <li> Ajout de nouvelles fonctions de base pour la création de rapports pour l'impression : Length, Pos, LastPos, StringReplace et StringReplaceIgnoreCase.</li>
+      <li> Correction et ajout de quelques modèles de rapports pour l'impression.</li>
+      <li> Correction de quelques bugs durant la génération de rapports pour l'impression.</li>
+      <li> Correction d'un bug lors de la conversion d'un réel depuis une chaine de caractères sur certaines configurations.</li>
+      <li> Correction d'autres bugs mineurs.</li>
+      <!-- * New catalog prefix was added to old catalog prefix when we export copied pictures for new catalog and we have options: keep original filename and add catalog prefix.
+           * Action 'Edit...' of current HTML template did not open current template if path was relative.
+           * Set the current dir to the default catalogs folder when catalog has not been saved yet.
+           * We now use catalog folder as default current dir when we read value of URL field or URL custom field (for relative links) instead of application folder.
+           * Relative links in URL fields (fieldUrl and custom fields of type URL) are now reevaluated if catalog is saved in another folder.
+      -->
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.1.2 [BETA] (15/09/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout du support des images BMP.</li>
+      <li> Ajout de la possibilité de choisir la précision des réels pour les champs personnalisés (1, 2 ou 3 décimales).</li>
+      <li> Ajout de la possibilité de copier les images dans un sous-dossier images ("Nom du catalogue"_pics) plutôt que de les copier directement dans le dossier du catalogue.</li>
+      <li> Ajout d'un gestionnaire d'images pour changer la manière dont elles sont stockées dans le catalogue, les renommer, les supprimer, ...</li>
+      <li> Lors de l'export au fomat HTML, CSV et SQL, ajout de la possibilité de copier les images dans un sous-dossier images ("Nom du fichier exporté"_pics) plutôt que de les copier directement dans le dossier du fichier exporté.</li>
+      <li> Lors de l'export au fomat XML et AMC, ajout de la possibilité d'exporter une partie des films du catalogue (cochés, sélectionnés,...) et de choisir la méthode d'exportation des images.</li>
+      <li> Lors de l'analyse de fichiers vidéos via la fenêtre d'importation, un fichier de log complet est maintenant créé (fichier 'scan.log' dans le dossier 'Ant Movie Catalog' contenant les données).</li>
+      <li> Ajout de la possibilité de retarder l'extraction des informations avancées des films durant l'import de fichiers vidéo (plus rapide si vous souhaitez seulement ajouter/mettre à jour quelques films de la liste d'aperçu).</li>
+      <li> Ajout de la possibilité de redimensionner la colonne "N°" de la liste de films.</li>
+      <li> Ajout de la possibilité d'activer ou non l'autofocus sur la liste de films et le visualiseur HTML.</li>
+      <li> Ajout de la possibilité d'inverser les résultats de l'expression de recherche.</li>
+      <li> Ajout de la possibilité de coller juste une partie des infos du film copié.</li>
+      <li> Ajout de la possibilité de copier/<b>coller</b> une image d'un film.</li>
+      <li> Ajout de la possibilité de sélectionner directement un modèle situé dans un sous-dossier pour l'affichage HTML.</li>
+      <li> Ajout d'un éditeur de modèles HTML pour faciliter la modification des modèles utilisés pour l'affichage HTML.</li>
+      <li> Ajout des fonctions GetPictureStatus and ImportPicture2 pour les scripts afin de gérer les images du catalogue plus facilement.</li>
+      <li> Ajout de nouvelles fonctions pour gérer les fenêtres de sélection "PickTree" et "PickList" pour les scripts.</li>
+      <li> Ajout de fonctions permettant de créer, supprimer et copier un dossier pour les scripts.</li>
+      <li> Ajout d'un bouton "Abandonner" sur tous les messages affichés par les scripts afin de pouvoir stopper l'exécution du script.</li>
+      <li> Mise à jour de l'aide.</li>
+      <li> Correction de bugs mineurs.</li>
+      <!-- * During import of media files, an error occurs when an associated picture of movie contains not supported chars.
+           * Drag and drop of a catalog not worked good, the default cursor was not restored !  
+           * When you save a catalog .amc to another name/folder, the old picture path was saved instead of new evaluated picture path on the first save !
+      -->
+    </ul>
+  </li>
+  <li>4.1.1 (30/07/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de nouvelles méthodes dans les classes TStringList et TStringListEx pour les scripts comme le tri, le tri naturel, l'analyse automatique des valeurs multiples (ex: champ acteurs, genres), ...
+        (Merci de lire la documentation concernant les scripts dans le fichier d'aide).</li>
+      <li> Ajout des fonctions AnsiCompareStr, AnsiCompareText, AnsiNatCompareStr et AnsiNatCompareText pour les scripts.</li>
+      <li> Correction du problème "Out of memory" (Manque de mémoire) lorsque vous exportez un très grand nombre de films en HTML (modèle complet).</li>
+      <li> Correction d'autres bugs mineurs.</li>
+      <!-- * The generated movie number with AddNewMovieToQueue function in scripting was bad.
+           * Classe TJvSimpleXmlElemClassic was declared after TJvSimpleXmlElems that caused some trouble with TJvSimpleXmlElems.Add method that returns TJvSimpleXmlElemClassic object.
+           * Adding a new movie temporarily added two movies in movie list in some cases.
+           * A simple clic on a movie in movie list doesn't deselect it anymore.
+      -->
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (17/06/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la prise en charge des images JPEG de type CMYK qui n'étaient pas supportées et qui causées des erreurs de violation d'accès.</li>
+      <li> La liste de films ne prend plus le focus lorsque le curseur de la souris est sur elle mais ne bouge pas (utile lors de l'utilisation de la touche TAB pour modifier des champs alors que le curseur de la souris est encore sur la liste de films).</li>
+      <li> Correction d'autres bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (10/06/2012) par Mickaël Vanneufville
+    <ul>
+      <li> La fenêtre de numérotation, d'export et d'impression utilisent maintenant une comparaison naturelle (détecte automatiquement les nombres) pour trier les chaines de caractères.</li>
+      <li> Utilisation du format JPEG plutôt que BMP (pour les images > 300 px) durant l'impression pour réduire l'utilisation de la mémoire (divisée par 10).</li>
+      <li> La comparaison naturelle peut maintenant être activée ou non dans les préférences générales d'affichage.</li>
+      <li> Correction de bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (31/05/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout du nombre de films sélectionnés et cochés dans la barre de statut.</li>
+      <li> Ajout de la possibilité de redimensionner les colonnes automatiquement dans la liste de la fenêtre d'importation.</li>
+      <li> Correction de bugs mineurs et de quelques traductions.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (23/05/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Changement du composant liste dans la fenêtre d'importation pour de meilleures performances.</li>
+      <li> Ajout de la possibilité de trier les valeurs dans la liste de la fenêtre d'importation.</li>
+      <li> Ajout de la possibilité de sélectionner un champ clé dans la liste de la fenêtre d'importation pour comparer les films et ignorer ou mettre à jour les valeurs des films existants.</li>
+      <li> Ajout de la possibilité de vider les champs ou non lors de l'importation depuis la fenêtre d'importation.</li>
+      <li> Ajout de la possibilité de sauver, charger et <b>recharger automatiquement</b> les associations champs-colonnes dans la liste de la fenêtre d'importation <b>pour chaque type d'import</b>.</li>
+      <li> La liste de films et la liste de la fenêtre d'importation utilisent maintenant une comparaison naturelle (détecte automatiquement les nombres) pour trier les chaines de caractères.</li>
+      <li> Correction de bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (05/05/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Optimisations durant le chargement des valeurs du catalogue pour les champs de type liste.</li>
+      <li> Correction de bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (29/04/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité d'afficher l'étiquette couleur du film sur le titre dans l'affichage en miniatures.</li>
+      <li> Ajout de la sélection multiple dans l'affichage en miniatures et une synchronisation totale avec l'affichage en liste.</li>
+      <li> Changement de la couleur de sélection dans l'affichage en miniatures.</li>
+      <li> Correction d'un bug durant la sauvegarde du catalogue dans un autre dossier, les images liées n'étaient pas copiées et les chemins relatifs n'étaient pas mis à jour.</li>
+      <li> Correction d'autres bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (10/04/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité d'afficher les miniatures des films sans le titre du film.</li>
+      <li> Ajout de la possibilité d'afficher les champs films et les champs personnalisés dans un même onglet (nécessite au moins une résolution d'écran de 1024 x 600 pixels).</li>
+      <li> Réduction du nombre de niveaux dans certains menus pour faciliter leur utilisation (Trier par, Grouper par, Champs du tableau, Films sélectionnés, Sélectionner).</li>
+      <li> Correction d'un bug lors de l'importation de la taille d'une vidéo sous forme de chaîne.</li>
+      <li> Correction d'autres bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] mise à jour (18/03/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité d'importer l'image (avec le même nom de fichier/dossier ou le nom 'poster'/'picture'/'cover'/'folder'/'movie'/'film'/...) durant l'importation d'infos de vidéos.</li>
+      <li> Mise à jour de l'aide et des fichiers de traduction.</li>
+      <li> Correction d'un bug lors de la conversion de certaines dates d'une base XML venant d'AMC 3.5.1.</li>
+      <li> Correction d'autres bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.1 [BETA] (04/03/2012) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la possibilité de vider les champs ou non lors de l'importation d'infos de vidéos par drag &amp; drop.</li>
+      <li> Ajout de la possibilité d'importer le nom du dossier ou le nom du dossier filtré durant l'importation d'infos de vidéos.</li>
+      <li> Ajout de la possibilité d'importer l'image (avec le même nom de fichier/dossier ou le nom 'poster') durant l'importation d'infos de vidéos.</li>
+      <li> Ajout des cases à cocher dans l'affichage en miniatures.</li>
+      <li> Mise à jour de l'aide et des fichiers de traduction au format 4.1.1.</li>
+      <li> Correction d'un bug dans le composant ElTree lorsque l'on souhaite assurer la visibilité d'un élément de la liste.</li>
+      <li> Correction d'un bug lors de l'importation d'infos de vidéos dans les champs personnalisés par drag &amp; drop.</li>
+      <li> Correction d'un bug lors de l'importation d'une base de données d'eXtreme Movie Manager.</li>
+      <li> Correction d'un bug lors de la fusion d'infos de vidéos en plusieurs parties/disques avec certains systèmes de fichiers.</li>
+      <li> Correction d'un bug lors de l'impression des films.</li>
+      <li> Correction d'autres bugs mineurs.</li>
+    </ul>
+  </li>
+  <li>4.1.0 (24/12/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Mise à jour de l'aide et des fichiers de traduction.</li>
+      <li> Correction de quelques bugs.</li>
+    </ul>
+  </li>
+  <li>4.1.0 [BETA] mise à jour (19/12/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Le drag & drop de fichiers a été amélioré et permet maintenant d'ajouter plusieurs films facilement.</li>
+      <li> Ajout de la possibilité d'annuler à tout moment l'importation / exportation des films.</li>
+      <li> Mise à jour de l'aide et des fichiers de traduction.</li>
+      <li> Correction de quelques bugs.</li>
+    </ul>
+  </li>
+  <li>4.1.0 [BETA] mise à jour (11/12/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Le copier/coller d'un film fonctionne maintenant avec plusieurs catalogues.</li>
+      <li> Modification de la fonction ExportPicture(Dir: string; PicName: string) pour les scripts vers ExportPicture(Filename: string).</li>
+      <li> Ajout de la fonction PictureExt pour les scripts.</li>
+      <li> Mise à jour des scripts et de l'aide.</li>
+      <li> Correction de bugs mineurs et de quelques traductions.</li>
+    </ul>
+  </li>
+  <li>4.1.0 [BETA] mise à jour (08/12/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Modification du manifest de l'exécutable, du setup et de l'emplacement de certains fichiers pour une meilleure compatibilité avec Windows Vista/7.</li>
+      <li> Ajout des fonctions ShowMemo, GetIteration, GetIterationCount, AddNewMovieToQueue, RemovePicture, GetPicturePath, GetPictureFullPath pour les scripts.</li>
+      <li> Ajout des constantes dirData, dirDocs, dirTemplates, dirCatalogs, dirCurrentCatalog, fileCurrentCatalog pour les scripts.</li>
+      <li> Affichage de la valeur d'une variable de script dans un "memo" plutôt que dans un simple message.</li>
+      <li> Correction d'un bug dans la fonction HTMLDecode pour les scripts.</li>
+      <li> Correction d'un bug lors de l'import.</li>
+      <li> Correction d'un bug sur le remplissage des listes déroulantes lors de l'ouverture d'un catalogue.</li>
+      <li> Correction d'un bug lors du drag and drop de fichiers.</li>
+      <li> Mise à jour des fichiers de traduction au format 4.1.0.</li>
+      <li> Mise à jour de l'aide.</li>
+    </ul>
+  </li>
+  <li>4.1.0 [BETA] (21/11/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Nouveau format AMC 4.1 pour stocker le catalogue avec plus d'informations.</li>
+      <li> Extension du format XML pour stocker le catalogue plus informations.</li>
+      <li> Ajout de la possibilité de marquer les films de la liste (avec une couleur de fond et/ou un cadre de couleur).</li>
+      <li> Ajout de la possibilité de trier les films dans l'ordre descendant durant le renommage, l'export et l'impression.</li>
+      <li> Ajout d'un menu permettant de choisir rapidement un modèle HTML parmi l'ensemble des modèles HTML disponibles d'un répertoire pour l'affichage HTML.</li>
+      <li> Ajout de la possibilité d'importer les films d'un catalogue GCstar.</li>
+      <li> Ajout de la possibilité d'importer les films d'un dossier contenant des fichiers vidéos.</li>
+      <li> Ajout de la possibilité de fusionner les infos des films en plusieurs parties.</li>
+      <li> Ajout de la possibilité de filtrer le nom de fichier (avec ou sans expressions rationnelles).</li>
+      <li> Ajout de la possibilité de modifier les noms des codecs retournés par MediaInfo (fichier Codecs.ini).</li>
+      <li> Ajout des fonctions LoadMedia et GetMediaInfo pour les scripts permettant d'extraire les informations d'un support.</li>
+      <li> Ajout des fonctions RegExprSet, RegExprExec, RegExprSubstitute, RegExprReplace, ... pour les scripts permettant de vérifier et de remplacer une chaine de caractères avec des expressions rationnelles.</li>
+      <li> Ajout de la possibilité d'ajouter une extension (Mo, img/s, ...) aux champs personnalisés.</li>
+      <li> Ajout de la possibilité d'importer les informations d'un support dans les champs personnalisés (nom du fichier + ext, chemin complet, taille, durée, résolution, ...).</li>
+      <li> Ajout d'options avancées sur les listes déroulantes pour les champs personnalisés (déjà présent pour les champs film).</li>
+      <li> Amélioration de l'import/export pour les champs personnalisés.</li>
+      <li> Ajout de la possibilité d'importer les champs personnalisés d'un autre catalogue .xml ou .amc directement.</li>
+      <li> Sauvegarde maintenant les champs personnalisés sélectionnés pour le tri, le groupage et la recherche.</li>
+      <li> Correction d'un bug sous Windows XP et plus qui fait disparaitre certain composants lorsque l'on appuie sur la touche ALT.</li>
+      <li> Correction de nombreux bugs et ajout de quelques optimisations dans la composant ElTreeLite.</li>
+      <li> Correction de quelques autres bugs.</li>
+      <li> Fichier aide mis à jour.</li>
+      <li> Passage en version officielle avec l'accord et l'aide d'Antoine Potten :D.</li>
+    </ul>
+  </li>
+  <li>4.0.0 Unofficial [BETA] (22/10/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout du support complet des champs personnalisés (gestion, templates, scripting, impression, importation, exportation).</li>
+      <li> Nouveau format AMC 4.0 pour stocker le catalogue avec les champs personnalisés (non compatible avec AMC 3.5).<br />
+      Il reste cependant possible d'enregistrer le catalogue au format AMC 3.5 mais ce dernier ne prendra pas en compte les champs personnalisés.</li>
+      <li> Extension du format XML pour stocker le catalogue avec les champs personnalisés (peut être lu par AMC 3.5).</li>
+      <li> Ajout de la possibilité d'afficher ou de cacher un champs en mode tableau.</li>
+      <li> Ajout de quelques optimisations au chargement du logiciel.</li>
+      <li> Ajout de quelques optimisations sur l'affichage de la liste (dans ElTreeView).<br />
+      Le défilement de la liste est maintenant plus rapide en mode tableau.</li>
+      <li> Correction d'un bug lors du déplacement des en-têtes des colonnes en mode tableau (dans ElTreeView)</li>
+      <li> Correction de quelques bugs sur la gestion des images externes (annuler changements, copier/coller).</li>
+      <li> Correction de quelques autres bugs.</li>
+      <li> Mise à jour du fichier aide.</li>
+      <li> J'attends des commentaires et des retours de bug avant de sortir une version officielle avec l'accord et l'aide d'Antoine Potten ;-).</li>
+    </ul>
+  </li>
+  <li>3.8.2 Unofficial (05/10/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout de la procédure ExportPicture pour les scripts permettant d'exporter l'image du film.</li>
+      <li> Ajout de quelques optimisations lors du développement/rassemblement de tous les films des groupes (CTRL+T / CTRL+SHIFT+T).</li>
+      <li> Correction d'un bug sur le nom de l'image lors de l'export d'images (sur les images externes).</li>
+      <li> Quelques autres bugs corrigés.</li>
+      <li> La nouvelle version 4.X avec la gestion de champs personnalisés arrive bientôt ^^.</li>
+    </ul>
+  </li>
+  <li>3.8.1 Unofficial (18/09/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout du suivi de liens dans l'affichage HTML (HTMLViewer).</li>
+      <li> Ajout de menus popup pour l'affichage HTML et l'image du film.</li>
+      <li> Ajout de quelques icônes dans les menus popup.</li>
+      <li> Quelques bugs mineurs sur le composant rkSmartView corrigés.</li>
+      <li> Quelques autres bugs corrigés.</li>
+    </ul>
+  </li>
+  <li>3.8.0 Unofficial (09/09/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Modification de l'affichage en miniatures afin de mieux correspondre avec l'affichage en liste.</li>
+      <li> Nettoyage des paramètres de groupage.</li>
+      <li> Ajout de tags pour les templates HTML (voir aide ou la fenêtre d'exportation HTML).</li>
+      <li> Fichier aide mis à jour.</li>
+      <li> Quelques bugs mineurs sur le composant rkSmartView corrigés.</li>
+      <li> Quelques autres bugs mineurs corrigés.</li>
+    </ul>
+  </li>
+  <li>3.7.0 Unofficial (27/08/2011) par Mickaël Vanneufville
+    <ul>
+      <li> Ajout d'un visualisateur de miniatures 'Thumbnails Viewer' pour afficher la liste de films sous forme de miniatures.<br />
+      Remerciements à Roy Magne Klever (rmklever.com) pour le très bon composant rkSmartView.</li>
+      <li> Ajout d'un menu 'Affichage trié' comme le menu 'Affichage groupé' pour trier la liste des films plus facilement.</li>
+      <li> Quelques traductions manquantes corrigées.</li>
+      <li> Quelques bug mineures corrigés.</li>
+    </ul>
+  </li>
+  <li>3.6.0 Unofficial (27/07/2011) par Mickaël Vanneufville
+    <ul>
+      <li>Le groupage a été amélioré pour prendre en compte les différentes valeurs des champs multiples suivants :<br />
+      MediaType, Source, Director, Producer, Country, Category, Actors, VideoFormat, AudioFormat, Languages, Subtitles<br />
+      Le séparateur (',' par défaut) peux être changé dans les options.<br />
+      Si un séparateur est placé entre parenthèses, alors ce dernier est ignoré.
+      Si une erreur est détectée au niveau des parenthèses, le film sera ajouté au groupe '&lt; ?()? &gt;'.<br />
+      Pour le champ Actors, les informations entre parenthèses sont retirées du nom du groupe.<br />
+      Il est possible d'activer la suppression des informations entre parenthèses pour tous les champs multiples dans les options.<br />
+      Aussi vu le nombre de (I (II (III (IV ... (XXX pour désigner un acteur, j'ai ajouté un patch (activable ou non dans les options) pour ne pas considérer cette parenthèse dans ce cas.<br /> 
+      </li>
+      <li>Le groupage a été amélioré de la même façon pour les statistiques sur les films et les champs Director, Producer et Actors ont été ajouté.</li>
+      <li>Le tri des films sur les différents champs en mode tableau a été amélioré.</li>
+      <li>Le tri des groupes se fait maintenant par ordre alphabétique toujours de A vers Z ou par nombre de films dans les groupes (choix dans les options).</li>
+      <li>Possibilité d'afficher la liste (mode tableau ou non) sur toute la largeur de l'écran.</li>
+      <li>Possibilité d'effectuer les mêmes actions que l'on soit en mode liste ou en mode tableau.</li>
+      <li>Possibilité de limiter le nombre de caractères affichés en mode tableau dans les options pour accélérer le défilement de la liste (32 caractères par défaut).<br />
+      Les champs FormattedTitle, OriginalTitle et TranslatedTitle ne sont pas concernés par cette limitation.</li>
+      <li>Amélioration de l'affichage du film sélectionné dans la liste lorsque les critères de tri changent.</li>
+      <li>Conserve en mémoire le critère de tri pour l'affichage en mode liste ET en mode tableau.</li>
+      <li>Ajout du raccourci clavier CTRL+T pour développer tous les films des groupes et CTRL+SHIF+T pour les rassembler.</li>
+      <li>Un bouton random a été ajouté permettant de sélectionner un film de la liste de manière aléatoire.</li>
+      <li>Le problème qui empêchait de décocher la date une fois coché sur certains systèmes d'exploitation (Windows Vista, 7) a été corrigé.</li>
+      <li>Ajout d'un visualisateur HTML pour afficher les informations des films selon le template HTML sélectionné (HTMLDefaultTemplate.html par défaut).</li>
+      <li>En mode HTML, les mots recherchés sont sélectionnés en gras rouge.</li>
+      <li>Les informations du film sélectionné dans la liste ne sont plus directement mis à jour dès que l'utilisateur change 1 caractère, car cette opération ralentie la frappe surtout lorsqu'il y a de nombreux films dans la liste.</br>
+      Les informations du film sélectionné sont mises à jour si nécessaire lorsque :
+        <ul>
+          <li>L'utilisateur déplace la souris sur la liste ou la zone gauche du panel FrmMovie (X < 90).</li>
+          <li>L'utilisateur appuie sur la touche entrer ou échappe dans un champ (La touche entrer n'est pas prise en compte pour les champs Description et Comments).</li>
+          <li>L'utilisateur clique sur l'en-tête d'une colonne, sur le bouton étirer la liste.</li>
+          <li>L'utilisateur colle les informations d'un film suite à une copie ou annule les changements effectués.</li>
+          <li>Les autres cas de mise à jour sont gérés dans la fonction SaveCurrentItem (Ex: changement du film sélectionné, ajout d'un nouveau film).</li>
+        </ul>
+      </li>
+      <li>Quelques autres corrections et d'optimisations.</li>
+    </ul>
+  </li>
+  <li>3.5.1 (22/09/2007)
+    <ul>
+      <li>Quelques fonctions ajoutées pour les scripts</li>
+      <li>Nouveau système d'importation CSV et autres formats; ajout d'une importation DVD Profiler</li>
+      <li>Exportation CSV améliorée pour correspondre aux changements faits à l'importation; correction de quelques problèmes de l'exportation SQL</li>
+      <li>Mise à jour vers la dernière version de MediaInfo</li>
+      <li>Quelques options ajoutées pour améliorer la gestion des groupes dans la fenêtre principale</li>
+      <li>Compatibilité avec Windows Vista</li>
+      <li>Correction d'un certain nombre de petits bugs</li>
+    </ul>
+  </li>
+  <li>3.5.0 (13/03/2005)
+    <ul>
+      <li>Lien vers MediaInfo.dll pour importer les informations de fichiers autre que les AVI : OGM, MKV, RM, WMV, DVD (IFO/VOB).</li>
+      <li>Remaniement de la fenêtre de scripts. Maintenant les scripts peuvent définir des options qui pourront facilement être changées par les utilisateurs.
+        Ceux-ci peuvent également spécifier quels champs peuvent être modifiés. Quelques nouvelles fonctions pour les scripts ainsi qu'un parseur XML ont été
+        ajoutés. La fenêtre des résultats a aussi été refaite.</li>
+      <li>Fonctionnalités de débogage pour les scripts : exécution pas à pas, points d'arrêt, liste des suivis, etc.</li>
+      <li>Le moteur de script peut maintenant utiliser des fichiers externes : lorsque vous placez un nom d'unité dans  les "uses" d'un script il ira chercher
+        un fichier ayant de ce nom-là avec une extension .pas ou .ifs dans le même dossier.</li>
+      <li>Les boutons pour importer et pour lier une image ont été réunis en un seul, des boutons radio affichés dans la fenêtre de sélection d'image permettent de
+        choisir que faire de l'image. Des options ont été ajoutées dans la fenêtre des Options pour spécifier si vous préférez stocker ou lier les images, il n'est
+        donc plus nécessaire de modifier les scripts pour cela.</li>
+      <li>Les fenêtres d'Exportation, Impression et Statistiques ont maintenant une option pour prendre en compte tous les films, ou juste ceux qui sont sélectionnés,
+        cochés ou visibles.</li>
+      <li>Fenêtre séparée pour le choix de la langue, affichée lors du premier démarrage du programme ; j'espère que je recevrai moins d'e-mails de personnes me
+        demandant comment avoir le programme en français ;)</li>
+      <li>Champ virtual "Titre formaté" qui peut être utilisé pour les tris, il est donc maintenant possible de trier proprement sur le titre traduit. Le champ "Coché"
+        (cases à cocher dans la liste de la fenêtre principale) a été également ajouté à la liste des champs disponibles.</li>
+      <li>Le champ "Note" possède maintenant un chiffre après la virgule comme sur IMDB.</li>
+      <li>Les noms de champs peuvent être utilisés dans les rapports imprimés, de manière à être traduits eux aussi (utilisation : [label:nomchamp] où "nomchamp" est
+        le même que celui que vous utiliseriez pour afficher une des valeurs de film).</li>
+      <li>Les doublons dans les numéros de films sont acceptés (et pour ceux qui veulent toujours des numéros uniques, j'ai ajouté dans la fenêtre d'Ajout de film
+        quelques actions disponibles lorsque le nouveau numéro existe déjà).</li>
+      <li>Groupage : une option a été ajoutée pour mettre ensemble les films qui étaient seuls dans leur groupe. Cela peut être très utile si vous groupez les films
+        par numéro ou par label.</li>
+      <li>Quelques raccourcis ont été modifiés dans la fenêtre principale afin de les rendre plus logiques.</li>
+      <li>Énormément de petites corrections et améliorations.</li>
+    </ul>
+  </li>
+  <li>3.4.3 (28/02/2004)
+    <ul>
+      <li>Correction d'un bug qui empêchait le démarrage sur certains systèmes à base de Pentium 4.</li>
+      <li>Changement de licence : en plus d'être gratuit le programme est maintenant opensource (GPL).</li>
+    </ul>
+  </li>
+  <li>3.4.2 (02/03/2003)
+    <ul>
+      <li>Importation/Exportation avec le site <a href="http://www.origons.com">Origons</a>.</li>
+      <li>Quelques nouvelles options d'Exportation, dans la fenêtre des Préférences.</li>
+      <li>Quelques corrections de bugs.</li>
+    </ul>
+  </li>
+  <li>3.4.1 (22/12/2002)
+    <ul>
+      <li>La fenêtre d'image peut être accrochée (dockée) du côté droit de la fenêtre principale.</li>
+      <li>L'image téléchargée (dans l'extraction d'information via un script) peut être visualisée avant de cliquer OK.</li>
+      <li>Option pour générer des requêtes &quot;update&quot; plutôt que des requêtes &quot;insert&quot; dans l'exportation SQL.</li>
+      <li>Commandes de recherche de texte dans l'éditeur de script.</li>
+      <li>Quelques corrections de bugs et options ajoutées.</li>
+    </ul>
+  </li>
+  <li>3.4.0 mise à jour (04/10/2002)
+    <ul>
+      <li>Correction de quelques petits détails.</li>
+      <li>Ajout de l'importation des bases de Divx Manager 1.0.</li>
+    </ul>
+  </li>
+  <li>3.4.0 (08/09/2002)
+    <ul>
+      <li>Impression, utilisant des modèles personnalisables.</li>
+      <li>En mode Tableau, la taille et l'ordre des colonnes sont sauvés.</li>
+      <li>Downloads threadés : devrait résoudre quelques problèmes de la fenêtre principale & fenêtre de script lors du download d'une page web.</li>
+      <li>Importation du bitrate vidéo et audio des fichiers AVI.</li>
+      <li>Fonctions pour modifier la casse (majuscule, minuscule, mixte...) dans l'outil de Scripting.</li>
+    </ul>
+  </li>
+  <li>3.3.1 (30/07/2002)
+    <ul>
+      <li>Support des fichiers XML : vous pouvez choisir d'utiliser des fichiers XML pour vos catalogues plutôt que le format binaire ".amc".</li>
+      <li>Les options et contenu des listes déroulantes sont stockés dans un fichier XML plutôt que des fichiers INI/TXT.</li>
+      <li>Ajout d'options pour les listes déroulantes, par ex. la possibilité d'utiliser les valeurs du catalogue plutôt que les celles des listes prédéfinies.</li>
+      <li>Importation des images lors de l'importation des fichiers de Divx Manager &amp; BaseDVDivx.</li>
+      <li>Un clic sur l'image dans la fenêtre principale affiche une nouvelle fenêtre contenant l'image à sa taille réelle.</li>
+      <li>Les valeurs par défaut des nouveaux films peuvent être modifiées depuis la fenêtre des Préférences.</li>
+      <li>Possibilité de lier les images lors d'un drag &amp; drop sur la fenêtre principale.</li>
+      <li>Option pour spécifier le type de nom de fichier donné aux images lors de l'exportation.</li>
+      <li>Lors de l'exportation SQL ou CSV, une colonne contenant le nom de l'image est ajoutée si les images sont exportées.</li>
+      <li>Les requêtes de page web depuis le script peuvent utiliser la méthode POST au lieu de GET si nécessaire (expérimental).</li>
+      <li>Drapeaux dans la liste de choix de la langue.</li>
+    </ul>
+  </li>
+  <li>3.3.0 mise à jour (22/06/2002)
+    <ul>
+      <li>Correction d'un problème de tri de la liste de films dans la fenêtre de gestion des prêts.</li>
+      <li>Nouveaux scripts.</li>
+    </ul>
+  </li>
+  <li>3.3.0 mise à jour (10/06/2002)
+    <ul>
+      <li>Corrected a bug in the SQL Export (only visible on Unicode systems).</li>
+      <li>Corrected a bug in the function HTMLDecode for the Scripting.</li>
+    </ul>
+  </li>
+  <li>3.3.0 (26/05/2002)
+    <ul>
+      <li>Deux nouveaux champs : &quot;Origine&quot; (o&ugrave;/comment vous avez
+        eu le film) et &quot;Type de support&quot; (CD, DVD, VHS, ...).</li>
+      <li>&quot;Affichage group&eacute;&quot; (Menu &quot;Outils&quot;), permettant
+        d'afficher la liste comme une sorte d'arborescence.</li>
+      <li>&quot;Affichage en tableau&quot;, affichant toutes les informations
+        de films dans une large liste plut&ocirc;t que l'aspect habituel (pour
+        le moment vous ne pouvez rien modifier dans ce mode).</li>
+      <li>Nouvelle fen&ecirc;tre de recherche, qui se comporte comme une barre
+        d'outils, permettant de la garder ouvert lors de l'utilisation de la liste
+        de films. Aussi une option &quot;Afficher les r&eacute;sultats&quot; qui
+        affiche seulement les films r&eacute;pondant aux crit&egrave;res de la
+        recherche.</li>
+      <li>Possibilit&eacute; de s&eacute;lectionner plus d'un &eacute;l&eacute;ment
+        pour la suppression, cases &agrave; cocher, scripting, ...</li>
+      <li>Sauvegarde de l'ordre dans lequel les listes sont tri&eacute;es (dans
+        la fen&ecirc;tre principale et la fen&ecirc;tre de gestion des pr&ecirc;ts).</li>
+      <li>Mise &agrave; jour vers la derni&egrave;re version de TPNGImage : les
+        images PNG supportent maintenant des transparences 32 bits.</li>
+      <li>D&eacute;sactivation des animations des GIF, car cela &eacute;tait affreusement
+        lent &agrave; charger.</li>
+      <li>Nouvelle fen&ecirc;tre pour l'image : le dock/undock (ancrage) fonctionne
+        mieux.</li>
+      <li>Mise &agrave; jour vers tb2k/tbskin 2.0.13.</li>
+      <li>Importation d'un autre fichier .amc dans le fichier actuel.</li>
+      <li>Importation des fichier .bdv de BaseDVDivx 2.5.</li>
+      <li>Importation des bases de DivxManager 0.5, 0.6 &amp; 0.8</li>
+      <li>Exportation de fichiers HTML complets ou individuels : possibilit&eacute;
+        de faire un fichier par film, utile pour les longues listes.</li>
+      <li>Lors de l'importation de fichiers avi/divx, le programme importe aussi
+        le nom des codecs vid&eacute;o &amp; audio.</li>
+      <li>Importation des fichiers .film de www.moviecovers.com.</li>
+      <li>Vitesse am&eacute;lior&eacute;e pour le d&eacute;marrage et la fermeture,
+        et pour le rafra&icirc;chissement de la liste.</li>
+      <li>Mode Scripting : Ex&eacute;cution d'un script pour une liste de films,
+        ce qui permet une importation en masse, recherche/remplace, etc...</li>
+      <li>Dans la fen&ecirc;tre de script, une page affiche les scripts trouv&eacute;s
+        dans le dossier &quot;Scripts&quot;, pour une s&eacute;lection facile
+        du script.</li>
+      <li>Importation de l'image du film avec les scripts en plus des informations
+        de films.</li>
+      <li>&Eacute;diteur avec coloration syntaxique pour l'&eacute;dition du mod&egrave;le
+        HTML et du script.</li>
+      <li>Option pour ex&eacute;cuter automatiquement le script lors de l'ouverture
+        de la fen&ecirc;tre de script.</li>
+      <li>Option pour ouvrir un catalogue sp&eacute;cifique au d&eacute;marrage,
+        ou r&eacute;ouvrir le dernier catalogue utilis&eacute;.</li>
+      <li>Option pour placer les mots tels que &quot;Le&quot;, &quot;Un&quot;,
+        ... &agrave; la fin du titre lors de leur affichage dans la liste (par
+        d&eacute;faut les mots anglais et fran&ccedil;ais sont dans la liste).</li>
+      <li>Option pour d&eacute;sactiver l'auto-compl&eacute;tion des listes d&eacute;roulantes,
+        &eacute;tant donn&eacute; que certains avaient des probl&egrave;mes avec
+        cela.</li>
+      <li>Lors de l'ajout d'un film, option pour utiliser le premier num&eacute;ro
+        disponible plut&ocirc;t que le plus haut num&eacute;ro + 1. Aussi des
+        options pour ouvrir automatiquement les fen&ecirc;tres d'extraction d'information
+        de script et de fichiers.</li>
+      <li>Quelques autres options.</li>
+      <li>Am&eacute;lioration des ic&ocirc;nes en 16x16, et ajout d'une ic&ocirc;ne
+        48x48. </li>
+    </ul>
+  </li>
+  <li>3.2.1 mise à jour (26/02/2002)
+    <ul>
+      <li>Correction d'un bug dans la fenêtre de progression (ouverture/sauvegarde/exportation/...)
+        avec les fenêtres modales.</li>
+      <li>Correction d'un bug lors de l'importation CSV (dans la version du 18/02/2002).</li>
+      <li>Mise &agrave; jour vers la nouvelle version de Toolbar2000 et TBSkin.</li>
+    </ul>
+  </li>
+  <li>3.2.1 (16/02/2002)
+    <ul>
+      <li>Am&eacute;lioration du syst&egrave;me de script, ajout d'un script pour
+        l'importation de donn&eacute;es de www.allocine.fr, et correction d'un
+        bug : crash lors de l'importation de descriptions trop longues.</li>
+      <li>Correction du bug des &eacute;l&eacute;ments non traduits sous Windows
+        95/98. Tout devrait &ecirc;tre traduit correctement maintenant.</li>
+      <li>Am&eacute;lioration de la vitesse de rafra&icirc;chissement de la liste
+        de films (lors du chargement d'un fichier, validation des options ou renum&eacute;rotation
+        des films).</li>
+    </ul>
+  </li>
+  <li>3.2.0 (09/02/2002)
+    <ul>
+      <li>Possibilit&eacute; de r&eacute;cup&eacute;rer des informations de films
+        sur internet ! Le programme utilise un syst&egrave;me de script, bas&eacute;
+        sur le Pascal Object. La version initiale n'inclue qu'un script pour importer
+        les donn&eacute;es d'IMDB, mais d'autres scripts seront disponibles bient&ocirc;t.</li>
+      <li>Menu personnalisable par l'utilisateur, pouvant lancer le navigateur
+        web par d&eacute;faut pour effectuer une recherche &agrave; propos d'un
+        film sur internet.</li>
+      <li>Enregistrement des entr&eacute;es/sorties des pr&ecirc;ts, dans un fichier
+        CSV.</li>
+      <li>Plusieurs collections d'ic&ocirc;nes, pouvant &ecirc;tre modifi&eacute;es
+        ou cr&eacute;&eacute;es par l'utilisateur en ajoutant des fichiers .bmp
+        dans le dossier de l'application.</li>
+      <li>Graphiques &quot;camembert&quot; ajout&eacute;s pour la fr&eacute;quence
+        (images/sec), les ann&eacute;es et les dur&eacute;es de films.</li>
+      <li>Tag de passage &agrave; la ligne personnalisable pour l'exportation
+        HTML.</li>
+      <li>Nouvelle fen&ecirc;tre pour la renum&eacute;rotation des films, permettant
+        de sp&eacute;cifier le type de tri &agrave; effectuer avant la renum&eacute;rotation.</li>
+      <li>Mise &agrave; jour vers la nouvelle version de Toolbar2000 et TBSkin.</li>
+      <li>Support des th&egrave;mes de Windows XP (l'application utilise le th&egrave;me
+        de Windows).</li>
+      <li>Correction du bug du tri avanc&eacute;, ainsi que quelques autres bugs.</li>
+      <li>Conversion de l'aide vers le format CHM.</li>
+    </ul>
+  </li>
+  <li>3.1.0 mise à jour (08/01/2002)
+    <ul>
+      <li>Quelques petits bugs corrigés.</li>
+    </ul>
+  </li>
+  <li>3.1.0 (22/12/2001)
+    <ul>
+      <li>Champs de longueur illimit&eacute;e (en fait limit&eacute; &agrave;
+        2147483647 caract&egrave;res sous Windows NT/2000/XP et 65535 sous Windows
+        95/98/ME).</li>
+      <li>Nouveaux champs : Format audio, D&eacute;bit audio &amp; vid&eacute;o,
+        Nombre de disques, Fr&eacute;quence, Label/Code-barre.</li>
+      <li>Statistiques : Graphique avec des statistiques sur le catalogue, par
+        ex la fr&eacute;quence des ajouts, les pays, les cat&eacute;gories, etc...</li>
+      <li>Nouvelle fen&ecirc;tre de recherche, permettant de rechercher un film
+        sur la base de n'importe quel champ.</li>
+      <li>Un nouveau film est ajout&eacute; si l'on &quot;drag &amp; drop&quot;
+        des fichiers lorsqu'aucun film n'est s&eacute;lectionn&eacute;.</li>
+      <li>Nouvelles actions pour l'image : &quot;Copier vers le presse-papiers&quot;,
+        &quot;Lier une image&quot; (Ce qui permet de ne sauver qu'un lien vers
+        l'image au lieu de la stocker dans le catalogue).</li>
+      <li>Support du PNG pour les images de films.</li>
+      <li>Image incluses lors d'un copier/coller.</li>
+      <li>Nouvelles options : &quot;Adapter la taille de l'image &agrave; la fen&ecirc;tre&quot;,
+        &quot;D&eacute;sactiver le logo au d&eacute;marrage&quot;, &quot;Touches
+        de raccourci pour passer au film pr&eacute;c&eacute;dent/suivant sans
+        perdre le champ actif&quot;.</li>
+      <li>Nouveaux tags pour l'exportation HTML : $$FORMATTEDTITLE 1 &amp; 2.</li>
+      <li>Nouveau syst&egrave;me de barres d'outils et menus, avec des &quot;skins&quot;
+        (Office 2000, Office XP, Windows XP).</li>
+      <li>Nouvelle propri&eacute;t&eacute; du catalogue : &quot;Description&quot;.</li>
+      <li>Conversion de Delphi 5 vers Delphi 6.</li>
+    </ul>
+  </li>
+  <li>3.0.1 (28/10/2001)
+    <ul>
+      <li>Traduction français complète, d'autres langues vont suivre.</li>
+      <li>Meilleure gestion des fichiers lors d'un "drag &amp; drop".</li>
+      <li>Possibilité de sauver une copie de l'image d'un film vers un nouveau
+        fichier.</li>
+    </ul>
+  </li>
+  <li>3.0.0 mise à jour (24/10/2001)
+    <ul>
+      <li>Correction d'un petit bug avec Windows XP et les champs numériques (champs
+        avec des flèches pour modifier la valeur).</li>
+      <li>Correction d'un bug étrange qui n'arrivait que sur certains systèmes
+        : au démarrage du programme il demandait parfois à l'utilisateur s'il
+        désirait sauver le fichier.</li>
+    </ul>
+  </li>
+  <li>3.0.0 (14/10/2001)
+    <ul>
+      <li>Nom du programme modifi&eacute; : maintenant il s'agit de Ant Movie
+        Catalog &agrave; la place de ANSYsoft Movie Catalog, car le groupe ANSYsoft
+        a plus ou moins disparu.</li>
+      <li>Les images et pr&ecirc;ts sont stock&eacute;s dans le fichier du catalogue.
+        C'est pourquoi les fichiers sont plus gros. Donc les .jpg, .gif et .amcl
+        ne sont plus utiles: ils sont inclus au .amc.<br />
+        Possibilit&eacute; de sauver le catalogue sans les images (par exemple
+        pour envoyer par mail un fichier un peu plus petit) en s&eacute;lectionnant 
+        &quot;Ant Movie Catalog 3.0 without images or loans&quot; dans la fen&ecirc;tre 
+        &quot;Sauver sous&quot; (enregistrement sous un autre nom).</li>
+      <li>Meilleure manipulation des dates pour le champ &quot;Date d'ajout&quot;.</li>
+      <li>Autorise d'entrer une valeur vide pour l'ann&eacute;e ou la longueur 
+        dans les informations du film.</li>
+      <li>Le film s&eacute;lectionn&eacute; devient visible dans la liste lors 
+        de la recherche ou de l'ajout.</li>
+      <li>Le num&eacute;ro de film peut &ecirc;tre modifi&eacute; (via le menu 
+        contextuel dans la liste ou par le menu &quot;Film&quot;).</li>
+      <li>Fen&ecirc;tre de progression lors du chargement/sauvegarde.</li>
+      <li>Suppression de la fen&ecirc;tre &quot;Importer infos&quot; car elle 
+        ne paraissait pas vraiment utile. Maintenant il est possible de faire un 
+        drag &amp; drop d?un fichier vid&eacute;o sur la fen&ecirc;tre du programme 
+        pour importer la taille des fichiers. S'il s'agit d'un AVI ou Divx la 
+        r&eacute;solution d'image et la dur&eacute;e peuvent &eacute;galement 
+        &ecirc;tre import&eacute;s.</li>
+      <li>Fen&ecirc;tre des options un peu modifi&eacute;e et ajout de nouvelles 
+        options.</li>
+      <li>Meilleure gestion des mod&egrave;les dans l'export HTML.</li>
+      <li>Option pour sp&eacute;cifier si les images doivent &ecirc;tre &eacute;galement 
+        export&eacute;es d&eacute;plac&eacute;e de la fen&ecirc;tre des options 
+        vers la fen&ecirc;tre d'export.</li>
+      <li>Fonction d'export des images uniquement (&quot;Images only&quot;).</li>
+      <li>Fen&ecirc;tre des propri&eacute;t&eacute;s modifi&eacute;e.</li>
+      <li>Logo affich&eacute; au d&eacute;marrage.</li>
+      <li>Beaucoup de petits changements.</li>
+    </ul>
+  </li>
+  <li>2.1.1 mise à jour (14/08/2001)
+    <ul>
+      <li>Correction d'un bug dans la fenêtre "Save as" et dans les autres fenêtres
+        similaires.</li>
+    </ul>
+  </li>
+  <li>2.1.1 (22/07/2001)
+    <ul>
+      <li>Traduction fran&ccedil;aise partielle.</li>
+      <li>Correction d'un bug dans l'exportation SQL.</li>
+    </ul>
+  </li>
+  <li>2.1.0 (12/07/2001)
+    <ul>
+      <li>Beaucoup de petits bugs corrig&eacute;s.</li>
+      <li>Le nombre de films du catalogue est visible dans la barre de titre.</li>
+      <li>Les derniers fichiers utilis&eacute;s apparaissent dans le menu &quot;Fichier&quot;.</li>
+      <li>Menu contextuel pour la liste de films dans la fen&ecirc;tre principale.</li>
+      <li>Fonction "Renum&eacute;rotation".</li>
+      <li>La fen&ecirc;tre de l'image du film peut &ecirc;tre &quot;dock&eacute;e&quot;
+        (int&eacute;gr&eacute;e) dans la fen&ecirc;tre principale, sous la liste
+        de films.</li>
+      <li>Support du &quot;Drag &amp; Drop&quot; dans la fen&ecirc;tre principale
+        : les fichiers peuvent &ecirc;tre ouverts de cette mani&egrave;re &agrave;
+        pr&eacute;sent.</li>
+      <li>Option pour afficher des cases &agrave; cocher dans la liste de films
+        pour spécifier si un film doit &ecirc;tre inclus ou non dans l'exportation.</li>
+      <li>Nouveau champ : "Date d'ajout", donc un nouveau format de fichier (le
+        programme peut toujours ouvrir les anciens fichiers, mais les versions
+        pr&eacute;c&eacute;dentes du programme ne pourront pas ouvrir les fichiers
+        sauv&eacute;s avec cette version-ci).</li>
+      <li>Fen&ecirc;tre &quot;Propri&eacute;t&eacute;s du fichier&quot; affichant
+        les informations sur le propri&eacute;taire du catalogue.</li>
+      <li>M&ecirc;me style de barre d'outils pour toutes les fen&ecirc;tres (gris&eacute;e
+        ou toujours color&eacute;e, selon le choix fait par l'utilisateur dans
+        la fen&ecirc;tre des options).</li>
+      <li>Recherche d'un film sur la base de son titre, dans la fen&ecirc;tre
+        principale et dans la fen&ecirc;tre des pr&ecirc;ts.</li>
+      <li>Dans la fen&ecirc;tre des pr&ecirc;ts, le nombre de films que chaque
+        personne a emprunt&eacute;s est toujours visible.</li>
+      <li>Options de tri avanc&eacute;es dans la fen&ecirc;tre d'exportation.</li>
+      <li>Exportation vers SQL.</li>
+      <li>Quelques nouveaux tags pour l'exportation HTML, par exemple $$ITEM_PICTURENAME
+        qui donne juste le nom de fichier de l'image ($$ITEM_PICTURE cr&eacute;ait
+        un tag &lt;img&gt;).</li>
+    </ul>
+  </li>
+  <li>2.0.0 (30/05/2001)
+    <ul>
+      <li>Importation et exportation de fichiers CSV (fichiers textes o&ugrave;
+        les champs sont d&eacute;limit&eacute;s par un caract&egrave;re sp&eacute;cial,
+        utilisable dans la plupart des bases de donn&eacute;es et programmes du
+        genre d'Excel).</li>
+      <li>Quelques bugs corrig&eacute;s pour la d&eacute;tection de la modification
+        du fichier en cours.</li>
+      <li>L'importation des informations d'un film peut maintenant cr&eacute;er
+        une cha&icirc;ne contenant les tailles de tous les fichiers s&eacute;lectionn&eacute;s
+        (par exemple. 600+350+100 &agrave; la place de 1050).</li>
+      <li>Quelques probl&egrave;mes de personnalisation de la barre d'outils r&eacute;solus
+        (pas tous).</li>
+      <li>Correction d'un bug dans le tri par titre de film de l'exportation HTML
+        et dans la liste de films de la fen&ecirc;tre principale (lors d'un clic
+        sur le titre d'une colonne).</li>
+      <li>Fen&ecirc;tre &quot;Pr&ecirc;ts&quot; permettant de g&eacute;rer les
+        films que vous amis vous empruntent.</li>
+    </ul>
+  </li>
+  <li>1.1.0 (15/04/2001)
+    <ul>
+      <li>Nouveau champ : Image et Appr&eacute;ciation.</li>
+      <li>Nouveau format de fichier (requis pour les nouveaux champs). Les fichiers
+        de la version 1.0 sont toujours utilisables (bien s&ucirc;r !) mais les
+        nouveaux fichiers ne seront pas utilisables par l'ancienne version du programme.</li>
+      <li>Am&eacute;lioration de la fen&ecirc;tre d'exportation.</li>
+      <li>L'importation d'informations de films permet maintenant de r&eacute;cup&eacute;rer
+        la r&eacute;solution des vid&eacute;os AVI.</li>
+      <li>La largeur de la liste dans la fen&ecirc;tre principale est maintenant
+        sauvegard&eacute;e (ainsi que la taille de la fen&ecirc;tre).</li>
+      <li>Fen&ecirc;tre des options refaite.</li>
+      <li>Personnalisation de la barre d'outils.</li>
+      <li>Copier/Coller des informations de film (par exemple pour &eacute;changer
+        des informations entre deux instances de l'application tournant en m&ecirc;me
+        temps).</li>
+      <li>Correction d'un bug dans la fonction &quot;Annuler&quot;.</li>
+      <li>Pages d'aide.</li>
+    </ul>
+  </li>
+  <li>1.0.0 (18/03/2001)
+    <ul>
+      <li>Premi&egrave;re version. Certaines fonctionnalit&eacute;s ne sont pas 
+        encore termin&eacute;es. Cela viendra dans les versions suivantes.</li>
+    </ul>
+  </li>
+</ul>
+</body>
+</html>

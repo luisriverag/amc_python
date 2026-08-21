@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Language files</p>
+<hr />
+<p>The language files use a syntax similar to INI files. They are just plain text
+  files, so you can edit them with any text editor, such as Windows' Notepad.</p>
+<p>The file contains sections. A section is a name between brackets. The section
+  names are application's windows names.</p>
+<blockquote>
+  <p>e.g.: <code>[MainWindow]</code></p>
+</blockquote>
+<p>Under that, you find all the items corresponding to the specified window. These
+  items are pairs of attributes and values.</p>
+<blockquote>
+  <p>e.g.: <code>Attribute=Value</code></p>
+</blockquote>
+<p>The attributes are the paths to the component to translate, and the value is the new text to display. The path is build with the component name,
+  a dot, then the property to modify ("component.property"). For some items there are components inside components. Sometimes there are arrays,
+  so there is an index in square brackets. For window properties there is only a property name alone.</p>
+<blockquote>
+  <p>e.g. for [ExportWin] section:</p>
+  <p><code>Caption=Export to another file format</code> // caption of
+    the Exportation window <br />
+    <code>btn1.Caption=Help</code> // caption of the first button of
+    the Exportation window<br />
+    <code>Messages.Strings.String[0]=Unable to save</code> // first
+    message of the messages list of the Exportation window</p>
+</blockquote>
+<p>The component names use &quot;standard&quot; names.</p>
+<p>Buttons begin with &quot;btn&quot;, Actions (menu/toolbar items) begin with
+  &quot;Action&quot;, Checkboxes begin with &quot;CB&quot;, Radiobuttons begin
+  with &quot;RB&quot;, labels begin with L or LH, Entry fields begin with E, etc...</p>
+<p>The base window dialog can have 0 to 4 buttons, called btn1, btn2, btn3, btn4; where
+  btn1 is the button in the lower right corner.<br />
+</p>
+<p>Tooltips are stored in the "Hint" properties. In these properties, there can be two different strings, separated by the character "|". 
+    The first part is used for the actual tooltip, the second part is displayed in the status bar at the bottom of the current window.
+    In general it is better to avoid tooptips for input fields, so the Hint property of these should only have contents after the "|".
+</p>
+<p>A comment line begins with a semicolon (;) and is ignored by the program.</p>
+<p>There is a special section that is used to display information in the language selection window:</p>
+<p>
+<code>[FileInformation]</code><br />
+<code>Icon=</code> A 16x16 bitmap image (4-bit color), MIME-encoded<br />
+<code>Name=</code> Name of the language, in English<br />
+<code>LocalName=</code> Name of the language translated in the language itself<br />
+<code>Version=</code> Version of the program for which the contents was translated (if lower than the VersionFormat, it means that parts are still in English)<br />
+<code>VersionFormat=</code> Version of the program for which the file structure is made<br />
+<code>Comments=</code> Free text (linebreaks = "|", link = &lt;link&gt;address&lt;/link&gt;)<br />
+<code>Authors=</code> Name and e-mail addresses of the translators (each name/address is separated by a "|": name1|addr1|name2|addr2)<br />
+</p>
+<p>If you want to be notified of translation errors, you can launch the program with the <code>/tr_show_errors</code> parameter.</p>
+</body>
+</html>

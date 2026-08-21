@@ -1,0 +1,225 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Recherche</p>
+<hr />
+<p>Dans ce cadre, accessible depuis l'icone <img src="img/search.png" width="16" height="16" alt="" /> dans la barre de menu,
+  vous pouvez rechercher une valeur présente dans 1 champ film ou 1 champ personnalisé ou un champ d'extras
+  ou tous les champs en même temps (extras y compris) pour trouver un ou plusieurs films.</p>
+<!-- <p><img src="img/searchOnTitle.png" alt="SearchOnTitle" /></p> -->
+<p><img src="img/searchAll.png" alt="SearchAll" /></p>
+<p>Plusieurs options peuvent être cochées:
+  <ul>
+    <li><b>Champ complet</b> : retourne seulement les films dont le champ spécifié contient exactement et seulement la valeur spécifiée.</li>
+    <li><b>Inverser les résultats</b> : retourne les films qui ne correspondent pas à l'expression de recherche.</li>
+    <li><b>Afficher les résultats</b> : affiche uniquement dans la liste de films les films qui correspondent à l'expression de recherche.</li>
+  </ul>
+</p>
+
+<p>Depuis la version 4.2.1 d'AMC, il est maintenant possible d'effectuer une recherche avancée
+  dans 1 ou plusieurs champs films ou personnalisés avec plus de possibilités.</p>
+<p><img src="img/searchAdvanced.png" alt="SearchAdvanced" /></p>
+<p>Pour lancer une recherche avancée, il vous suffit d'écrite une expression booléen avec les éléments suivants :
+  <ul>
+    <li>Des noms de champs film ou de champs personnalisés entre crochets (ex: [OriginalTitle]).</li>
+    <li>Des operateurs listés plus bas (ex: =, &lt;&gt;, &gt;=, &lt;=).</li>
+    <li>Des chaines de caractères entre guillemets (ex: "une chaine de caractères").</li>
+    <li>Des entiers (Integer) ou flottants (Float) (ex: 10, 9.5)</li>
+    <li>Des dates au format "YYYY-MM-DD" ou au format de l'utilisateur Windows entre guillemets (ex: "2014-09-20").</li>
+  </ul>
+</p>
+<p>Pour faciliter l'écriture de l'expression booléen, vous pouvez utiliser les listes &laquo; Champs &raquo; et &laquo; Opérateurs &raquo;
+  qui vous donneront tous les champs et opérateurs disponibles.</p>
+<p>Voici les opérateurs qui peuvent être utilisés pour effectuer des opérations avec des champs ou des valeurs :
+  <ul>
+    <li>Opérations logiques :
+      <ul>
+        <li>or  (Ou)</li>
+        <li>and (Et)</li>
+        <li>not (Non)</li>
+      </ul>
+    </li>
+    <li>Opérations de comparaison :
+      <ul>
+        <li>= (Égal)</li>
+        <li>&lt;&gt; (Non égal)</li>
+        <li>&lt;-- (La valeur de gauche contient la valeur de droite)</li>
+        <li>&lt;== (La valeur de gauche correspond à l'expression rationnelle spécifiée dans la valeur de droite)</li>
+        <li>&gt; (Supérieur à)</li>
+        <li>&gt;= (Supérieur ou égal à)</li>
+        <li>&lt; (Inférieur à)</li>
+        <li>&lt;= (Inférieur ou égal à)</li>
+      </ul>
+    </li>
+    <li>Opérations arithmétiques et opérations de concaténation :
+      <ul>
+        <li>+ (Ajouter)</li>
+        <li>- (Soustraire)</li>
+        <li>* (Multiplier)</li>
+        <li>/ (Diviser)</li>
+        <li>% (Modulo : Reste de la division)</li>
+      </ul>
+    </li>
+    <li>Opérations de cast :
+      <ul>
+        <li>(bool)   (Cast en booléen : Boolean)</li>
+        <li>(date)   (Cast en date : Date)</li>
+        <li>(int)    (Cast en entier : Integer)</li>
+        <li>(float)  (Cast en flottant : Float)</li>
+        <li>(string) (Cast en chaine de caractères : String)</li>
+        <li>(eval)   (Evalue le type de contenu et sa valeur comme une expression indépendante)</li>
+      </ul>
+    </li>
+    <li>Opérations conditionnelles :
+      <ul>
+        <li>? (Si : retourne l'opérande de droite si l'opérande de gauche est vrai, sinon on retourne une erreur)</li>
+        <li>: (Sinon : retourne l'opérande de droite si l'opérande de gauche est en erreur, sinon on retourne l'opérande de gauche)</li>
+      </ul>
+    </li>
+  </ul>
+</p>
+
+<p>Voici l'ordre de priorité des opérations évaluées par groupe :
+  <ul>
+   <li>Opérations de cast</li>
+   <li>Opérations arithmétiques (*, /, %)</li>
+   <li>Opérations arithmétiques et opérations de concaténation (-, +)</li>
+   <li>Opérations de comparaison</li>
+   <li>Opérations logiques (not)</li>
+   <li>Opérations logiques (and)</li>
+   <li>Opérations logiques (or)</li>
+   <li>Opérations conditionnelles (?, :)</li>
+  </ul>
+</p>
+
+<p>Vous pouvez aussi utiliser des parenthèses pour changer la priorité des opérations.<br />
+  Par exemple : (([Rating] = "") or ([UserRating] = "")) and ([Rating] &gt; 7 or [UserRating] &gt; 7)</p>
+
+<p>Les opérations sont évaluées de gauche à droite sauf pour les opérations de cast (évaluées de droite à gauche).</p>
+
+<p>Voici les règles qui expliquent comment les opérations fonctionnent avec différents types d'opérandes (String, Boolean, Integer, Float, Date):
+  <ul>
+    <li>Une comparaison ou une concaténation est effectuée entre chaines de caractères (String) si au moins une des opérandes est de type chaine de caractères (String).</li>
+    <li>Une comparaison est effectuée entre booléens (Boolean) seulement si les 2 opérandes sont de type booléen (Boolean).</li>
+    <li>Une comparaison ou une opération arithmétique est effectuée entre entiers (Integer) seulement si les 2 opérandes sont de type entier (Integer).</li>
+    <li>Une comparaison ou une opération arithmétique est effectuée entre flottants (Float) seulement si les 2 opérandes sont de type flottant (Float) ou de type entier (Integer) et qu'une des opérandes est de type flottant (Float).</li>
+    <li>Une comparaison ou une opération arithmétique est effectuée entre dates (Date) seulement si les 2 opérandes sont de type date (Date) ou de type entier (Integer) et qu'une des opérandes est de type date (Date).</li>
+    <li>Une opération arithmétique sur des dates (Ajout, Soustraction) est effectuée avec l'unité jour pour l'opérande contenant l'entier (Integer) (ex: "2014-01-20" + 4 = "2014-01-24").</li>
+  </ul>
+</p>
+
+<p>Le type de la valeur du champ est défini par le type du champ par défaut.<br />
+  Par exemple, le champ Année (Year) et le champ Durée (Length) sont de type entier (Integer), le champ Note (Rating) et le champ Ma Note (UserRating) sont de type flottant (Float),
+  le champ date d'ajout (DateAdded) et le champ date vu (DateWatched) sont de type date (Date), le champ titre original (OriginalTitle) est de type chaine de caractères (String).<br />
+  Si la valeur d'un champ ne correspond pas au type du champ pour un film, le type du champ deviendra une chaine de caractères (String) pour ce film.<br />
+  Par exemple, si la valeur du champ note (Rating) est vide pour un film, alors le type du champ deviendra une chaine de caractères (String) pour ce film car une valeur vide n'est pas un flottant (Float).<br />
+  Vous pouvez consulter les exemples d'expressions de recherche 1 à 5, plus bas, pour plus de détails.</p>
+
+<p>Dans certains cas, il peut être utile de forcer le type d'un champ (ou d'une valeur) pour appliquer la bonne comparaison ou opération arithmétique.<br />
+  Dans ce but, vous pouvez utiliser l'opérateur de cast avant un champ (ou une valeur) pour forcer le type d'un champ (ou d'une valeur) : (string), (bool), (int), (float), (date).<br />
+  Vous pouvez aussi utiliser l'operateur de cast &laquo; (int) &raquo; pour tronquer les flottants (Float) en entiers (Integer).<br />
+  Par exemple, le champ Taille (Size) et le champ Fréquence (Framerate) sont des champs de type chaine de caractères (String) historiquement
+  mais certainement qu'ils contiennent des entiers (Integer) ou des flottants (Float) et que vous souhaitez comparer ces valeurs comme des entiers (Integers) ou des flottants (Floats).<br />
+  Mais attention, si vous utilisez un opérateur de cast sur un champ (ou une valeur) avec un type qui ne correspond pas à la valeur du champ (ou à la valeur),
+  l'opération de cast retournera une erreur (non visible) et l'expression de recherche retournera faux (False) pour ce film.<br />
+  Vous pouvez consulter les exemples d'expressions de recherche 6 à 17, plus bas, pour plus de détails.</p>
+
+<p>Dans certains cas, il peut aussi être utile d'évaluer le contenu et le type d'un champ (ou d'une valeur) comme une sous-expression pour obtenir la bonne valeur.<br />
+  Dans ce but, vous pouvez utiliser l'opérateur de cast spécial &laquo; (eval) &raquo; avant un champ (ou une valeur) pour évaluter le contenu et le type du champ (ou de la valeur) comme une sous-expression.<br />
+  Par exemple, le champ Taille (Size) est de type chaine de caractères (String) historiquement mais il peut contenir une somme de plusieurs entiers (Integer) (ex : 700+699+698).<br />
+  Dans cet exemple, l'opérateur de cast spécial &laquo; (eval) &raquo; retournera l'entier (Integer) 2097 au lieu de la chaine de caractères (String) 700+699+698 sans lui.<br />
+  Mais attention, si vous évaluez une expression non valide, l'évaluation retournera une erreur (non visible) et l'expression de recherche retournera faux (False) pour ce film.<br />
+  L'opérateur de cast spécial &laquo; (eval) &raquo; est récursif donc vous pouvez évaluer plusieurs expressions imbriquées dans une chaine de caractères (String) avec cette opérateur avant.<br />
+  Vous pouvez consulter les exemples d'expressions de recherche 18 à 21, plus bas, pour plus de détails.</p>
+
+<hr />
+
+<p>Exemple avec le catalogue Sample_4.2.0.amc où nous avons seulement défini la valeur à <b>1000</b> du champ Taille (Size) pour le film 3.<p/>
+
+<p>Il y a 7 films :
+  <ul>
+    <li>Film 1 : Year = 1999 ; Rating = 8.0 ; UserRating = 9.5     ; Size = [empty]</li>
+    <li>Film 2 : Year = 1998 ; Rating = 6.0 ; UserRating = [empty] ; Size = [empty]</li>
+    <li>Film 3 : Year = 1989 ; Rating = 8.0 ; UserRating = [empty] ; Size = <b>1000</b></li>
+    <li>Film 4 : Year = 2000 ; Rating = 9.0 ; UserRating = [empty] ; Size = 622</li>
+    <li>Film 5 : Year = 1993 ; Rating = 8.0 ; UserRating = [empty] ; Size = 694</li>
+    <li>Film 6 : Year = 2001 ; Rating = 8.0 ; UserRating = [empty] ; Size = 692</li>
+    <li>Film 7 : Year = 1997 ; Rating = 8.0 ; UserRating = [empty] ; Size = 645+215</li>
+  </ul>
+</p>
+ 
+<p><u>Expression de recherche 1 :</u> <b>[Year] &gt;= 1990 and [Year] &lt;= 2000</b> : retourne les films <b>1, 2, 4, 5, 7</b>.</p>
+
+<p><u>Expression de recherche 2 :</u> <b>[Rating] &gt; 7 and [UserRating] &gt; 7</b> : retourne le film <b>1</b>.<br />
+Pourquoi ? Parce que la comparaison &laquo; [UserRating] &gt; 7 &raquo; est faite sur des chaines de caractères (String) et non sur des entiers (Integer) lorsque le champ Ma Note (UserRating) est vide pour ces films 3, 4, 5, 6, 7.<br />
+<u>Expression de recherche 3 :</u> <b>not ([Rating] &gt; 7 and [UserRating] &gt; 7)</b> : retourne les films <b>2, 3, 4, 5, 6, 7</b>.</p>
+
+<p><u>Expression de recherche 4 :</u> <b>[Rating] &gt; 7 and ([UserRating] &gt; 7 or [UserRating] = "")</b> : retourne les films <b>1, 3, 4, 5, 6, 7</b>.<br />
+Pourquoi ? Parce que la comparaison &laquo; [UserRating] = "" &raquo; retourne vrai (True) pour ces films 3, 4, 5, 6, 7.<br />
+<u>Expression de recherche 5 :</u> <b>not ([Rating] &gt; 7 and ([UserRating] &gt; 7 or [UserRating] = ""))</b> : retourne le film <b>2</b>.</p>
+
+<p><u>Expression de recherche 6 :</u> <b>[Rating] &gt; 7 and (int)[UserRating] &gt; 7</b> : retourne le film <b>1</b>.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[UserRating] &raquo; retourne une erreur lorsque le champ Ma Note (UserRating) est vide pour ces films 3, 4, 5, 6, 7.<br />
+<u>Expression de recherche 7 :</u> <b>not ([Rating] &gt; 7 and (int)[UserRating] &gt; 7)</b> : retourne le film <b>2</b> seulement.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[UserRating] &raquo; retourne une erreur lorsque le champ Ma Note (UserRating) est vide pour ces films 3, 4, 5, 6, 7,
+donc l'expression de recherche retourne faux (False)
+et la comparaison &laquo; [Rating] &gt; 7 &raquo; retourne faux (False) pour le film 2, donc le cast en entier (Integer) &laquo; (int)[UserRating] &raquo; n'est pas effectué pour ce film
+car l'opérande de gauche est fausse et l'opérateur &laquo; and &raquo; n'évalue pas l'opérande de droite si l'opérande de gauche est fausse (évaluation par nécessité).</p>
+
+<p><u>Expression de recherche 8 :</u> <b>[Rating] &gt; 7 and ((int)[UserRating] &gt; 7 or [UserRating] = "")</b> : retourne le film <b>1</b>.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[UserRating] &raquo; retourne une erreur lorsque le champ Ma Note (UserRating) est vide pour ces films 3, 4, 5, 6, 7
+avant d'évaluer &laquo; [UserRating] = "" &raquo; donc l'expression de recherche retourne faux (False).<br />
+<u>Expression de recherche 9 :</u> <b>not ([Rating] &gt; 7 and ((int)[UserRating] &gt; 7 or [UserRating] = ""))</b> : retourne le film <b>2</b> seulement.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[UserRating] &raquo; retourne une erreur lorsque le champ Ma Note (UserRating) est vide pour ces films 3, 4, 5, 6, 7
+avant d'évaluer &laquo; [UserRating] = "" &raquo; donc l'expression de recherche retourne faux (False)
+et la comparaison &laquo; [Rating] &gt; 7 &raquo; retourne faux (False) pour le film 2, donc le cast en entier (Integer) &laquo; (int)[UserRating] &raquo; n'est pas effectué pour ce film
+car l'opérande de gauche est fausse et l'opérateur &laquo; and &raquo; n'évalue pas l'opérande de droite si l'opérande de gauche est fausse (évaluation par nécessité).</p>
+
+<p><u>Expression de recherche 10 :</u> <b>[Rating] &gt; 7 and ([UserRating] = "" or (int)[UserRating] &gt; 7)</b> : retourne les films <b>1, 3, 4, 5, 6, 7</b>.<br />
+Pourquoi ? Parce que la comparaison &laquo; [UserRating] = "" &raquo; retourne vrai (True) pour les films 3, 4, 5, 6, 7,
+donc le cast en entier (Integer) &laquo; (int)[UserRating] &raquo; n'est pas effectué ici
+car l'opérande de gauche est vrai (True) et l'opérateur &laquo; or &raquo; n'évalue pas l'opérande de droite si l'opérande de gauche est vraie (évaluation par nécessité).<br />
+<u>Expression de recherche 11 :</u> <b>not ([Rating] &gt; 7 and ([UserRating] = "" or (int)[UserRating] &gt; 7))</b> : retourne le film <b>2</b>.</p>
+
+<p><u>Expression de recherche 12 :</u> <b>[Size] &gt; 650</b> : retourne les films <b>5, 6</b>.<br />
+Pourquoi ? Parce que le champ Taille (Size) est de type chaine de caractères (String)
+donc la comparaison &laquo; [Size] &gt; 650 &raquo; est faite sur des chaines de caractères (String) et non sur des entiers (Integer).<br />
+<u>Expression de recherche 13 :</u> <b>not ([Size] &gt; 650)</b> : retourne les films <b>1, 2, 3, 4, 7</b>.</p>
+
+<p><u>Expression de recherche 14 :</u> <b>(int)[Size] &gt; 650</b> : retourne les films <b>3, 5, 6</b>.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[Size] &raquo; force la comparaison sur des entiers (Integer) et retourne une erreur
+lorsque le champ Taille (Size) n'est pas un entier (Integer) pour les films 1, 2, 7, donc l'expression de recherche retourne faux (False).<br />
+<u>Expression de recherche 15 :</u> <b>not ((int)[Size] &gt; 650)</b> : retourne le film <b>4</b> seulement.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[Size] &raquo; force la comparaison sur des entiers (Integer) et retourne une erreur
+lorsque le champ Taille (Size) n'est pas un entier (Integer) pour les films 1, 2, 7, donc l'expression de recherche retourne faux (False).<br />
+
+<p><u>Expression de recherche 16 :</u> <b>((int)[Size] &gt; 650) : false</b> : retourne les films <b>3, 5, 6</b>.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[Size] &raquo; force la comparaison sur des entiers (Integer)
+et l'opérateur else &laquo; : &raquo; retourne faux (False) lorsque l'opérateur de gauche retourne une erreur pour les films 1, 2, 7.<br />
+<u>Expression de recherche 17 :</u> <b>not (((int)[Size] &gt; 650) : false)</b> : retourne les films <b>1, 2, 4, 7</b>.<br />
+Pourquoi ? Parce que le cast en entier (Integer) &laquo; (int)[Size] &raquo; force la comparaison sur des entiers (Integer)
+et l'opérateur else &laquo; : &raquo; retourne faux (False) lorsque l'opérateur de gauche retourne une erreur pour les films 1, 2, 7.<br />
+
+<p><u>Expression de recherche 18 :</u> <b>(eval)[Size] &gt; 650</b> : retourne les films <b>3, 5, 6, 7</b>.<br />
+Pourquoi ? Parce que l'opérateur eval &laquo; (eval)[Size] &raquo; évalue le contenue et le type du champ Taille (Size) comme une expression,
+donc la comparaison est effectuée sur des chaines de caractères lorsque le champ Taille (Size) est vide pour les films 1, 2
+et la comparaison est effectuée sur des entiers (Integer) lorsque le champ Taille (Size) contient un entier (Integer) pour les films 3, 5, 6
+ou une expression arithmétique pour le film 7 (645+215 = 860).<br />
+<u>Expression de recherche 19 :</u> <b>not ((eval)[Size] &gt; 650)</b> : retourne les films <b>1, 2, 4</b>.</p>
+
+<p><u>Expression de recherche 20 :</u> <b>(eval)"(eval)[Size]" &gt; 650</b> : retourne les films <b>3, 5, 6, 7</b>.<br />
+Pourquoi ? Parce que l'opérateur eval &laquo; (eval)"(eval)[Size]" &raquo; est récursif,
+donc il évalue premièrement le contenu et le type du champ Taille (Size) comme une expression
+et il évalue deuxièmement le résultat de l'évaluation &laquo; (eval)[Size] &raquo; comme une expression,
+donc la comparaison est effectuée sur des chaines de caractères lorsque le champ Taille (Size) est vide pour les films 1, 2
+et la comparaison est effectuée sur des entiers (Integer) lorsque le champ Taille (Size) contient un entier (Integer) pour les films 3, 5, 6
+ou une expression arithmétique pour le film 7 (645+215 = 860).<br />
+<u>Expression de recherche 21 :</u> <b>not ((eval)"(eval)[Size]" &gt; 650)</b> : retourne les films <b>1, 2, 4</b>.</p>
+<br />
+</body>
+</html>

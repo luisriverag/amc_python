@@ -1,0 +1,129 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=IMDB scripts: Antoine Potten, KaraGarga, baffab, Thermal Ions, bad4u, Sancho, Joe, cage, Elman; Italian scripts: MrObama (based on Fulvio53s03 works; thanks to seraphico, Claudio Rinaldi, Vjncenzo Fiezul, PIvello, Valerino & others works)
+Title=Italian Multisite
+Description=Importa dati e locandine da siti italiani e da IMDb
+Site=www.Film.TV.it|www.mymovies.it|www.filmscoop.it|movieplayer.it|www.comingsoon.it|www.kultvideo.com|www.nientepopcorn.it|www.imdb.com
+Language=IT
+Version=4.2.0    15.08.2025
+Requires=4.2.3.3
+Comments=Basato sugli script di FilmTV, MyMovies, ComingSoon, FilmScoop, KultVideo, MoviePlayer, NientePopcorn, IMDB
+License=Qusto programma e' software libero; puoi redistribuirlo e/o modificarlo seguendo i termini della GNU General Public License come pubblicato dalla Free Software Foundation, versione 2 o (a tua discrezione) successiva.
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+IMDB Attori e ruoli=2|2|0=Solo i nomi degli attori, separati da virgola|1=Solo i nomi degli attori, mostrati in colonna|2=Attori con i nomi dei personaggi interpretati, separati da virgola (default)|3=Attori con i nomi dei personaggi interpretati, mostrati in colonna|4=Attori con i nomi dei personaggi interpretati separati da "...", mostrati in colonna
+IMDB Attori elenco=1|1|0=Solo gli attori principali (forza "IMDB Attori e ruoli"=0)|1=Tutti gli attori (default)|2=Solo i primi n attori (n e' definito dal Parametro "IMDB Attori numero")
+IMDB Categoria=1|1|0=Solo il primo valore|1=Tutti i valori, separati da virgola (default)|2=Tutti i valori, separati da slash|3=Ignora
+IMDB Commenti=3|3|0=La recensione piu' popolare|1=Le 10 recensioni piu' popolari|2=Nessuna recensione e cancella il campo "Commenti"|3=Nessuna recensione, preserva il valore presente nel campo "Commenti" (default)
+IMDB Converti in ASCII=0|0|0=Non convertire caratteri speciali ed accenti (default)|1=Converti caratteri speciali e accenti in caratteri ASCII
+IMDB Curiosita'=0|0|0=Ignora (default)|1=Importa qualche curiosita' nel campo "Descrizione", dopo la trama|2=Importa qualche curiosita' nel campo "Commenti", dopo i commenti|3=Importa tutte le curiosita' nel campo "Descrizione", dopo la trama|4=Importa tutte le curiosita' nel campo "Commenti", dopo i commenti
+IMDB Formato audio=3|3|0=Solo il primo valore|1=Tutti i valori, separati da virgola|2=Tutti i valori, separati da slash|3=Ignora (default)
+IMDB Lingue=3|3|0=Solo il primo valore|1=Tutti i valori, separati da virgola|2=Tutti i valori, separati da slash|3=Ignora (default)
+IMDB Locandina italiana=0|0|0=Preferisci la locandina di IMDB a quella trovata su un sito italiano, se disponibili entrambe (default)|1=Preferisci la locandina trovata su un sito italiano a quella di IMDB, se disponibili entrambe
+IMDB Locandina tipologia=3|3|0=Ignora|1=Locandina piccola|2=Locandina piccola, "Nessuna locandina disponibile" se non ce ne sono|3=Locandina di grandi dimensioni con altezza definita nel Parametro "IMDB Locandina pixel" (default)|4=Copertina in lingua originale dalla pagina di IMDB|5=Copertina in lingua originale dalla pagina di IMDB con altezza definita nel Parametro "IMDB Locandina pixel"
+IMDB MPAA=0|0|0=Ignora (default)|1=Importa la classificazione MPAA nel campo "Tipo supporto"|2=Aggiungi la classificazione MPAA e ulteriori informazioni nel campo "Commenti"
+IMDB Paese=1|1|0=Solo il primo valore|1=Tutti i valori, separati da virgola (default)|2=Tutti i valori, separati da slash|3=Ignora
+IMDB Premi=0|0|0=Ignora (default)|1=Importa i premi nel campo Descrizione, dopo la trama|2=Importa i premi nel campo commenti, dopo i commenti
+IMDB Proporzioni video=0|0|0=Ignora (default)|1=Importa l'aspect ratio nel campo "Formato video"|2=Importa l'aspect ratio nel campo "Risoluzione"
+IMDB Slogan=2|2|0=Ignora|1=Aggiungili nel campo Descrizione, prima della trama|2=Aggiungili nel campo "Commenti", prima dei commenti (default)
+IMDB Titolo tradotto=1|1|0=Solo la traduzione italiana|1=Importa tutte le traduzioni di un titolo, partendo da quella italiana - richiede una chiave dal sito https://rapidapi.com da inserire nel parametro RapidAPIKey (default)
+IMDB Trama=0|0|0=Trama breve, interrotta da "..." se troppo lunga, sara' visibile solo in assenza di una trama italiana (default)|1=Trama completa, sara' visibile solo in assenza di una trama italiana
+IMDB Voto arrotondamento=0|0|0=Voto con decimali (default)|1=Voto arrotondato ad un valore intero
+IMDB Voto campo=0|0|0=Media dei voti nel campo "Voto" (default)|1=Media dei voti e numero di voti nel campo "Tipo supporto"|2=Media dei voti e numero di voti nel campo "Commenti"
+Modalita' batch=0|0|0=Modalita' normale (default)|1=Modalita' batch (nessuna finestra di input)
+Ricerca con Regista e Anno=1|1|0=Ricerca solo per titolo|1=Ricerca mirata utilizzando anche i valori "Regista" e "Anno", se disponibili (default)
+Ricerca da URL=0|0|0=Ricerca per titolo (default)|1=Ricerca utilizzando il campo "URL", se valorizzato (ha la priorita' sull'opzione "Ricerca con Regista e Anno")
+Sovrascrivi campi=1|1|0=Non sovrascrivere i campi se gia' valorizzati|1=Sovrascrivi il valore dei campi (default)
+Trama italiana=1|1|0=Termina la ricerca multisito al primo risultato trovato, anche se il risultato non contiene una trama|1=Continua la ricerca su altri siti finche' non viene trovata una trama in italiano (default)
+
+[Parameters]
+IMDB Attori numero=10|10|Numero massimo di attori quando l'opzione "IMDB Attori elenco"=2 (default = 10)
+IMDB Localizzazione=Italy|Italy|Paese per la certificazione e i titoli tradotti, utilizza un valore tra quelli usati sul sito IMDb, ad esempio uno di questi: United States, Canada, Mexico, Brazil, Argentina, Australia, India, Italy, Spain, Portugal, France, Germany, Netherlands, United Kingdom, Ireland, Finland, Norway, Sweden, Switzerland, ... (default = Italy)
+IMDB Locandina pixel=720|720|Altezza in pixel della locandina quando l'opzione "IMDB Locandina"=3 (default = 720)
+IMDB Ricerca=2|2|Affina la ricerca utilizzando IMDb, mantenendo comunque trama e commenti in italiano (0 = Non usare mai IMDb, 1 = Usa IMDb solo se il titolo e' riconosciuto automaticamente, 2 = Usa sempre IMDb per affinare i risultati) (default = 1)
+RapidAPIKey=||Chiave fornita dal sito https://rapidapi.com necessaria per ricavare tutti i titoli con cui un film e' stato tradotto (default = Mancante)
+Priorita' ComingSoon=5|5|Priorita' nella ricerca (0 = Non usare mai questo sito, 1 = Priorita' minima ..., 9 = Priorita' massima) (default = 5)
+Priorita' FilmScoop=3|3|Priorita' nella ricerca (0 = Non usare mai questo sito, 1 = Priorita' minima ..., 9 = Priorita' massima) (default = 3)
+Priorita' FilmTV=8|8|Priorita' nella ricerca (0 = Non usare mai questo sito, 1 = Priorita' minima ..., 9 = Priorita' massima) (default = 8)
+Priorita' KultVideo=2|2|Priorita' nella ricerca (0 = Non usare mai questo sito, 1 = Priorita' minima ..., 9 = Priorita' massima) (default = 2)
+Priorita' MoviePlayer=6|6|Priorita' nella ricerca (0 = Non usare mai questo sito, 1 = Priorita' minima ..., 9 = Priorita' massima) (default = 6)
+Priorita' MyMovies=7|7|Priorita' nella ricerca (0 = Non usare mai questo sito, 1 = Priorita' minima ..., 9 = Priorita' massima) (default = 7)
+Priorita' NientePopcorn=9|9|Priorita' nella ricerca (0 = Non usare mai questo sito, 1 = Priorita' minima ..., 9 = Priorita' massima) (default = 9)
+
+***************************************************)
+
+program ItalianMultisite;
+
+uses
+  ItalianMultisitePas;
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------
+// DEBUG UNIT START: (HOW TO START DEBUG) COMMENT "uses ItalianMultisitePas;" AND COPY & PASTE ALL UNIT CODE HERE, EXCEPT THE FIRST AND THE LAST LINE
+// TO DEBUG THE SINGLE ITALIAN SITE UNITS, DEBUG USING THE Shared IFS (Example: to debug MyMoviesPas.pas use "MyMovies Shared (IT).ifs" 
+
+
+
+
+
+// DEBUG UNIT END: (HOW TO FINISH DEBUG) REMOVE THE CODE WHEN DONE AND REMOVE COMMENT FROM "uses ItalianMultisitePas;"
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+begin
+  if CS_UnitVersion < 6 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di ComingSoonPas.pas (versione 6 o successiva)');
+    exit;
+  end;
+  if FS_UnitVersion < 3 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di FilmScoopPas.pas (versione 3 o successiva)');
+    exit;
+  end;
+  if FT_UnitVersion < 4 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di FilmTvPas.pas (versione 4 o successiva)');
+    exit;
+  end;  
+  if KV_UnitVersion < 2 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di KultVideoPas.pas (versione 2 o successiva)');
+    exit;
+  end;
+  if ID_UnitVersion < 12 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di ImdbPas.pas (versione 12 o successiva)');
+    exit;
+  end;  
+  if IM_UnitVersion < 4 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di ItalianMultisitePas.pas (versione 4 o successiva)');
+    exit;
+  end;      
+  if MM_UnitVersion < 5 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di MyMoviesPas.pas (versione 5 o successiva)');
+    exit;
+  end;
+  if MP_UnitVersion < 3 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di MoviePlayerPas.pas (versione 3 o successiva)');
+    exit;
+  end;  
+  if NP_UnitVersion < 3 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di NientePopcornPas.pas (versione 3 o successiva)');
+    exit;
+  end;  
+  if SH_UnitVersion < 10 then
+  begin
+    SharedShowMessage('Questo script richiede una versione aggiornata di ItalianSharedPas.pas (versione 10 o successiva)');
+    exit;
+  end;    
+  ItalianMultisiteMain();
+end.

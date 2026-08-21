@@ -1,0 +1,1521 @@
+(***************************************************
+
+Ant Movie Catalog importation script
+www.antp.be/software/moviecatalog/
+
+[Infos]
+Authors=Antoine Potten, KaraGarga, baffab, Thermal Ions, bad4u, Sancho, Joe, cage, Elman, MrObama2022
+Title=IMDB
+Description=Import data & picture from IMDB, imdbapi and rapidApi
+Site=https://www.imdb.com/
+Language=EN
+Version=5.5.11
+Requires=4.2.3.3
+Comments=Based on the script made for version 3.3/3.4 by Antoine Potten, Danny Falkov, Kai Blankenhorn, lboregard, Ork, Trekkie, Youri Heijnen and the script IMDB (Actor images) by J
+License=This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+GetInfo=1
+RequiresMovies=1
+
+[Options]
+ActorsImagesLayoutType=3|3|0=Original uncut image (huge!)|1=Image from movie page (fast)|2=Image from actor page (slow)|3=Do nothing
+ActorsImagesMode=0|0|0=No actor image needed|1=Import only actors with image
+ActorsImagesNumberOfActors=1|1|0=choose ONE actor|1=first FIVE actors|2=first TEN actors
+ActorsImagesSelectionMode=0|0|0=ADD images (Standard)|1=REPLACE selected images|2=EXCHANGE actors
+ActorsLayout=2|0|0=Only actor names, separated by commas|1=Only actor names, separated by linebreaks|2=Actors names with character names between parenthesis separated by commas|3=Actors names with character names between parenthesis separated by linebreaks|4=Actor names like on IMDB page, with "..." between names and roles, and separated by linebreaks
+AllActors=2|2|0=Import only main actors from the top of the page (forcing ActorsLayout=0)|1=Import all possible actors|2=Import 10 first actors (number defined in script parameters, below the options)
+AspectRatio=1|1|0=Do not import picture aspect ratio|1=Import picture aspect ratio to video format field|2=Import picture aspect ratio to resolution field
+Awards=0|0|0=Do not import awards|1=Import awards to Description field, after the summary|2=Import awards to Comments field, after comments
+BatchMode=0|0|0=Normal working mode, prompts user when needed|1=Does not display any window, takes the first movie found|2=Same as 1, but it uses the URL field if available to update movie information|3=Same as 2, but it uses the IMDB field if available to update movie information
+CommentType=0|0|0=Top user review|1=10 most useful user reviews|2=No user comment, clear current field contents|3=No user comment, keep current field contents (may cause problem for multiple imports on the same movie if other options append text to the comment field)
+ConvertToASCII=0|0|0=Do not change special characters and accents.|1=Replace special characters and accents by basic ASCII characters
+DescriptionSelection=1|0|0=Short summary|1=Long summary
+EpisodeTitleSearch=0|0|0=Use "Find more" button on results list for next result pages if available (default)|1=Use "Find more" button on results list for episode title search instead
+GetTagline=1|1|0=Do not get tagline|1=Put it in Description field, before the summary|2=Put it in the Comment field, before the comments
+ImageKind=3|1|0=No image|1=IMDB small image, no image if none available|2=IMDB small image, "No Poster Available" if none available|3=IMDB large image - size defined in parameters below the options (720p by default), no image if none available|4=IMDB original country poster|5=IMDB original country large image - size defined in parameters below the options (720p by default)
+MPAA=1|0|0=Do not import MPAA rating|1=Import MPAA rating to MediaType|2=Append MPAA rating and info to Comments
+MultipleValuesAudioFormat=1|1|0=Only take first value for Audio Format|1=Take full list, separated by commas|2=Take full list, separated by slashes|3=Do not import Audio Format / Sound Mix
+MultipleValuesCategory=1|1|0=Only take first value for Category|1=Take full list, separated by commas|2=Take full list, separated by slashes|3=Do not import Category
+MultipleValuesCountry=0|1|0=Only take first value for Country|1=Take full list, separated by commas|2=Take full list, separated by slashes|3=Do not import Country
+MultipleValuesLanguages=0|1|0=Only take first value for Languages|1=Take full list, separated by commas|2=Take full list, separated by slashes|3=Do not import Languages
+PopularSearches=1|1|0=Do not use the popular searches page directly show full search results|1=Show popular searches first, I'll click on 'Find more' if needed (much faster)
+RoundRating=0|0|0=Do not round Rating|1=Round Rating to whole number
+Trivia=0|0|0=Do not import trivia|1=Import short trivia to Description field, after the summary|2=Import short trivia to Comments field, after the comments|3=Import full trivia to Description field, after the summary (need RapidAPI key)|4=Import full trivia to Comments field, after the comments (need RapidAPI key)
+UserRatings=0|0|0=Import value to ratings field only (default)|1=Import value and number of votes to Media Type field|2=Import value and number of votes to field set in UserRatingsField|3=Import number of votes to field set in UserRatingsField
+MediaType=0|0|0=Do not import media type|1=Import media type to media label field|2=Import media type to media type field|3=Import media type to custom field (defined in "MediaTypeField" parameter)
+TranslatedTitle=2|2|0=No translated title|1=Default translated title from the main movie page, depending on your location/country, use RapidAPI as backup|2=Try to retrieve from AKA page, using "UserCountry" setting, use RapidAPI as backup|3=Retrieve translated title from reference page, use RapidAPI as backup|4=Retrieve all translated titles using RapidAPI
+
+[Parameters]
+MaxActors=10|10|Max number of actors to retrieve when AllActors is set to 2
+UserCountry=France|United States|Country for certification and AKA title, enter the value as it is on IMDb, e.g. one of these: United States, Canada, Mexico, Brazil, Argentina, Australia, India, Italy, Spain, Portugal, France, Germany, Netherlands, United Kingdom, Ireland, Finland, Norway, Sweden, Switzerland, ...
+RapidAPIKey=||Get a free key to fully enable title translations: https://rapidapi.com (default = Missing)
+LargePictureHeight=1080|720|Height in pixels for requesting the picture when using ImageKind=3 or 5
+UserRatingsField=||Set field number for userratings, allowed values 3: media; 4: mediaType; 5: source; 6: date; 7: borrower; 10: rating; 11: originalTitle; 12: translatedTitle; 14: director; 15: producer; 16: writer; 18: actors; 19: country; 20: year; 21: length; 22: category; 24: URL; 25: description; 26: comments (default); 28: videoFormat; 29: videoBitRate; 31: audioBitRate; 32: resolution; 33: frameRate; 34: langagues; 35: subtitles; 36: size; 37: disks
+
+***************************************************)
+
+program IMDB;
+
+uses
+//  Debug,
+  StringUtils1, StringUtils7552;
+
+const
+  PopularTitleSearchURL =  'https://www.imdb.com/find?s=tt&q=';
+  FullTitleSearchURL = 'https://www.imdb.com/find?s=tt&exact=true&q=';
+  EpisodeTitleSearchURL = 'https://www.imdb.com/find?s=ep&q=';
+
+var
+  MovieName: string;
+  MovieURL: string;
+  MovieNumber: string;
+  MovieYear: string;
+  UpdateFile: TStringList;
+  ErrorMessage: string;
+ 
+function ConvertToASCII(AText: string): string;
+begin
+  Result := UTF8Decode(AText);
+  if Result = '' then
+    Result := AText; // in case of a UTF8 decoding error
+  if GetOption('ConvertToASCII') = 1 then
+    Result := Cp1252ToASCII(Result);
+end;
+
+function getPagePrefixBasedOnUserCountry(): string;
+begin
+  case AnsiLowerCase(fulltrim(GetParam('UserCountry'))) of
+  'argentina', 'bolivia (plurinational state of)', 'chile', 'colombia', 'costa rica', 'cuba', 'dominican republic', 'ecuador', 'el salvador', 'equatorial guinea', 'guatemala', 'honduras', 'mexico', 'nicaragua', 'panama', 'paraguay', 'peru', 'spain', 'uruguay', 'venezuela (bolivarian republic of)', 'puerto rico':
+    Result := 'es/';
+  'benin', 'burkina faso', 'burundi', 'central african republic', 'chad', 'congo', 'côte d''ivoire', 'gabon', 'guadeloupe', 'guinea', 'madagascar', 'mali', 'martinique', 'mayotte', 'monaco', 'niger', 'new caledonia', 'réunion', 'rwanda', 'saint barthélemy', 'saint martin (french part)', 'saint pierre and miquelon', 'senegal', 'switzerland', 'togo', 'france', 'french guiana', 'french polynesia', 'french southern territories', 'luxembourg', 'wallis and futuna':
+    Result := 'fr/';  
+  'angola', 'brazil', 'cabo verde', 'guinea-bissau', 'mozambique', 'portugal', 'sao tome and principe', 'timor-leste':
+    Result := 'pt/';
+  'austria', 'germany', 'liechtenstein':
+    Result := 'de/';
+  'italy', 'san marino', 'holy see':  
+    Result := 'it/';
+  else
+    Result := '';
+  end;
+end;
+
+function AKACountry: string;
+begin
+  case AnsiLowerCase(fulltrim(GetParam('UserCountry'))) of
+  'andorra': result := 'AD';
+  'united arab emirates': result := 'AE';
+  'afghanistan': result := 'AF';
+  'antigua and barbuda': result := 'AG';
+  'anguilla': result := 'AI';
+  'albania': result := 'AL';
+  'armenia': result := 'AM';
+  'angola': result := 'AO';
+  'antarctica': result := 'AQ';
+  'argentina': result := 'AR';
+  'american samoa': result := 'AS';
+  'austria': result := 'AT';
+  'australia': result := 'AU';
+  'aruba': result := 'AW';
+  'åland islands': result := 'AX';
+  'azerbaijan': result := 'AZ';
+  'bosnia and herzegovina': result := 'BA';
+  'barbados': result := 'BB';
+  'bangladesh': result := 'BD';
+  'belgium': result := 'BE';
+  'burkina faso': result := 'BF';
+  'bulgaria': result := 'BG';
+  'bahrain': result := 'BH';
+  'burundi': result := 'BI';
+  'benin': result := 'BJ';
+  'saint barthélemy': result := 'BL';
+  'bermuda': result := 'BM';
+  'brunei darussalam': result := 'BN';
+  'bolivia (plurinational state of)': result := 'BO';
+  'bonaire, sint eustatius and saba': result := 'BQ';
+  'brazil': result := 'BR';
+  'bahamas': result := 'BS';
+  'bhutan': result := 'BT';
+  'bouvet island': result := 'BV';
+  'botswana': result := 'BW';
+  'belarus': result := 'BY';
+  'belize': result := 'BZ';
+  'canada': result := 'CA';
+  'cocos (keeling) islands': result := 'CC';
+  'congo, democratic republic of the': result := 'CD';
+  'central african republic': result := 'CF';
+  'congo': result := 'CG';
+  'switzerland': result := 'CH';
+  'côte d''ivoire': result := 'CI';
+  'cook islands': result := 'CK';
+  'chile': result := 'CL';
+  'cameroon': result := 'CM';
+  'china': result := 'CN';
+  'colombia': result := 'CO';
+  'costa rica': result := 'CR';
+  'cuba': result := 'CU';
+  'cabo verde': result := 'CV';
+  'curaçao': result := 'CW';
+  'christmas island': result := 'CX';
+  'cyprus': result := 'CY';
+  'czechia': result := 'CZ';
+  'germany': result := 'DE';
+  'djibouti': result := 'DJ';
+  'denmark': result := 'DK';
+  'dominica': result := 'DM';
+  'dominican republic': result := 'DO';
+  'algeria': result := 'DZ';
+  'ecuador': result := 'EC';
+  'estonia': result := 'EE';
+  'egypt': result := 'EG';
+  'western sahara': result := 'EH';
+  'eritrea': result := 'ER';
+  'spain': result := 'ES';
+  'ethiopia': result := 'ET';
+  'finland': result := 'FI';
+  'fiji': result := 'FJ';
+  'falkland islands (malvinas)': result := 'FK';
+  'micronesia (federated states of)': result := 'FM';
+  'faroe islands': result := 'FO';
+  'france': result := 'FR';
+  'gabon': result := 'GA';
+  'united kingdom of great britain and northern ireland': result := 'GB';
+  'grenada': result := 'GD';
+  'georgia': result := 'GE';
+  'french guiana': result := 'GF';
+  'guernsey': result := 'GG';
+  'ghana': result := 'GH';
+  'gibraltar': result := 'GI';
+  'greenland': result := 'GL';
+  'gambia': result := 'GM';
+  'guinea': result := 'GN';
+  'guadeloupe': result := 'GP';
+  'equatorial guinea': result := 'GQ';
+  'greece': result := 'GR';
+  'south georgia and the south sandwich islands': result := 'GS';
+  'guatemala': result := 'GT';
+  'guam': result := 'GU';
+  'guinea-bissau': result := 'GW';
+  'guyana': result := 'GY';
+  'hong kong': result := 'HK';
+  'heard island and mcdonald islands': result := 'HM';
+  'honduras': result := 'HN';
+  'croatia': result := 'HR';
+  'haiti': result := 'HT';
+  'hungary': result := 'HU';
+  'indonesia': result := 'ID';
+  'ireland': result := 'IE';
+  'israel': result := 'IL';
+  'isle of man': result := 'IM';
+  'india': result := 'IN';
+  'british indian ocean territory': result := 'IO';
+  'iraq': result := 'IQ';
+  'iran (islamic republic of)': result := 'IR';
+  'iceland': result := 'IS';
+  'italy': result := 'IT';
+  'jersey': result := 'JE';
+  'jamaica': result := 'JM';
+  'jordan': result := 'JO';
+  'japan': result := 'JP';
+  'kenya': result := 'KE';
+  'kyrgyzstan': result := 'KG';
+  'cambodia': result := 'KH';
+  'kiribati': result := 'KI';
+  'comoros': result := 'KM';
+  'saint kitts and nevis': result := 'KN';
+  'korea (democratic people''s republic of)': result := 'KP';
+  'korea, republic of': result := 'KR';
+  'kuwait': result := 'KW';
+  'cayman islands': result := 'KY';
+  'kazakhstan': result := 'KZ';
+  'lao people''s democratic republic': result := 'LA';
+  'lebanon': result := 'LB';
+  'saint lucia': result := 'LC';
+  'liechtenstein': result := 'LI';
+  'sri lanka': result := 'LK';
+  'liberia': result := 'LR';
+  'lesotho': result := 'LS';
+  'lithuania': result := 'LT';
+  'luxembourg': result := 'LU';
+  'latvia': result := 'LV';
+  'libya': result := 'LY';
+  'morocco': result := 'MA';
+  'monaco': result := 'MC';
+  'moldova, republic of': result := 'MD';
+  'montenegro': result := 'ME';
+  'saint martin (french part)': result := 'MF';
+  'madagascar': result := 'MG';
+  'marshall islands': result := 'MH';
+  'north macedonia': result := 'MK';
+  'mali': result := 'ML';
+  'myanmar': result := 'MM';
+  'mongolia': result := 'MN';
+  'macao': result := 'MO';
+  'northern mariana islands': result := 'MP';
+  'martinique': result := 'MQ';
+  'mauritania': result := 'MR';
+  'montserrat': result := 'MS';
+  'malta': result := 'MT';
+  'mauritius': result := 'MU';
+  'maldives': result := 'MV';
+  'malawi': result := 'MW';
+  'mexico': result := 'MX';
+  'malaysia': result := 'MY';
+  'mozambique': result := 'MZ';
+  'namibia': result := 'NA';
+  'new caledonia': result := 'NC';
+  'niger': result := 'NE';
+  'norfolk island': result := 'NF';
+  'nigeria': result := 'NG';
+  'nicaragua': result := 'NI';
+  'netherlands, kingdom of the': result := 'NL';
+  'norway': result := 'NO';
+  'nepal': result := 'NP';
+  'nauru': result := 'NR';
+  'niue': result := 'NU';
+  'new zealand': result := 'NZ';
+  'oman': result := 'OM';
+  'panama': result := 'PA';
+  'peru': result := 'PE';
+  'french polynesia': result := 'PF';
+  'papua new guinea': result := 'PG';
+  'philippines': result := 'PH';
+  'pakistan': result := 'PK';
+  'poland': result := 'PL';
+  'saint pierre and miquelon': result := 'PM';
+  'pitcairn': result := 'PN';
+  'puerto rico': result := 'PR';
+  'palestine, state of': result := 'PS';
+  'portugal': result := 'PT';
+  'palau': result := 'PW';
+  'paraguay': result := 'PY';
+  'qatar': result := 'QA';
+  'réunion': result := 'RE';
+  'romania': result := 'RO';
+  'serbia': result := 'RS';
+  'russian federation': result := 'RU';
+  'rwanda': result := 'RW';
+  'saudi arabia': result := 'SA';
+  'solomon islands': result := 'SB';
+  'seychelles': result := 'SC';
+  'sudan': result := 'SD';
+  'sweden': result := 'SE';
+  'singapore': result := 'SG';
+  'saint helena, ascension and tristan da cunha': result := 'SH';
+  'slovenia': result := 'SI';
+  'svalbard and jan mayen': result := 'SJ';
+  'slovakia': result := 'SK';
+  'sierra leone': result := 'SL';
+  'san marino': result := 'SM';
+  'senegal': result := 'SN';
+  'somalia': result := 'SO';
+  'suriname': result := 'SR';
+  'south sudan': result := 'SS';
+  'sao tome and principe': result := 'ST';
+  'el salvador': result := 'SV';
+  'sint maarten (dutch part)': result := 'SX';
+  'syrian arab republic': result := 'SY';
+  'eswatini': result := 'SZ';
+  'turks and caicos islands': result := 'TC';
+  'chad': result := 'TD';
+  'french southern territories': result := 'TF';
+  'togo': result := 'TG';
+  'thailand': result := 'TH';
+  'tajikistan': result := 'TJ';
+  'tokelau': result := 'TK';
+  'timor-leste': result := 'TL';
+  'turkmenistan': result := 'TM';
+  'tunisia': result := 'TN';
+  'tonga': result := 'TO';
+  'türkiye': result := 'TR';
+  'trinidad and tobago': result := 'TT';
+  'tuvalu': result := 'TV';
+  'taiwan, province of china[note 1]': result := 'TW';
+  'tanzania, united republic of': result := 'TZ';
+  'ukraine': result := 'UA';
+  'uganda': result := 'UG';
+  'united states minor outlying islands': result := 'UM';
+  'united states': result := 'US';
+  'uruguay': result := 'UY';
+  'uzbekistan': result := 'UZ';
+  'holy see': result := 'VA';
+  'saint vincent and the grenadines': result := 'VC';
+  'venezuela (bolivarian republic of)': result := 'VE';
+  'virgin islands (british)': result := 'VG';
+  'virgin islands (u.s.)': result := 'VI';
+  'viet nam': result := 'VN';
+  'vanuatu': result := 'VU';
+  'wallis and futuna': result := 'WF';
+  'samoa': result := 'WS';
+  'yemen': result := 'YE';
+  'mayotte': result := 'YT';
+  'south africa': result := 'ZA';
+  'zambia': result := 'ZM';
+  'zimbabwe': result := 'ZW';
+  else 
+  begin
+    ShowMessage('Invalid country (' + GetParam('UserCountry') + '), set default one (United States of America). Please use a valid country written in english as it is on IMDb, e.g. one of these: United States, Canada, Mexico, Brazil, Argentina, Australia, India, Italy, Spain, Portugal, France, Germany, Netherlands, United Kingdom, Ireland, Finland, Norway, Sweden, Switzerland, ....');
+    SetParam('UserCountry', 'United States of America');
+    result := 'US';  
+  end;  
+  end;
+end;
+
+// ***** analyzes IMDB's results page that asks to select a movie from a list *****
+
+procedure AnalyzeResultsPage(Address: string);
+var
+  PageText: string;
+  Value: string;
+begin
+  PageText := ConvertToASCII(GetPage(Address));
+  if pos('<title>Find - IMDb', PageText) = 0 then
+    begin
+      AnalyzeMoviePage(PageText)
+    end else
+    begin
+      if Pos('<b>No Matches.</b>', PageText) > 0 then
+        begin
+          if GetOption('BatchMode') = 0 then
+            ShowMessage('No movie found for this search.');
+          Exit;
+        end;
+      if GetOption('BatchMode') = 0 then
+      begin
+        PickTreeClear;
+        Value := TextBetween(PageText, '>Titles</h3>', '</section>');
+        if Value <> '' then
+        begin
+          PickTreeAdd('Titles search results', '');
+          AddMovieTitles(Value);
+        end;
+        if PickTreeExec(Address) then
+          AnalyzeResultsPage(Address);
+      end
+      else
+        if (MovieYear <> '') then
+        begin
+          Value := GetUrl(PageText, '(' + MovieYear + ')', '');
+          if Value = '' then
+          begin
+            Value := GetUrl(PageText, '(' + IntToStr(StrToInt(MovieYear, 0) - 1) + ')', '');
+            if Value = '' then
+              Value := GetUrl(PageText, '(' + IntToStr(StrToInt(MovieYear, 0) + 1) + ')', '');
+          end;
+          if Value <> '' then
+            AnalyzeResultsPage('https://www.imdb.com' + Value);
+        end
+        else 
+        begin
+          Value := GetUrl(PageText, 'find-title-result', '');
+          if Value <> '' then
+            AnalyzeResultsPage('https://www.imdb.com' + Value);
+        end;
+    end;
+end;
+
+// ***** adds the movie titles found on IMDB's results page *****
+
+function AddMovieTitles(List: string): Boolean;
+var
+  Value, Episode, Series: string;
+  Address: string;
+begin
+  Result := False;
+  Value := TextBetween(List, '<li class="ipc-metadata-list-summary-item">', '</li>');
+  {
+  if GetOption('HideAkaTitles') = 1 then
+    Value := StringReplace(Value, TextAfter(Value, '<br/>aka'), '')
+  else
+    Value := StringReplace(Value, 'aka', ' | aka');
+  }
+  List := RemainingText;
+  while Value <> '' do
+  begin
+    Episode := TextAfter(Value, 'Episode<!-- -->: </span>');
+    Address := TextBetween(Value, '<a href="/title/tt', '/');
+    if Address = '' then
+    begin
+      Address := TextBetween(Value, '<a class="ipc-lockup-overlay ipc-focusable" href="/title/tt', '/');
+    end;
+    Address := Address + '/reference';
+    if Pos('for="_blank">', Value) > 0 then
+    begin
+      Value := StringReplace(Value, 'for="_blank">', '> (');
+      Value := StringReplace(Value, '</label>', ')');
+    end;
+    if Pos('<button aria-label="Rate', Value) > 0 then
+    begin
+      Value := TextBefore(Value, '<button aria-label="Rate', '');
+    end;
+    Value := RegExprSetReplace('\>(\d+)(.\d+)?\<\/span\>', Value, '>($1$2) </span>', True);
+    Value := StringReplace(Value, '</h3>', ' ');
+    Value := StringReplace(Value, '</span>', ' ');
+    if Pos('Episode<!-- -->: ', Value) > 0 then
+    begin
+      Series := TextBefore(Value, 'Episode<!-- -->: ', '');
+      HTMLRemoveTags(Series);
+      HTMLDecode(Series);
+      Value := StringReplace(Value, 'Episode<!-- -->: ', '- Series containing the episode');
+    end
+    else if Series <> '' then
+    begin
+      Value := Value + ', from series ' + Series;
+      Series := '';
+    end;
+    HTMLRemoveTags(Value);
+    HTMLDecode(Value);
+    PickTreeAdd(Trim(Value), 'https://www.imdb.com/' + getPagePrefixBasedOnUserCountry() + 'title/tt' + Address);
+    Result := True;
+    if Episode <> '' then
+    begin
+      Value := Episode;
+      Continue;
+    end;
+    Series := '';
+    Value := TextBetween(List, '<td class="result_text">', '</td>');
+    if value = '' then
+    begin
+      Value := TextBetween(List, '<li class="ipc-metadata-list-summary-item">', '</li>');
+    end;
+    {
+    if GetOption('HideAkaTitles') = 1 then
+      Value := StringReplace(Value, TextAfter(Value, '<br/>aka'), '')
+    else
+      Value := StringReplace(Value, 'aka', ' | aka');
+      }
+    List := RemainingText;
+  end;
+end;
+
+
+// ***** decode rapidApi charset ****
+
+function decodeRapidApiCharsetToCP1252(str: string): string;
+begin
+  // Romanian chars fix
+  str := StringReplace(str, (chr(195) + chr(136) + chr(194)), chr(200)); 
+  
+  // UTF-8 fix
+  str := StringReplace(str, (chr(195) + chr(130) + chr(194)), chr(194));  
+  str := StringReplace(str, (chr(195) + chr(131) + chr(194)), chr(195));
+  str := StringReplace(str, (chr(195) + chr(132) + chr(194)), chr(196)); 
+  str := StringReplace(str, (chr(195) + chr(133) + chr(194)), chr(197));  
+  
+  result := UTF8Decode(str);
+  if (result = '') then
+    result := str;
+end;
+
+
+
+// ***** retrieve alternative titles from an external api site *****
+procedure retrieveTitlesFromExternalAPI(Headers, Url, FirstElem, RegionElem, LanguageElem, TitleElem, ErrorMsg: string);
+var
+  JsonResponse, Delimiter, Lang, Country, MyCountry, CountryTitle, CountryTitleLowercase: string;
+  WorldwideTitles, TranslatedTitles, CountryTitles: string;
+begin
+  Delimiter := ' || ';
+  WorldwideTitles := Delimiter;
+  TranslatedTitles := Delimiter;
+  CountryTitles := Delimiter;
+  JsonResponse := GetPage5(Url, '', '', '', Headers);
+  // if rapidapi fails, retry again
+  if (JsonResponse = '') then
+    JsonResponse := GetPage5(Url, '', '', '', Headers);
+  JsonResponse := decodeRapidApiCharsetToCP1252(JsonResponse);
+  MyCountry := AKACountry();
+  // remove unneeded json (first part)  
+  Delete(JsonResponse, 1, pos(FirstElem, JsonResponse));    
+  if (pos(RegionElem, JsonResponse) = 0) then
+    ShowMessage(ErrorMsg)
+  else
+  while (pos(RegionElem, JsonResponse) > 0) do
+  begin
+    Lang := copy(JsonResponse, 0, pos(RegionElem, JsonResponse));
+    Lang := fulltrim(textbetween(Lang, LanguageElem,'"')); // note: "language" could be not defined for some regions     
+    Country := fulltrim(textbetween(JsonResponse, RegionElem,'"'));   
+    CountryTitle := fulltrim(textbetween(JsonResponse, TitleElem,'"'));  
+    CountryTitleLowercase := AnsiLowerCase(CountryTitle);        
+    Delete(JsonResponse, 1, (pos('}', JsonResponse) + 1)); // remove this entry    
+    if ((Lang = 'ar') OR (Lang = 'bg') OR (Lang = 'yue') OR (Lang = 'hi') OR (Lang = 'ja') OR (Lang = 'cmn') OR (Lang = 'ru') OR (Country = 'VN')) then
+      CountryTitle := ''
+    else
+    if ((Country = 'AE') OR (Country = 'BY') OR (Country = 'BG') OR (Country = 'CN') OR (Country = 'EG') OR (Country = 'GR') OR (Country = 'HK') OR (Country = 'IN') OR (Country = 'KZ') OR (Country = 'KR') OR (Country = 'JP') OR (Country = 'RU') OR (Country = 'SA') OR (Country = 'RS') OR (Country = 'RU') OR (Country = 'TH') OR (Country = 'TW') OR (Country = 'UA') OR (Country = 'VN')) then
+      if ((pos('Ð', CountryTitle) > 0) OR (pos(chr(186), CountryTitle) > 0) OR (pos(chr(191), CountryTitle) > 0) OR (pos(chr(194), CountryTitle) > 0) OR (pos(chr(195), CountryTitle) > 0) OR (pos(chr(196), CountryTitle) > 0) OR (pos(chr(197), CountryTitle) > 0) OR (pos(chr(198), CountryTitle) > 0) OR (pos(chr(206), CountryTitle) > 0) OR (pos(chr(208), CountryTitle) > 0) OR (pos(chr(190), CountryTitle) > 0) OR (pos(chr(180), CountryTitle) > 0) OR (pos(chr(228), CountryTitle) > 0) OR (pos(chr(229), CountryTitle) > 0) OR (pos(chr(230), CountryTitle) > 0) OR (pos(chr(231), CountryTitle) > 0) OR (pos(chr(232), CountryTitle) > 0)) then        
+        CountryTitle := ''; 
+    if (CountryTitle <> '') then
+    begin
+      if (Country = MyCountry) then
+      begin
+        if (pos(Delimiter + CountryTitle + Delimiter, CountryTitles) = 0) then
+          CountryTitles := CountryTitles + CountryTitle + Delimiter;
+        WorldwideTitles := StringReplace(WorldwideTitles, Delimiter + CountryTitle + Delimiter, Delimiter);
+        TranslatedTitles := StringReplace(TranslatedTitles, Delimiter + CountryTitle + Delimiter, Delimiter);
+      end  
+      else if ((CountryTitleLowercase <> AnsiLowerCase(GetField(fieldOriginalTitle))) AND (pos(Delimiter + CountryTitleLowercase + Delimiter, AnsiLowerCase(CountryTitles)) = 0) AND (pos(Delimiter + CountryTitleLowercase + Delimiter, AnsiLowerCase(WorldwideTitles)) = 0)) then
+      begin
+        if ((Country = 'XWW') OR (Country = 'US') OR (Country = '')) then
+        begin
+          WorldwideTitles := WorldwideTitles + CountryTitle + Delimiter;
+          TranslatedTitles := StringReplace(TranslatedTitles, Delimiter + CountryTitle + Delimiter, Delimiter);
+        end  
+        else if (pos(Delimiter + CountryTitle + Delimiter, TranslatedTitles) = 0) then  
+          TranslatedTitles := TranslatedTitles + CountryTitle + Delimiter;
+      end;
+    end; 
+  end;
+  
+  // all titles
+  if (GetOption('TranslatedTitle') = 4) then  
+  begin  
+    if ((Length(WorldwideTitles) <= Length(Delimiter)) AND (Length(CountryTitles) <= Length(Delimiter))) then
+    begin
+      // if no country titles or worldwide titles are available, I set as first translated title the original one.
+      TranslatedTitles := Delimiter + GetField(fieldOriginalTitle) + TranslatedTitles;
+    end
+    else
+    begin
+      if (Length(WorldwideTitles) > Length(Delimiter)) then
+        TranslatedTitles := copy(WorldwideTitles, 1, Length(WorldwideTitles) - Length(Delimiter)) + TranslatedTitles;
+      if (Length(CountryTitles) > Length(Delimiter)) then
+        TranslatedTitles := copy(CountryTitles, 1, Length(CountryTitles) - Length(Delimiter)) + TranslatedTitles;
+    end;    
+    if (Length(TranslatedTitles) > Length(Delimiter)) then
+      setField(fieldTranslatedTitle, copy(TranslatedTitles, Length(Delimiter) + 1, (Length(TranslatedTitles) - Length(Delimiter) - Length(Delimiter))))
+    else if (GetField(fieldTranslatedTitle) = '') then
+      setField(fieldTranslatedTitle, GetField(fieldOriginalTitle));  
+  end
+  else
+  begin
+  // only one title
+    if (Length(CountryTitles) > Length(Delimiter)) then
+      setField(fieldTranslatedTitle, textBetween(CountryTitles, Delimiter, Delimiter))
+    else if (Length(WorldwideTitles) > Length(Delimiter)) then
+      setField(fieldTranslatedTitle, textBetween(WorldwideTitles, Delimiter, Delimiter));
+  end;  
+end;
+
+
+
+// ***** retrieve alternative titles from RapidAPI *****
+procedure retrieveTitlesFromRapidAPI;
+var Headers, Url, FirstElem, RegionElem, LanguageElem, TitleElem, ErrorMsg: string;
+begin
+  Headers := 'X-RapidAPI-Key=' + GetParam('RapidAPIKey') + Chr(13) + Chr(10) + 'X-RapidAPI-Host=imdb8.p.rapidapi.com';
+  Url := 'https://imdb8.p.rapidapi.com/title/get-versions?tconst=tt' + MovieNumber;
+  FirstElem := '"alternateTitles":[';
+  RegionElem := '"region":"';
+  LanguageElem := '"language":"';
+  TitleElem := '"title":"';
+  ErrorMsg := 'RapidApi failed twice, please retry. If still fails, check your API Key, your monthly limit usage and your routing to imdb8.p.rapidapi.com';
+  retrieveTitlesFromExternalAPI(Headers, Url, FirstElem, RegionElem, LanguageElem, TitleElem, ErrorMsg);
+end;
+
+
+
+// ***** retrieve alternative titles from imdbapi.dev *****
+procedure retrieveTitlesFromImdbAPI;
+var Headers, Url, FirstElem, RegionElem, LanguageElem, TitleElem, ErrorMsg: string;
+begin
+  Headers := 'accept=application/json';
+  Url := 'https://api.imdbapi.dev/titles/tt' + MovieNumber + '/akas';
+  FirstElem := '"akas":[';
+  RegionElem := '"country":{"code":"';
+  LanguageElem := '"language":{"code":"';
+  TitleElem := '"text":"';
+  ErrorMsg := 'ImdbApi failed twice, please retry. If still fails, check your routing to api.imdbapi.dev';
+  retrieveTitlesFromExternalAPI(Headers, Url, FirstElem, RegionElem, LanguageElem, TitleElem, ErrorMsg);
+end;
+
+// ***** retrieve (un)spoilt content from json from RapidAPI *****
+
+function retrieveTriviaPartFromRapidAPI(JsonResponse, tagFrom, tagTo: string): string;
+var JsonContent, Txt, TriviaType: string;
+begin
+  JsonContent := textBetween(JsonResponse, tagFrom, tagTo);
+  if (JsonContent = '') then
+    JsonContent := TextAfter(JsonResponse, tagFrom);   
+  
+  Result := '';
+  while (pos('"text":', JsonContent) > 0) do
+  begin
+    JsonContent := textAfter(JsonContent, '"text":');
+    Txt := textBetween(JsonContent, '"', '"');
+    JsonContent := textAfter(JsonContent, Txt);
+    TriviaType := textBetween(JsonContent, '"', '}');
+    TriviaType := textBetween(TriviaType, '"type": "', '"');
+    JsonContent := textAfter(JsonContent, '}');
+    Result := Result + '- ';
+    if (TriviaType <> '') then
+      Result := Result + '[' + StringReplace(TriviaType, '-', ' ') + '] ';
+    Result := Result + Txt + Chr(13) + Chr(10);
+  end;  
+end;
+
+
+// ***** retrieve trivia from RapidAPI *****
+
+function retrieveTriviaFromRapidAPI(): string;
+var
+  JsonResponse, Headers: string;
+  Trivia, Spoiler, AposReplace: string;
+begin
+  AposReplace := 'fj57hg785gh4jg7gh48g45g'; // any unique string ...
+  Trivia := '';
+  Spoiler := '';
+  Headers := 'X-RapidAPI-Key=' + GetParam('RapidAPIKey') + Chr(13) + Chr(10) + 'X-RapidAPI-Host=imdb8.p.rapidapi.com';  
+  JsonResponse := GetPage5('https://imdb8.p.rapidapi.com/title/get-trivia?tconst=tt' + MovieNumber, '', '', '', Headers);
+  // if rapidapi fails, retry again
+  if (JsonResponse = '') then
+    JsonResponse := GetPage5('https://imdb8.p.rapidapi.com/title/get-trivia?tconst=tt' + MovieNumber, '', '', '', Headers);
+  JsonResponse := decodeRapidApiCharsetToCP1252(JsonResponse);  
+  JsonResponse := StringReplace(JsonResponse, '\"', AposReplace);
+  
+  // remove unneeded json (first part)  
+  Trivia := retrieveTriviaPartFromRapidAPI(JsonResponse, '"unspoilt":', '"spoilt":');   
+  Spoiler := retrieveTriviaPartFromRapidAPI(JsonResponse, '"spoilt":', '"unspoilt":');
+  Trivia := StringReplace(Trivia, AposReplace, '"');
+  Spoiler := StringReplace(Spoiler, AposReplace, '"');
+  
+  Result := Chr(13) + Chr(10) + Trivia;
+  if (Spoiler <> '') then
+    Result := Result + Chr(13) + Chr(10) + 'SPOILERS:' + Chr(13) + Chr(10) + Spoiler;
+end;
+
+
+
+
+function cleanHtml(str: string): string;
+begin
+  Result := StringReplace(StringReplace(StringReplace(StringReplace(StringReplace(str, '\u0026' , '&'), '\u003c' , '<'), '\u003e' , '>'), '\"' , '"'), '\u0026', '&');
+  HTMLRemoveTags(Result);
+  HTMLDecode(Result);  
+end;
+
+
+
+
+procedure ImportAwards(fieldName: integer);
+var
+  PageText, Value, Value2, Tmp, Tmp2, FieldValue, ValuesDelimiter: string;
+begin
+  PageText := ConvertToASCII(GetPage(MovieUrl+'/awards')); 
+
+  ValuesDelimiter := #13#10 + #13#10;  
+   
+  if (CanSetField(fieldName)) then
+  begin
+    FieldValue := '';
+    Value := TextBetween(PageText,'"categories":[', ']},"requestContext":');
+    Tmp := TextBetween(Value, '"name":"', '"');
+    while (Tmp <> '') do
+    begin      
+      if (FieldValue <> '') then
+        FieldValue := FieldValue + ValuesDelimiter;
+             
+      FieldValue := FieldValue + cleanHtml(Tmp);
+      Value := TextAfter(Value, Tmp);
+      
+      if (Pos('"name":"', Value) > 0) then
+        Value2 := TextBetween('"' + Value, '"', '"name":"')
+      else
+        Value2 := Value;     
+
+      Tmp2 := TextBetween(Value2, '"rowTitle":"', '","');
+      if (Tmp2 <> '') then
+        FieldValue := FieldValue + ', ' + cleanHtml(Tmp2);
+        
+      //Tmp2 := TextBetween(Value2, '"rowSubTitle":"', '"');
+      //if (Tmp2 <> '') then
+      //  FieldValue := FieldValue + ':' + #32 + cleanHtml(Tmp2);      
+        
+      Tmp2 := TextBetween(Value2, '"text":"', '"');
+      if (Tmp2 <> '') then
+        FieldValue := FieldValue + #13#10 + cleanHtml(Tmp2);     
+        
+      Tmp2 := TextBetween(Value2, '"caption":"', '"');
+      if (Tmp2 <> '') then
+        FieldValue := FieldValue + #13#10 + cleanHtml(Tmp2);
+      
+      Tmp := TextBetween(Value, '"name":"', '"');    
+    end;
+    
+    if (FieldValue <> '') then
+    begin
+      if (getField(fieldName) <> '') then
+        SetField(fieldName, getField(fieldName) + #13#10 + #13#10 + 'AWARDS: ' + #13#10 + FieldValue)
+      else  
+        SetField(fieldName, 'AWARDS: ' + #13#10 + FieldValue);
+    end;  
+  end;  
+end; 
+
+
+
+// ***** retrieve values inside (json) text *****
+// PageText : json text
+// DelimiterListFrom, DelimiterListTo : main text selection
+// DelimiterItemFrom, DelimiterItemTo : item -> sub text selection (one or more)
+// Limit: 0 (take all items), -1 (take last item), n (take only the first n items)
+
+procedure jsonMultipleValuesToList(PageText, DelimiterListFrom, DelimiterListTo, DelimiterItemFrom, DelimiterItemTo: string; fieldName, limit: integer);
+var
+  Value, Value2, Tmp, Tmp2, FieldValue, ValuesDelimiter: string;
+  Counter, ActorsLayout: integer;
+begin
+  // specific actor parameters
+  if (GetOption('AllActors') = 0) then
+    ActorsLayout := 0
+  else
+    ActorsLayout := GetOption('ActorsLayout');
+    
+  if ((fieldName = fieldActors) AND (ActorsLayout <> 0) AND (ActorsLayout <> 2)) then
+    ValuesDelimiter := #13#10
+  else if (((fieldName = fieldCategory) AND (GetOption('MultipleValuesCategory') = 2))
+        OR ((fieldName = fieldCountry) AND (GetOption('MultipleValuesCountry') = 2))
+        OR ((fieldName = fieldLanguages) AND (GetOption('MultipleValuesLanguages') = 2))
+        OR ((fieldName = fieldAudioFormat) AND (GetOption('MultipleValuesAudioFormat') = 2))) then      
+    ValuesDelimiter := ' / '
+  else  
+    ValuesDelimiter := ', ';  
+   
+  if (((fieldName <> 0) AND CanSetField(fieldName)) OR ((fieldName = 0) AND CanSetPicture() AND (GetOption('ImageKind') > 0))) then
+  begin
+    FieldValue := '';
+    Counter := 0;
+    Value := TextBetween(PageText,DelimiterListFrom, DelimiterListTo);
+       
+    Tmp := TextBetween(Value, DelimiterItemFrom, DelimiterItemTo);
+    if (Tmp = '') then
+      Tmp := TextBetween(Value, StringReplace(DelimiterItemFrom, ' ', ''), DelimiterItemTo);  
+    while ((Tmp <> '') AND ((Counter < limit) OR (limit <= 0))) do
+    begin      
+      Value := DelimiterItemTo + TextAfter(Value, Tmp + DelimiterItemTo);
+      
+      if (limit = -1) then
+        FieldValue := ''
+      else if (FieldValue <> '') then
+        FieldValue := FieldValue + ValuesDelimiter;
+      
+      if ((fieldName = fieldVideoFormat) or (fieldName = fieldResolution)) then
+        Tmp := StringReplace(Tmp, ' ', '');  
+        
+      FieldValue := FieldValue + cleanHtml(Tmp);
+      Counter := Counter + 1;
+      
+      if ((fieldName = fieldActors) AND (ActorsLayout > 1)) then
+      begin
+        // Actor Role      
+        if (Pos(DelimiterItemFrom, Value) > 0) then
+          Value2 := TextBefore(Value, DelimiterItemFrom, '')
+        else
+          Value2 := Value;     
+
+        Tmp2 := TextBetween(Value2, '"characters":["', '"]');
+        if (Tmp2 <> '') then
+        begin
+          // fix this: "characters":["Claudette Dusseault","Self"] -> Claudette Dusseault / Self
+          Tmp2 := StringReplace(Tmp2, '","', ' / ');
+          if (ActorsLayout = 4) then
+            FieldValue := FieldValue + ' ... ' + cleanHtml(Tmp2)
+          else
+            FieldValue := FieldValue + ' (as ' + cleanHtml(Tmp2) + ')';
+        end;     
+        if (ActorsLayout = 4) then
+        begin
+          Tmp2 := TextBetween(Value2, '"attributes":"', '"');
+          if (Tmp2 <> '') then
+            FieldValue := FieldValue + ' ' + cleanHtml(Tmp2);
+        end;  
+      end;  
+      
+      Tmp := TextBetween(Value, DelimiterItemFrom, DelimiterItemTo);      
+      if (Tmp = '') then
+        Tmp := TextBetween(Value, StringReplace(DelimiterItemFrom, ' ', ''), DelimiterItemTo);                 
+    end;
+    
+    if (fieldName = 0) then
+    begin
+      if (CanSetPicture() and (FieldValue <> '')) then
+      begin
+        if ((GetOption('ImageKind') = 3) OR (GetOption('ImageKind') = 5)) then
+        begin
+          GetPicture(TextBefore(FieldValue, '._', '') + '._V1_SY' + GetParam('LargePictureHeight') + '_AL_.jpg');
+          if (GetPictureStatus() = picStatusNone) then
+            GetPicture(FieldValue);
+        end
+        else
+          GetPicture(FieldValue);
+      end;
+    end  
+    else
+    begin
+      if (fieldName = fieldLength) then
+        FieldValue := IntToStr(StrToInt(fieldValue, 10) div 60)
+      else if ((fieldName = fieldRating) AND (GetOption('RoundRating') = 1)) then
+        FieldValue := IntToStr(Round(StrToFloat(FieldValue)));
+      SetField(fieldName, FieldValue);
+    end;    
+      
+  end;  
+end; 
+
+// ***** analyzes the page containing movie information *****
+
+procedure AnalyzeMoviePage(PageText: string);
+var
+  FullValue, LastValue, Value, Value1, Value2, Tmp, Tmp2: string;
+  limit, fieldName, updated, Count, p: Integer;
+begin 
+  MovieNumber := TextBetween(PageText,'"meta":{"canonicalId":"tt', '","publicationStatus');
+  if MovieNumber = '' then
+    MovieNumber := TextBetween(PageText, '<input type="hidden" name="auto" value="legacy/title/tt', '/');
+  if MovieNumber = '' then
+    MovieNumber := TextBetween(PageText, '<input type="hidden" name="auto" value="legacy/title/tt', '/reference"');
+  if MovieNumber = '' then
+    MovieNumber := TextBetween(PageText, '<link rel="canonical" href="https://www.imdb.com/' + getPagePrefixBasedOnUserCountry() + 'title/tt', '/');
+  if MovieNumber = '' then
+  begin
+    ShowMessage('Movie number could not be extracted from the page (script outdated?)');
+    Exit;
+  end;
+  if Pos('/reference"', TextBetween(PageText, '<link rel="canonical"', '/>')) = 0 then
+    PageText := ConvertToASCII(GetPage('https://www.imdb.com/' + getPagePrefixBasedOnUserCountry() + 'title/tt' + MovieNumber + '/reference'));
+  MovieURL := 'https://www.imdb.com/title/tt' + MovieNumber;
+  // URL
+  if CanSetField(fieldURL) then
+    SetField(fieldURL, MovieURL);
+
+  // original title
+  jsonMultipleValuesToList(PageText, '"originalTitleText":{', '}', '"text":"', '"', fieldOriginalTitle, 1);
+  
+  // year
+  jsonMultipleValuesToList(PageText, '"releaseYear":{', '}', '"year":', ',', fieldYear, 1);  
+  
+  // picture  
+  case GetOption('ImageKind') of
+  1,2:
+    jsonMultipleValuesToList(PageText, 'class="ipc-image" loading="eager"', '>', 'src="', '"', 0, 1);
+  3:  
+    jsonMultipleValuesToList(PageText, '"aboveTheFoldData":{', '"mainColumnData":{', '{"url":"', '"', 0, 1);
+  4,5:
+    jsonMultipleValuesToList(GetPage5(('https://api.imdbapi.dev/titles/tt' + MovieNumber), '', '', '', 'accept=application/json'), '"primaryImage":', '}', '"url":"', '",', 0, 1);
+  end;
+  
+  // Directors
+  //jsonMultipleValuesToList(PageText, '"directorsPageTitle":[', '"PrincipalCreditsForCategory"}]', '"nameText":{"text":"', '"', fieldDirector, 0);
+  jsonMultipleValuesToList(PageText, '"id":"amzn1.imdb.concept.name_credit_category.ace5cb4c-8708-4238-9542-04641e7c8171"', '],"listItemType":', '"rowTitle":"', '"', fieldDirector, 0);
+
+  // Actors
+  if (GetOption('AllActors') = 0) then
+  begin
+    jsonMultipleValuesToList(PageText, '"castPageTitle":{"edges":[', ']', '"text":"', '"', fieldActors, 0)
+  end  
+  else 
+  begin
+    if (GetOption('AllActors') = 2) then
+      limit := StrToInt(GetParam('MaxActors'), 10)
+    else
+      limit := 0;  
+
+    jsonMultipleValuesToList(PageText, '"id":"amzn1.imdb.concept.name_credit_group.7caf7d16-5db9-4f4f-8864-d4c6e711c686"', '],"listItemType":', '"rowTitle":"', '"', fieldActors, limit);
+ 
+    // old format
+    if (getField(fieldActors) = '') then  
+      jsonMultipleValuesToList(PageText, '"id":"cast","name":"', '"listItemType"', '"rowTitle":"', '"', fieldActors, limit);
+  end;
+  
+  // Composers
+  jsonMultipleValuesToList(PageText, '"id":"amzn1.imdb.concept.name_credit_category.00f5faa0-5f76-4eb5-87a1-ec8d484d1779"', '],"listItemType":', '"rowTitle":"', '"', fieldComposer, 0);
+ 
+  // old format
+  if (getField(fieldComposer) = '') then  
+    // name can be Composer or Composers ...
+    jsonMultipleValuesToList(PageText, '{"id":"composer","name":"', '],"listItemType":', '"rowTitle":"', '"', fieldComposer, 0);
+  
+  // Country
+  case GetOption('MultipleValuesCountry') of
+  0:  
+    jsonMultipleValuesToList(PageText, '"countriesDetails":{"countries":[', ']', '"text":"', '"', fieldCountry, 1);  
+  1,2:
+    jsonMultipleValuesToList(PageText, '"countriesDetails":{"countries":[', ']', '"text":"', '"', fieldCountry, 0);
+  end;      
+  
+  // Category
+  case GetOption('MultipleValuesCategory') of
+  0:  
+    jsonMultipleValuesToList(PageText, '"genres":{"genres":[', ']', '"text":"', '"', fieldCategory, 1);
+  1,2:
+    jsonMultipleValuesToList(PageText, '"genres":{"genres":[', ']', '"text":"', '"', fieldCategory, 0);
+  end;  
+  
+  // Audio format
+  case GetOption('MultipleValuesAudioFormat') of  
+  0:
+    jsonMultipleValuesToList(PageText, '"soundMixes":{"items":[', '"__typename":"SoundMixes"}', '"text":"', '"', fieldAudioFormat, 1);
+  1,2:
+    jsonMultipleValuesToList(PageText, '"soundMixes":{"items":[', '"__typename":"SoundMixes"}', '"text":"', '"', fieldAudioFormat, 0);
+  end;  
+  
+  // Language
+  case GetOption('MultipleValuesLanguages') of
+  0:  
+    jsonMultipleValuesToList(PageText, '"spokenLanguages":{"spokenLanguages":[', ']', '"text":"', '"', fieldLanguages, 1);  
+  1,2:
+    jsonMultipleValuesToList(PageText, '"spokenLanguages":{"spokenLanguages":[', ']', '"text":"', '"', fieldLanguages, 0);
+  end;     
+  
+  // Description
+  if (GetOption('DescriptionSelection') = 1) then
+    jsonMultipleValuesToList(PageText, '"summaries":', '"__typename":"PlotConnection"}', '"plaidHtml":"', '","__typename":"Markdown"}', fieldDescription, 1);
+  if ((GetOption('DescriptionSelection') = 0) OR (GetField(fieldDescription) = '')) then
+    jsonMultipleValuesToList(PageText, '"plot":{"plotText":{', '}', '"plainText":"', '","', fieldDescription, 1);
+
+  // Aspect ratio       
+  if (GetOption('AspectRatio') = 1) then
+    jsonMultipleValuesToList(PageText, '{"aspectRatios":{"items":[', ']', '"aspectRatio":"', '"', fieldVideoFormat, 1)
+  else if (GetOption('AspectRatio') = 2) then
+    jsonMultipleValuesToList(PageText, '{"aspectRatios":{"items":[', ']', '"aspectRatio":"', '"', fieldResolution, 1);
+  
+  // Length
+  jsonMultipleValuesToList(PageText, '"runtime":{', '}', '"seconds":', ',', fieldLength, 1);
+  
+  
+  // Producers
+  jsonMultipleValuesToList(PageText, '"id":"amzn1.imdb.concept.name_credit_category.0af123ce-1605-4a51-93cf-7ad477b11832"', '],"listItemType":', '"rowTitle":"', '"', fieldProducer, 0);
+ 
+  // old format
+  if (getField(fieldProducer) = '') then  
+    // name can be Producer or Producers ...
+    jsonMultipleValuesToList(PageText, '{"id":"producer","name":"', '],"listItemType":', '"rowTitle":"', '"', fieldProducer, 0);  
+  
+  // Writers
+  jsonMultipleValuesToList(PageText, '"id":"amzn1.imdb.concept.name_credit_category.c84ecaff-add5-4f2e-81db-102a41881fe3"', '],"listItemType":', '"rowTitle":"', '"', fieldWriter, 0);
+ 
+  // old format
+  if (getField(fieldWriter) = '') then
+    // name can be Writer or Writers ...
+    jsonMultipleValuesToList(PageText, '{"id":"writer","name":"', '],"listItemType":', '"rowTitle": "', '"', fieldWriter, 0);
+  
+  // Rating
+  jsonMultipleValuesToList(PageText, '"ratingsSummary":', '}', '"aggregateRating":', ',', fieldRating, 1);
+  
+  // TranslatedTitle
+  if (CanSetField(fieldTranslatedTitle) AND (GetOption('TranslatedTitle') > 0)) then
+  begin    
+    updated := 0;
+    case GetOption('TranslatedTitle') of
+      1:
+        begin
+          jsonMultipleValuesToList(PageText, '"titleText":{', '}', '"text":"', '"', fieldTranslatedTitle, 1);
+          if (GetField(fieldTranslatedTitle) <> '') then
+            updated := 1;
+        end;
+      2:
+        begin            
+          Count := 0;
+          LastValue := '';
+          FullValue := ConvertToASCII(GetPage(GetField(fieldURL)+'/releaseinfo/#akas'));
+          FullValue := TextBetween(FullValue, '<div data-testid="sub-section-akas"', '</div></li></ul></div>');
+          if (FullValue <> '') then
+            FullValue := FullValue + '</div></li></ul>';
+          PickTreeClear;
+          PickTreeAdd('Select the translated title', '');
+          while Fullvalue <> '' do
+          begin                  
+            Tmp := TextBetween(FullValue, '" data-testid="list-item">', '</div></div></li>');           
+            Value2 := TextBetween(Tmp, '<span class="ipc-metadata-list-item__label ipc-btn--not-interactable" aria-disabled="false">', '</span>');  //country
+            Value := TextBetween(Tmp, '<span class="ipc-metadata-list-item__list-content-item ipc-btn--not-interactable" aria-disabled="false">', '</span>');   //title            
+            HTMLDecode(Value2);
+            HTMLDecode(Value);
+            if ((Value = '') AND (Value2 = '')) then
+              Break;              
+            if (GetParam('UserCountry') = Value2) and (Value <> getField(fieldOriginalTitle)) then
+            begin
+              LastValue := Value;
+              Count := Count + 1;
+              if (Count = 1) and (GetOption('BatchMode') > 0) then
+              begin
+                Break;
+              end
+              PickTreeAdd(Value, Value);
+            end;
+            FullValue := TextAfter(FullValue, '</ul>');
+          end;
+          if Count = 1 then
+          begin
+            SetField(fieldTranslatedTitle, LastValue);
+            updated := 1;
+          end else
+          if Count > 1 then
+          begin
+            if PickTreeExec(Value) then
+            begin
+              SetField(fieldTranslatedTitle, Value);
+              updated := 1;
+            end;
+          end;
+        end;
+      3:
+        begin
+          jsonMultipleValuesToList(PageText, '"originalTitleText":{', '}', '"text":"', '"', fieldTranslatedTitle, 1);
+          if (GetField(fieldOriginalTitle) = GetField(fieldTranslatedTitle)) then
+            setField(fieldTranslatedTitle, '')
+          else  
+            updated := 1;
+        end;
+    end;
+    if ((updated = 0) and (GetOption('TranslatedTitle') > 0)) then
+    begin
+      if (GetParam('RapidAPIKey') <> '') then
+        retrieveTitlesFromRapidAPI()
+      else
+        retrieveTitlesFromImdbAPI();
+    end;       
+  end;      
+  
+  // Comments
+  if CanSetField(fieldComments) then
+  begin
+    case GetOption('CommentType') of
+      0, 1:
+        begin
+          Value2 := '';
+          p := 0;
+          FullValue := ConvertToASCII(GetPage(GetField(fieldURL)+'/reviews'));
+          FullValue := TextAfter(FullValue, '<section class="ipc-page-section ipc-page-section--base ipc-page-section--sp-pageMargin">');
+          while FullValue <> '' do
+          begin
+            Value := TextBetween(FullValue, '<article','</article>');
+            if Value = '' then
+            begin
+              Break;
+            end;
+            Value1 := TextBetween(Value, '<div class="ipc-html-content-inner-div" role="presentation">','</div>');
+            Value1 := StringReplace(Value1, #13#10, ' ');
+            Value1 := StringReplace(Value1, '<br/><br/>', #13#10);
+            Value1 := StringReplace(Value1, '<br/>', #13#10);
+            HtmlRemoveTags(Value1);
+            Value1 := FullTrim(Value1);
+            if Value1 = '' then
+            begin
+              FullValue := TextAfter(FullValue, '</article>');
+              Continue;
+            end;
+            if GetOption('CommentType') = 1 then
+            begin
+              p := p + 1;
+              Value2 := Value2 + inttostr(p) + '. ';
+            end;
+            Value2 := Value2 + TextBetween(Value, '<h3 class="ipc-title__text">','</h3>');
+            Value2 := Value2 + ' (by ' + TextAfter (TextBetween(Value, 'data-testid="author-link"','</a>'),'>');
+            Value2 := Value2 + #32 + 'on ' + TextBetween(Value, '<li role="presentation" class="ipc-inline-list__item review-date">', '</li>') + ')' ;
+            Value2 := Value2 + #13#10 + #13#10 + Value1;
+            if (GetOption('CommentType') = 0) or (p = 10) then
+            begin
+              Break;
+            end;
+            FullValue := TextAfter(FullValue, '</article>');
+            if FullValue <> '' then
+            begin
+              Value2 := Value2 +  #13#10 + #13#10;
+            end;
+          end;
+          HTMLRemoveTags(Value2);
+          HTMLDecode(Value2);
+          SetField(fieldComments, Value2);
+        end;
+      2:
+        begin
+          SetField(fieldComments, '');
+        end;
+    end;
+  end;
+  
+  // Trivia
+  if GetOption('Trivia') > 0 then
+  begin
+    if ((GetOption('Trivia') = 1) OR (GetOption('Trivia') = 3)) then 
+      fieldName := fieldDescription
+    else
+      fieldName := fieldComments;
+    Value2 := GetField(fieldName);
+    case GetOption('Trivia') of
+      1,2:
+        begin          
+          jsonMultipleValuesToList(PageText, '"trivia":{"edges":[', '"__typename":"TriviaEdge"}]', '"plaidHtml":"', '","__typename":"Markdown"', fieldName, 1);
+          Value := getField(fieldName);
+          Value := StringReplace(Value, #13#10, '');
+          while Pos('  ', Value) > 0 do
+            Value := StringReplace(Value, '  ', '');
+          while Pos('<span class="linksoda">', Value) > 0 do
+          begin
+            Value := StringReplace(Value, TextBetween(Value, '<span class="linksoda">', '</div>'), '');
+            Value := StringReplace(Value, '<span class="linksoda"></div>', '');
+          end;
+          Value := StringReplace(Value, 'Link this trivia', '');
+          Value := StringReplace(Value, '<div class="sodatext">', #13#10 + '- ');
+          Value := StringReplace(Value, TextBetween(Value, '<script type="text/javascript">', '</script>'), '');
+          HTMLRemoveTags(Value);
+          HTMLDecode(Value);
+          Value := RegExprSetReplace('\s[\d,]+\s+of\s+[\d,]+\sfound\sthis\sinterestingInteresting\?YesNo\|', Value, '', false);
+          Value := RegExprSetReplace('\s*Is\sthis\sinteresting\?Interesting\?YesNo\|', Value, '', false);
+          Value := RegExprSetReplace('Spoilers\sThe\strivia\sitems?\sbelow\smay\sgive\saway\simportant\splot\spoints\.\s*', Value, #13#10 + 'Spoilers:' + #13#10, false);
+          Value := RegExprSetReplace('\s*See\salsoGoofs.*', Value, '', false);     
+        end;
+      3,4:
+        if (GetParam('RapidAPIKey') <> '') then
+          Value := retrieveTriviaFromRapidAPI()
+        else  
+          Value := '';
+    end;
+
+    if Value = '' then
+      Value := Value2
+    else if Value2 <> '' then
+      Value := Value2 + #13#10 + #13#10 + 'IMDB TRIVIA: ' + Trim(Value)
+    else
+      Value :=  'IMDB TRIVIA: ' + Value;
+    SetField(fieldName, Value);
+  end;  
+  
+  // TagLine
+  if (GetOption('GetTagline') > 0) then
+  begin
+    if (GetOption('GetTagline') = 1) then
+      fieldName := fieldDescription
+    else
+      fieldName := fieldComments;
+    Value2 := getField(fieldName);
+    jsonMultipleValuesToList(PageText, '"taglines":', '"__typename":"TaglineEdge"', '"text":"', '","__typename":"Tagline"', fieldName, 1);
+    Value := getField(fieldName);
+    if (Value = '') then
+      setField(fieldName, Value2)
+    else if (Value2 <> '') then
+      setField(fieldName, Value + #13#10 + #13#10 + Value2);
+  end;
+  
+  // UserRatings
+  if GetOption('UserRatings') > 0 then
+  begin
+    if (GetOption('UserRatings') = 1) then
+      fieldName := fieldMediaType
+    else if (GetParam('UserRatingsField') <> '') then 
+      fieldName := StrToInt(GetParam('UserRatingsField'), 10)
+    else  
+      fieldName := fieldComments;
+    if (canSetField(fieldName)) then
+    begin    
+      Value2 := getField(fieldName);
+      jsonMultipleValuesToList(PageText, '"ratingsSummary":', '}', '"voteCount":', ',', fieldName, 1);
+      Value := getField(fieldName);
+      if (Value = '') then
+        Value := '0';
+      if (GetOption('UserRatings') < 3) then      
+        Value := 'User Rating: ' + GetField(fieldRating) + ' out of 10  (with ' + Value + ' votes)';
+      case fieldName of
+      25, 26:  
+        // fieldDescription and fieldComments only      
+        if (getField(fieldName) = '') then
+          setField(fieldName, Value2)
+        else if (Value2 = '') then
+          setField(fieldName, Value)
+        else
+          setField(fieldName, Value2 + #13#10 + #13#10 + Value);
+      else
+        if (getField(fieldName) <> '') then
+          setField(fieldName, Value);    
+      end;  
+    end;
+  end;
+  
+  
+  // Awards
+  case GetOption('Awards') of
+    1:
+      ImportAwards(fieldDescription);
+    2:
+      ImportAwards(fieldComments);      
+  end;  
+    
+  // Classification && MPAA
+  // Classification is the classification of "UserCountry Parameter" Country (if "UserCountry Parameter" is void, get the first value)
+  // MPAA is the classification of United States
+  if (GetParam('UserCountry') <> '') then
+    jsonMultipleValuesToList(PageText, '"certificates":', '"__typename":"CertificatesConnection"}', '"edges":[', GetParam('UserCountry'), fieldCertification, 1)
+  else
+    jsonMultipleValuesToList(PageText, '"certificates":', '"__typename":"CertificatesConnection"}', '"edges":[', '"Certificate"', fieldCertification, 1);
+  jsonMultipleValuesToList(getField(fieldCertification) + '_________', '"node":', '_________', '"rating":"', '"', fieldCertification, -1)
+
+  case GetOption('MPAA') of
+  1:
+    begin
+      if (GetParam('UserCountry') = 'United States') then
+        SetField(fieldMediaType, getField(fieldCertification))
+      else  
+      begin
+        jsonMultipleValuesToList(PageText, '"certificates":', '"__typename":"CertificatesConnection"}', '"edges":[', 'United States', fieldMediaType, 1);
+        jsonMultipleValuesToList(getField(fieldMediaType) + '_________', '"node":', '_________', '"rating":"', '"', fieldMediaType, -1);
+      end;  
+    end;  
+  2:  
+    begin
+      Value2 := getField(fieldComments);
+      if (GetParam('UserCountry') = 'United States') then
+        Value := getField(fieldCertification)
+      else
+      begin      
+        jsonMultipleValuesToList(PageText, '"certificates":', '"__typename":"CertificatesConnection"}', '"edges":[', 'United States', fieldComments, 1);
+        jsonMultipleValuesToList(getField(fieldComments) + '_________', '"node":', '_________', '"rating":"', '"', fieldComments, -1);
+        Value := getField(fieldComments);
+      end;
+      if (Value = '') then
+        setField(fieldComments, Value2)
+      else if (Value2 = '') then
+        setField(fieldComments, 'Rated ' + Value)
+      else
+        setField(fieldComments, Value2 + #13#10 + #13#10 + 'Rated ' + Value);
+    end;  
+  end; 
+
+  if (GetOption('ActorsImagesMode') > 0) and (GetOption('ActorsImagesSelectionMode') <> 3) then
+    ActorsImagesAnalyzeMoviePage(GetPage(MovieURL));
+end;
+
+
+
+
+
+// ***** analyzes the page containing actors information *****
+procedure ActorsImagesAnalyzeMoviePage(PageText: string);
+var
+  Value, Value2, Value3 : string;
+  index, count, maxactor : Integer;
+
+begin
+  Value := UTF8Decode(TextBetween(PageText, 'ipc-media--avatar', 'ipc-metadata-list'));
+  Value := TextAfter(Value, 'style="width:100%">');
+  case GetOption('ActorsImagesSelectionMode') of
+    1: // Replace images
+	  begin
+		index := GetExtraCount;
+		for count := 0 to index - 1 do
+		  begin
+			if (GetExtraField(count, eCategory) = 'Actors') and (IsExtraSelected(count) = TRUE) then
+			  begin
+				Value3 := GetExtraField(count, eURL);
+				if POS(Value3, Value) = 0 then //Wrong movie? --> 5 new pictures
+				  begin
+					SetOption('ActorsImagesSelectionMode', 0);
+					SetOption('ActorsImagesNumberOfActors', 1);
+					AnalyzeMoviePage(PageText);
+					SetOption('ActorsImagesSelectionMode', 1);
+					exit;
+				  end;
+				Value2 := TextBefore(Value, Value3, '100%">');
+				If Value2 = '' Then Value2 := TextBefore(Value, Value3, ''); // Otherwise pic from first actor is not changed
+				Value2 := TextBetween(Value2, '140w, ', ' 210w');
+				if Value2 <> '' then GetActorImage(Value2, Value3, count);  // "if" because of intentionally senseless case: replace of an empty picture gives picture ERROR message at end
+			  end;
+		  end;
+	  end;
+    0: // Get new images
+	  begin
+		if Value = '' then exit;
+		count := GetOption('ActorsImagesNumberOfActors') * 5;
+		maxactor := count;
+		if GetOption('ActorsImagesNumberOfActors') = 0 then // choose one
+		  begin
+			GetActorList(Value); // PickTree with actors
+			index := AddExtra;
+			PickTreeTitle('Please choose an actor :');
+			if PickTreeExec(Value) then GetActor(Value, index);
+		  end
+		else while count > 0 do // get first 5,10
+		  begin
+			if POS('/name/', Value) = 0 then exit;
+			index := AddExtra;
+			Value2 := TextBefore(Value, 'style="width:100%">','');
+			If Value2 = '' then Value2 := Value;
+			GetActor(Value2, index);
+			Value := TextAfter(Value, 'style="width:100%">');
+			if count = maxactor then SetExtraField(index, eComments, 'Actor pictures from movie: ' + #13#10 + TextBetween(PageText, 'og:url" content="', '"')); // set movie page
+			if (GetOption('ActorsImagesMode') = 1) and (ExtraPictureExists(index) = False) then DeleteExtra(index) else count := count - 1;
+		  end;
+	  end;
+	2: // Exchange actor(s)
+	  begin
+		GetActorList(Value); // PickTree with actors
+		index := GetExtraCount;
+		for count := 0 to index - 1 do
+		  begin
+			if (GetExtraField(count, eCategory) = 'Actors') and (IsExtraSelected(count) = TRUE) then // What if there are no more actors with pics?
+			  begin
+				PickTreeTitle('Please choose an actor in exchange for - ' + GetExtraField(count, eTitle) + ':');
+				RemoveExtraPicture(count); // nedded when an actor with an image is replaced by an actor without an image
+				if PickTreeExec(Value2) then GetActor('loadlate="' + Value2 + '</tr', count);
+			  end;
+		  end;
+	  end;
+  end;
+end;
+
+// ***** Get actor list *****
+procedure GetActorList(Value: String);
+var
+  value2, value3: String;
+
+begin
+	PickTreeClear;
+	while POS('"/name/nm', Value) > 0 do
+	  begin
+		if GetOption('ActorsImagesMode') = 1 then Value := TextAfter(Value, '<img alt="'); // find next actor with picture and set start string
+		if Value = '' then exit; // otherwise last actor "with image" is additional empty dummy
+		Value2 := TextBetween(Value, 'aria-label="', '"');
+		value3 := TextBefore(Value, 'width:100%">', ''); // 2 lines needed, because last actor has no such delimiter
+		If Value3 = '' then Value3 := Value;
+		HTMLDecode(Value2);
+		PickTreeAdd(Value2, Value3);
+		Value := TextAfter(Value, 'style="width:100%">');
+	  end;
+end;
+  
+// ***** Get actor *****
+function GetActor(Value: String; index: Integer): String;
+var
+  Value2: String;
+  
+begin
+	// Category
+	SetExtraField(index, eCategory, 'Actors');
+	// Page Link
+	Value2 := TextBetween(Value, '/name/', '/');
+	SetExtraField(index, eURL, Value2);
+	// Picture
+  if GetOption('ActorsImagesMode') > 0 then
+  begin
+  	Value2 := TextBetween(Value, '140w, ', ' 210w');
+  	if Value2 <> '' then
+      GetActorImage(Value2, GetExtraField(index, eURL), index);
+  end;
+	// Name
+	Value2 := TextBetween(Value, 'alt="', '"');
+	HTMLDecode(Value2);
+	SetExtraField(index, eTitle, Value2);
+	// Character
+	Value2 := TextBetween(Value, '<span', '</');
+	Value2 := TextAfter(Value2, '>');
+	if POS('(voice)', Value) > 0 then Value2 := Value2 + ' (voice)'; // for voice only actor
+	HTMLDecode(Value2);
+	SetExtraField(index, eDescription, Value2);
+end;
+
+// ***** Get actor image *****
+procedure GetActorImage(Value2: String; Value3: String; index: Integer);
+var
+	PageText: string;
+begin
+	case GetOption('ActorsImagesLayoutType') of
+		0:
+			Value2 := TextBefore(Value2, '._V1', ''); // Original Uncut photo
+		2:
+		begin	
+			PageText := GetPage('https://www.imdb.com/name/' + Value3 + '/');
+			if PageText = '' Then SetStatic(ErrorMessage, GetStatic(ErrorMessage) + 'Picture Error at movie #' + GetField(fnumber) + ' - ' + GetField(fOriginalTitle) + #13#10); //**** ERROR Handling ****
+			Value2 := TextBetween(PageText, '"ipc-image"', 'sizes=');
+			Value2 := TextBetween(Value2, '140w, ',' 210w,');
+		end;
+	end;
+	if GetExtraPicture(index, Value2) = False Then SetStatic(ErrorMessage, GetStatic(ErrorMessage) + 'Picture Error at movie #' + GetField(fnumber) + ' - ' + GetField(fOriginalTitle) + #13#10); //**** ERROR Handling ****
+end;
+
+
+
+// ***** beginning of the program *****
+
+begin
+  // Check StringUtils1 version and update if < version 7
+  if StringUtils1_Version < 7 then
+    begin
+      if ShowWarning('Old version of file "Stringutils1.pas" detected: v'+IntToStr(StringUtils1_Version)+#13#10+'The script requires at least version 7.'+#13#10+'Download and install latest version now ?') = True then
+        begin
+          UpdateFile := TStringList.Create;
+          UpdateFile.Text := GetPage('http://update.antp.be/amc/scripts/StringUtils1.pas');
+          UpdateFile.SaveToFile(dirScripts + 'StringUtils1.pas');
+          UpdateFile.Free;
+          ShowInformation('StringUtils1 has been updated. Please restart IMDB script now. Thank you.');
+          Exit;
+        end
+      else
+        begin
+          ShowInformation('You can download latest version of "StringUtils1.pas" using script "update scripts" or via http://update.antp.be/amc/scripts');
+          Exit;
+        end;
+    end;
+  // Check for current AMC version
+  if CheckVersion(4,2,3) then
+  begin
+    // bug with default values it seems ?
+    if GetParam('MaxActors') = '' then
+    begin
+      SetParam('MaxActors', '10');
+    end;
+    if GetParam('UserCountry') = '' then
+    begin
+      SetParam('UserCountry', 'United States');
+    end;
+    if GetParam('LargePictureHeight') = '' then
+    begin
+      SetParam('LargePictureHeight', '720');
+    end;
+    MovieYear := GetField(fieldYear);
+    MovieName := '';
+    if GetOption('BatchMode') = 2 then
+    begin
+      MovieName := GetField(fieldURL);
+      if Pos('imdb.com', MovieName) = 0 then
+        MovieName := '';
+    end;
+    if GetOption('BatchMode') = 3 then
+    begin
+      MovieName := GetCustomField('IMDB');
+    end;    
+    if MovieName = '' then
+      MovieName := GetField(fieldOriginalTitle);
+    if MovieName = '' then
+      MovieName := GetField(fieldTranslatedTitle);
+    if GetOption('BatchMode') = 0 then
+    begin
+      if not Input('IMDB Import', 'Enter the title or the IMDB URL of the movie:', MovieName) then
+        Exit;
+    end
+    else
+      Sleep(500);
+    if MovieName <> '' then
+    begin
+      if Pos('imdb.com', MovieName) > 0 then
+      begin
+        MovieName := StringReplace(MovieName, '//imdb.com', '//www.imdb.com');
+        MovieName := StringReplace(MovieName, 'http://', 'https://');
+        AnalyzeResultsPage(MovieName)
+      end else
+      if RegExprSetExec('tt[0-9]+', moviename) then
+        AnalyzeResultsPage('https://www.imdb.com/' + getPagePrefixBasedOnUserCountry() + 'title/' + MovieName + '/reference')
+      else
+      begin
+        if CheckVersion(4,2,2) then
+          MovieName := StringReplace(MovieName, '&', 'and')
+        else
+          MovieName := UTF8Encode(StringReplace(MovieName, '&', 'and'));
+        if (GetOption('BatchMode') > 0) or (GetOption('PopularSearches') = 1) then
+          AnalyzeResultsPage(PopularTitleSearchURL + UrlEncode(MovieName))
+        else
+          AnalyzeResultsPage(FullTitleSearchURL + UrlEncode(MovieName));
+      end;
+    end;
+  end
+  else
+  begin
+     ShowInformation('This script requires a newer version of Ant Movie Catalog, at least the version 4.2.3')
+  end;
+end. 

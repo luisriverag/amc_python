@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Aide d'Ant Movie Catalog</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">Scripting</p>
+<hr />
+<p>Avec ce module vous pouvez récupérer des informations de films
+  sur internet et les importer dans votre catalogue, ou appliquer un script à
+  une liste de films.</p>
+<p>Lorsque la fenêtre est appelée via le menu "Extraire des informations" -&gt;
+  "D'Internet via un script", les seuls scripts affichés sont ceux prévus pour
+  la version 3.5 (au moins) et décrits comme permettant de récupérer des
+  informations d'internet. Par défaut le script est appliqué aux films sélectionnés.
+  Lorsqu'elle est appelée via le menu "Scripting", tous les scripts sont affichés.</p>
+<p>Vous pouvez choisir de n'afficher que certains scripts. Ce choix s'effectue sur base
+  de la langue définie dans les propriétés des scripts. Il s'agit de la langue dans laquelle
+  sont les informations récupérées par le script. Cela s'applique donc plutôt aux script
+  allant chercher des informations sur Internet. Ce filtrage s'effectue via le menu
+  "Filtre de langue".</p>
+<p>Pour démarrer un script, cliquez sur le bouton "Exécuter", ou double-cliquez sur son
+  nom dans la liste affichée, ou bien appuyez Enter ou F9.</p>
+<p>Les options "Films à inclure" permettent de restreindre le script aux films sélectionnés,
+  cochés (lié à l'option "<a href="options_fr.html#movielist">Cases à cocher</a>") ou
+  visibles (lors de l'utilisation de l'option "Afficher les résultats" de la fonction
+  de recherche de la fenêtre principale).</p>
+<p>Le script est exécuté pour chaque film correspondant à ce critère. Après chaque exécution,
+  une fenêtre de résumé affiche les anciennes valeurs et les nouvelles valeurs (si l'option
+  "Afficher les résultats" est activée). Par défaut seules sont cochés les champs qui ont
+  été modifiés par le script.</p>
+<p>Vous pouvez définir quels champs le script a le droit de modifier via la liste
+  "Champs modifiables".</p>
+<p>Si vous cliquez "Sauver" dans la fenêtre de résultats, les nouvelles valeurs des champs
+  cochés seront conservées. Si vous cliquez "Sauver tout", la fenêtre ne s'affichera
+  plus pour les films suivants. Le programme vous demandera si vous désirez qu'il
+  retienne quels champs vous avez cochés pour les films suivants, ou si vous préférez
+  que cela se fasse automatiquement d'après les champs modifiés par le script.</p>
+<p>Attention : si l'option "Permettre de vider les champs" est activée, un champ dont la nouvelle
+  valeur est vide mais qui est coché écrasera le contenu précédent.</p>
+<p>Le bouton "Ignorer" permet de passer au film suivant et de ne modifier aucun champ pour le
+  film en cours. Le bouton "Arrêter" stoppe l'exécution du script (les films déjà modifiés
+  le restent).</p>
+<p>Si l'option "Fermer à la fin" est cochée, la fenêtre de script se refermera, à moins que vous
+  n'ayez cliqué "Arrêter" ou qu'il y ait eu une erreur dans le script.</p>
+<p>Si le script le prévoit, différentes options sont affichées dans la liste "Options du script".
+  Double-cliquez sur une option pour la changer.</p>
+<p>Lors de l'importation d'internet, si plus d'un film est trouvé (ce
+  qui peut &ecirc;tre tr&egrave;s courant sur certains sites) vous allez voir
+  une liste vous demandant de sélectionner le bon film. Pour certains scripts vous aurez aussi
+  à choisir parmi plusieurs valeurs possibles pour un champ (par exemple plusieurs résumés
+  de films peuvent être disponibles).</p>
+<p>Pour plus de détails à propos de la création de scripts,
+  consultez la page <a href="tech_script_fr.html"> Création de scripts</a>
+  dans la section consacrée aux Informations techniques.</p>
+</body>
+</html>

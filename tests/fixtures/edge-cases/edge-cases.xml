@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<AntMovieCatalog Format="4.2.2 Python">
+  <Catalog>
+    <Properties />
+    <Contents>
+      <Movie Number="1" Checked="False" OriginalTitle="Nebula Drift" TranslatedTitle="Nebula Drift (Region B)" Director="Priya Kestrel" Producer="Lantern Reach Pictures" Country="Freedonia" Category="Science Fiction" Year="1994" Length="127" FilePath="D:\Movies\Nebula Drift\nebula_drift.mkv" Rating="7.5" Size="698+696">
+        <Description>A synthetic sample catalog entry with an undefined CP-1252 byte () embedded in this description field.</Description>
+        <Comments>Second synthetic marker character:  again.</Comments>
+      </Movie>
+      <Movie Number="2" Checked="False" OriginalTitle="Paper Lighthouse" FormattedTitle="Paper Lighthouse" Director="Otto Bramwell" Country="Vesteria" Category="Drama" Year="2003" Length="94" Disks="1" Size="734003200" />
+    </Contents>
+  </Catalog>
+</AntMovieCatalog>

@@ -1,0 +1,266 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Ant Movie Catalog Help</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+<p class="title">".amc" Catalogs files format</p>
+<hr />
+<p class="subtitle">Notes</p>
+<blockquote>
+  <p>All types are Pascal types, since the program is made with Delphi.</p>
+  <p>"Integer" corresponds to 4 bytes, signed, little endian.
+  <p>Each field typed as "string" is preceded by an Integer that gives the size
+    of the vector (size = 0 if no vector, i.e. empty string).
+    So strings are chars vectors (1 char = 1 byte, unsigned) without ending delimiter.</p>
+  <p>"Boolean" is 1 byte; 0 is False, other value is True.</p>
+  <p>For movie fields, the date is stored using Borland's TDateTime: number of days since 30/12/1899.<br />
+    For custom fields of type date, the date is stored in string formated as 'yyyy-mm-dd'<br />
+    For custom fields of type real, the real is stored in string formated as 'x.xxx'</p>
+  <p>The "Picture" field is an array of bytes, containing the picture file in
+    its original format (PNG/JPEG/GIF/BMP).<br />
+    Its type is given by the "PictureName" field that precedes.<br />
+    If picture's size > 0, then PictureName contains the original extension of
+    the file ('.png', '.jpg', '.gif' or '.bmp'). If picture's size = 0 then PictureName
+    contains a link to the picture (absolute or relative), or nothing if there
+    isn't any picture associated with the current movie.</p>
+  <p>The file starts with a 65-bytes fixed-length text (called "strFileHeader42" below), with a space in front and
+    at end of it (so first byte of the file is a space).<br />
+    The there is one block with few strings containing catalog owner information,
+    another with custom fields properties (since AMC 4.0), then movies and extras (since AMC 4.2).</p>
+</blockquote>
+
+<p class="subtitle">Version 4.2</p>
+<blockquote>
+  <p>Header:</p>
+    <pre>strFileHeader42 = ' AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be ';</pre>
+    
+  <p>Catalog owner information:</p>
+    <pre>OwnerName:                string;
+OwnerSite:                string;
+OwnerMail:                string;
+OwnerDescription:         string;
+</pre>
+
+  <p>Custom fields properties:</p>
+    <pre>ColumnSettings:           string;
+GUIProperties:            string;
+Length(CustomFieldsProp)  Integer;
+CustomFieldsProp:         array of struct CustomFieldProp (see below)
+</pre>
+
+  <p>Custom field properties (CustomFieldProp):</p>
+    <pre>FieldTag:                 string;
+FieldName:                string;
+FieldExt:                 string;
+FieldType:                string;
+DefaultValue:             string;
+MediaInfo:                string;
+MultiValues:              Boolean;
+MultiValuesSep:           Char; // Stored as Integer
+MultiValuesRmP:           Boolean;
+MultiValuesPatch:         Boolean;
+ExcludedInScripts:        Boolean;
+GUIProperties:            string;
+<i>if FieldType = 'ftList' then</i>
+| Length(ListValues)      Integer
+| ListValues:             array of string;
+| ListAutoAdd:            Boolean;
+| ListSort:               Boolean;
+| ListAutoComplete:       Boolean;
+| ListUseCatalogValues:   Boolean;
+</pre>
+
+  <p>Movie structure, repeated for each movie:</p>
+    <pre>Number:                   Integer;
+Date:                     Integer;
+DateWatched:              Integer;
+UserRating:               Integer;
+Rating:                   Integer;
+Year:                     Integer;
+Length:                   Integer;
+VideoBitrate:             Integer;
+AudioBitrate:             Integer;
+Disks:                    Integer;
+ColorTag:                 Integer;
+Checked:                  Boolean;
+Media:                    string;
+MediaType:                string;
+Source:                   string;
+Borrower:                 string;
+OriginalTitle:            string;
+TranslatedTitle:          string;
+Director:                 string;
+Producer:                 string;
+Writer:                   string;
+Composer:                 string;
+Country:                  string;
+Category:                 string;
+Certification:            string;
+Actors:                   string;
+URL:                      string;
+Description:              string;
+Comments:                 string;
+FilePath:                 string;
+VideoFormat:              string;
+AudioFormat:              string;
+Resolution:               string;
+Framerate:                string;
+Languages:                string;
+Subtitles:                string;
+Size:                     string;
+PictureName:              string;
+PictureSize:              Integer;
+Picture:                  array of Byte;
+CustomFields:             array of string; // Length(CustomFields) = Length(CustomFieldsProp)
+Length(Extras)            Integer;
+Extras:                   array of struct Extra (see below)
+</pre>
+
+  <p>Extra structure (Extra):</p>
+    <pre>Checked:                  Boolean;
+Tag:                      string;
+Title:                    string;
+Category:                 string;
+URL:                      string;
+Description:              string;
+Comments:                 string;
+CreatedBy:                string;
+PictureName:              string;
+PictureSize:              Integer;
+Picture:                  array of Byte;
+</pre>
+</blockquote>
+
+<p class="subtitle">Version 4.1</p>
+<blockquote>
+  <p>Header:</p>
+    <pre>strFileHeader41 = ' AMC_4.1 Ant Movie Catalog 4.1.x   antp/soulsnake    www.antp.be ';</pre>
+    
+  <p>Catalog owner information:</p>
+    <pre>OwnerName:                string;
+OwnerSite:                string;
+OwnerMail:                string;
+OwnerDescription:         string;
+</pre>
+
+  <p>Custom fields properties:</p>
+    <pre>ColumnSettings:           string;
+GUIProperties:            string;
+Length(CustomFieldsProp)  Integer;
+CustomFieldsProp:         array of struct CustomFieldProp (see below)
+</pre>
+
+  <p>Custom field properties (CustomFieldProp):</p>
+    <pre>FieldTag:                 string;
+FieldName:                string;
+FieldExt:                 string;
+FieldType:                string;
+DefaultValue:             string;
+MediaInfo:                string;
+MultiValues:              Boolean;
+MultiValuesSep:           Char; // Stored as Integer
+MultiValuesRmP:           Boolean;
+MultiValuesPatch:         Boolean;
+ExcludedInScripts:        Boolean;
+GUIProperties:            string;
+<i>if FieldType = 'ftList' then</i>
+| Length(ListValues)      Integer
+| ListValues:             array of string;
+| ListAutoAdd:            Boolean;
+| ListSort:               Boolean;
+| ListAutoComplete:       Boolean;
+| ListUseCatalogValues:   Boolean;
+</pre>
+
+  <p>Movie structure, repeated for each movie:</p>
+    <pre>Number:                   Integer;
+Date:                     Integer;
+Rating:                   Integer;
+Year:                     Integer;
+Length:                   Integer;
+VideoBitrate:             Integer;
+AudioBitrate:             Integer;
+Disks:                    Integer;
+ColorTag:                 Integer;
+Checked:                  Boolean;
+Media:                    string;
+MediaType:                string;
+Source:                   string;
+Borrower                  string;
+OriginalTitle             string;
+TranslatedTitle           string;
+Director                  string;
+Producer                  string;
+Country                   string;
+Category                  string;
+Actors                    string;
+URL                       string;
+Description               string;
+Comments                  string;
+VideoFormat               string;
+AudioFormat               string;
+Resolution                string;
+Framerate                 string;
+Languages                 string;
+Subtitles                 string;
+Size                      string;
+PictureName:              string;
+PictureSize:              Integer;
+Picture                   array of Byte;
+CustomFields              array of string; // Length(CustomFields) = Length(CustomFieldsProp)
+</pre>
+</blockquote>
+
+<p class="subtitle">Version 3.5</p>
+<blockquote>
+  <p>Header:</p>
+    <pre>strFileHeader35 = ' AMC_3.5 Ant Movie Catalog 3.5.x   www.buypin.com    www.antp.be ';
+OwnerName:                string;
+OwnerSite:                string;
+OwnerMail:                string;
+OwnerDescription:         string;
+</pre>
+  <p>Movie structure, repeated for each movie:</p>
+    <pre>Number:                   Integer;
+Date:                     Integer;
+Rating:                   Integer;
+Year:                     Integer;
+Length:                   Integer;
+VideoBitrate:             Integer;
+AudioBitrate:             Integer;
+Disks:                    Integer;
+Checked:                  Boolean;
+Media:                    string;
+MediaType:                string;
+Source:                   string;
+Borrower                  string;
+OriginalTitle             string;
+TranslatedTitle           string;
+Director                  string;
+Producer                  string;
+Country                   string;
+Category                  string;
+Actors                    string;
+URL                       string;
+Description               string;
+Comments                  string;
+VideoFormat               string;
+AudioFormat               string;
+Resolution                string;
+Framerate                 string;
+Languages                 string;
+Subtitles                 string;
+Size                      string;
+PictureName:              string;
+PictureSize:              Integer;
+Picture                   array of Byte;
+</pre>
+</blockquote>
+<p>The only changes since version 3.3 is that the ICQ field of the header has been removed, and the Rating is
+  stored as a 0-100 integer rather than 0-10 (the last digit is used as decimal part). The version 3.4 was using
+  the same file format than version 3.3.</p>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!-- This page was automatically created by a TRIAL VERSION of elitedevelopments preHTML. for more information, see http://www.prehtml.com -->
+<html>
+<head>
+<style><!--BODY {color: #000042; background-color: #ffffec;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif, fantasy;font-size: x-small;}TABLE{font-size: x-small;}A {color: Blue;text-decoration: none;font-weight : bold;}A:HOVER {color: Blue;text-decoration: underline;font-weight : bold;}A.test {color: #FFFF78;text-decoration: underline;font-weight : bold;}A.test:HOVER {color: #FFFF78;text-decoration: underline;font-weight : bold;}--></style>
+<TITLE>TIFVariant</TITLE>
+<META NAME="AUTHOR" CONTENT="Carlo Kok" />
+</head>
+<body bgcolor=#ffffec text=#000032>
+<font size=6>Innerfuse Pascal Script</font><br />
+<b>Unit: </b><a href="ifs_var.html">ifs_var.pas</a><br /><br />
+<b>PIFVariant</b><br /><br />
+PIFVariant is used to store all variables used in the script engine.<br /><br />
+<B>Type:</B><br />
+PIfVariant = ^TCajVariant;
+PCajVariant = PIfVariant;
+TIfVariant = <b>packed record</b><br />
+&nbsp;&nbsp;VType: PTypeRec;<br />
+&nbsp;&nbsp;Flags: Byte;<br />
+&nbsp;&nbsp;CV_Str: <b>string</b>;<br />
+&nbsp;&nbsp;<b>case</b> Word <b>of</b><br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_UByte: (CV_UByte: <a href="ifs_var.html">TCSV_UByte</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_SByte: (CV_SByte: <a href="ifs_var.html">TCSV_SByte</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Char: (CV_Char: <a href="ifs_var.html">TCSV_Char</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_UInt16: (CV_UInt16: <a href="ifs_var.html">TCSV_UInt16</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_SInt16: (CV_SInt16: <a href="ifs_var.html">TCSV_SInt16</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_UInt32: (CV_UInt32: <a href="ifs_var.html">TCSV_UInt32</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_SInt32: (CV_SInt32: <a href="ifs_var.html">TCSV_SInt32</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_String: ();<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Real: (CV_Real: Real);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Single: (CV_Single: Single);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Double: (CV_Double: Double);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Extended: (CV_Extended: Extended);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Comp: (CV_Comp: Comp);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Bool: (CV_Bool: Boolean);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Var: (CV_Var: PIFVariant);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Array: (CV_ArrItems: <a href="tiflist.html">TifList</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Record: (CV_RecItems: <a href="tiflist.html">TifList</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Class: (CV_Class: <a href="tcreatedclass.html">PCreatedClass</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_ClassRef: (Cv_ClassRef: <a href="ttyperec.html">PTypeRec</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Property: (CV_Self, Cv_PropRead, CV_PropWrite: Pointer; CV_PropFlags: Word);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Internal: (Cv_Int1,CV_Int2: Pointer);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_ProcVariable: (Cv_Proc: <a href="tprocedure.html">PProcedure</a><i>{$IFNDEF NOCLASSES}</i>;Cv_ProcSelf: <a href="tcreatedclass.html">PCreatedClass</a><i>{$ENDIF}</i>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Special: (CV_Spec: Byte);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_ExternalObject: (CV_ExternalObject: <a href="tcreatedcustomobject.html">PCreatedCustomObject</a>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_ExternalObjectProperty: (CV_ExtObj: Pointer; CV_PropertyNo: Longint);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;CSV_Variant: (CV_Variant: PIfVariant);!<br />
+<b>end</b>;<br />
+TCajVariant = TIfVariant;<br />
+<br />
+<small>
+Copyright (c) 2001 by <a href="mailto:ck@carlo-kok.com">Carlo Kok</a>
+<br />
+last update: 24-11-01
+</small>
+</body>
+</html>

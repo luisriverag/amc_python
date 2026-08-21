@@ -1242,3 +1242,35 @@ def test_catalog_merge_metadata_conflict_is_atomic():
 
     assert destination.metadata == {"a": 1, "z": 1}
     assert [movie.title for movie in destination] == ["Existing"]
+
+
+EDGE_CASE_FIXTURES = Path(__file__).parent / "fixtures" / "edge-cases"
+
+
+def test_edge_case_fixture_native_and_xml_agree_on_synthetic_movies():
+    """The registered synthetic fixture pair (tests/fixtures/edge-cases,
+    origin: synthetic -- hand-authored, not upstream-generated) exercises,
+    from a single shared catalog: the native format's lack of a stored
+    title field, the undefined-CP-1252-byte (0x90) preservation path,
+    minutes-denominated length, and multi-part XML Size text."""
+    native_movies = list(load(EDGE_CASE_FIXTURES / "edge-cases.amc"))
+    xml_movies = list(load_xml(EDGE_CASE_FIXTURES / "edge-cases.xml"))
+    assert len(native_movies) == len(xml_movies) == 2
+
+    first = native_movies[0]
+    assert first.title == ""
+    assert first.original_title == "Nebula Drift"
+    assert first.length == 127
+    assert "\x90" in first.description
+    assert first.extras.get("xml_file_size_text") is None
+
+    xml_first = xml_movies[0]
+    assert xml_first.original_title == "Nebula Drift"
+    assert "\x90" in xml_first.description
+    assert xml_first.extras == {"xml_file_size_text": "698+696"}
+    assert xml_first.file_size is None
+
+    xml_second = xml_movies[1]
+    assert xml_second.title == "Paper Lighthouse"
+    assert xml_second.media_count == 1
+    assert xml_second.file_size == 734003200

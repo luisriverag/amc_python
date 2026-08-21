@@ -37,7 +37,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 560 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 561 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -566,6 +566,22 @@ confidence.
     accidentally-double-encoded text" heuristic risks misfiring on
     legitimately cp1252 text and was judged not safe to build from one
     real catalog's evidence alone.
+35. Registered `tests/fixtures/edge-cases/` (`manifest.json`, `origin:
+    synthetic`): a hand-authored, two-movie native `.amc` + XML pair
+    containing zero bytes derived from any real catalog, engineered from
+    finding 34's real-catalog observations to exercise, in one committed
+    fixture: the native format having no stored title field at all (only
+    `original_title`/`translated_title` — a movie's native-read `title` is
+    therefore always empty, which is expected behavior rather than a bug);
+    the undefined-CP-1252-byte (0x90) preservation path in both the native
+    reader and writer; minutes-denominated `Movie.length`; and
+    `extras["xml_file_size_text"]`'s multi-part `Size` text. Per this
+    document's own confidence vocabulary, a self-authored fixture — however
+    structurally faithful — is `synthetic` origin, not `upstream-generated`,
+    and registering it does not move any format's status to "verified";
+    that still requires provenance-tracked upstream bytes. Covered by
+    `tests/test_amc.py::test_edge_case_fixture_native_and_xml_agree_on_synthetic_movies`
+    and `tools/verify_fixtures.py`.
 
 ## Gap matrix against the original application
 
@@ -574,7 +590,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 | Original subsystem | Upstream source | Python coverage | Remaining gap |
 |---|---|---|---|
-| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes; read/write/reread round-trip checked byte-for-decoded-field against a genuine native catalog locally, which found and fixed a real encode/decode asymmetry (finding 34) | Genuine registered files for every version; code-page behavior beyond one real catalog; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
+| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes; read/write/reread round-trip checked byte-for-decoded-field against a genuine native catalog locally, which found and fixed a real encode/decode asymmetry (finding 34), now also regression-guarded by a registered synthetic fixture (finding 35) | Genuine registered files for every version; code-page behavior beyond one real catalog; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
 | Movie and custom-field model | `movieclass.pas`, `fields.pas`, `customfieldsmanager.pas`, `extrasedit.pas` | Common scalar fields plus opaque metadata/extras retention | Typed writer/composer/certification/file-path and extra records; duplicate/order/type preservation; custom-field editing semantics and defaults |
 | XML/CSV import and export | `movieclass.pas`, `import2*.pas`, `export.pas` | Synthetic XML/CSV codecs | Upstream dialect/locale fixtures, streaming/resource limits, repeated/nested unknown XML, and cross-application round trips |
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |

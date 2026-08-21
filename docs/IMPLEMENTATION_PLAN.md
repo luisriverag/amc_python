@@ -144,7 +144,11 @@ unit and compatibility evidence are recorded.
   committed to the repository) round-tripped cleanly after fixing a real
   encode/decode asymmetry the synthetic-only coverage had missed — see
   `docs/PORT_AUDIT.md` finding 34. Not upgraded to verified: no
-  provenance-tracked fixture is registered in the repository.
+  provenance-tracked fixture is registered in the repository. A
+  hand-authored `synthetic`-origin native+XML fixture pair informed by that
+  finding is registered at `tests/fixtures/edge-cases/` (finding 35) as a
+  committed regression guard; it does not substitute for the
+  upstream-generated fixtures the unchecked item above still needs.
 - [x] Add format-neutral `amc inspect` and `amc validate`; modern native validation
   parses structure but reports unverified status rather than claiming compatibility.
 - [ ] Parse catalog metadata, movie records, custom fields, and pictures (read-only

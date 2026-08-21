@@ -8,6 +8,7 @@ import os
 import sys
 from dataclasses import asdict
 from pathlib import Path
+from typing import overload
 
 from .application import CatalogService
 from .errors import CatalogError
@@ -34,6 +35,10 @@ EXIT_INVALID_CATALOG = 1
 EXIT_ERROR = 2
 
 
+@overload
+def _parse_crop(text: str) -> tuple[int, int, int, int]: ...
+@overload
+def _parse_crop(text: None) -> None: ...
 def _parse_crop(text: str | None) -> tuple[int, int, int, int] | None:
     """Parse a ``--crop X,Y,WIDTH,HEIGHT`` option into four integers."""
     if text is None:
@@ -47,9 +52,9 @@ def _parse_crop(text: str | None) -> tuple[int, int, int, int] | None:
     return parts
 
 
-def _parse_picture_assignments(assignments: list[str]) -> dict[int, Path]:
+def _parse_picture_assignments(assignments: list[str]) -> dict[int, str | Path]:
     """Parse repeated ``--assign NUMBER=PATH`` options into a mapping."""
-    parsed: dict[int, Path] = {}
+    parsed: dict[int, str | Path] = {}
     for assignment in assignments:
         if "=" not in assignment:
             raise ValueError(f"invalid picture assignment: {assignment!r}")
@@ -625,48 +630,48 @@ def _run(args: argparse.Namespace) -> int:
         )
         print(f"Wrote {len(written)} file(s)")
     elif args.command == "export-amc":
-        defaults = NativeWriteLimits()
+        write_defaults = NativeWriteLimits()
         service.export(
             args.destination,
             format="amc",
             native_encoding=args.encoding,
             native_limits=NativeWriteLimits(
                 max_file_bytes=(
-                    defaults.max_file_bytes
+                    write_defaults.max_file_bytes
                     if args.max_output_bytes is None else args.max_output_bytes
                 ),
                 max_total_string_bytes=(
-                    defaults.max_total_string_bytes
+                    write_defaults.max_total_string_bytes
                     if args.max_string_bytes is None else args.max_string_bytes
                 ),
                 max_picture_bytes=(
-                    defaults.max_picture_bytes
+                    write_defaults.max_picture_bytes
                     if args.max_picture_bytes is None else args.max_picture_bytes
                 ),
                 max_total_picture_bytes=(
-                    defaults.max_total_picture_bytes
+                    write_defaults.max_total_picture_bytes
                     if args.max_total_picture_bytes is None
                     else args.max_total_picture_bytes
                 ),
                 max_movies=(
-                    defaults.max_movies
+                    write_defaults.max_movies
                     if args.max_movies is None else args.max_movies
                 ),
                 max_custom_fields=(
-                    defaults.max_custom_fields
+                    write_defaults.max_custom_fields
                     if args.max_custom_fields is None else args.max_custom_fields
                 ),
                 max_list_values_per_field=(
-                    defaults.max_list_values_per_field
+                    write_defaults.max_list_values_per_field
                     if args.max_list_values is None else args.max_list_values
                 ),
                 max_extras_per_movie=(
-                    defaults.max_extras_per_movie
+                    write_defaults.max_extras_per_movie
                     if args.max_extras_per_movie is None
                     else args.max_extras_per_movie
                 ),
                 max_total_extras=(
-                    defaults.max_total_extras
+                    write_defaults.max_total_extras
                     if args.max_total_extras is None else args.max_total_extras
                 ),
             ),
@@ -678,8 +683,11 @@ def _run(args: argparse.Namespace) -> int:
         if args.as_json:
             print(json.dumps(statistics, ensure_ascii=False, sort_keys=True))
         else:
-            for label, value in statistics.items():
-                print(f"{label.replace('_', ' ').title()}: {value if value is not None else '-'}")
+            for stat_label, stat_value in statistics.items():
+                print(
+                    f"{stat_label.replace('_', ' ').title()}: "
+                    f"{stat_value if stat_value is not None else '-'}"
+                )
     elif args.command == "duplicates":
         groups = catalog.duplicates()
         if args.as_json:

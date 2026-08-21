@@ -71,7 +71,7 @@ confidence.
 | Inspection | JSON/XML/CSV identification plus native 1.0–4.2 header probe | API and CLI tests | Moderate for synthetic cases |
 | Validation | Stable diagnostics, native structural validation, CLI exit status | API and CLI tests, including corrupt native input | Moderate for synthetic cases |
 | Source acquisition tool | Streaming download, digest, extraction selection, inventory | Local HTTP and synthetic inventory tests | High for tested behavior |
-| Engineering checks | Canonical tests/compile/fixture checks plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
+| Engineering checks | Canonical tests/compile/fixture checks, `mypy` type checking (default mode), plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
 | HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
 | Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF/MP3 duration/bitrate (MP3 via a hand-decoded MPEG frame header, not upstream's MediaInfo.dll); CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, MP3 (CBR, ID3v2/ID3v1 tag handling, reserved-header rejection, Layer I/II/III frame-length formulas), bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
 | Script inventory/settings | Bounded non-executing Infos/options/parameters/permissions/static-name parser; validated option/parameter overrides; atomic Python JSON settings | Synthetic metadata, malformed-entry, configuration, persistence, and CLI tests | Moderate for the stated non-executing subset; no runtime parity |
@@ -603,6 +603,36 @@ confidence.
     partial change
     (`test_update_from_imdb_dialog_reports_a_lookup_failure_without_closing`),
     both in `tests/gui/test_gui_display.py`.
+37. Added `mypy` (default, non-strict mode) to the canonical local check
+    command and both CI matrices, closing part of Milestone 1's "formatting,
+    linting, static typing, and coverage" item and P3.2 of the upstream
+    backlog — `src/amc` already carried a `py.typed` marker, but nothing had
+    run a type checker against it. Fixing the resulting 63 errors across 7
+    files surfaced four categories: (1) genuine, if harmless, bugs — two
+    reused-loop/local-variable-name collisions (`cli.py`'s `defaults`/`value`,
+    `native.py`'s `movie`/`value`) that happened to hold unrelated types
+    across the same function, invisible at runtime only because Python has no
+    per-block scoping, and a `CatalogWindow.location` GUI attribute silently
+    shadowing `tkinter`'s own inherited `Grid.location` (`grid_location`)
+    method; (2) a real gap in `_read_movie_extras`'s construction of
+    `NativeExtra` records, which spread a `list[str]` of exactly 7 elements
+    into the constructor relying only on the loop always producing that exact
+    length — now built from explicit named locals instead; (3) type
+    annotations that were simply narrower than reality (several `dict`
+    invariance cases, an untyped `_number` helper, an `object`-typed
+    `catalog.metadata` retrieval in `amc.loans` now validated the same way
+    `borrowers()` already did); and (4) legitimate dynamic patterns typeshed's
+    stubs cannot express precisely — a `_BinaryReader`/`_BinaryWriter`
+    `Protocol` pair now documents the actual minimal interface
+    `native.py`'s bounded stream wrappers need instead of the overly broad
+    `BinaryIO`, and two narrow `# type: ignore` comments remain for
+    `configparser.ConfigParser.optionxform` reassignment (a documented
+    `ConfigParser` customization mechanism mypy's stub categorically
+    disallows) and a `Movie(**values)` dataclass double-star unpack (a known
+    mypy limitation, not a real type mismatch). Fixing all of this changed no
+    observed behavior; the full suite (563 tests) passes unchanged before and
+    after, verified since this sandbox's Python lacks `tkinter` via the same
+    throwaway tkinter-enabled-Python-3.12 venv used for finding 36.
 
 ## Gap matrix against the original application
 

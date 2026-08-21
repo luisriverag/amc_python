@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import base64
 from collections.abc import Callable
+import functools
 import io
 import os
 import tkinter as tk
 import webbrowser
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -36,6 +38,7 @@ from .preferences import (
     save_preferences,
 )
 from .presentation import filter_movies, poster_source
+from .scripts import ScriptMergePreview
 
 _EDIT_TEXT_FIELDS = (
     "title",
@@ -233,8 +236,19 @@ def crop_image_bytes(image_bytes: bytes, box: tuple[int, int, int, int]) -> byte
         return output.getvalue()
 
 
+@dataclass
+class _CropSelection:
+    """Mutable drag-to-select state for `open_crop_dialog`'s canvas
+    callbacks, plus a reference to the displayed `PhotoImage` so it isn't
+    garbage-collected while the dialog is still showing it."""
+
+    photo: ImageTk.PhotoImage
+    start: tuple[float, float] = (0.0, 0.0)
+    rect: int | None = None
+
+
 def open_crop_dialog(
-    parent: tk.Widget,
+    parent: tk.Misc,
     image_bytes: bytes,
     *,
     on_apply: Callable[[tuple[int, int, int, int]], None],
@@ -267,35 +281,35 @@ def open_crop_dialog(
     )
     canvas.pack(padx=8, pady=8)
     canvas.create_image(0, 0, anchor="nw", image=photo)
-    canvas.image = photo
-    selection = {"start": (0.0, 0.0), "rect": None}
+    selection = _CropSelection(photo)
 
     def begin(event: tk.Event) -> None:
-        selection["start"] = (event.x, event.y)
-        if selection["rect"] is not None:
-            canvas.delete(selection["rect"])
-        selection["rect"] = canvas.create_rectangle(
+        selection.start = (event.x, event.y)
+        if selection.rect is not None:
+            canvas.delete(selection.rect)
+        selection.rect = canvas.create_rectangle(
             event.x, event.y, event.x, event.y, outline="red", width=2
         )
 
     def drag(event: tk.Event) -> None:
-        if selection["rect"] is not None:
-            start_x, start_y = selection["start"]
-            canvas.coords(selection["rect"], start_x, start_y, event.x, event.y)
+        if selection.rect is not None:
+            start_x, start_y = selection.start
+            canvas.coords(selection.rect, start_x, start_y, event.x, event.y)
 
     canvas.bind("<ButtonPress-1>", begin)
     canvas.bind("<B1-Motion>", drag)
 
     def accept() -> None:
-        if selection["rect"] is None:
+        if selection.rect is None:
             messagebox.showerror(
                 "Crop picture", "Drag a rectangle to select a crop area.",
                 parent=dialog,
             )
             return
+        rect_x1, rect_y1, rect_x2, rect_y2 = canvas.coords(selection.rect)
         try:
             box = crop_box_from_canvas(
-                canvas.coords(selection["rect"]), display_size, image_size
+                (rect_x1, rect_y1, rect_x2, rect_y2), display_size, image_size
             )
         except ValueError as error:
             messagebox.showerror("Crop picture", str(error), parent=dialog)
@@ -365,8 +379,8 @@ class CatalogWindow(ttk.Frame):
         ttk.Button(
             files, text="Preferences", command=self.open_preferences
         ).pack(side="right")
-        self.location = ttk.Label(files, text=str(path))
-        self.location.pack(side="left", fill="x", expand=True, padx=8)
+        self.location_label = ttk.Label(files, text=str(path))
+        self.location_label.pack(side="left", fill="x", expand=True, padx=8)
 
         bar = ttk.Frame(self)
         bar.pack(fill="x", pady=(0, 8))
@@ -446,7 +460,7 @@ class CatalogWindow(ttk.Frame):
             ("checked", "Checked", 70),
             ("borrower", "Borrower", 150),
         ):
-            self.table.heading(key, text=label, command=lambda name=key: self.sort(name))
+            self.table.heading(key, text=label, command=functools.partial(self.sort, key))
             self.table.column(key, width=width, anchor="e" if key in {"number", "year"} else "w")
         self.table.pack(fill="both", expand=True)
         self.table.bind("<Double-1>", lambda _event: self.edit())
@@ -659,7 +673,9 @@ class CatalogWindow(ttk.Frame):
             label=label, accelerator=accelerator,
             command=lambda: self.invoke_action(name),
         )
-        self._menu_entries.setdefault(name, []).append((menu, menu.index("end")))
+        end_index = menu.index("end")
+        assert end_index is not None  # add_command above always adds an entry
+        self._menu_entries.setdefault(name, []).append((menu, end_index))
 
     def _add_tracked_menu_command(
         self, menu: tk.Menu, label: str, name: str, command: Callable[[], None],
@@ -668,7 +684,9 @@ class CatalogWindow(ttk.Frame):
         """Like `_add_menu_action`, but for a command not in `action_buttons`
         (e.g. Import/Import Media/Restore, which have no toolbar button)."""
         menu.add_command(label=label, accelerator=accelerator, command=command)
-        self._menu_entries.setdefault(name, []).append((menu, menu.index("end")))
+        end_index = menu.index("end")
+        assert end_index is not None  # add_command above always adds an entry
+        self._menu_entries.setdefault(name, []).append((menu, end_index))
 
     def _build_context_menu(self) -> None:
         """Right-click the movie table for a selection-aware context menu.
@@ -900,7 +918,7 @@ class CatalogWindow(ttk.Frame):
 
     def _path_changed(self) -> None:
         self.path = self.service.path
-        self.location.configure(text=str(self.path))
+        self.location_label.configure(text=str(self.path))
         self.winfo_toplevel().title(f"AMC Python — {self.path.name}")
         self.refresh()
 
@@ -1275,7 +1293,7 @@ class CatalogWindow(ttk.Frame):
         )
         try:
             self.service.set_picture_many(
-                {movie.number: selected for movie in movies}, embed=embed
+                [(movie.number, selected) for movie in movies], embed=embed
             )
         except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not set pictures", str(error), parent=self)
@@ -1383,7 +1401,7 @@ class CatalogWindow(ttk.Frame):
                 return
             try:
                 self.service.set_picture_many(
-                    assignments, embed=embed.get(), crops=crops
+                    assignments.items(), embed=embed.get(), crops=crops
                 )
             except _SERVICE_ERRORS as error:
                 messagebox.showerror(
@@ -1461,7 +1479,7 @@ class CatalogWindow(ttk.Frame):
         results = tk.Text(dialog, height=8, width=56, state="disabled", wrap="word")
         results.grid(row=3, column=0, columnspan=2, padx=8, pady=8)
 
-        preview_holder: dict[str, object] = {}
+        current_preview: ScriptMergePreview | None = None
 
         def show_lines(lines: list[str]) -> None:
             results.configure(state="normal")
@@ -1470,7 +1488,8 @@ class CatalogWindow(ttk.Frame):
             results.configure(state="disabled")
 
         def fetch() -> None:
-            preview_holder.pop("preview", None)
+            nonlocal current_preview
+            current_preview = None
             apply_button.configure(state="disabled")
             candidate_id = imdb_id.get().strip()
             try:
@@ -1488,7 +1507,7 @@ class CatalogWindow(ttk.Frame):
                 )
                 show_lines([])
                 return
-            preview_holder["preview"] = preview
+            current_preview = preview
             show_lines(
                 [f"{change.field}: {change.before!r} -> {change.after!r}"
                  for change in preview.changes]
@@ -1496,7 +1515,7 @@ class CatalogWindow(ttk.Frame):
             apply_button.configure(state="normal" if preview.changes else "disabled")
 
         def accept() -> None:
-            preview = preview_holder.get("preview")
+            preview = current_preview
             if preview is None:
                 return
             try:
@@ -1779,7 +1798,8 @@ class CatalogWindow(ttk.Frame):
 
                     def apply_crop(box: tuple[int, int, int, int]) -> None:
                         nonlocal picture_bytes
-                        picture_bytes = crop_image_bytes(picture_bytes, box)
+                        if picture_bytes is not None:
+                            picture_bytes = crop_image_bytes(picture_bytes, box)
 
                     try:
                         open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)

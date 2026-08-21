@@ -121,11 +121,19 @@ unit and compatibility evidence are recorded.
   how the one large mixed-concern file was divided.
 - [x] Configure Linux and Windows CI for all supported Python versions; hosted run
   verification remains pending.
-- [ ] Add formatting, linting, static typing, and coverage (focused Ruff linting
-  and an 80% branch-coverage floor now run in the canonical command and CI;
-  formatter and static typing remain pending. Canonical commands also cover tests,
-  compilation, diff validation, wheel building, isolated installation, and
-  source-tree and installed-module CLI smoke checks).
+- [ ] Add formatting, linting, static typing, and coverage (focused Ruff linting,
+  mypy in its default, non-strict mode, and an 80% branch-coverage floor now run
+  in the canonical command and CI; a formatter remains pending. Canonical
+  commands also cover tests, compilation, diff validation, wheel building,
+  isolated installation, and source-tree and installed-module CLI smoke checks).
+  Adopting mypy found and fixed several real, pre-existing issues rather than
+  just satisfied the checker: two reused-loop/local-variable-name collisions in
+  `cli.py` and `native.py` that happened to hold unrelated types (harmless at
+  runtime since Python has no per-block scoping, but genuinely confusing and
+  fragile); a `self.location` GUI attribute silently shadowing `tkinter`'s
+  inherited `Grid.location` method; and a native-format `NativeExtra`
+  constructor call relying on an unchecked fixed-length list splat. See
+  `docs/PORT_AUDIT.md` finding 37.
 - [x] Establish and automatically validate the fixture provenance manifest contract;
   genuine upstream fixtures still need to be produced and registered.
 - [ ] Add a changelog and architecture-decision log.
@@ -356,8 +364,10 @@ gap for the Python-owned format; it is not evidence for an upstream format.
    fixture/repo-root lookups were updated for the extra directory level. One
    canonical local check command (`tools/check.py`) already existed before this
    split and is unaffected by it.
-2. Add formatter, linter, type checker, coverage threshold, wheel/sdist build, clean
-   install, and subprocess CLI smoke tests to Linux and Windows CI.
+2. [Partial] `mypy` (default, non-strict mode; configured in `pyproject.toml`'s
+   `[tool.mypy]`) now runs in `tools/check.py` and both CI matrices alongside the
+   linter, coverage threshold, wheel/sdist build, clean install, and subprocess
+   CLI smoke tests already there. A formatter remains pending.
 3. [Partial] A shared application service now owns GUI open/reload and
    failure-atomic add/replace/remove, batch media import, catalog merge, sort, and
    renumber persistence, interchange conversion, export, and validated

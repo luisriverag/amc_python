@@ -15,7 +15,9 @@ from .errors import (
     UnsupportedFormatError,
     UnsupportedVersionError,
 )
-from .native import NATIVE_HEADER_SIZE, identify_native_header, read_native_catalog
+from .native import NATIVE_HEADER_SIZE, NativeReadLimits, identify_native_header, read_native_catalog
+
+DEFAULT_MAX_INSPECT_BYTES = 1024**4
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,8 +32,15 @@ class CatalogInfo:
         return asdict(self)
 
 
-def inspect_catalog(path: str | Path) -> CatalogInfo:
-    """Inspect a supported catalog without modifying it or loading its movie data."""
+def inspect_catalog(
+    path: str | Path, *, max_file_bytes: int = DEFAULT_MAX_INSPECT_BYTES
+) -> CatalogInfo:
+    """Inspect a supported catalog without modifying it or loading its movie data.
+
+    JSON and native inspection load the full file to identify it, so
+    `max_file_bytes` bounds the work an untrusted-sized file can force before
+    any parsing starts (XML and CSV already inspect via streaming readers).
+    """
     path = Path(path)
     try:
         size = path.stat().st_size
@@ -39,6 +48,10 @@ def inspect_catalog(path: str | Path) -> CatalogInfo:
             prefix = stream.read(4096)
     except OSError:
         raise
+    if size > max_file_bytes:
+        raise CorruptCatalogError(
+            f"catalog exceeds file-size limit: {size} > {max_file_bytes}"
+        )
     stripped = prefix.lstrip(b"\xef\xbb\xbf\x00\t\r\n ")
     suffix = path.suffix.casefold()
 
@@ -55,17 +68,21 @@ def inspect_catalog(path: str | Path) -> CatalogInfo:
     raise UnsupportedFormatError(f"cannot identify catalog format: {path}")
 
 
-def validate_catalog(path: str | Path) -> list[Diagnostic]:
+def validate_catalog(
+    path: str | Path, *, max_file_bytes: int = DEFAULT_MAX_INSPECT_BYTES
+) -> list[Diagnostic]:
     """Return diagnostics instead of raising for recognized validation failures."""
     try:
-        info = inspect_catalog(path)
+        info = inspect_catalog(path, max_file_bytes=max_file_bytes)
     except CatalogError as error:
         return [Diagnostic(error.code, str(error), offset=error.offset)]
     except OSError as error:
         return [Diagnostic("io_error", str(error))]
     if info.format == "amc-native":
         try:
-            catalog = read_native_catalog(path)
+            catalog = read_native_catalog(
+                path, limits=NativeReadLimits(max_file_bytes=max_file_bytes)
+            )
         except CatalogError as error:
             return [Diagnostic(error.code, str(error), offset=error.offset)]
         except OSError as error:
@@ -86,7 +103,7 @@ def validate_catalog(path: str | Path) -> list[Diagnostic]:
 
 def _inspect_json(path: Path, size: int) -> CatalogInfo:
     try:
-        with path.open(encoding="utf-8") as stream:
+        with path.open(encoding="utf-8-sig") as stream:
             value = json.load(stream)
     except (UnicodeError, json.JSONDecodeError) as error:
         raise CorruptCatalogError(f"invalid JSON catalog: {error}", offset=getattr(error, "pos", None)) from error

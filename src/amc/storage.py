@@ -21,6 +21,7 @@ from .native import (
     NativeReadLimits,
     NativeWriteLimits,
     read_native_catalog,
+    replace_and_sync_directory,
     write_native_catalog,
 )
 
@@ -32,12 +33,20 @@ _XML_FIELDS = {
     "Length": "length", "FilePath": "file_path",
     "Rating": "rating", "UserRating": "user_rating", "ColorTag": "color_tag",
     "Date": "date", "Borrower": "borrower",
-    "MediaLabel": "media_label", "MediaType": "media_type", "MediaCount": "media_count",
+    # "Disks" and "Size" match Ant Movie Catalog's own field-tag table
+    # (Movie Catalog/fields.pas: strTagFields), confirmed against a genuine
+    # AMC 4.2.2 XML export: every one of that file's 7161 movies used these
+    # two exact attribute names. AMC Python previously used the invented
+    # names "MediaCount" and "FileSize" here, which do not appear anywhere
+    # in the upstream Delphi source and silently routed every real AMC XML
+    # catalog's disk-count and file-size data into `extras` instead of the
+    # typed `media_count`/`file_size` fields.
+    "MediaLabel": "media_label", "MediaType": "media_type", "Disks": "media_count",
     "Source": "source", "URL": "url", "Description": "description", "Comments": "comments",
     "Actors": "actors", "Languages": "languages", "Subtitles": "subtitles",
     "VideoFormat": "video_format", "VideoBitrate": "video_bitrate",
     "AudioFormat": "audio_format", "AudioBitrate": "audio_bitrate",
-    "Resolution": "resolution", "Framerate": "framerate", "FileSize": "file_size",
+    "Resolution": "resolution", "Framerate": "framerate", "Size": "file_size",
     "Picture": "picture",
 }
 _PYTHON_TO_XML = {value: key for key, value in _XML_FIELDS.items()}
@@ -58,7 +67,7 @@ def _atomic_text(path: Path, *, encoding: str = "utf-8", newline: str | None = N
             yield stream
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        replace_and_sync_directory(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -70,10 +79,10 @@ def load(
     native_limits: NativeReadLimits | None = None,
 ) -> Catalog:
     path = Path(path)
-    has_native_header = _has_native_header(path)
-    if has_native_header:
+    prefix = _read_prefix(path)
+    if prefix[:NATIVE_HEADER_SIZE] in NATIVE_HEADERS:
         return _load_native(path, native_encoding, native_limits)
-    if path.suffix.casefold() == ".amc" and not _has_json_header(path):
+    if path.suffix.casefold() == ".amc" and not _looks_like_json(prefix):
         # Keep reporting useful native-header errors for malformed native files,
         # while retaining compatibility with JSON catalogs that older releases
         # allowed users to save with an .amc filename.
@@ -82,7 +91,7 @@ def load(
         return load_xml(path)
     if path.suffix.casefold() == ".csv":
         return load_csv(path)
-    with path.open(encoding="utf-8") as stream:
+    with path.open(encoding="utf-8-sig") as stream:
         document = json.load(
             stream,
             object_pairs_hook=_json_object,
@@ -125,16 +134,19 @@ def _reject_json_constant(value: str) -> object:
     raise ValueError(f"invalid non-finite JSON number: {value}")
 
 
-def _has_native_header(path: Path) -> bool:
-    """Detect exact native headers without interpreting arbitrary binary files."""
+def _read_prefix(path: Path, size: int = 4096) -> bytes:
+    """Read a bounded prefix once for cheap multi-format content probing.
+
+    A native header is at most `NATIVE_HEADER_SIZE` bytes and a JSON/UTF-8-BOM
+    prefix check only needs a small lookahead, so both checks share a single
+    file open and read instead of probing the same file twice.
+    """
     with path.open("rb") as stream:
-        return stream.read(NATIVE_HEADER_SIZE) in NATIVE_HEADERS
+        return stream.read(size)
 
 
-def _has_json_header(path: Path) -> bool:
-    """Recognize a JSON object or array without decoding an entire catalog."""
-    with path.open("rb") as stream:
-        prefix = stream.read(4096)
+def _looks_like_json(prefix: bytes) -> bool:
+    """Recognize a JSON object or array from an already-read file prefix."""
     if prefix.startswith(b"\xef\xbb\xbf"):
         prefix = prefix[3:]
     return prefix.lstrip().startswith((b"{", b"["))
@@ -193,9 +205,35 @@ def copy_catalog(source: str | Path, destination: str | Path) -> None:
         # Validate the bytes that will actually be installed, rather than opening
         # the source a second time and permitting a check/use race.
         load(temporary)
-        temporary.replace(destination)
+        replace_and_sync_directory(temporary, destination)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _reject_duplicate_csv_headers(
+    fieldnames: list[str] | None, aliases: dict[str, str], known: set[str]
+) -> None:
+    """Fail loudly instead of silently discarding a column's data.
+
+    csv.DictReader collapses same-named columns into a single dict key,
+    keeping only the last column's value; two headers that resolve to the
+    same known field, or repeat the same extras key verbatim, have the same
+    silent-data-loss effect. Detect both before any row is read.
+    """
+    seen: dict[str, str] = {}
+    for header in fieldnames or ():
+        if header is None:
+            continue
+        stripped = header.strip()
+        if not stripped:
+            continue
+        field = aliases.get(stripped.casefold(), stripped.casefold().replace(" ", "_"))
+        key = field if field in known and field != "extras" else stripped
+        if key in seen:
+            raise ValueError(
+                f"duplicate CSV header {stripped!r} collides with {seen[key]!r}"
+            )
+        seen[key] = stripped
 
 
 def load_csv(path: str | Path) -> Catalog:
@@ -204,7 +242,9 @@ def load_csv(path: str | Path) -> Catalog:
     known = {item.name for item in fields(Movie)}
     catalog = Catalog()
     with Path(path).open(encoding="utf-8-sig", newline="") as stream:
-        for row_number, row in enumerate(csv.DictReader(stream), start=2):
+        reader = csv.DictReader(stream)
+        _reject_duplicate_csv_headers(reader.fieldnames, aliases, known)
+        for row_number, row in enumerate(reader, start=2):
             values: dict[str, object] = {}
             extras: dict[str, str] = {}
             for header, text in row.items():
@@ -284,6 +324,19 @@ def save_xml(catalog: Catalog, path: str | Path) -> None:
             {"Number": str(movie.number), "Checked": str(movie.checked)},
         )
         for field, tag in _PYTHON_TO_XML.items():
+            if field == "file_size":
+                # Ant Movie Catalog's Size attribute is free-form text, not a
+                # plain integer: a multi-part release is exported as
+                # "+"-joined sizes (e.g. "698+696"), which load_xml cannot
+                # parse as a single int without discarding data, so it keeps
+                # the exact original text here instead. Writing that text
+                # straight back to the Size attribute (rather than as a
+                # generic extras child element) keeps both our own round
+                # trip and a re-import into genuine AMC faithful.
+                raw_text = movie.extras.get("xml_file_size_text")
+                if isinstance(raw_text, str) and raw_text.strip():
+                    node.set(tag, raw_text)
+                    continue
             value = getattr(movie, field)
             if value not in (None, ""):
                 # AMC stores regular fields as Movie attributes; Picture and
@@ -293,6 +346,8 @@ def save_xml(catalog: Catalog, path: str | Path) -> None:
                 else:
                     node.set(tag, str(value))
         for tag, value in movie.extras.items():
+            if tag == "xml_file_size_text":
+                continue
             if tag not in _XML_FIELDS:
                 if not isinstance(value, (str, int, float, bool)) and value is not None:
                     raise ValueError(
@@ -383,12 +438,49 @@ def _number(value: str | None, kind: type[int] | type[float]):
     return kind(float(normalized)) if kind is int else kind(normalized)
 
 
+def _strict_int(value: str) -> int | None:
+    """Parse a plain integer, unlike `_number`'s lenient first-match regex.
+
+    AMC's Size field is free-form text, not a plain integer: a multi-part
+    release is exported as "+"-joined sizes (e.g. "698+696"). `_number`'s
+    regex would silently take only the first part and discard the rest;
+    returning None here instead lets the caller retain the original text
+    in `extras` unmodified, matching the same pattern already used for
+    unparseable native file-size/framerate text in native.py.
+    """
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
+_XML_DECLARED_ENCODING = re.compile(rb'encoding\s*=\s*["\']([^"\']+)["\']')
+
+
 def load_xml(path: str | Path) -> Catalog:
     """Read the XML export produced by Ant Movie Catalog 3.x/4.x."""
+    path = Path(path)
     try:
         root = ET.parse(path).getroot()
-    except ET.ParseError as error:
-        raise ValueError(f"invalid catalog XML: {error}") from error
+    except ET.ParseError as strict_error:
+        # A genuine AMC 4.2.2 export was observed with raw multi-byte UTF-8
+        # (a pasted emoji) inside a file declared as single-byte
+        # windows-1252 — a real-world encoding mismatch in the source data,
+        # not something this reader produces. Retry once, tolerantly:
+        # decode the declared encoding with errors="replace" so a handful
+        # of corrupted characters become U+FFFD instead of the whole,
+        # otherwise-valid catalog failing to load.
+        raw = path.read_bytes()
+        match = _XML_DECLARED_ENCODING.search(raw[:200])
+        declared_encoding = match.group(1).decode("ascii") if match else "utf-8"
+        try:
+            text = raw.decode(declared_encoding, errors="replace")
+            root = ET.fromstring(text)
+        except (LookupError, ET.ParseError):
+            raise ValueError(f"invalid catalog XML: {strict_error}") from strict_error
     metadata = _read_xml_metadata(root)
     catalog = Catalog(metadata={"amc_xml": metadata} if metadata else {})
     for node in root.findall(".//Movie"):
@@ -401,7 +493,12 @@ def load_xml(path: str | Path) -> Catalog:
         raw_fields.update({child.tag: child.text or "" for child in node})
         for tag, text in raw_fields.items():
             field = _XML_FIELDS.get(tag)
-            if field in _INTEGER_FIELDS:
+            if field == "file_size":
+                parsed = _strict_int(text)
+                values[field] = parsed
+                if parsed is None and text.strip():
+                    extras["xml_file_size_text"] = text
+            elif field in _INTEGER_FIELDS:
                 values[field] = _number(text, int)
             elif field in _FLOAT_FIELDS:
                 values[field] = _number(text, float)

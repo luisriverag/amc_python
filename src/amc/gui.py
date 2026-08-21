@@ -10,7 +10,7 @@ import tkinter as tk
 import webbrowser
 from pathlib import Path
 from urllib.parse import urlparse
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 from tkinter import font as tkfont
 
 from PIL import Image, ImageTk, UnidentifiedImageError
@@ -72,6 +72,16 @@ _IMAGE_FILETYPES = (
     ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
     ("All files", "*"),
 )
+# Every catalog-mutating CatalogService call the desktop makes is wrapped in
+# this exact tuple. CatalogError/OSError/TypeError/ValueError are the
+# documented service-layer failures; KeyError is Catalog.get()'s (and hence
+# replace/remove/check-out/check-in/set-checked/picture) documented signal
+# for a movie number that no longer exists, e.g. a stale selection racing
+# another mutation. It belongs in every one of these boundaries, not just
+# the ones a past edit happened to add it to — an uncaught KeyError here
+# would surface as an unhandled Tk callback traceback instead of the same
+# graceful error dialog every other expected failure gets.
+_SERVICE_ERRORS = (CatalogError, OSError, TypeError, ValueError, KeyError)
 
 
 def movie_from_form(movie: Movie, values: dict[str, str], *, checked: bool) -> Movie:
@@ -151,6 +161,13 @@ def parse_history_limit(value: int) -> int:
             f"history limit must be between {MIN_HISTORY_LIMIT} and {MAX_HISTORY_LIMIT}"
         )
     return value
+
+
+def parse_extensions(text: str) -> set[str] | None:
+    """Parse a comma-separated extension list the same way the CLI's
+    ``import-media --extensions`` does: blank input means no filter."""
+    extensions = {item.strip() for item in text.split(",") if item.strip()}
+    return extensions or None
 
 
 def make_modal(dialog: tk.Toplevel, *, focus: tk.Widget | None = None) -> None:
@@ -373,9 +390,17 @@ class CatalogWindow(ttk.Frame):
 
         # Keep catalog actions on their own row. Putting every action beside the
         # search field clipped the right-most controls on common 760px displays.
+        # Every action below also has a menu entry (_build_menu_bar, grouped by
+        # File/Edit/Movie/Tools) now that there is a menu bar; only the tightest
+        # add/edit/remove/undo-redo loop — the buttons clicked over and over
+        # while browsing — stays as a one-click toolbar button too. The rest are
+        # still created (just not packed) so action_buttons/invoke_action/
+        # update_action_states keep working unchanged for their keyboard
+        # shortcuts and menu entries.
         actions = ttk.Frame(self)
         actions.pack(fill="x", pady=(0, 8))
         self.action_buttons: dict[str, ttk.Button] = {}
+        toolbar_actions = {"Add", "Edit", "Remove", "Toggle Checked", "Undo", "Redo"}
         for text, command, padding in (
             ("Add", self.add, 0),
             ("Edit", self.edit, 4),
@@ -395,7 +420,8 @@ class CatalogWindow(ttk.Frame):
             ("Renumber", self.renumber, 0),
         ):
             button = ttk.Button(actions, text=text, command=command)
-            button.pack(side="left", padx=(padding, 0))
+            if text in toolbar_actions:
+                button.pack(side="left", padx=(padding, 0))
             self.action_buttons[text] = button
 
         self.table = ttk.Treeview(
@@ -428,6 +454,8 @@ class CatalogWindow(ttk.Frame):
         self.status = ttk.Label(self, anchor="w")
         self.status.pack(fill="x", pady=(6, 0))
         self._bind_shortcuts()
+        self._build_menu_bar(master)
+        self._build_context_menu()
         self.refresh()
         self.apply_layout()
         master.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -537,6 +565,136 @@ class CatalogWindow(ttk.Frame):
         root.bind("<Control-y>", lambda _event: self.invoke_action("Redo"))
         root.bind("<Control-u>", lambda _event: self.invoke_action("Open URL"))
 
+    def _build_menu_bar(self, master: tk.Tk) -> None:
+        """Group every action into a standard File/Edit/Movie/Tools menu bar.
+
+        Before this, every action (24 of them) was a flat, ungrouped toolbar
+        button row with no menu bar at all. Every entry here calls the same
+        method the toolbar buttons and keyboard shortcuts already use — for
+        actions backed by `action_buttons`, through `invoke_action` so a
+        menu click respects the same disabled state a toolbar click would.
+        `_menu_entries` records each such entry's `(menu, index)` pairs —
+        a name can back more than one entry now that the right-click
+        context menu (`_build_context_menu`) tracks some of the same
+        action names — so `update_action_states` can gray them all out
+        the same way it already grays out `action_buttons`.
+        """
+        self._menu_entries: dict[str, list[tuple[tk.Menu, int]]] = {}
+        add_action = self._add_menu_action
+        add_tracked = self._add_tracked_menu_command
+
+        menubar = tk.Menu(master, tearoff=False)
+
+        file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(label="Open Catalog...", command=self.open_catalog, accelerator="Ctrl+O")
+        file_menu.add_command(label="Reload", command=self.reload_catalog, accelerator="F5")
+        file_menu.add_command(label="Save As...", command=self.save_as, accelerator="Ctrl+Shift+S")
+        file_menu.add_separator()
+        add_tracked(file_menu, "Import Catalog...", "Import", self.import_catalog)
+        add_tracked(file_menu, "Import Media...", "Import Media", self.import_media, "Ctrl+M")
+        file_menu.add_separator()
+        file_menu.add_command(label="Export...", command=self.export_catalog)
+        file_menu.add_separator()
+        file_menu.add_command(label="Backup...", command=self.backup_catalog)
+        add_tracked(file_menu, "Restore...", "Restore", self.restore_catalog)
+        file_menu.add_separator()
+        file_menu.add_command(label="Preferences...", command=self.open_preferences)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self._on_close)
+        menubar.add_cascade(label="File", menu=file_menu)
+
+        edit_menu = tk.Menu(menubar, tearoff=False)
+        add_action(edit_menu, "Add Movie", "Add", "Ctrl+N")
+        add_action(edit_menu, "Edit Movie", "Edit")
+        add_action(edit_menu, "Remove Movie", "Remove", "Delete")
+        edit_menu.add_separator()
+        add_action(edit_menu, "Undo", "Undo", "Ctrl+Z")
+        add_action(edit_menu, "Redo", "Redo", "Ctrl+Y")
+        edit_menu.add_separator()
+        add_action(edit_menu, "Toggle Checked", "Toggle Checked", "Space")
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Find", command=self.focus_search, accelerator="Ctrl+F")
+        edit_menu.add_command(label="Clear Search", command=self.clear_search, accelerator="Esc")
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+
+        movie_menu = tk.Menu(menubar, tearoff=False)
+        add_action(movie_menu, "Loan Out...", "Loan Out")
+        add_action(movie_menu, "Loan In", "Loan In")
+        movie_menu.add_command(label="Loan History...", command=self.show_loan_history)
+        movie_menu.add_separator()
+        add_action(movie_menu, "Set Pictures...", "Set Pictures")
+        add_action(movie_menu, "Assign Pictures...", "Assign Pictures")
+        add_action(movie_menu, "Clear Pictures", "Clear Pictures")
+        movie_menu.add_separator()
+        add_action(movie_menu, "Open URL", "Open URL", "Ctrl+U")
+        movie_menu.add_separator()
+        add_action(movie_menu, "Renumber", "Renumber")
+        menubar.add_cascade(label="Movie", menu=movie_menu)
+
+        tools_menu = tk.Menu(menubar, tearoff=False)
+        tools_menu.add_command(label="Statistics...", command=self.show_statistics)
+        tools_menu.add_command(label="Duplicates...", command=self.show_duplicates)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+
+        master.config(menu=menubar)
+        self.menubar = menubar
+
+    def _add_menu_action(
+        self, menu: tk.Menu, label: str, name: str, accelerator: str = ""
+    ) -> None:
+        """Add a menu entry that invokes an `action_buttons` action, tracked
+        for `update_action_states` under `name` alongside any other menu
+        (menu bar, context menu) that already tracks the same name."""
+        menu.add_command(
+            label=label, accelerator=accelerator,
+            command=lambda: self.invoke_action(name),
+        )
+        self._menu_entries.setdefault(name, []).append((menu, menu.index("end")))
+
+    def _add_tracked_menu_command(
+        self, menu: tk.Menu, label: str, name: str, command: Callable[[], None],
+        accelerator: str = "",
+    ) -> None:
+        """Like `_add_menu_action`, but for a command not in `action_buttons`
+        (e.g. Import/Import Media/Restore, which have no toolbar button)."""
+        menu.add_command(label=label, accelerator=accelerator, command=command)
+        self._menu_entries.setdefault(name, []).append((menu, menu.index("end")))
+
+    def _build_context_menu(self) -> None:
+        """Right-click the movie table for a selection-aware context menu.
+
+        Mirrors the most commonly needed Edit/Movie menu entries rather than
+        duplicating all of them, and shares their `_menu_entries` tracking —
+        so e.g. Remove Movie is grayed out here in lockstep with the toolbar
+        button and the Edit menu entry, not just one of them.
+        """
+        menu = tk.Menu(self, tearoff=False)
+        self._add_menu_action(menu, "Add Movie", "Add")
+        self._add_menu_action(menu, "Edit Movie", "Edit")
+        self._add_menu_action(menu, "Remove Movie", "Remove")
+        menu.add_separator()
+        self._add_menu_action(menu, "Toggle Checked", "Toggle Checked")
+        menu.add_separator()
+        self._add_menu_action(menu, "Loan Out...", "Loan Out")
+        self._add_menu_action(menu, "Loan In", "Loan In")
+        menu.add_separator()
+        self._add_menu_action(menu, "Open URL", "Open URL")
+        self.context_menu = menu
+        self.table.bind("<Button-3>", self._show_context_menu)
+
+    def _show_context_menu(self, event: tk.Event) -> None:
+        """Select the right-clicked row (if it isn't already selected) and
+        pop up the context menu there, matching common file-manager UX."""
+        row = self.table.identify_row(event.y)
+        if row and row not in self.table.selection():
+            self.table.selection_set(row)
+            self.table.focus(row)
+            self.selection_changed()
+        try:
+            self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
+
     def invoke_action(self, name: str) -> str:
         """Invoke a toolbar action while respecting its disabled state."""
         self.action_buttons[name].invoke()
@@ -582,20 +740,29 @@ class CatalogWindow(ttk.Frame):
             "Open URL": can_open_url,
         }
         for name, enabled in selection_actions.items():
-            self.action_buttons[name].configure(state="normal" if enabled else "disabled")
-        self.action_buttons["Add"].configure(state="normal" if writable else "disabled")
+            self._set_action_state(name, enabled)
+        self._set_action_state("Add", writable)
+        self._set_menu_state("Import", writable)
+        self._set_menu_state("Import Media", writable)
+        self._set_menu_state("Restore", writable)
         self.import_button.configure(state="normal" if writable else "disabled")
         self.import_media_button.configure(state="normal" if writable else "disabled")
         self.restore_button.configure(state="normal" if writable else "disabled")
-        self.action_buttons["Renumber"].configure(
-            state="normal" if writable and len(self.service.catalog) else "disabled"
-        )
-        self.action_buttons["Undo"].configure(
-            state="normal" if writable and self.service.can_undo else "disabled"
-        )
-        self.action_buttons["Redo"].configure(
-            state="normal" if writable and self.service.can_redo else "disabled"
-        )
+        self._set_action_state("Renumber", writable and len(self.service.catalog) > 0)
+        self._set_action_state("Undo", writable and self.service.can_undo)
+        self._set_action_state("Redo", writable and self.service.can_redo)
+
+    def _set_action_state(self, name: str, enabled: bool) -> None:
+        """Enable/disable a toolbar button and its matching menu entry together."""
+        self.action_buttons[name].configure(state="normal" if enabled else "disabled")
+        self._set_menu_state(name, enabled)
+
+    def _set_menu_state(self, name: str, enabled: bool) -> None:
+        # getattr, not self._menu_entries directly: headless tests build a
+        # CatalogWindow via object.__new__ and never run __init__/
+        # _build_menu_bar, so there is no menu bar (or _menu_entries) to sync.
+        for menu, index in getattr(self, "_menu_entries", {}).get(name, []):
+            menu.entryconfigure(index, state="normal" if enabled else "disabled")
 
     def refresh(self) -> None:
         selection = self.table.selection()
@@ -683,7 +850,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.open(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not open catalog", str(error), parent=self)
             return
         self._path_changed()
@@ -699,7 +866,7 @@ class CatalogWindow(ttk.Frame):
     def reload_catalog(self) -> None:
         try:
             self.service.reload()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not reload catalog", str(error), parent=self)
             return
         self.refresh()
@@ -715,7 +882,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.save_as(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not save catalog", str(error), parent=self)
             return
         self._path_changed()
@@ -736,7 +903,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             count = self.service.import_from(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not import catalog", str(error), parent=self)
             return
         self.refresh()
@@ -767,8 +934,17 @@ class CatalogWindow(ttk.Frame):
                 "Import media", "Include files in subfolders?",
                 parent=self.winfo_toplevel(),
             )
+            extensions_text = simpledialog.askstring(
+                "Import media",
+                "Limit to these extensions (comma-separated, e.g. mkv,mp4,wav)?\n"
+                "Leave blank to import every file.",
+                parent=self.winfo_toplevel(),
+            )
+            extensions = parse_extensions(extensions_text) if extensions_text else None
             try:
-                paths = discover_media([Path(selected_folder)], recursive=recursive)
+                paths = discover_media(
+                    [Path(selected_folder)], recursive=recursive, extensions=extensions
+                )
             except ValueError as error:
                 messagebox.showerror(
                     "Could not import media", str(error), parent=self
@@ -825,7 +1001,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.add_many(movies)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not import media", str(error), parent=dialog)
             dialog.destroy()
             return
@@ -861,6 +1037,15 @@ class CatalogWindow(ttk.Frame):
             )
             return
         destination_exists = Path(selected).exists()
+        if format_name == "html" and messagebox.askyesno(
+            "Export HTML",
+            "Use an Ant Movie Catalog template — a real .html file with "
+            "$$TAG_NAME placeholders from AMC's own HTML export? Choose No "
+            "for AMC Python's own default table export.",
+            parent=self,
+        ):
+            self._export_html_template(selected)
+            return
         if format_name == "amc":
             backup_note = (
                 f"\n\nThe existing file will be preserved as "
@@ -879,13 +1064,54 @@ class CatalogWindow(ttk.Frame):
                 return
         try:
             self.service.export(selected, format=format_name)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not export catalog", str(error), parent=self)
             return
         completion = f"Exported to {selected}."
         if format_name == "amc" and destination_exists:
             completion += f"\nPrevious file: {Path(selected).with_suffix('.bak')}"
         messagebox.showinfo("Export complete", completion, parent=self)
+
+    def _export_html_template(self, destination: str) -> None:
+        """Render Ant Movie Catalog's own $$TAG_NAME HTML templates.
+
+        Distinct from AMC Python's own {{MOVIES}}-template export: this asks
+        for a real AMC template file (full-catalog and/or individual-movie),
+        so a template the user already has keeps working. See
+        amc.html_template for exact tag coverage and scope.
+        """
+        full_template = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title="Choose a full-catalog template (optional)",
+            filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
+        )
+        individual_template = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title="Choose an individual-movie template (optional)",
+            filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
+        )
+        if not full_template and not individual_template:
+            return
+        individual_dir = None
+        if individual_template:
+            chosen_dir = filedialog.askdirectory(
+                parent=self.winfo_toplevel(),
+                title="Choose a folder for individual movie pages",
+            )
+            if not chosen_dir:
+                return
+            individual_dir = chosen_dir
+        try:
+            written = self.service.export_html_template(
+                destination,
+                full_template=full_template or None,
+                individual_template=individual_template or None,
+                individual_dir=individual_dir,
+            )
+        except _SERVICE_ERRORS as error:
+            messagebox.showerror("Could not export catalog", str(error), parent=self)
+            return
+        messagebox.showinfo("Export complete", f"Wrote {len(written)} file(s).", parent=self)
 
     def backup_catalog(self) -> None:
         selected = filedialog.asksaveasfilename(
@@ -899,7 +1125,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.backup(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not back up catalog", str(error), parent=self)
             return
         messagebox.showinfo("Backup complete", f"Backed up to {selected}.", parent=self)
@@ -920,7 +1146,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.restore(selected)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not restore catalog", str(error), parent=self)
             return
         self.refresh()
@@ -946,7 +1172,7 @@ class CatalogWindow(ttk.Frame):
         if messagebox.askyesno("Remove movie", f"Remove {description}?"):
             try:
                 self.service.remove_many(movie.number for movie in movies)
-            except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not remove movie", str(error), parent=self)
                 return
             self.refresh()
@@ -974,7 +1200,7 @@ class CatalogWindow(ttk.Frame):
                 self.service.check_out_many(
                     (movie.number for movie in movies), borrower.get()
                 )
-            except (CatalogError, OSError, TypeError, ValueError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not check out movie", str(error), parent=dialog)
                 return
             dialog.destroy()
@@ -992,7 +1218,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.check_in_many(movie.number for movie in movies)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not check in movie", str(error), parent=self)
             return
         self.refresh()
@@ -1006,7 +1232,7 @@ class CatalogWindow(ttk.Frame):
             self.service.set_checked_many(
                 (movie.number for movie in movies), checked
             )
-        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror(
                 "Could not update checked state", str(error), parent=self
             )
@@ -1040,7 +1266,7 @@ class CatalogWindow(ttk.Frame):
             self.service.set_picture_many(
                 {movie.number: selected for movie in movies}, embed=embed
             )
-        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not set pictures", str(error), parent=self)
             return
         self.refresh()
@@ -1148,7 +1374,7 @@ class CatalogWindow(ttk.Frame):
                 self.service.set_picture_many(
                     assignments, embed=embed.get(), crops=crops
                 )
-            except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror(
                     "Could not assign pictures", str(error), parent=dialog
                 )
@@ -1180,7 +1406,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.clear_picture_many(movie.number for movie in movies)
-        except (CatalogError, OSError, TypeError, ValueError, KeyError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not clear pictures", str(error), parent=self)
             return
         self.refresh()
@@ -1188,7 +1414,7 @@ class CatalogWindow(ttk.Frame):
     def undo(self) -> None:
         try:
             self.service.undo()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not undo change", str(error), parent=self)
             return
         self.refresh()
@@ -1196,7 +1422,7 @@ class CatalogWindow(ttk.Frame):
     def redo(self) -> None:
         try:
             self.service.redo()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not redo change", str(error), parent=self)
             return
         self.refresh()
@@ -1326,7 +1552,7 @@ class CatalogWindow(ttk.Frame):
             return
         try:
             self.service.renumber()
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not renumber movies", str(error), parent=self)
             return
         self.refresh()
@@ -1335,7 +1561,7 @@ class CatalogWindow(ttk.Frame):
         reverse = self.sort_field == field and not self.sort_reverse
         try:
             self.service.sort(field, reverse=reverse)
-        except (CatalogError, OSError, TypeError, ValueError) as error:
+        except _SERVICE_ERRORS as error:
             messagebox.showerror("Could not sort movies", str(error), parent=self)
             return
         self.sort_field = field
@@ -1503,7 +1729,7 @@ class CatalogWindow(ttk.Frame):
                     self.service.add(replacement)
                 else:
                     self.service.replace(movie.number, replacement)
-            except (CatalogError, OSError, TypeError, ValueError) as error:
+            except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not save movie", str(error), parent=dialog)
                 return
             self.refresh()

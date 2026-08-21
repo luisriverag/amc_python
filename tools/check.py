@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,10 +18,29 @@ def run(command: list[str], *, environment: dict[str, str] | None = None) -> Non
     subprocess.run(command, cwd=ROOT, env=environment, check=True)
 
 
+def _pytest_command() -> list[str]:
+    """Wrap the test run under a virtual X server when one is available.
+
+    `tests/test_gui_display.py` builds real Tk widget trees and skips itself
+    wherever no working display exists, so this is purely additive: it lets
+    the one documented canonical command also exercise real-display GUI
+    coverage on a Linux machine with Xvfb installed (this repository's own
+    development container included), without requiring a display anywhere
+    else — Windows and displayless Linux both fall back to the plain command,
+    where that file's tests skip themselves instead of failing.
+    """
+    command = [sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q"]
+    if sys.platform.startswith("linux") and "DISPLAY" not in os.environ and shutil.which(
+        "xvfb-run"
+    ):
+        return ["xvfb-run", "-a", *command]
+    return command
+
+
 def main() -> int:
     """Run tests, bytecode compilation, CLI smoke checking, and diff validation."""
     run([sys.executable, "-m", "ruff", "check", "src", "tests", "tools"])
-    run([sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q"])
+    run(_pytest_command())
     run([sys.executable, "-m", "coverage", "report"])
     run([sys.executable, "-m", "compileall", "-q", "src", "tests", "tools"])
     run([sys.executable, "tools/validate_fixtures.py"])

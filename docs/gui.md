@@ -26,15 +26,23 @@ The packaging check verifies that an isolated wheel installation can import both
 - Merge another catalog using safe default collision policies.
 - **Import Media** first asks whether to import from a folder or choose
   individual files, then adds a movie entry per file from portable facts and,
-  for WAV/FLAC/AIFF, duration and bitrate — the desktop equivalent of the
+  for WAV/FLAC/AIFF/MP3, duration and bitrate — the desktop equivalent of the
   CLI's `import-media`. Choosing a folder also asks whether to include
-  subfolders, mirroring `--recursive`; there is no extension-filter option
-  yet, unlike the CLI's `--extensions`. A modal progress dialog reports which
-  file is being inspected and can be cancelled mid-scan; like the CLI, the
-  catalog is only mutated once, after every selected file has been
-  inspected, so cancelling, an empty folder, or an invalid file leaves it
+  subfolders, mirroring `--recursive`, and then offers an optional
+  comma-separated extension filter (e.g. `mkv,mp4,wav`) that narrows the
+  folder scan the same way as the CLI's `--extensions`; leaving it blank
+  imports every file, matching the CLI's own default. A modal progress dialog
+  reports which file is being inspected and can be cancelled mid-scan; like
+  the CLI, the catalog is only mutated once, after every selected file has
+  been inspected, so cancelling, an empty folder, or an invalid file leaves it
   untouched.
 - Export XML, CSV, static HTML, or experimental native AMC 4.2 output.
+  Choosing an `.html` destination asks whether to render an Ant Movie
+  Catalog `$$TAG_NAME` template (a real template file, or two — one for the
+  full catalog listing, one for individual movie pages — from real AMC's own
+  HTML export) instead of AMC Python's own default table export. See
+  `amc.html_template` and the CLI's `export-html-template` for the same
+  capability and its documented scope.
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;
   remove one movie or an extended table selection in a single atomic operation,
@@ -111,16 +119,45 @@ The packaging check verifies that an isolated wheel installation can import both
   configurable history limit (100 by default; see **Preferences** below); opening
   or reloading a catalog starts new history.
 
-File, search/view, and catalog actions use separate toolbar rows so controls remain
-reachable at the supported 760-pixel minimum window width. The desktop opens at
-1100×720 by default and remains resizable down to 760×480.
+A **File / Edit / Movie / Tools** menu bar groups every action, alongside File,
+search/view, and catalog-action toolbar rows so controls remain reachable at the
+supported 760-pixel minimum window width. The desktop opens at 1100×720 by
+default and remains resizable down to 760×480.
+
+- **File**: Open Catalog, Reload, Save As, Import Catalog, Import Media,
+  Export, Backup, Restore, Preferences, Exit.
+- **Edit**: Add/Edit/Remove Movie, Undo, Redo, Toggle Checked, Find, Clear
+  Search.
+- **Movie**: Loan Out, Loan In, Loan History, Set/Assign/Clear Pictures,
+  Open URL, Renumber.
+- **Tools**: Statistics, Duplicates.
+
+Only the tightest add/edit/remove/toggle/undo/redo loop — the actions clicked
+over and over while browsing a catalog — stays on the toolbar as a one-click
+button; every other action (loans, pictures, statistics, duplicates,
+renumber, and every file operation) lives in the menu bar instead of a flat,
+ungrouped row of buttons. A menu entry calls exactly the same method a
+toolbar button or keyboard shortcut would, and every entry tied to selection
+or catalog-writability is grayed out in step with its toolbar button —
+disabling **Remove Movie** because nothing is selected disables it in the
+**Edit** menu too, not just the toolbar.
+
+Right-clicking a table row opens a context menu (Add/Edit/Remove Movie, Toggle
+Checked, Loan Out, Loan In, Open URL) at the pointer, matching common
+file-manager UX: right-clicking a row outside the current selection selects
+just that row first; right-clicking within an existing multi-row selection, or
+on empty space below the last row, leaves the selection unchanged. Its entries
+share the same grayed-out-together tracking as the menu bar and toolbar —
+selecting a movie enables **Remove Movie** in the context menu, the **Edit**
+menu, and the toolbar button all at once.
 
 Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
 search, Escape to clear search, Ctrl+N for a new movie, Ctrl+M for Import Media,
 Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked state,
-Delete for removal, and F5 for reload. Action shortcuts follow the same
-enabled/disabled state as their toolbar buttons, so they cannot bypass read-only,
-selection, URL-safety, or history checks.
+Delete for removal, and F5 for reload; the menu bar shows each as an accelerator
+label next to its command. Action shortcuts follow the same enabled/disabled
+state as their toolbar buttons and menu entries, so they cannot bypass
+read-only, selection, URL-safety, or history checks.
 Destructive removal, restore, and renumber workflows require confirmation.
 Native `.amc` export also requires confirmation because writer output has not been
 verified in upstream AMC. The dialog advises retaining the AMC Python JSON catalog
@@ -184,11 +221,28 @@ unsaved dirty state to prompt about. Import Media has cancellable progress
 reporting, but bulk `merge` and batch picture operations do not; there is no
 verified accessibility pass (only the keyboard-focus improvements described
 above — no screen-reader labels, and no automated or human verification with
-assistive technology), no localization, and no automated real-display widget
-tests. The batch **Set Pictures**, **Assign Pictures**, and
-**Clear Pictures** toolbar actions cover sharing one picture, assigning a
-distinct picture per movie, and clearing pictures across an extended
-selection; the edit dialog's **Crop** button and each row's **Crop** button in
-**Assign Pictures** provide interactive rectangle selection, and CLI
-`picture-set-many --crop-for` sets a per-movie crop rectangle from the command
-line. Current GUI tests are headless adapter tests with mocked dialogs.
+assistive technology — Tk has no meaningful AT-SPI bridge on X11 to exercise,
+and no screen reader is installed in this project's development container, so
+this stays a real gap even after the point below), and no localization. The
+batch **Set Pictures**, **Assign Pictures**, and **Clear Pictures** toolbar
+actions cover sharing one picture, assigning a distinct picture per movie, and
+clearing pictures across an extended selection; the edit dialog's **Crop**
+button and each row's **Crop** button in **Assign Pictures** provide
+interactive rectangle selection, and CLI `picture-set-many --crop-for` sets a
+per-movie crop rectangle from the command line.
+
+Most GUI tests are headless adapter tests that bypass `CatalogWindow.__init__`
+and mock every widget. `tests/test_gui_display.py` is different: it builds
+real Tk widget trees — the main window, Preferences, Assign Pictures, Import
+Media, Loan Out (a real combobox-and-button interaction verified against the
+real service afterward), Loan In, Set Pictures, Clear Pictures, the edit
+dialog (including its missing-title validation path), and an end-to-end
+simulated drag-select-and-apply crop — against a real (possibly virtual) X
+display, skipping itself wherever none is available. `tools/check.py` runs it
+under Xvfb automatically on Linux when `xvfb-run` is installed and no
+`DISPLAY` is already set (see `.github/workflows/ci.yml`, which installs
+`xvfb` on the Linux job for this). This is real-display coverage, not a
+substitute for the still-missing assistive-technology verification above; a
+real, unpatched `messagebox`/`simpledialog` prompt still has to be mocked in
+every one of these tests regardless of display availability, since an
+unpatched one blocks waiting for a click that will never come.

@@ -5,6 +5,9 @@
 JSON v1 is the lossless internal working format for the Python application. It is
 not an upstream Ant Movie Catalog format and must not be presented as `.amc`
 compatibility. Files are UTF-8 text and conventionally use the `.json` suffix.
+AMC Python always writes files without a byte-order mark, but tolerates one on
+read (some editors and other tools add one), transparently stripping it rather
+than rejecting the file.
 
 ## Envelope
 

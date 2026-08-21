@@ -4,16 +4,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import asdict
 from pathlib import Path
 
 from .application import CatalogService
 from .errors import CatalogError
-from .inspection import inspect_catalog, validate_catalog
+from .inspection import DEFAULT_MAX_INSPECT_BYTES, inspect_catalog, validate_catalog
 from .model import Movie
 from .native import NativeReadLimits, NativeWriteLimits
 from .media import discover_media, movie_from_media
+from .omdb import (
+    DEFAULT_TIMEOUT as DEFAULT_OMDB_TIMEOUT,
+    fetch_omdb_record,
+    imdb_id_from_url,
+    preview_omdb_update,
+)
 from .scripts import (
     configure_script,
     discover_scripts,
@@ -224,6 +231,28 @@ def parser() -> argparse.ArgumentParser:
     html_export.add_argument("destination", type=Path)
     html_export.add_argument("--template", type=Path)
     html_export.add_argument("--row-template", type=Path)
+    ant_html_export = commands.add_parser(
+        "export-html-template",
+        help="render Ant Movie Catalog's own $$TAG_NAME HTML export templates",
+        description=(
+            "Render a template written for real Ant Movie Catalog's HTML export "
+            "($$ITEM_TITLE-style placeholders), not AMC Python's own {{MOVIES}} "
+            "template (see 'export-html'). At least one of --full-template/"
+            "--individual-template is required."
+        ),
+    )
+    ant_html_export.add_argument("destination", type=Path, help="path for the full-catalog page")
+    ant_html_export.add_argument("--full-template", type=Path)
+    ant_html_export.add_argument("--individual-template", type=Path)
+    ant_html_export.add_argument(
+        "--individual-dir", type=Path,
+        help="directory for one page per movie (default: destination's own directory)",
+    )
+    ant_html_export.add_argument(
+        "--individual-filename", default="{number}.html",
+        help="filename pattern for individual pages, e.g. '{number}.html' (default)",
+    )
+    ant_html_export.add_argument("--line-break", default="<br>")
     native_export = commands.add_parser(
         "export-amc",
         help="write an experimental, source-derived AMC 4.2 native catalog",
@@ -256,9 +285,19 @@ def parser() -> argparse.ArgumentParser:
     inspect = commands.add_parser("inspect", help="identify a catalog without modifying it")
     inspect.add_argument("path", type=Path)
     inspect.add_argument("--json", action="store_true", dest="as_json")
+    inspect.add_argument(
+        "--max-input-bytes",
+        type=int,
+        help="reject files larger than this before parsing (default: 1 TiB)",
+    )
     validate = commands.add_parser("validate", help="validate a catalog without modifying it")
     validate.add_argument("path", type=Path)
     validate.add_argument("--json", action="store_true", dest="as_json")
+    validate.add_argument(
+        "--max-input-bytes",
+        type=int,
+        help="reject files larger than this before parsing (default: 1 TiB)",
+    )
     script = commands.add_parser(
         "inspect-script", help="inspect legacy script metadata without executing it"
     )
@@ -276,6 +315,25 @@ def parser() -> argparse.ArgumentParser:
     configure.add_argument("--parameter", action="append", default=[], metavar="NAME=VALUE")
     configure.add_argument("--load", type=Path, metavar="SETTINGS")
     configure.add_argument("--save", type=Path, metavar="SETTINGS")
+    imdb = commands.add_parser(
+        "imdb-lookup",
+        help="preview or apply an OMDb-sourced IMDb metadata update for a movie",
+    )
+    imdb.add_argument("number", type=int)
+    imdb.add_argument(
+        "--api-key",
+        help="OMDb API key (default: the OMDB_API_KEY environment variable)",
+    )
+    imdb.add_argument(
+        "--imdb-id",
+        help="look up this IMDb title ID (default: extracted from the movie's "
+        "URL if it is an imdb.com link, otherwise the movie's title/year)",
+    )
+    imdb.add_argument("--timeout", type=float, default=DEFAULT_OMDB_TIMEOUT)
+    imdb.add_argument(
+        "--apply", action="store_true",
+        help="write the previewed changes to the catalog (default: preview only)",
+    )
     return result
 
 
@@ -283,6 +341,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         return _run(args)
+    # CatalogError/OSError/TypeError/ValueError are the documented service-layer
+    # failures; LookupError covers KeyError, Catalog.get()'s (and hence
+    # replace/remove/check-out/check-in/set-checked/picture) signal for a movie
+    # number that does not exist. See gui.py's _SERVICE_ERRORS for the same
+    # boundary on the desktop side.
     except (CatalogError, OSError, TypeError, ValueError, LookupError) as error:
         print(f"amc: {error}", file=sys.stderr)
         return EXIT_ERROR
@@ -314,7 +377,10 @@ def _run(args: argparse.Namespace) -> int:
         print(json.dumps(configured.to_dict(), ensure_ascii=False, sort_keys=True))
         return EXIT_SUCCESS
     if args.command == "validate":
-        diagnostics = validate_catalog(args.path)
+        max_input_bytes = (
+            DEFAULT_MAX_INSPECT_BYTES if args.max_input_bytes is None else args.max_input_bytes
+        )
+        diagnostics = validate_catalog(args.path, max_file_bytes=max_input_bytes)
         if args.as_json:
             print(json.dumps([asdict(item) for item in diagnostics], ensure_ascii=False, sort_keys=True))
         else:
@@ -327,7 +393,10 @@ def _run(args: argparse.Namespace) -> int:
             else EXIT_SUCCESS
         )
     if args.command == "inspect":
-        info = inspect_catalog(args.path)
+        max_input_bytes = (
+            DEFAULT_MAX_INSPECT_BYTES if args.max_input_bytes is None else args.max_input_bytes
+        )
+        info = inspect_catalog(args.path, max_file_bytes=max_input_bytes)
         if args.as_json:
             print(json.dumps(info.to_dict(), ensure_ascii=False, sort_keys=True))
         else:
@@ -509,6 +578,31 @@ def _run(args: argparse.Namespace) -> int:
                 ) from error
         replacement = service.replace(args.number, Movie.from_dict(values))
         print(f"Updated #{replacement.number}: {replacement.display_title()}")
+    elif args.command == "imdb-lookup":
+        movie = catalog.get(args.number)
+        api_key = args.api_key or os.environ.get("OMDB_API_KEY", "")
+        imdb_id = args.imdb_id or imdb_id_from_url(movie.url)
+        record = fetch_omdb_record(
+            api_key=api_key,
+            imdb_id=imdb_id,
+            title="" if imdb_id else movie.display_title(),
+            year=None if imdb_id else movie.year,
+            timeout=args.timeout,
+        )
+        preview = preview_omdb_update(movie, record)
+        if not preview.changes:
+            print(f"No changes for #{movie.number}: {movie.display_title()}")
+        elif args.apply:
+            replacement = service.replace(args.number, preview.movie)
+            print(f"Updated #{replacement.number}: {replacement.display_title()}")
+        else:
+            print(
+                f"Preview for #{movie.number}: {movie.display_title()} "
+                "(use --apply to save)"
+            )
+        if preview.changes:
+            for change in preview.changes:
+                print(f"  {change.field}: {change.before!r} -> {change.after!r}")
     elif args.command == "export-xml":
         service.export(args.destination, format="xml")
     elif args.command == "export-csv":
@@ -520,6 +614,16 @@ def _run(args: argparse.Namespace) -> int:
             template=args.template,
             row_template=args.row_template,
         )
+    elif args.command == "export-html-template":
+        written = service.export_html_template(
+            args.destination,
+            full_template=args.full_template,
+            individual_template=args.individual_template,
+            individual_dir=args.individual_dir,
+            individual_filename=args.individual_filename,
+            line_break=args.line_break,
+        )
+        print(f"Wrote {len(written)} file(s)")
     elif args.command == "export-amc":
         defaults = NativeWriteLimits()
         service.export(

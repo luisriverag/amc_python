@@ -62,11 +62,31 @@ def test_package_check_builds_installs_and_smoke_tests(monkeypatch, tmp_path):
     def record_output(command, expected, *, environment=None):
         output_calls.append((command, expected, environment))
 
+    def fake_environment_python(environment: Path) -> str:
+        return f"{environment}/bin/python".replace("\\", "/")
+
+    def fake_environment_script(environment: Path, name: str) -> str:
+        return f"{environment}/bin/{name}".replace("\\", "/")
+
     monkeypatch.setattr(MODULE.tempfile, "TemporaryDirectory", TemporaryDirectory)
     monkeypatch.setattr(MODULE.venv, "EnvBuilder", Builder)
     monkeypatch.setattr(MODULE, "run", record)
     monkeypatch.setattr(MODULE, "run_with_output", record_output)
-    monkeypatch.setattr(MODULE.os, "name", "posix")
+    # environment_python/environment_script are faked directly, with a fixed
+    # posix-style layout, rather than forced by patching the real os.name:
+    # main() constructs a fresh pathlib.Path(temporary) from the (also
+    # faked) TemporaryDirectory, and pathlib's own Path.__new__ dispatch
+    # also consults os.name to pick a concrete Path subclass -- patching
+    # os.name to "posix" while actually running on Windows made pathlib try
+    # to instantiate a real PosixPath on a Windows host, which pathlib
+    # itself refuses with NotImplementedError. The platform-specific
+    # Scripts/bin branch inside environment_python/environment_script is
+    # already covered on its own by test_environment_python_uses_platform_layout
+    # and test_environment_script_uses_platform_layout above; this test only
+    # needs main()'s call sequence and argument threading verified, not a
+    # second exercise of that branch.
+    monkeypatch.setattr(MODULE, "environment_python", fake_environment_python)
+    monkeypatch.setattr(MODULE, "environment_script", fake_environment_script)
     monkeypatch.setenv("PYTHONPATH", "should-not-leak")
 
     assert MODULE.main() == 0

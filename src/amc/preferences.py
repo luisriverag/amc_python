@@ -17,6 +17,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from .native import replace_and_sync_directory
+
 _FORMAT = "amc-python-gui-preferences"
 _VERSION = 1
 VALID_VIEW_FILTERS = ("All", "Loaned", "Available", "Checked", "Unchecked")
@@ -134,6 +136,6 @@ def save_preferences(preferences: GuiPreferences, path: str | Path) -> None:
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        replace_and_sync_directory(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)

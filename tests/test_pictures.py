@@ -1,3 +1,5 @@
+import os
+import stat
 from pathlib import Path
 
 import pytest
@@ -311,6 +313,32 @@ def test_invalid_crop_does_not_mutate_catalog(
         CatalogService(catalog_path).set_picture(1, picture, embed=True, crop=crop)
 
     assert load(catalog_path).get(1).picture == ""
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows cannot fsync directory handles")
+def test_picture_export_fsyncs_destination_directory_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    catalog_path = tmp_path / "catalog.json"
+    picture = tmp_path / "cover.jpg"
+    picture.write_bytes(b"image")
+    save(Catalog([Movie(title="Alien")]), catalog_path)
+    service = CatalogService(catalog_path)
+    service.set_picture(1, "cover.jpg")
+    destination = tmp_path / "copy.jpg"
+    original_fsync = os.fsync
+    directory_syncs = 0
+
+    def count_directory_syncs(descriptor: int) -> None:
+        nonlocal directory_syncs
+        if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            directory_syncs += 1
+        original_fsync(descriptor)
+
+    monkeypatch.setattr("amc.native.os.fsync", count_directory_syncs)
+    service.export_picture(1, destination)
+
+    assert directory_syncs == 1
 
 
 def test_picture_export_failure_preserves_destination(tmp_path: Path):

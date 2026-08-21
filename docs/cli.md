@@ -39,6 +39,13 @@ The JSON shapes are part of the CLI contract:
 - `inspect` returns a catalog-information object.
 - `validate` returns an array of diagnostic objects.
 
+`inspect` and `validate` also accept `--max-input-bytes` to reject a file larger
+than the given size before any format-specific parsing starts (default 1 TiB).
+JSON and native inspection load the full file to identify it, so this bounds the
+work an untrusted-sized file can force; XML and CSV already inspect via streaming
+readers. An exceeded budget is reported as a `validate` diagnostic and as an
+`inspect` error, both without partially parsing the file.
+
 ## Safety-sensitive commands
 
 - `export-amc` is explicitly labeled experimental because generated files have not
@@ -92,6 +99,21 @@ The JSON shapes are part of the CLI contract:
   static/session values are never written to the settings file.
 - `export-html` escapes modeled movie values. Document and row templates are
   bounded and unknown row markers are rejected before destination replacement.
+  This is AMC Python's own `{{MOVIES}}`-marker template syntax, distinct from
+  `export-html-template` below.
+- `export-html-template FULL_CATALOG_PAGE_PATH --full-template FILE
+  --individual-template FILE` renders Ant Movie Catalog's own `$$TAG_NAME`
+  HTML export templates — the same syntax and placeholders real AMC's HTML
+  export uses — so a template a user already has keeps working without the
+  original Windows application. At least one of `--full-template`/
+  `--individual-template` is required; `--individual-dir` sets where
+  per-movie pages go (default: the full page's own directory) and
+  `--individual-filename` sets their naming pattern (default
+  `{number}.html`). See `amc.html_template`'s module docstring for the exact
+  tag coverage and documented scope boundaries (no upstream-verified parity
+  claim; picture files and rating-icon images are not copied; the
+  supplementary-record `$$ITEM_EXTRA_*` loop is not implemented and any such
+  block is stripped rather than left as literal template syntax).
 - `export-amc` atomically writes the source-derived AMC 4.2 layout. It preserves
   supported native metadata retained during import, but remains fixture-unverified
   and does not modify the JSON catalog unless explicitly requested.
@@ -101,6 +123,23 @@ The JSON shapes are part of the CLI contract:
   `--max-custom-fields`, `--max-list-values`, `--max-extras-per-movie`, and
   `--max-total-extras` expose the remaining structural budgets. Invalid or exceeded
   budgets return status 2 without replacing an existing destination.
+- `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID] [--timeout SECONDS]
+  [--apply]` fetches one movie's metadata from the OMDb API
+  (https://www.omdbapi.com/, a REST API that legally re-serves a curated
+  subset of IMDb's own data) and prints the field-level differences it would
+  make — the catalog is left untouched unless `--apply` is also given. This
+  is a hand-written, first-party Python provider, not IFPS script execution;
+  see `amc.omdb`'s module docstring and `docs/PORT_AUDIT.md` findings 29-31
+  for why. Requires an OMDb API key, obtained separately at
+  https://www.omdbapi.com/apikey.aspx and never stored by this project: pass
+  `--api-key` or set the `OMDB_API_KEY` environment variable. Without
+  `--imdb-id`, the lookup uses the movie's own `url` field when it is
+  already an `imdb.com` link, otherwise falls back to a title/year search.
+  Only fields with a non-"N/A" OMDb value and a matching `Movie` field are
+  proposed; poster images are never downloaded (see the Media analysis row
+  in `docs/compatibility.md` for that separate, unimplemented capability).
+  Network access always uses an explicit, caller-supplied timeout (default
+  10 seconds) and never runs during the automated test suite.
 - `picture-set NUMBER SOURCE` stores a linked picture path;
   `picture-set NUMBER SOURCE --embed [--max-bytes N] [--max-pixels N]` verifies a
   Pillow-supported image, bounds encoded bytes and decoded pixels, then base64-retains

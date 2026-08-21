@@ -49,8 +49,40 @@ the evidence bar: Milestones 5 and 6 already existed and their gates are
 unchanged. When genuine fixtures become available, work reverts to the P1–P3
 sequence below before any new compatibility claim is made.
 
-The concrete, ordered form of this backlog is the **Downstream execution
-backlog (D0–D3)** further down this document, alongside the upstream P0–P3
+Within the downstream track, **quick wins are the current priority**: D0–D5
+(media analysis, picture workflow, bulk-operation UX, GUI/catalog
+preferences, engineering debt, GUI parity) are now complete or reduced to
+items that are either genuinely blocked (screen-reader verification has no
+assistive technology available to test against) or explicitly optional
+polish, not tracked gaps. D6's four subsystems were not one uniform backlog:
+MP3/MP4/OGG duration/bitrate turned out tractable in small, bounded
+increments and are done; localization and printing/reports turned out to be
+scoping decisions, not implementation gaps, and are now decided — localization
+because there is no translated content to load yet (revisit when there is,
+not a permanent no), printing/reports because FreeReport is a standalone
+report-designer-sized port disproportionate to this project regardless of
+its now-resolved license (permanent no; HTML template export already covers
+the underlying need). General website script execution remains genuinely
+open: it is the one item with a real security dimension — executing
+arbitrary third-party script bytecode sourced from the web — not just an
+effort one, so building an IFPS compiler/VM stays for an explicit
+product/security-posture call rather than decided unilaterally here. What
+did get decided and built, once asked which legacy scripts actually
+mattered: a narrower, first-party alternative (`amc.omdb`, CLI
+`imdb-lookup`) for the two named highest-value cases — refreshing existing
+entries and IMDb lookups — via the OMDb API instead of any script
+execution at all. This closes that concrete slice without deciding the
+general question either way. Execution continues to prioritize: (1) any
+remaining small, bounded, well-scoped item anywhere in D0–D6, picked in
+tier order; (2) once none remain, the next smallest decidable slice of
+what's left — general script execution's own scoping/security decision,
+or GUI wiring for the OMDb provider — over open-ended new-subsystem
+construction. This is still evidence-independent — Python-owned behavior and
+test coverage, not an upstream-compatibility claim — so none of it needs a
+fixture or is blocked by Milestone 0.
+
+The concrete, ordered form of the wider backlog is the **Downstream execution
+backlog (D0–D6)** further down this document, alongside the upstream P0–P3
 backlog it runs in parallel with.
 
 ## Milestone 0: authoritative upstream baseline
@@ -197,12 +229,19 @@ all omitted or opaque data is reported.
   movie, picture, and extra-field permissions; execution, timeouts, caching, and
   rate limits remain intentionally absent).
 - [ ] Add image download and full media-file analysis as optional capabilities
-  (portable file facts and PCM WAV/FLAC analysis are available without
-  dependencies; compressed/lossy formats such as MP3, MP4, and OGG still need
-  either bounded dependency-free parsing or an optional codec provider).
+  (portable file facts and dependency-free PCM WAV/FLAC/AIFF/MP3/MP4/OGG
+  duration and bitrate are available; MP3 comes from the first MPEG audio
+  frame header and file size, exact for CBR and approximate for VBR files
+  without a parsed Xing/VBRI header; MP4 comes from the `moov/mvhd` box
+  (movie-level duration only, no per-codec bitrate) and OGG from the Vorbis
+  identification header plus the stream's last granule position — both
+  averaging bitrate over the whole file the same way MP3's VBR case does.
+  Video-track resolution, framerate, and real codec name still need an
+  optional codec provider; image download is still unimplemented).
 - [ ] Use recorded responses in tests; live network tests must be opt-in.
-- [ ] Reproduce upstream HTML template/tag semantics (safe static HTML table export
-  is available as a non-compatible baseline).
+- [x] Reproduce upstream HTML template/tag semantics: `amc.html_template`
+  renders real AMC `$$TAG_NAME` HTML export templates (see D6 below); safe
+  static HTML table export remains available as a non-compatible baseline.
 
 ## Milestone 7: release
 
@@ -304,7 +343,7 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 5. Keep native writing disabled until upstream open/save/reopen tests pass and backup
    and interrupted-write behavior is proven.
 
-## Downstream execution backlog (D0–D3)
+## Downstream execution backlog (D0–D6)
 
 While Sprint 1 (below) stays externally blocked on genuine fixtures, this is
 the ordered, concrete backlog for the "Execution priority" track above. Unlike
@@ -337,7 +376,12 @@ indented, non-canonical checkbox markers that the port-progress count in
 
 D0 is now complete: the remaining media-analysis gap is entirely the
 optional codec-provider design for compressed formats, which is deferred
-work rather than an open backlog item here.
+work rather than an open backlog item here. This framing turned out to be
+premature for duration/bitrate specifically: D6's "compressed media codecs"
+item below later found frame-by-frame/container-walking scanning tractable
+without a real decoder after all, for MP3, MP4, and OGG alike — the codec-
+provider interface remains deferred only for video/audio codec name,
+resolution, and framerate, which do need real decoding.
 
 ### D1 — picture workflow completion
 
@@ -389,16 +433,28 @@ both a CLI and a desktop entry point.
     Spinbox in Preferences, the Cancel button in the crop and Import Media
     dialogs) instead of leaving focus on the dialog's background, and Import
     Media gained a Ctrl+M shortcut alongside the existing toolbar shortcuts.
-  - [ ] Screen-reader labels and a verified accessibility pass remain open.
-    Tk's cross-platform assistive-technology support cannot be exercised or
-    verified in this project's environment (no real display, no screen
-    reader), so the keyboard-focus item above is a real but partial step,
-    not a substitute for this one.
+  - [x] Real-display smoke coverage: this development container turned out to
+    have Xvfb installed, contradicting an earlier "no real display" note in
+    this document. `tests/test_gui_display.py` builds genuine Tk widget
+    trees (not the `object.__new__`-bypassed, fully-mocked windows the rest
+    of `test_gui.py` uses) for the main window and the Preferences, Assign
+    Pictures, Import Media, and edit/crop dialogs, including an end-to-end
+    simulated drag-select-and-apply crop. `tools/check.py` wraps the test run
+    in `xvfb-run` automatically on Linux when available and no `DISPLAY` is
+    already set; the tests skip themselves everywhere else (no display, no
+    `xvfb-run`, Windows), so this needed no changes to portability guarantees.
+    CI's Linux job now installs `xvfb` so it gets this coverage too.
+  - [ ] Screen-reader labels and a verified accessibility pass remain open —
+    genuinely, not just for lack of a display now. Tk has no meaningful
+    AT-SPI bridge on X11 to exercise, and no screen reader is installed in
+    this container, so neither the keyboard-focus item above nor the
+    real-display smoke tests above are a substitute for this one.
 
 D2's progress/cancellation item, including folder-based GUI import, is now
-complete. A verified accessibility pass beyond the keyboard-focus
-improvements already shipped remains the only open item in D2 — and in the
-entire D0–D3 downstream execution backlog.
+complete, and real-display smoke coverage closes the "no real-display tests"
+gap this document previously described as environment-blocked. A verified
+accessibility pass with actual assistive technology remains the only open
+item in D2 — that part is still genuinely blocked, unlike the D4 items below.
 
 ### D3 — catalog/GUI preferences
 
@@ -420,6 +476,369 @@ entire D0–D3 downstream execution backlog.
 D3 is now complete: every planned Python-owned preference is persisted
 separately from catalog data and editable from the desktop.
 
+### D4 — engineering/quality debt from the port audit
+
+While D0–D3 exhausted the application-feature backlog, `PORT_AUDIT.md`'s
+"Design and quality debt" list still names concrete, fixture-independent gaps.
+This tier works through those, oldest-numbered first, the same way D0–D3
+worked through feature gaps: pick the next unchecked item, fix it, add tests,
+update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
+
+  - [x] Bound `inspect_catalog`/`validate_catalog` file size before JSON/native
+    parsing (`--max-input-bytes` on the CLI `inspect`/`validate` commands),
+    matching the `NativeReadLimits`/`inspect_media` precedent. True streaming
+    JSON record counting remains out of scope (Python's stdlib `json` module
+    has no incremental parser). PORT_AUDIT design-debt item 6.
+  - [x] Reject duplicate CSV headers (exact-duplicate extras headers, or two
+    headers that normalize to the same known movie field) instead of letting
+    `csv.DictReader` silently discard one column's data, mirroring the JSON v1
+    decoder's duplicate-member rejection. PORT_AUDIT design-debt item 5
+    (partial: CSV dialect/locale/empty-value behavior is still undefined from
+    upstream evidence).
+  - [x] Fsync the destination directory entry after every atomic file
+    replacement in the package, not just the file contents. The native `.amc`
+    writer already did this; JSON/CSV/XML/HTML saves, `copy_catalog`, picture
+    export, TSV loan-history export, GUI preferences, and script settings did
+    not, so a crash immediately after rename could still lose the rename on
+    some filesystems even though the new file's own bytes were durable.
+    `native.py`'s `replace_and_sync_directory` helper is now shared by every
+    writer in the package. PORT_AUDIT design-debt item 7 (partial: permission
+    errors and concurrent writers remain untested).
+  - [x] Define and test explicit behavior for a permission-denied or read-only
+    destination directory across the atomic writers above: an unwrapped
+    `PermissionError`/`OSError` propagates from the temp-file `open()`/`mkdir()`
+    call (never wrapped into a `CatalogError`) and leaves any existing
+    destination and temp-file state untouched. Verified with injected-failure
+    tests (not real `chmod`, since this environment's automated checks run as
+    `root`, which does not enforce permission bits) for every `storage.py`
+    atomic writer, `copy_catalog`, and the native `.amc` writer.
+    PORT_AUDIT design-debt item 7 (remaining part: concurrent writers).
+  - [x] Fix the concrete bug the undocumented error-model split had produced:
+    the desktop GUI's ~20 `try`/`except` boundaries around `CatalogService`
+    calls were meant to share one expected-failure set, but only 5 of them
+    caught `KeyError` (`Catalog.get()`'s documented signal for a movie number
+    that no longer exists) alongside `CatalogError`/`OSError`/`TypeError`/
+    `ValueError`; the other 15 would have let a stale-selection `KeyError`
+    escape as an unhandled Tk callback traceback instead of the usual error
+    dialog. All ~20 now share one `gui._SERVICE_ERRORS` tuple; `cli.main()`'s
+    equivalent boundary already covered `KeyError` via `LookupError` and is now
+    commented to say so. PORT_AUDIT design-debt item 8 (partial).
+  - [x] Decide the rest of the error model: whether `ValueError`/`TypeError`/
+    `KeyError` call sites in `catalog.py`, `application.py`, and elsewhere
+    should migrate to public `CatalogError` subclasses instead of the split
+    remaining permanent, then document that decision in `docs/cli.md` or a new
+    error-model reference. Decided: the split stays. `docs/architecture.md`'s
+    "Error model" section now documents the rule it already followed
+    inconsistently-on-paper-but-consistently-in-practice — `CatalogError`
+    subclasses for diagnosable catalog-content problems (`.code`/`.offset`
+    consumed by `validate_catalog` and the native reader/writer); plain
+    `ValueError`/`TypeError` for local API argument-contract violations,
+    matching ordinary Python convention; plain `KeyError` for dict-like
+    lookup failures (`Catalog.get()`, `remove_borrower`) — and why migrating
+    the 60+ built-in-`raise` sites in `catalog.py`/`application.py`/
+    `model.py`/`loans.py` would change no CLI or GUI behavior (both already
+    catch the whole family in one block: `cli.main()`'s
+    `(CatalogError, OSError, TypeError, ValueError, LookupError)`, `gui.py`'s
+    `_SERVICE_ERRORS`), only make direct-API argument validation less
+    idiomatic for a future non-CLI, non-GUI consumer. PORT_AUDIT design-debt
+    item 8 (now fully resolved).
+
+### D5 — GUI parity (current priority)
+
+The general engineering-debt sweep in D4 is far enough along that GUI parity —
+closing the desktop GUI's own gaps against its documented contract, ahead of
+further D4 items — is now the priority within the downstream track. Work this
+tier's next unchecked item before returning to D4.
+
+  - [x] Real-display smoke coverage. This development container turned out to
+    have Xvfb installed, contradicting an earlier "no real display" note in
+    this document (see D2 above) and in `docs/compatibility.md`/
+    `docs/PORT_AUDIT.md`. `tests/test_gui_display.py` builds genuine Tk widget
+    trees — not the `object.__new__`-bypassed, fully-mocked windows the rest
+    of `test_gui.py` uses — for the main window and the Preferences, Assign
+    Pictures, Import Media, and edit/crop dialogs, including an end-to-end
+    simulated drag-select-and-apply crop (`canvas.event_generate` for the
+    drag, a real button `.invoke()` for Apply Crop, asserting the callback
+    receives the exact box the drag produced). Every test skips itself
+    wherever no working Tk display exists. `tools/check.py` now wraps its
+    test run in `xvfb-run` automatically on Linux when installed and no
+    `DISPLAY` is already set; CI's Linux job installs `xvfb` so it gets this
+    coverage too. This measurably exercises code that was previously only
+    reachable through mocks: `gui.py` branch coverage rose from 53% to 77% in
+    the same run.
+  - [x] Import Media extension filter: the CLI's `import-media` command
+    accepts `--extensions` to restrict a recursive folder scan, but the
+    desktop **Import Media** dialog's folder-import path had no equivalent —
+    it always imported every file `amc.media.discover_media` found. Added a
+    `simpledialog.askstring` prompt (comma-separated, e.g. `mkv,mp4,wav`;
+    blank means no filter) right after the existing recursive-subfolder
+    question, parsed by a new `gui.parse_extensions()` that mirrors the CLI's
+    own parsing exactly, and passed through as `discover_media`'s
+    `extensions=` argument. Scoped to the folder path only, matching the
+    CLI's own `--extensions` semantics (narrowing an automatic scan) and not
+    the individual-file-selection path, where the user already chooses each
+    file explicitly.
+  - [x] Broader real-display widget coverage: extended `test_gui_display.py`
+    to Loan Out (real `ttk.Combobox.set()` plus a real button `.invoke()`,
+    checked against the real service afterward), Loan In, Set Pictures'
+    single-shared-picture flow and Clear Pictures' confirmation (both against
+    a real embedded PNG round-tripped through the real service), and the edit
+    dialog's missing-title validation path. One correction to this item's own
+    original wording: a real blocking `messagebox.showerror`/`askyesno` still
+    has to be patched in every one of these tests, real display or not,
+    because an unpatched one blocks the test waiting for a click that will
+    never come (confirmed the hard way via the Import Media test hanging
+    during development). The real value real widgets add here is different
+    from "not mocking messagebox": checking that the edit dialog's Toplevel
+    still exists and its title Entry still holds the rejected empty value
+    after a failed Save, not just that an error callback fired.
+  - [x] Menu bar and toolbar UX regrouping: the toolbar had grown to 24
+    ungrouped buttons across separate rows with no menu bar at all. Added a
+    **File / Edit / Movie / Tools** menu bar (`_build_menu_bar`) covering
+    every action, and slimmed the toolbar to only the tightest add/edit/
+    remove/toggle/undo/redo loop — every action button object still exists
+    in `action_buttons` (so the extensive existing headless test suite,
+    which mocks that dict directly, keeps working unchanged) but only the
+    six toolbar buttons are packed/visible. Menu entries call the same
+    `invoke_action` path as their toolbar/keyboard-shortcut counterparts,
+    and two new helpers (`_set_action_state`, `_set_menu_state`) keep a
+    tracked menu entry's enabled state in lock-step with its toolbar
+    button's — e.g. disabling **Remove Movie** because nothing is selected
+    disables it in the **Edit** menu too. `_set_menu_state` uses
+    `getattr(self, "_menu_entries", {})` rather than the attribute
+    directly because headless tests build a `CatalogWindow` via
+    `object.__new__`, bypassing `__init__`/`_build_menu_bar` entirely, so
+    there is no menu bar to sync in that path. New real-display tests in
+    `test_gui_display.py` cover the slimmed toolbar's visible-button set,
+    the four top-level menu labels and a sample of their entries, menu/
+    toolbar state staying in sync on selection, and invoking a menu command
+    end-to-end (Add Movie via the **Edit** menu opens the same dialog the
+    toolbar button does).
+  - [x] Right-click table context menu: the table had no context menu at
+    all — the only per-row interaction outside the toolbar/menu bar/
+    keyboard shortcuts was double-click-to-edit. Added
+    `_build_context_menu`, a right-click (`<Button-3>`) menu on `self.table`
+    with the row-scoped actions most useful there (Add/Edit/Remove Movie,
+    Toggle Checked, Loan Out, Loan In, Open URL). Right-clicking a row
+    outside the current selection selects just that row first, matching
+    common file-manager UX; right-clicking within an existing selection or
+    on empty space below the last row leaves the selection unchanged.
+    Reused rather than duplicated the menu-bar's tracking: `add_action`/
+    `add_tracked` became instance methods (`_add_menu_action`,
+    `_add_tracked_menu_command`), and `_menu_entries` changed from
+    `dict[str, tuple[Menu, int]]` to `dict[str, list[tuple[Menu, int]]]`
+    so one action name can back entries in more than one menu —
+    `_set_menu_state` now grays out every tracked entry for a name, so
+    selecting a movie enables **Remove Movie** in the context menu, the
+    **Edit** menu, and the toolbar button together, not just whichever one
+    happens to be open. New real-display tests cover the context menu's
+    structure, its shared state-sync with the Edit menu, an actual
+    synthetic right-click selecting the clicked row and opening the Edit
+    dialog through it, and a right-click on empty space leaving an
+    existing selection untouched.
+  - [x] Further real-display coverage: statistics (a computed summary
+    against a known one-movie catalog), duplicates (both a matching
+    normalized title/year group and the no-duplicates case), loan history
+    (a real check-out event's row in the dialog's table, and the
+    no-history-recorded status-bar message), table sort/selection (a real
+    click-equivalent `sort()` call reorders the actual `ttk.Treeview` rows
+    and toggles the heading's ▲/▼ marker on a second click), and the edit
+    dialog's other validation paths (an out-of-range rating, a non-integer
+    year) — every item this line named is now covered, closing it rather
+    than leaving it open-ended polish.
+  - [ ] Screen-reader labels and a verified accessibility pass remain out of
+    reach here regardless of display availability: Tk has no meaningful
+    AT-SPI bridge on X11 to exercise, and no screen reader is installed in
+    this container. This item stays open until it can be verified on a
+    platform where Tk's accessibility support is meaningful (Windows/macOS
+    native widgets) or a contributor can verify it directly.
+  - [ ] Screen-reader labels and a verified accessibility pass remain out of
+    reach here regardless of display availability: Tk has no meaningful
+    AT-SPI bridge on X11 to exercise, and no screen reader is installed in
+    this container. This item stays open until it can be verified on a
+    platform where Tk's accessibility support is meaningful (Windows/macOS
+    native widgets) or a contributor can verify it directly.
+
+### D6 — remaining "not ported at all" subsystems
+
+Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
+all: website script execution, localization, printing/reports, and compressed
+media codecs (MP3/MP4/OGG). They were not comparable in size or in what
+"proceeding" meant for each — this tier records that per item rather than
+treating them as one uniform backlog. Three of the four are now settled:
+compressed media codecs has dependency-free duration/bitrate coverage for all
+three named formats; localization and printing/reports were scoping
+decisions rather than implementation gaps, and are now decided (see below —
+localization is a timing decision, revisit when translated content exists;
+printing/reports is permanent, FreeReport is out of proportion to this
+project). Website script *execution* remains open in general: it carries
+real security exposure, not just effort, and is deliberately left for an
+explicit call rather than decided unilaterally here. A concrete slice of
+it is no longer open, though: asked which legacy scripts mattered most,
+the answer scoped the actual need down to two cases that don't need
+script execution at all — see the checked sub-item below.
+
+  - [x] MP3 duration/bitrate, the most tractable of the four: a
+    dependency-free MPEG audio frame header parser (`amc.media._inspect_mp3`)
+    computes duration from the first frame's declared bitrate and the
+    remaining audio byte count — exact for CBR files, an approximate for VBR
+    files without a parsed Xing/VBRI header (not implemented; documented
+    limitation). Handles a leading ID3v2 tag (syncsafe size, optional
+    footer) and a trailing 128-byte ID3v1 tag. Like WAV/FLAC/AIFF, this is
+    parsed from MP3's own public specification, not upstream's actual
+    mechanism: `Common/MediaInfo.pas` shows upstream delegates *all* media
+    analysis, including WAV, to a dynamically-loaded third-party
+    `MediaInfo.dll` (version 22.12) via `LoadLibrary`/`GetProcAddress` — there
+    is no Delphi-native codec parser to port even in principle, so "verified
+    upstream parity" was never achievable here and isn't being claimed.
+    MP4 and OGG remain unimplemented; each needs its own container-walking
+    parser (ISOBMFF box tree for MP4, page-granule-position scanning for
+    OGG) following the same pattern.
+  - [x] MP4/M4A/MOV and OGG Vorbis duration/bitrate, following exactly the
+    container-walking pattern the item above predicted. `_inspect_mp4_movie_header`
+    walks the ISOBMFF top-level box sequence (skipping each box's payload via
+    `seek` rather than reading it, since `mdat` — the actual media data — can be
+    arbitrarily large) until it finds the mandatory `moov` box, then its `mvhd`
+    child for a movie-level timescale and duration (handling both the 32-bit
+    and 64-bit `mvhd` versions, and a box's size-0 "extends to end of file" and
+    size-1 64-bit-extended-size cases). There is no per-codec bitrate at this
+    level — that lives in codec-specific sample tables this reader does not
+    parse, the same reason it does not attempt resolution, framerate, or a
+    real codec name — so bitrate is only a whole-file average, the same
+    trade-off already made for AIFF-C's non-PCM branch and MP3's VBR files.
+    `.mp4`/`.m4v`/`.mov` populate the previously-unused `video_format`/
+    `video_bitrate` `Movie` fields instead of `audio_format`/`audio_bitrate`,
+    since these are typically video files in a movie catalog and the two
+    field pairs already existed distinctly on `Movie` for exactly this reason;
+    `.m4a` (an MP4 container restricted to audio) uses the audio fields.
+    `_inspect_ogg_vorbis` reads the mandatory Vorbis identification packet
+    (`\x01vorbis`) from an Ogg file's first page for sample rate and a nominal
+    bitrate, then finds the stream's last page by searching backward from the
+    end of the file (Ogg pages carry no leading index of where the stream
+    ends, the same reason MP3 duration is estimated from a bounded search
+    window) for its granule position (total PCM samples) to compute duration;
+    falls back to a whole-file average bitrate when the nominal bitrate is
+    absent (0), matching upstream Vorbis encoders that sometimes omit it under
+    quality-mode VBR. Deliberately out of scope, consistent with how MP3 never
+    attempted VBR-exact duration without a parsed Xing/VBRI header: Ogg files
+    multiplexing more than one logical bitstream (e.g. Theora video alongside
+    Vorbis audio) and Opus streams (`OpusHead` instead of `\x01vorbis`) are
+    rejected with a clear error rather than guessed at; video-track resolution,
+    framerate, and codec name for MP4 remain unimplemented for the same
+    sample-table reason bitrate is only an average. `docs/architecture.md`'s
+    "Deliberate prototype boundaries" section is updated to match.
+  - [x] Two real bugs found and fixed against a genuine AMC 4.2.2 XML export
+    a user contributed for local debugging (7161 movies, not committed to
+    the repository — the first genuine upstream-generated data used to
+    validate this port): `_XML_FIELDS` used invented attribute names
+    `"MediaCount"`/`"FileSize"` that appear nowhere in the Delphi source;
+    the real names, confirmed against `fields.pas`'s `strTagFields` table
+    and present on every one of the 7161 real movies, are `"Disks"`/
+    `"Size"`. Fixing the name alone would have introduced a second bug:
+    `Size` is free-form text upstream (a multi-part release is
+    `"+"`-joined, e.g. a real `"698+696"`), which the existing lenient
+    number parser would have silently truncated; `load_xml`/`save_xml` now
+    preserve the exact original text through `extras` when it isn't a
+    plain integer. A third, unrelated encoding-corruption issue in the same
+    file (raw UTF-8 bytes inside a document declared `windows-1252`) is now
+    recovered from with a tolerant retry instead of failing the whole load.
+    See PORT_AUDIT.md finding 26.
+  - [x] HTML export templates: `amc.html_template` (new module) renders
+    upstream's own `$$TAG_NAME` HTML export template syntax — the same
+    placeholders `export.pas`'s `ReplaceTagsGeneral`/`ReplaceTagsMovie` use
+    — so a template a user already has for real AMC's HTML export keeps
+    working, wired into the CLI as `export-html-template` and into the
+    desktop **Export** action (an `.html` destination now asks whether to
+    use an Ant Movie Catalog template instead of the default table export).
+    Validated
+    locally against the same genuine 4.2.2 export above and that export's
+    own real full/individual templates: both rendered with zero leftover
+    `$$` placeholders across all 7161 movies. The `$$ITEM_EXTRA_*`
+    supplementary-record loop and upstream picture/rating-icon file
+    copying are explicitly out of scope (documented in the module
+    docstring). This is distinct from — and does not reduce the scope of
+    — the FreeReport report-designer item below. See PORT_AUDIT.md
+    finding 27.
+  - [x] Localization turns out not to be a portable-format problem: reading
+    `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
+    file itself is present in the checked-in source snapshot to treat as a
+    fixture) shows the mechanism is a runtime Delphi RTTI object-graph
+    patcher — each line is a dotted VCL property path (e.g.
+    `Button1.Caption=Fermer`, including indexed collection/list/tree items)
+    resolved and assigned live via `GetPropInfo`/`SetStrProp` against actual
+    form/frame/component instances. That mechanism is structurally tied to
+    VCL forms and has no Tk equivalent to receive it; "parity" with the
+    `.lng` format is not a coherent target for a Tk GUI regardless of effort
+    spent. A localized Python GUI is possible, but only as a wholly
+    Python-owned feature (externalize `gui.py`'s hardcoded English strings
+    behind a key→string lookup, add a loader), and there is no actual
+    translated content available anywhere in this repository to load even if
+    that scaffolding existed. **Decided:** don't build that scaffolding now —
+    an i18n layer with no translations behind it is untestable beyond "does
+    English fall back to English," which is speculative infrastructure for a
+    hypothetical future need rather than a bounded slice with a test to
+    write. This is a timing decision, not a permanent one: revisit once a
+    contributor supplies real translated strings to load, at which point the
+    externalization refactor becomes a bounded, testable slice like any
+    other. `docs/architecture.md`'s "Deliberate prototype boundaries" and
+    `docs/compatibility.md`'s Localization row record this.
+  - [x] Printing/reports' license blocker is resolved but its effort is not:
+    `src/original/FreeReport/license.txt` is LGPL v2, which is redistributable
+    under this repository's existing GPLv2 posture — contrary to the
+    "decide port/omission after ... license review" framing, there is no
+    remaining license question. What remains is that FreeReport is a
+    complete Delphi report designer and renderer (its own binary report
+    definition format, a design-time UI, print preview, and a large source
+    tree under `src/original/FreeReport/SOURCE/`) — porting it is a
+    standalone-application-sized effort, not a bounded slice, and AMC Python
+    already has static HTML export as a non-compatible baseline export path.
+    **Decided:** don't port FreeReport, permanently rather than pending —
+    `export-html-template`/`amc.html_template` (finding 27) already covers
+    "produce a formatted report from the catalog" as a non-compatible
+    baseline, and a full report designer/renderer is disproportionate to the
+    rest of this port's scope. A specifically PDF/print-friendly export
+    beyond HTML remains a separate, smaller possible future item if actually
+    requested — this decision closes the FreeReport port question, not every
+    conceivable printing-adjacent feature. `docs/architecture.md`'s
+    "Deliberate prototype boundaries" and `docs/compatibility.md`'s
+    Printing/reports row record this.
+  - [ ] General website script execution needs an IFPS (Innerfuse Pascal
+    Script) bytecode compiler and sandboxed VM with timeouts, rate limits,
+    and a result-merge UI before any script can actually run — `amc.scripts`
+    deliberately reads only leading metadata comments today and never
+    executes script bodies. This is comparable in scope to printing: a
+    standalone interpreter project, not a bounded slice, and it additionally
+    carries real security exposure (executing arbitrary scripts sourced from
+    the web) that deserves an explicit decision before any execution path is
+    built, not silent implementation. Left open pending that decision — this
+    item stays unchecked; the sub-item below is a different, smaller thing,
+    not a partial answer to it.
+  - [x] Asked which legacy scripts mattered most, the answer scoped the
+    actual need down to two cases that don't need IFPS at all: refreshing
+    metadata on movies already in the catalog ("update scripts") and IMDb
+    lookups specifically. `amc.omdb` (new module) is a small, hand-written,
+    auditable Python provider for exactly that pair, via the OMDb API — a
+    REST API that legally re-serves a curated subset of IMDb's own data as
+    JSON, chosen over scraping imdb.com directly (against its Terms of
+    Service, fragile to markup changes) and over IMDb's own bulk datasets
+    (no live title search without building a local index). Every request
+    needs an explicit, caller-supplied API key (never hardcoded, never
+    persisted) and a bounded timeout; `movie_fields_from_omdb` maps the
+    response onto `Movie` fields, explicitly excluding `Poster` (image
+    download is separately unimplemented) and fields with no `Movie`
+    equivalent; `preview_omdb_update` builds an isolated, unmutated
+    candidate and diff, reusing `amc.scripts`' `ScriptFieldChange`/
+    `ScriptMergePreview` shape rather than inventing a second one. Wired
+    into the CLI as `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID]
+    [--apply]` (dry-run preview by default; `--apply` writes through the
+    existing `CatalogService.replace`). Not yet wired into the desktop GUI —
+    a natural, separately-scoped follow-up. See `docs/PORT_AUDIT.md`
+    finding 31. While mapping OMDb's `Runtime` field, found and fixed a real,
+    unrelated bug this same investigation surfaced: `movie_from_media` had
+    been setting `Movie.length` in seconds since D0, when every other place
+    in this port (including upstream's own documentation) treats it as
+    minutes — see finding 32.
+
 ## Immediate next slice
 
 Execution is organized into four gated sprints in
@@ -437,7 +856,7 @@ contributor supplying fixtures, not on further coding here. Sprint exit checks
 remain blocking criteria — no later sprint's work advances an earlier gate, and
 no compatibility status may be upgraded without registered evidence — but with
 Sprint 1 externally blocked, the immediate change should draw from the
-**Downstream execution backlog (D0–D3)** above rather than sitting idle or
+**Downstream execution backlog (D0–D6)** above rather than sitting idle or
 inferring more unverified format behavior. A downstream slice still needs its
 own tests and documentation; it simply makes no upstream-compatibility claim,
 so it does not require a fixture.

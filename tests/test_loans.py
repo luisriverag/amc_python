@@ -1,3 +1,5 @@
+import os
+import stat
 from datetime import datetime, timezone
 
 import pytest
@@ -105,6 +107,32 @@ def test_export_legacy_history_uses_upstream_columns_and_crlf(tmp_path):
         b"Borrower Name\r\n"
         b"2026/08/13 12:30:00\tmovies.amc\tOut\t7\tDISC-1\tAlien\tRipley\r\n"
     )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows cannot fsync directory handles")
+def test_export_legacy_history_fsyncs_destination_directory_entry(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+):
+    catalog = Catalog()
+    append_event(
+        catalog, Movie(number=7, title="Alien", media_label="DISC-1"),
+        action="out", borrower="Ripley",
+        timestamp=datetime(2026, 8, 13, 12, 30, tzinfo=timezone.utc),
+    )
+    destination = tmp_path / "Loans history.csv"
+    original_fsync = os.fsync
+    directory_syncs = 0
+
+    def count_directory_syncs(descriptor: int) -> None:
+        nonlocal directory_syncs
+        if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            directory_syncs += 1
+        original_fsync(descriptor)
+
+    monkeypatch.setattr("amc.native.os.fsync", count_directory_syncs)
+    export_legacy_history(catalog, destination, catalog_name="movies.amc")
+
+    assert directory_syncs == 1
 
 
 def test_export_legacy_history_rejects_ambiguous_cells_without_replacing(tmp_path):

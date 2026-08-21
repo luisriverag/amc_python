@@ -20,18 +20,24 @@ drop-in Ant Movie Catalog port. Internal JSON behavior, catalog operations, the
 application service, and guarded CLI workflows have useful automated coverage.
 Native `.amc` parsing/writing, XML, CSV, metadata, and embedded-picture retention
 are implemented from source or synthetic examples but lack genuine upstream
-fixtures. Safe subsets also exist for HTML export, media discovery, PCM WAV,
-FLAC, and AIFF inspection, non-executing script metadata and public settings,
-desktop/web presentation, and loans.
-Script execution, localization, printing, and full
-upstream desktop workflows are not ported. Python-owned borrower/history metadata
-is deliberately distinguished from upstream file-format compatibility.
+fixtures. Safe subsets also exist for HTML export, media discovery, PCM WAV/
+FLAC/AIFF/MP3/MP4/OGG inspection, non-executing script metadata and public
+settings, a first-party OMDb-backed IMDb lookup/update provider, desktop/web
+presentation, and loans.
+IFPS script execution and full upstream desktop workflows are not ported.
+Localization and printing/reports are not ported either, and unlike general
+script execution, both are now a decided outcome rather than an open gap
+(findings 29-30); script execution itself remains genuinely undecided, with
+a narrower first-party alternative built for its two highest-value cases
+instead (finding 31). Python-owned borrower/history metadata is deliberately
+distinguished from upstream
+file-format compatibility.
 
 Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 15 functional package modules, 6 repository tools, 367 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 554 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -67,7 +73,7 @@ confidence.
 | Source acquisition tool | Streaming download, digest, extraction selection, inventory | Local HTTP and synthetic inventory tests | High for tested behavior |
 | Engineering checks | Canonical tests/compile/fixture checks plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
 | HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
-| Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF duration/bitrate; CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
+| Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF/MP3 duration/bitrate (MP3 via a hand-decoded MPEG frame header, not upstream's MediaInfo.dll); CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, MP3 (CBR, ID3v2/ID3v1 tag handling, reserved-header rejection, Layer I/II/III frame-length formulas), bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
 | Script inventory/settings | Bounded non-executing Infos/options/parameters/permissions/static-name parser; validated option/parameter overrides; atomic Python JSON settings | Synthetic metadata, malformed-entry, configuration, persistence, and CLI tests | Moderate for the stated non-executing subset; no runtime parity |
 | Application service | Failure-atomic CRUD, merge, media import, loans, undo/redo, backup/restore, and export orchestration | Mutation-failure, persistence, history, and adapter tests | High for tested internal workflows |
 | Loan prototype | Single/batch, media-label, and retained-native-number group transitions; managed borrowers; JSON history; source-shaped TSV export | Unit/service/CLI/GUI tests, including atomic conflicts and output preservation | Moderate internally; upstream encoding/behavior unverified |
@@ -79,11 +85,11 @@ confidence.
 
 | Area | Current state | Missing evidence |
 |---|---|---|
-| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests; no real-display smoke run or broad widget integration suite |
+| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests, plus a real-display smoke run (`tests/test_gui_display.py`, real Tk widget trees under Xvfb, self-skipping without a display) covering the main window and the Preferences/Assign Pictures/Import Media/edit/crop/Loan Out/Loan In/Set Pictures/Clear Pictures dialogs, including an end-to-end simulated drag-select-and-apply crop and a real Loan Out combobox-and-button interaction verified against the real service; no verified accessibility pass |
 | Installed CLI | Wheel console script and module entry point smoke-tested; empty JSON list exact output checked | Broader installed command contracts remain missing |
 | Packaging | Wheel build, isolated install, license inclusion, and smoke checks | Source-distribution build/install remains missing |
 | CI | Workflow configured for Linux/Windows and Python 3.10–3.13 | No run result is stored in the repository |
-| Atomic CSV/XML | Shared atomic writer | Injected codec-failure preservation tests cover both formats |
+| Atomic CSV/XML | Shared atomic writer, now with destination directory-entry fsync matching the native writer | Injected codec-failure preservation tests cover both formats; permission errors and concurrent writers remain untested |
 | Large-file behavior | XML uses iterative inspection | No resource-limit or performance tests |
 
 ### Not ported
@@ -93,13 +99,30 @@ confidence.
 - Catalog preferences beyond retained catalog/custom-field metadata.
 - Lossless preservation of repeated/ordered/typed unknown fields.
 - Verified upstream external/embedded picture path and conversion semantics.
-- Upstream website script compilation/execution, network/provider APIs, result
-  selection and merge, license-acceptance workflow, debugging, and static session
-  state (metadata and public settings only).
-- Full media analysis and codec mapping (portable facts and PCM WAV/FLAC/AIFF only).
+- Upstream website script compilation/execution (IFPS bytecode compiler and
+  sandboxed VM), the complete provider API, result selection and merge,
+  license-acceptance workflow, debugging, and static session state (metadata
+  and public settings only). Remains genuinely undecided (finding 31): it
+  carries real security exposure, not just an effort question, and no
+  general "build it" or "don't" call has been made either way. What is
+  decided and built is a narrower, first-party alternative for the two
+  cases named as actually mattering most (finding 31): `amc.omdb`'s
+  OMDb-API-backed IMDb lookup/update, wired into the CLI as `imdb-lookup`.
+  This is a new Python-owned feature, not IFPS parity, and carries no
+  upstream-compatibility claim.
+- Full media analysis and codec mapping (portable facts plus PCM WAV/FLAC/AIFF/
+  MP3/MP4/OGG duration and bitrate; video-track resolution, framerate, and a
+  real codec/container-vs-codec distinction remain unimplemented, since they
+  need per-track sample-table parsing this port does not do).
 - Upstream verification of grouped-loan and TSV history encoding/consumption.
-- Localization resources.
-- Printing and reports.
+- Localization resources (decided, not merely unaddressed — see finding 29:
+  the `.lng` format itself has no Tk equivalent to port, and a Python-owned
+  i18n layer is deliberately deferred until real translated content exists).
+- Printing and reports (decided, not merely unaddressed — see finding 30:
+  FreeReport's own report designer/renderer is a standalone-application-sized
+  port, permanently out of scope; distinct from HTML export, which does
+  render upstream's `$$TAG_NAME` template syntax, see the HTML export row
+  below).
 - Full desktop workflows and upstream UI parity.
 
 ## Findings requiring correction
@@ -134,15 +157,79 @@ confidence.
    construction. Semantic constraints for most upstream fields remain unknown.
 4. XML custom data is flattened into a dictionary, losing repeated names, ordering,
    attributes, and nested structure.
-5. CSV dialect, locale, empty-value, duplicate-header, and malformed-row behavior is
-   not defined from upstream evidence.
-6. Inspection parses complete JSON documents merely to count records; large-catalog
-   resource bounds are not defined.
-7. Atomic replacement now has injected serialization-failure coverage for JSON,
-   CSV, and XML. Directory durability, permission errors, and concurrent writers remain
-   untested. A generic injected replacement failure is covered.
-8. Expected errors are partly represented by public exceptions and partly by built-in
-   `ValueError`, `TypeError`, and `KeyError`; the documented error model is incomplete.
+5. [Partially resolved] CSV dialect, locale, and empty-value behavior is still not
+   defined from upstream evidence. Duplicate-header behavior is now defined and
+   tested as a Python-owned policy (not an upstream-verified one): `load_csv`
+   previously let `csv.DictReader` silently discard a column's data whenever two
+   headers collapsed onto the same key (either two identical extras headers, or
+   two headers, such as `Title`/`title`, that normalize to the same known movie
+   field) — the earlier column's value vanished with no diagnostic. It now raises
+   a clear `ValueError` identifying both colliding headers before any row is
+   read, mirroring the JSON v1 decoder's duplicate-member rejection policy.
+6. [Partially resolved] Inspection still parses complete JSON documents merely to
+   count records (Python's standard `json` module has no incremental parser, and
+   implementing one was judged not worth the complexity for a counting-only path).
+   However, `inspect_catalog`/`validate_catalog` and the CLI `inspect`/`validate`
+   `--max-input-bytes` option now reject an oversized file before that parse
+   starts, matching the `NativeReadLimits`/`inspect_media` bound precedent used
+   elsewhere; the previously-undefined resource bound is now defined and
+   configurable (default 1 TiB). True streaming JSON record counting remains
+   undone.
+7. [Partially resolved] Atomic replacement has injected serialization-failure
+   coverage for JSON, CSV, and XML, and a generic injected replacement failure is
+   covered. Directory durability was a real gap, not just an untested one: the
+   native `.amc` writer already fsynced its destination directory entry after
+   `os.replace` (so a crash right after rename cannot lose the rename on a
+   durable filesystem), but every other atomic writer in the package — JSON/CSV/
+   XML/HTML saves and `copy_catalog` in `storage.py`, picture export in
+   `application.py`, TSV loan-history export in `loans.py`, GUI preferences in
+   `preferences.py`, and script settings in `scripts.py` — only fsynced the file
+   contents and skipped the directory entry. `native.py`'s
+   `replace_and_sync_directory` helper (made a shared, non-private name for this)
+   is now used by every one of those call sites, each with a regression test
+   confirming the directory descriptor is fsynced. Permission-denied behavior is
+   now defined and tested too: a parent directory that cannot be created, or an
+   existing directory that denies new-file creation, propagates an unwrapped
+   `PermissionError`/`OSError` (no wrapping into a `CatalogError`) and leaves any
+   existing destination and temp-file state untouched, verified by injected
+   tests for every `storage.py` atomic writer, `copy_catalog`, and the native
+   `.amc` writer — this environment runs its automated checks as `root`, where
+   real filesystem permission bits are not enforced, so these tests inject the
+   denial rather than relying on `chmod`. Concurrent writers remain untested.
+8. [Resolved] Expected errors are still partly represented by public
+   `CatalogError` subclasses and partly by built-in `ValueError`, `TypeError`,
+   and `KeyError` raised directly from `catalog.py`, `application.py`, and
+   elsewhere; that split itself remains an intentional, undocumented-until-now
+   design choice rather than something this pass converted to one hierarchy.
+   What was a genuine bug, not just missing documentation: the desktop GUI's
+   ~20 `try`/`except` boundaries around `CatalogService` calls were supposed to
+   all catch the same failure set, but 15 of them caught
+   `(CatalogError, OSError, TypeError, ValueError)` while only 5 also caught
+   `KeyError` — `Catalog.get()`'s documented signal for a movie number that no
+   longer exists (used by `replace`/`remove`/check-out/check-in/set-checked/
+   picture operations). A `KeyError` hitting one of the 15 unprotected
+   boundaries — for example a stale table selection racing another mutation —
+   would have escaped as an unhandled Tk callback traceback instead of the same
+   `messagebox.showerror` dialog every other expected failure gets. All ~20
+   boundaries now share one module-level `gui._SERVICE_ERRORS` tuple
+   (`CatalogError, OSError, TypeError, ValueError, KeyError`); `cli.main()`'s
+   equivalent boundary already covered `KeyError` via `LookupError` and is now
+   commented to say so explicitly. The remaining scope of this item — deciding
+   whether `KeyError`/`ValueError`/`TypeError` call sites should migrate to
+   `CatalogError` subclasses instead of being a permanently mixed model — is
+   now decided and documented in `docs/architecture.md`'s "Error model"
+   section rather than left open: the split stays, because it already
+   follows a coherent rule (`CatalogError` subclasses for diagnosable
+   catalog-*content* problems that carry a `.code`/`.offset`; plain
+   `ValueError`/`TypeError` for local API argument-contract violations,
+   matching ordinary Python convention; plain `KeyError` for dict-like
+   lookup failures), and because both the CLI's `main()` and the GUI's
+   `_SERVICE_ERRORS` already catch every member of this family in one block
+   each, so a mass migration of the 60+ built-in-`raise` sites in
+   `catalog.py`/`application.py`/`model.py`/`loans.py` to dedicated
+   `CatalogError` subclasses would change no observable CLI or GUI behavior —
+   only make direct-API argument validation less idiomatic for a future
+   non-CLI, non-GUI consumer.
 9. The Python native reader deliberately reports truncated records, unlike upstream
    `ReadData`, which catches a movie-record exception and stops. This intentional
    difference needs fixture-backed documentation and stable diagnostics.
@@ -193,10 +280,19 @@ confidence.
     `TMovieList.ReadPictures`/`ReadBorrowers`, but `ConfigParser` has not been shown
     equivalent to Delphi `TMemIniFile` for duplicate keys, comments, malformed INI,
     or locale-specific decoding. No genuine sidecar fixture exists.
-22. JSON content saved under an `.amc` suffix is accepted for compatibility with
-    earlier AMC Python releases. This is an internal migration behavior, not an Ant
-    Movie Catalog format feature, and content probing still performs multiple file
-    opens.
+22. [Resolved] JSON content saved under an `.amc` suffix is accepted for
+    compatibility with earlier AMC Python releases. This is an internal
+    migration behavior, not an Ant Movie Catalog format feature.
+    `storage.load()`'s native/JSON content probe now reads the file prefix
+    once and reuses it for both the native-header and JSON-start-byte
+    checks, instead of opening the file twice. Fixing this also surfaced and
+    closed a related bug: a leading UTF-8 BOM was recognized by the JSON
+    probe but not stripped before the actual `json.load()` call, so a
+    BOM-prefixed JSON catalog (under `.amc` or `.json`) failed to open with a
+    confusing `JSONDecodeError` instead of loading; both `storage.load()` and
+    `inspection._inspect_json()` now open JSON with `utf-8-sig`, which
+    transparently strips a BOM when present and is otherwise identical to
+    plain `utf-8`.
 23. Script settings use an AMC Python JSON document and basename identity. Upstream
     caches script metadata, license acceptance, options, parameters, and static
     values in its settings INI. Python deliberately excludes license acceptance and
@@ -210,6 +306,194 @@ confidence.
     path, writer, composer, certification, user-rating, and color-tag values are now
     typed movie fields;
     genuine XML/native fixture comparison remains pending.
+26. [Resolved] Two XML field-name bugs, found and fixed against a genuine AMC 4.2.2
+    export (7161 movies, contributed by a user for local debugging, not committed to
+    the repository — the first time genuine upstream-generated data has been used to
+    validate this port). `Movie Catalog/fields.pas`'s `strTagFields` table is the
+    authoritative XML attribute name for every field; grepping the entire checked-in
+    Delphi source tree confirmed `"MediaCount"` and `"FileSize"` — the names
+    `storage._XML_FIELDS` previously used — appear nowhere in it. The real names are
+    `"Disks"` and `"Size"` (present on all 7161 movies in the real export; `MediaCount`
+    and `FileSize` on none), which this port had apparently invented rather than
+    derived from source. Every real AMC XML catalog was therefore silently routing its
+    disk-count and file-size data into `extras` instead of the typed `media_count`/
+    `file_size` fields. Fixing the name mapping alone would have introduced a second,
+    real bug: `Size` is free-form text in upstream (`strSize: string`, not an integer),
+    and a multi-part release is exported as `+`-joined sizes (a genuine `"698+696"`
+    observed in the same file, affecting 10 of the 7161 movies); the existing lenient
+    `_number()` regex would have silently kept only the first part. `load_xml` now
+    parses `file_size` strictly and retains the original text in
+    `extras["xml_file_size_text"]` when it isn't a plain integer, and `save_xml` writes
+    that original text straight back to the `Size` attribute rather than losing it
+    through the generic extras-child-element fallback. A third, unrelated issue
+    surfaced from the same file: it contained a raw multi-byte UTF-8 emoji inside a
+    document declared as single-byte `windows-1252` (real corruption in the source
+    data, not something this reader produces), which strict XML parsing correctly
+    rejected; `load_xml` now retries once with a tolerant decode of the declared
+    encoding (`errors="replace"`) before giving up, so a few corrupted characters
+    don't fail an otherwise-valid 7161-movie catalog. The full file round-tripped
+    through `load_xml`/`save_xml` with zero field mismatches after these three fixes.
+    This is not upgraded to `verified` in `compatibility.md`: no provenance-tracked
+    fixture is registered in the repository for this file.
+27. `amc.html_template` (new) renders Ant Movie Catalog's own `$$TAG_NAME` HTML
+    export template syntax — `export.pas`'s `ReplaceTagsGeneral`/`ReplaceTagsMovie`
+    placeholders — against `Movie`/`Catalog`, so a template a user already has for
+    real AMC's HTML export keeps working. `Movie Catalog/fields.pas`'s `strTagFields`
+    table is the source of the general/item tag names; general, item, rating
+    (including the exact `0..29/30..49/50..69/70..89/90..100` appreciation-bucket
+    ranges, not an approximation of them), picture, and custom-field tags are
+    implemented, plus the `$$ITEM_BEGIN`/`$$ITEM_END` repeat loop for both the
+    "full" (all-movies) and "individual" (one page per movie) documents upstream
+    supports. Validated locally against the same genuine AMC 4.2.2 export as finding
+    26 and that export's own real full/individual templates: both rendered with zero
+    leftover `$$` placeholders across all 7161 movies. Explicitly out of scope, and
+    documented as such in the module docstring: `$$ITEM_FORMATTEDTITLE`'s
+    user-configured display-preference variants (uses `Movie.title` — the same value
+    upstream itself calls "FormattedTitle" — instead), `$$ITEM_COLORHTML`'s
+    user-configured palette, actually copying picture/rating-icon files, and the
+    `$$ITEM_EXTRA_*` supplementary-record loop (its category/checked/range filter
+    syntax is a separate, non-trivial parser; any such block is stripped from the
+    output rather than left as broken template syntax, matching upstream's own
+    behavior for a movie with no supplementary records). Wired into the CLI as
+    `export-html-template`, distinct from AMC Python's own `{{MOVIES}}`-template
+    `export-html`, and into the desktop **Export** action (choosing an `.html`
+    destination now asks whether to use an Ant Movie Catalog template instead of
+    the default table export). Not registered as `verified`, for the same reason
+    as finding 26.
+28. `amc.media` now covers MP4/M4A/MOV and OGG Vorbis duration/bitrate, closing
+    the last gap this port's own compressed-codec evaluation (D0 in
+    `IMPLEMENTATION_PLAN.md`) had left open behind a deferred codec-provider
+    interface — that evaluation turned out to be premature for duration/bitrate
+    specifically: MP4's ISOBMFF box tree and Ogg's page-granule-position scheme
+    are both bounded and fully public, the same properties that made WAV,
+    FLAC, and AIFF tractable without a real decoder, once MP3's first-frame
+    scan proved a compressed format didn't strictly need one either.
+    `_inspect_mp4_movie_header` walks top-level boxes (skipping each one's
+    payload via `seek`, since `mdat` — the actual media data — can be
+    arbitrarily large) to the mandatory `moov/mvhd` box for a movie-level
+    timescale and duration; there is no per-codec bitrate at this level, so
+    bitrate is only a whole-file average, the same trade-off already made for
+    AIFF-C's non-PCM branch and MP3's VBR files. `.mp4`/`.m4v`/`.mov` populate
+    `Movie`'s previously-unused `video_format`/`video_bitrate` fields rather
+    than `audio_format`/`audio_bitrate` — these are typically video files in a
+    movie catalog, and the two field pairs already existed distinctly for
+    exactly this reason; `.m4a` uses the audio fields, since it is an MP4
+    container restricted to audio. `_inspect_ogg_vorbis` reads the mandatory
+    Vorbis identification packet from an Ogg file's first page for sample rate
+    and a nominal bitrate, then searches backward from the end of the file
+    (Ogg pages carry no leading index of where the stream ends) for the last
+    page's granule position (total PCM samples) to compute duration, falling
+    back to a whole-file average bitrate when the nominal bitrate field is
+    absent (0), matching real Vorbis encoders under quality-mode VBR.
+    Deliberately out of scope, the same way MP3 never attempted VBR-exact
+    duration without a parsed Xing/VBRI header: Ogg files multiplexing more
+    than one logical bitstream (e.g. Theora video alongside Vorbis audio) and
+    Opus streams (`OpusHead` instead of `\x01vorbis`) are rejected with a
+    clear error rather than guessed at; video-track resolution, framerate,
+    and a real codec name remain unimplemented for MP4, the same sample-table
+    reason bitrate is only an average. No upstream-generated MP4/OGG fixture
+    exists in this repository (unlike finding 26/27's genuine AMC 4.2.2
+    export), so this is not an upstream-compatibility claim at all — MP4 and
+    OGG are Python-owned, format-spec-derived parsing exactly like WAV/FLAC/
+    AIFF/MP3 already were (`Common/MediaInfo.pas` shows upstream delegates all
+    of this to a third-party DLL, so there is no Delphi-native mechanism to
+    compare against in the first place).
+29. Localization is decided as a deliberately deferred, not merely
+    unaddressed, gap. Reading `Common/AntTranslator.pas` — the actual `.lng`
+    loader, since no `.lng` file itself is present in the checked-in source
+    snapshot to treat as a fixture — shows the mechanism is a runtime Delphi
+    RTTI object-graph patcher: each line is a dotted VCL property path (e.g.
+    `Button1.Caption=Fermer`, including indexed collection/list/tree items)
+    resolved and assigned live via `GetPropInfo`/`SetStrProp` against actual
+    form/frame/component instances. That mechanism is structurally tied to
+    VCL forms and has no Tk equivalent to receive it, so "parity" with the
+    `.lng` format is not a coherent target for this port's Tk GUI regardless
+    of effort spent — it was never a bounded slice waiting to be picked up.
+    A localized Python GUI is separately possible as a wholly Python-owned
+    feature (externalize `gui.py`'s hardcoded English strings behind a
+    key→string lookup, add a loader), but there is no actual translated
+    content available anywhere in this repository to load even if that
+    scaffolding existed. Decided: don't build it now. An i18n layer with no
+    translations behind it is untestable beyond "does English fall back to
+    English" — speculative infrastructure for a hypothetical need, not a
+    slice with a real test to write, the same standard every other item in
+    this document is held to. This is a timing decision, not a permanent
+    one: revisit once a contributor supplies real translated strings, at
+    which point the externalization refactor becomes a bounded, testable
+    slice like any other.
+30. Printing/reports is decided as permanently out of scope, not pending a
+    license review that already concluded. `src/original/FreeReport/
+    license.txt` is LGPLv2, redistributable under this repository's existing
+    GPLv2 posture — there is no remaining license question, contrary to this
+    document's own earlier "decide port/omission after ... license review"
+    framing. What remains, and is what this finding actually decides, is
+    that FreeReport is a complete Delphi report designer and renderer (its
+    own binary report definition format, a design-time UI, print preview,
+    and a large source tree under `src/original/FreeReport/SOURCE/`):
+    porting it is a standalone-application-sized effort, not a bounded
+    slice, disproportionate to the rest of this port's scope and to the
+    value it would add on top of what already exists. Decided: don't port
+    FreeReport. `export-html-template`/`amc.html_template` (finding 27)
+    already renders real AMC HTML export templates against the catalog,
+    covering "produce a formatted report from the catalog" as a
+    non-compatible baseline. A specifically PDF/print-friendly export beyond
+    HTML remains a separate, smaller, and genuinely open possible future
+    item if actually requested — this finding closes the FreeReport-port
+    question specifically, not every conceivable printing-adjacent feature.
+31. Website script execution: the general IFPS bytecode compiler and
+    sandboxed VM findings 29-30's sibling decision left open (real security
+    exposure from running arbitrary third-party script bytecode sourced
+    from the web, not just an effort question) is still not being built.
+    Instead, asked which of the legacy scripts mattered most, the answer
+    scoped the actual need down to two cases: refreshing metadata on movies
+    already in the catalog ("update scripts") and IMDb lookups specifically.
+    Neither needs a Pascal interpreter. `amc.omdb` (new module) is a small,
+    hand-written, auditable Python provider for exactly that pair, via the
+    OMDb API (https://www.omdbapi.com/) — a REST API that legally re-serves
+    a curated subset of IMDb's own data as JSON under its own terms.
+    Scraping imdb.com directly was considered and rejected: it is against
+    IMDb's Terms of Service and fragile to markup changes. `fetch_omdb_record`
+    looks a movie up by IMDb ID or title/year with an explicit, caller-
+    supplied API key (never hardcoded, never persisted — obtained separately
+    at https://www.omdbapi.com/apikey.aspx) and a bounded timeout;
+    `movie_fields_from_omdb` maps its response onto `Movie` fields, excluding
+    `Poster` (image download is a separate, unimplemented capability) and
+    fields with no `Movie` equivalent (`Ratings`, `Metascore`, `BoxOffice`,
+    `Awards`, `Production`, `Website`, `DVD`); `preview_omdb_update` builds an
+    isolated, unmutated candidate and field-level diff, reusing
+    `amc.scripts`' `ScriptFieldChange`/`ScriptMergePreview` shape rather than
+    inventing a second one for the same "isolated candidate, apply only if
+    accepted" idea a legacy-script result already gets. Wired into the CLI
+    as `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID] [--apply]`
+    (dry-run preview by default; `--apply` writes through the existing
+    `CatalogService.replace`, no new service primitive needed since a
+    preview's candidate movie is already a complete, valid `Movie`); not yet
+    wired into the desktop GUI, left for a follow-up increment. This closes
+    the "update scripts and IMDb" slice of website script execution as a
+    real, tested capability while leaving general script execution exactly
+    as undecided as finding 29-30 found it — this is a new, narrower,
+    first-party feature, not IFPS parity, and makes no upstream-compatibility
+    claim (`amc.scripts` continues to read only metadata comments and never
+    executes a `.ips` script body).
+32. [Resolved] `Movie.length` was being set in the wrong unit by every
+    `amc.media`-derived import (`movie_from_media`, so CLI `import-media`
+    and the GUI's **Import Media** workflow), found while mapping OMDb's
+    `Runtime` field (finding 31) onto the same field and checking what unit
+    it was actually supposed to be in. Upstream's own documentation is
+    explicit that `Length` is minutes (`Movie Catalog/help/options_en.html`:
+    "Read the length of the file (in minutes) and put it in the 'Length'
+    field"), and every other place this port already treats it as minutes —
+    the GUI statistics dialog's "Total length (minutes)" label,
+    `$$ITEM_LENGTH` in `amc.html_template` — agrees. `movie_from_media` was
+    the one outlier, passing `MediaInfo.length_seconds` (correctly named and
+    correctly seconds, the natural unit for one media file's exact duration)
+    straight into `Movie.length` unconverted: a 90-second clip produced
+    `length=90`, read everywhere else in the application as 90 *minutes*.
+    Every WAV/FLAC/AIFF/MP3/MP4/OGG import was affected since D0's first
+    media-analysis format. Fixed by converting seconds to minutes (rounded)
+    at exactly this one boundary, with a regression test asserting the
+    conversion and a second confirming an unknown duration still leaves
+    `length` unset rather than becoming `0`.
 
 ## Gap matrix against the original application
 
@@ -224,12 +508,12 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |
 | Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop, bounded poster display, and atomic batch set/clear | Upstream import modes, naming/copy/move rules, conversion options, and genuine embedded/linked fixtures |
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
-| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings | IFPS compiler/runtime, complete API inventory, HTTP/browser interactions, license acceptance, debugger, results UI, safe merge preview, timeouts/cache/rate limits, and recorded provider tests |
-| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF analysis | MediaInfo integration/version checks, the full tag map, stream selection, filters, and field merge behavior |
-| HTML export | `export.pas`, template units | Safe bounded Python table/templates | Upstream template tags, multi-file output, extra/custom-field semantics, and fixture comparison |
-| Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader | Settings XML, per-user state, localization resources, translated UI/help, and migration |
-| Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported | Report designer/runtime, preview, printing, templates, and dependency/license decision |
-| Desktop presentation | `main.pas` and `.dfm` forms | Broad Tk prototype with headless adapter tests | Form/workflow parity, accessibility verification, localization, real-display tests, and platform packaging |
+| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings; separately, a first-party (not IFPS) OMDb-backed IMDb lookup/update provider (`amc.omdb`, CLI `imdb-lookup`) covers the two cases named most-used, with an isolated merge preview reusing the same safe-merge shape below | IFPS compiler/runtime and general script execution remain undecided (finding 31, real security exposure); complete API inventory, HTTP/browser interactions, license acceptance, debugger, and results UI for actual IFPS scripts |
+| Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration and bitrate (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec — MP4 from the `moov/mvhd` box, OGG from the Vorbis identification header and the stream's last granule position) | MediaInfo integration/version checks, video-track resolution/framerate/real codec name (needs per-track sample-table parsing this port does not do), the full tag map, stream selection, filters, and field merge behavior |
+| HTML export | `export.pas`, `ConstValues.pas` (`strTagFields`/`TAG_*`), `fields.pas` | Safe bounded Python table/templates, plus `amc.html_template` rendering upstream's own `$$TAG_NAME` general/item/rating/picture/custom-field tags and the `$$ITEM_BEGIN`/`$$ITEM_END` full+individual document loop, validated locally against a genuine AMC 4.2.2 export's own real templates | The `$$ITEM_EXTRA_*` supplementary-record loop (with its category/checked/range filter syntax), upstream picture/rating-icon file copying, multi-file/SQL export, and fixture comparison of rendered tag values against genuine upstream output |
+| Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader; localization decided as deliberately deferred (finding 29) — the `.lng` format has no Tk equivalent, and a Python-owned i18n layer awaits real translated content | Settings XML, per-user state, translated UI/help, and migration; localization scaffolding itself only once translated content exists |
+| Printing/reports | `printform.pas`, `amcreport/`, `FreeReport/` | Not ported; decided as permanently out of scope (finding 30) — FreeReport's license is resolved (LGPLv2) but porting its designer/renderer is an application-sized effort disproportionate to this port | None planned; HTML template export already covers the underlying "formatted report" need as a non-compatible baseline |
+| Desktop presentation | `main.pas` and `.dfm` forms | Broad Tk prototype with headless adapter tests plus real-display smoke tests under Xvfb | Form/workflow parity, accessibility verification, localization, and platform packaging |
 | Web presentation | No upstream server counterpart | Read-only AMC Python extension | Authentication/TLS deployment layer if exposed beyond localhost; it is intentionally outside parity accounting |
 
 ## Requirement traceability

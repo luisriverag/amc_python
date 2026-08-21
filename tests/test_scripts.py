@@ -1,3 +1,5 @@
+import os
+import stat
 from pathlib import Path
 
 import pytest
@@ -184,6 +186,28 @@ def test_script_configuration_roundtrip_excludes_static_values(tmp_path: Path):
     assert restored.parameters[0].value == "Moon"
     assert "do-not-save" not in settings.read_text(encoding="utf-8")
     assert not settings.with_name(f".{settings.name}.tmp").exists()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows cannot fsync directory handles")
+def test_save_script_configuration_fsyncs_destination_directory_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    target = tmp_path / "provider.ifs"
+    settings = tmp_path / "provider.json"
+    target.write_text("(*\n[Options]\nMode=0|0|0=Fast\n*)", encoding="utf-8")
+    original_fsync = os.fsync
+    directory_syncs = 0
+
+    def count_directory_syncs(descriptor: int) -> None:
+        nonlocal directory_syncs
+        if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            directory_syncs += 1
+        original_fsync(descriptor)
+
+    monkeypatch.setattr("amc.native.os.fsync", count_directory_syncs)
+    save_script_configuration(inspect_script(target), settings)
+
+    assert directory_syncs == 1
 
 
 def test_script_configuration_rejects_wrong_script_and_invalid_values(tmp_path: Path):

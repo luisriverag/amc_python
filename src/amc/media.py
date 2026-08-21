@@ -22,10 +22,18 @@ class MediaInfo:
     length_seconds: int | None = None
     audio_format: str = ""
     audio_bitrate: int | None = None
+    video_format: str = ""
+    video_bitrate: int | None = None
+
+
+_MP4_VIDEO_SUFFIXES = {".mp4", ".m4v", ".mov"}
+_MP4_AUDIO_SUFFIXES = {".m4a"}
+_OGG_AUDIO_SUFFIXES = {".ogg", ".oga"}
 
 
 def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaInfo:
-    """Inspect safe filesystem facts and WAV/FLAC/AIFF metadata when applicable."""
+    """Inspect safe filesystem facts and WAV/FLAC/AIFF/MP3/MP4/OGG metadata
+    when applicable."""
     path = Path(path)
     if not path.is_file():
         raise ValueError(f"media path is not a file: {path}")
@@ -33,8 +41,10 @@ def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaIn
     if size > max_file_bytes:
         raise ValueError(f"media file exceeds size limit: {size} > {max_file_bytes}")
     length = bitrate = None
-    audio_format = ""
+    audio_format = video_format = ""
+    video_bitrate = None
     suffix = path.suffix.casefold()
+    label = path.suffix.upper().lstrip(".")
     if suffix == ".wav":
         try:
             with wave.open(str(path), "rb") as stream:
@@ -51,8 +61,21 @@ def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaIn
     elif suffix in {".aif", ".aiff", ".aifc"}:
         length, bitrate = _inspect_aiff_common_chunk(path, size)
         audio_format = "AIFF"
+    elif suffix == ".mp3":
+        length, bitrate = _inspect_mp3(path, size)
+        audio_format = "MP3"
+    elif suffix in _OGG_AUDIO_SUFFIXES:
+        length, bitrate = _inspect_ogg_vorbis(path, size)
+        audio_format = label
+    elif suffix in _MP4_AUDIO_SUFFIXES:
+        length, bitrate = _inspect_mp4_movie_header(path, size)
+        audio_format = label
+    elif suffix in _MP4_VIDEO_SUFFIXES:
+        length, video_bitrate = _inspect_mp4_movie_header(path, size)
+        video_format = label
     return MediaInfo(
-        str(path), path.stem, path.suffix, size, length, audio_format, bitrate
+        str(path), path.stem, path.suffix, size, length,
+        audio_format, bitrate, video_format, video_bitrate,
     )
 
 
@@ -155,16 +178,314 @@ def _inspect_aiff_common_chunk(path: Path, size: int) -> tuple[int | None, int |
     return length, bitrate
 
 
+_MP3_BITRATES_KBPS = {
+    # Keyed by (version_index, layer_index); see ISO/IEC 11172-3 frame header.
+    # version_index: 0=MPEG2.5, 2=MPEG2, 3=MPEG1 (1 is reserved).
+    # layer_index: 1=Layer III, 2=Layer II, 3=Layer I (0 is reserved).
+    (3, 3): (0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, -1),
+    (3, 2): (0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, -1),
+    (3, 1): (0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1),
+    (2, 3): (0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, -1),
+    (2, 2): (0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, -1),
+    (2, 1): (0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, -1),
+}
+_MP3_BITRATES_KBPS[(0, 3)] = _MP3_BITRATES_KBPS[(2, 3)]
+_MP3_BITRATES_KBPS[(0, 2)] = _MP3_BITRATES_KBPS[(2, 2)]
+_MP3_BITRATES_KBPS[(0, 1)] = _MP3_BITRATES_KBPS[(2, 1)]
+_MP3_SAMPLE_RATES = {
+    3: (44100, 48000, 32000),  # MPEG1
+    2: (22050, 24000, 16000),  # MPEG2
+    0: (11025, 12000, 8000),  # MPEG2.5
+}
+_MP3_SEARCH_WINDOW_BYTES = 65536
+
+
+def _mp3_tag_size(path: Path) -> int:
+    """Return the byte size of a leading ID3v2 tag, or 0 when there is none.
+
+    The 10-byte header holds a syncsafe (7 bits per byte) body size; when the
+    footer-present flag is set, an identical 10-byte footer follows the body.
+    """
+    with path.open("rb") as stream:
+        header = stream.read(10)
+    if len(header) != 10 or header[0:3] != b"ID3":
+        return 0
+    flags = header[5]
+    body = header[6:10]
+    if any(byte & 0x80 for byte in body):
+        return 0
+    body_size = (body[0] << 21) | (body[1] << 14) | (body[2] << 7) | body[3]
+    return 10 + body_size + (10 if flags & 0x10 else 0)
+
+
+def _mp3_frame_header(word: int) -> tuple[int, int, int, int, int, int] | None:
+    """Decode one 4-byte MPEG audio frame header, or None if not a valid sync."""
+    if word & 0xFFE0_0000 != 0xFFE0_0000:
+        return None
+    version_index = (word >> 19) & 0x3
+    layer_index = (word >> 17) & 0x3
+    bitrate_index = (word >> 12) & 0xF
+    sample_rate_index = (word >> 10) & 0x3
+    padding = (word >> 9) & 0x1
+    if version_index == 1 or layer_index == 0 or sample_rate_index == 3:
+        return None
+    table = _MP3_BITRATES_KBPS.get((version_index, layer_index))
+    if table is None or not (0 < bitrate_index < 15):
+        return None
+    bitrate_kbps = table[bitrate_index]
+    if bitrate_kbps <= 0:
+        return None
+    sample_rate = _MP3_SAMPLE_RATES[version_index][sample_rate_index]
+    if layer_index == 3:
+        frame_length = (12 * bitrate_kbps * 1000 // sample_rate + padding) * 4
+    elif layer_index == 1 and version_index != 3:
+        frame_length = 72 * bitrate_kbps * 1000 // sample_rate + padding
+    else:
+        frame_length = 144 * bitrate_kbps * 1000 // sample_rate + padding
+    if frame_length <= 4:
+        return None
+    return version_index, layer_index, bitrate_kbps, sample_rate, padding, frame_length
+
+
+def _inspect_mp3(path: Path, size: int) -> tuple[int | None, int | None]:
+    """Estimate duration and bitrate from the first valid MPEG audio frame.
+
+    MP3 has no mandatory duration field: unlike FLAC's STREAMINFO or AIFF's
+    COMM chunk, only an optional Xing/Info/VBRI side header (not parsed here)
+    declares an exact frame count. This computes a constant-bitrate estimate
+    from the first frame's declared bitrate and the remaining audio byte
+    count instead, which is exact for CBR files — the common case — and an
+    approximation for variable-bitrate files, the same documented trade-off
+    already made for AIFF-C's non-PCM branch.
+    """
+    offset = _mp3_tag_size(path)
+    with path.open("rb") as stream:
+        stream.seek(offset)
+        window = stream.read(min(_MP3_SEARCH_WINDOW_BYTES, max(0, size - offset)))
+    header = None
+    frame_offset = None
+    limit = len(window) - 3
+    index = 0
+    while index < limit:
+        word = int.from_bytes(window[index:index + 4], "big")
+        header = _mp3_frame_header(word)
+        if header is not None:
+            frame_offset = offset + index
+            break
+        index += 1
+    if header is None or frame_offset is None:
+        raise ValueError("invalid MP3 media file: no MPEG audio frame sync found")
+    _version_index, _layer_index, bitrate_kbps, _sample_rate, _padding, _frame_length = header
+    audio_bytes = size - frame_offset
+    if size >= 128:
+        with path.open("rb") as stream:
+            stream.seek(size - 128)
+            if stream.read(3) == b"TAG":
+                audio_bytes -= 128
+    if audio_bytes <= 0:
+        return None, bitrate_kbps
+    length = round(audio_bytes * 8 / (bitrate_kbps * 1000))
+    return length, bitrate_kbps
+
+
+_OGG_PAGE_HEADER_SIZE = 27
+_OGG_IDENTIFICATION_HEADER_SIZE = 30
+_OGG_TAIL_SEARCH_BYTES = 65536
+
+
+def _inspect_ogg_vorbis(path: Path, size: int) -> tuple[int | None, int | None]:
+    """Read the Vorbis identification header and the stream's final granule
+    position for duration and bitrate.
+
+    Ogg is a page-based container: a four-byte ``OggS`` magic starts a fixed
+    27-byte page header (including a per-page sample-count "granule
+    position" and a serial number identifying which logical bitstream the
+    page belongs to), followed by a lacing segment table that reassembles
+    into one or more packets. This only supports the single most common
+    shape — one Ogg Vorbis logical bitstream per file, whose mandatory
+    Vorbis identification packet (``\\x01vorbis``, always small enough that
+    real encoders fit it in the first page) declares sample rate and a
+    nominal bitrate. Multiplexed streams (e.g. Ogg files also carrying
+    Theora video) and Opus streams (``OpusHead`` instead of
+    ``\\x01vorbis``) are out of scope and rejected with a clear error
+    rather than guessed at. Total duration comes from the last page's
+    granule position (total PCM samples), found the same bounded way MP3
+    duration is estimated from a search window — here from the end of the
+    file, since Ogg pages carry no leading index of where the stream ends.
+    """
+    with path.open("rb") as stream:
+        header = stream.read(_OGG_PAGE_HEADER_SIZE)
+        if len(header) != _OGG_PAGE_HEADER_SIZE or header[0:4] != b"OggS":
+            raise ValueError("invalid Ogg media file: missing OggS marker")
+        serial = header[14:18]
+        segment_count = header[26]
+        segment_table = stream.read(segment_count)
+        if len(segment_table) != segment_count:
+            raise ValueError("invalid Ogg media file: truncated segment table")
+        first_packet_length = 0
+        for lacing_value in segment_table:
+            first_packet_length += lacing_value
+            if lacing_value < 255:
+                break
+        packet = stream.read(first_packet_length)
+        if (
+            len(packet) != first_packet_length
+            or len(packet) < _OGG_IDENTIFICATION_HEADER_SIZE
+            or not packet.startswith(b"\x01vorbis")
+        ):
+            raise ValueError(
+                "invalid Ogg media file: missing Vorbis identification header"
+            )
+        sample_rate = int.from_bytes(packet[12:16], "little")
+        bitrate_nominal = int.from_bytes(packet[20:24], "little", signed=True)
+    if sample_rate <= 0:
+        return None, None
+    tail_size = min(_OGG_TAIL_SEARCH_BYTES, size)
+    with path.open("rb") as stream:
+        stream.seek(size - tail_size)
+        tail = stream.read(tail_size)
+    total_samples = None
+    index = tail.rfind(b"OggS")
+    while index != -1:
+        candidate = tail[index:index + _OGG_PAGE_HEADER_SIZE]
+        if len(candidate) == _OGG_PAGE_HEADER_SIZE and candidate[14:18] == serial:
+            granule = int.from_bytes(candidate[6:14], "little", signed=True)
+            if granule >= 0:
+                total_samples = granule
+                break
+        index = tail.rfind(b"OggS", 0, index)
+    length = round(total_samples / sample_rate) if total_samples else None
+    bitrate = bitrate_nominal // 1000 if bitrate_nominal > 0 else None
+    if bitrate is None and length:
+        bitrate = round(size * 8 / length / 1000)
+    return length, bitrate
+
+
+_MP4_MAX_TOP_LEVEL_BOXES = 64
+_MP4_MAX_MOOV_BYTES = 64 * 1024 * 1024
+_MP4_MAX_MOOV_CHILDREN = 64
+
+
+def _read_mp4_box_header(stream, remaining: int) -> tuple[bytes, int, int] | None:
+    """Read one ISO base media box header, returning (type, payload_size,
+    header_size), resolving a size-0 "to end of file" box against *remaining*."""
+    header = stream.read(8)
+    if len(header) != 8:
+        return None
+    size = int.from_bytes(header[0:4], "big")
+    box_type = header[4:8]
+    header_size = 8
+    if size == 1:
+        extended = stream.read(8)
+        if len(extended) != 8:
+            return None
+        size = int.from_bytes(extended, "big")
+        header_size = 16
+    elif size == 0:
+        return box_type, remaining - header_size, header_size
+    if size < header_size:
+        return None
+    return box_type, size - header_size, header_size
+
+
+def _inspect_mp4_movie_header(path: Path, size: int) -> tuple[int | None, int | None]:
+    """Read the ``moov``/``mvhd`` box for movie-level duration and an
+    average bitrate.
+
+    MP4/M4A/MOV files are ISO base media containers (the same box structure
+    underlies all three): a flat sequence of top-level boxes, each a
+    four-byte big-endian size, a four-character type, and a payload that
+    may itself hold nested boxes; a box may declare size 1 for a 64-bit
+    extended size following the header, or size 0 to mean "extends to end
+    of file". Duration and its timescale live in the mandatory
+    ``moov/mvhd`` box. There is no per-codec bitrate field at this level —
+    that lives in codec-specific sample tables this reader does not parse,
+    the same reason it does not attempt resolution, framerate, or a real
+    codec name — so bitrate here is only an average over the whole
+    file, the same documented trade-off already made for AIFF-C's non-PCM
+    branch and MP3's VBR files. Top-level box payloads before ``moov`` are
+    skipped via ``seek`` rather than read, since ``mdat`` (the actual media
+    data) can be arbitrarily large; ``moov`` itself is read fully, bounded
+    by ``_MP4_MAX_MOOV_BYTES``, since it is metadata expected to be small.
+    """
+    with path.open("rb") as stream:
+        moov_payload = None
+        for _ in range(_MP4_MAX_TOP_LEVEL_BOXES):
+            position = stream.tell()
+            header = _read_mp4_box_header(stream, size - position)
+            if header is None:
+                break
+            box_type, payload_size, header_size = header
+            if box_type == b"moov":
+                if payload_size < 0 or payload_size > _MP4_MAX_MOOV_BYTES:
+                    raise ValueError("invalid MP4 media file: moov box exceeds size limit")
+                moov_payload = stream.read(payload_size)
+                if len(moov_payload) != payload_size:
+                    raise ValueError("invalid MP4 media file: truncated moov box")
+                break
+            if payload_size < 0:
+                break
+            stream.seek(position + header_size + payload_size)
+        if moov_payload is None:
+            raise ValueError("invalid MP4 media file: missing moov box")
+    mvhd = None
+    offset = 0
+    for _ in range(_MP4_MAX_MOOV_CHILDREN):
+        if offset + 8 > len(moov_payload):
+            break
+        child_size = int.from_bytes(moov_payload[offset:offset + 4], "big")
+        child_type = moov_payload[offset + 4:offset + 8]
+        if child_size < 8 or offset + child_size > len(moov_payload):
+            break
+        if child_type == b"mvhd":
+            mvhd = moov_payload[offset + 8:offset + child_size]
+            break
+        offset += child_size
+    if mvhd is None or len(mvhd) < 4:
+        raise ValueError("invalid MP4 media file: missing mvhd box")
+    version = mvhd[0]
+    if version == 1:
+        if len(mvhd) < 32:
+            raise ValueError("invalid MP4 media file: truncated mvhd box")
+        timescale = int.from_bytes(mvhd[20:24], "big")
+        duration = int.from_bytes(mvhd[24:32], "big")
+    else:
+        if len(mvhd) < 20:
+            raise ValueError("invalid MP4 media file: truncated mvhd box")
+        timescale = int.from_bytes(mvhd[12:16], "big")
+        duration = int.from_bytes(mvhd[16:20], "big")
+    if timescale <= 0 or duration <= 0:
+        return None, None
+    length = round(duration / timescale)
+    bitrate = round(size * 8 / length / 1000) if length else None
+    return length, bitrate
+
+
 def movie_from_media(path: str | Path) -> Movie:
-    """Create a movie populated only with facts established by media inspection."""
+    """Create a movie populated only with facts established by media inspection.
+
+    `Movie.length` is minutes, matching upstream's own documented unit for
+    the "Length" field (`options_en.html`: "Read the length of the file (in
+    minutes) and put it in the 'Length' field") and every other place this
+    port already treats it as minutes (the GUI statistics dialog's "Total
+    length (minutes)" label, `$$ITEM_LENGTH`'s upstream tag). `MediaInfo.
+    length_seconds` stays in seconds, the natural unit for a single media
+    file's exact duration; this is the one boundary that converts between
+    the two, rounding to the nearest whole minute.
+    """
     info = inspect_media(path)
+    length_minutes = (
+        round(info.length_seconds / 60) if info.length_seconds is not None else None
+    )
     return Movie(
         title=info.name,
         media_label=Path(info.path).name,
         media_type=info.extension.lstrip(".").upper(),
-        length=info.length_seconds,
+        length=length_minutes,
         audio_format=info.audio_format,
         audio_bitrate=info.audio_bitrate,
+        video_format=info.video_format,
+        video_bitrate=info.video_bitrate,
         file_size=info.size,
         extras={"media_path": info.path},
     )

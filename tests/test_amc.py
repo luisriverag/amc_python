@@ -32,6 +32,28 @@ def test_json_catalog_with_legacy_amc_extension_still_opens(tmp_path: Path):
     ]
 
 
+def test_bom_prefixed_json_catalog_with_legacy_amc_extension_still_opens(
+    tmp_path: Path,
+):
+    target = tmp_path / "legacy-working-catalog.amc"
+    document = json.dumps(
+        {"format": "amc-python", "version": 1, "movies": [], "metadata": {}}
+    )
+    target.write_bytes(b"\xef\xbb\xbf" + document.encode("utf-8"))
+
+    assert len(load(target)) == 0
+
+
+def test_bom_prefixed_json_catalog_opens(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    document = json.dumps(
+        {"format": "amc-python", "version": 1, "movies": [], "metadata": {}}
+    )
+    target.write_bytes(b"\xef\xbb\xbf" + document.encode("utf-8"))
+
+    assert len(load(target)) == 0
+
+
 def test_import_ant_xml(tmp_path: Path):
     source = tmp_path / "catalog.xml"
     source.write_text('''<?xml version="1.0"?><AntMovieCatalog><Catalog><Contents>
@@ -54,6 +76,72 @@ def test_import_realistic_attribute_based_ant_xml(tmp_path: Path):
     assert (movie.original_title, movie.year, movie.video_bitrate, movie.framerate) == ("Brazil", 1985, 1200, 23.976)
     assert movie.description == "Future imperfect."
     assert movie.extras == {"UnknownAttribute": "kept"}
+
+
+def test_import_ant_xml_maps_disks_and_size_not_mediacount_and_filesize(tmp_path: Path):
+    """`Disks` and `Size` are the real Ant Movie Catalog 4.2.2 XML attribute
+    names (confirmed against a genuine upstream export and against
+    `Movie Catalog/fields.pas`'s strTagFields table); `MediaCount` and
+    `FileSize` never appear in any upstream-produced XML and were a
+    previous naming bug in this reader/writer."""
+    source = tmp_path / "catalog.xml"
+    source.write_text(
+        '<AntMovieCatalog><Catalog><Contents>'
+        '<Movie Number="1" Checked="False" OriginalTitle="Brazil" '
+        'Disks="2" Size="1835" /></Contents></Catalog></AntMovieCatalog>',
+        encoding="utf-8",
+    )
+    movie = next(iter(load_xml(source)))
+    assert (movie.media_count, movie.file_size) == (2, 1835)
+    assert movie.extras == {}
+
+
+def test_import_ant_xml_retains_multipart_size_text_without_data_loss(tmp_path: Path):
+    """Ant Movie Catalog's Size field is free-form text, not a plain
+    integer: a multi-part release is exported as "+"-joined sizes (e.g. a
+    genuine "698+696" observed in a real catalog). Silently taking only the
+    first number would discard the rest, so the exact original text is
+    retained in extras instead when it isn't a plain integer."""
+    source = tmp_path / "catalog.xml"
+    source.write_text(
+        '<AntMovieCatalog><Catalog><Contents>'
+        '<Movie Number="1" OriginalTitle="Split Release" Size="698+696" />'
+        '</Contents></Catalog></AntMovieCatalog>',
+        encoding="utf-8",
+    )
+    movie = next(iter(load_xml(source)))
+    assert movie.file_size is None
+    assert movie.extras == {"xml_file_size_text": "698+696"}
+
+    target = tmp_path / "export.xml"
+    save_xml(Catalog([movie]), target)
+    reloaded = next(iter(load_xml(target)))
+    assert reloaded.file_size is None
+    assert reloaded.extras == {"xml_file_size_text": "698+696"}
+    assert 'Size="698+696"' in target.read_text(encoding="utf-8")
+
+
+def test_import_ant_xml_recovers_from_declared_encoding_mismatch(tmp_path: Path):
+    """A genuine AMC 4.2.2 export was observed containing a raw multi-byte
+    UTF-8 emoji inside a file declared as single-byte windows-1252 (a real
+    upstream/Delphi encoding mismatch in the source data, not something
+    this writer produces). Strict XML parsing correctly rejects that byte
+    sequence; retry once, tolerantly, so the rest of an otherwise-valid
+    catalog still loads instead of failing outright."""
+    source = tmp_path / "mismatched.xml"
+    document = (
+        b'<?xml version="1.0" encoding="windows-1252"?>'
+        b'<AntMovieCatalog><Catalog><Contents>'
+        b'<Movie Number="1" OriginalTitle="Brazil"><Comments>'
+        b"cat face: " + "🐱".encode("utf-8") +
+        b'</Comments></Movie></Contents></Catalog></AntMovieCatalog>'
+    )
+    source.write_bytes(document)
+
+    movie = next(iter(load_xml(source)))
+
+    assert movie.original_title == "Brazil"
+    assert "cat face:" in movie.comments
 
 
 def test_cli_add_and_list(tmp_path: Path, capsys):
@@ -414,6 +502,20 @@ def test_csv_roundtrip_with_amc_headers_and_custom_fields(tmp_path: Path):
     assert restored.to_dict() == movie.to_dict()
 
 
+def test_csv_load_rejects_duplicate_extras_header(tmp_path: Path):
+    source = tmp_path / "import.csv"
+    source.write_text("Title,Inventory Code,Inventory Code\nAlien,A-1,A-2\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate CSV header 'Inventory Code'"):
+        load_csv(source)
+
+
+def test_csv_load_rejects_headers_colliding_on_the_same_known_field(tmp_path: Path):
+    source = tmp_path / "import.csv"
+    source.write_text("Title,title\nAlien,alien\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate CSV header 'title' collides with 'Title'"):
+        load_csv(source)
+
+
 def test_html_export_is_static_escaped_and_atomic(tmp_path: Path):
     target = tmp_path / "catalog.html"
     save_html(Catalog([
@@ -758,6 +860,118 @@ def test_cli_edit_set_rejects_invalid_values_without_saving(tmp_path: Path):
     assert target.read_bytes() == previous
     assert main(["-c", str(target), "edit", "1", "--set", "number=2"]) == 2
     assert target.read_bytes() == previous
+
+
+_OMDB_RECORD = {
+    "Title": "Alien", "Year": "1979", "Rated": "R", "Runtime": "117 min",
+    "Genre": "Horror, Sci-Fi", "Director": "Ridley Scott", "Writer": "Dan O'Bannon",
+    "Actors": "Sigourney Weaver", "Plot": "A crew encounters a deadly lifeform.",
+    "Language": "English", "Country": "United States", "imdbRating": "8.5",
+    "imdbID": "tt0078748", "Response": "True",
+}
+
+
+def test_cli_imdb_lookup_previews_without_saving(monkeypatch, tmp_path: Path, capsys):
+    calls = []
+
+    def fake_fetch(**kwargs):
+        calls.append(kwargs)
+        return dict(_OMDB_RECORD)
+
+    monkeypatch.setattr("amc.cli.fetch_omdb_record", fake_fetch)
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "testkey"]) == 0
+
+    assert calls[0]["api_key"] == "testkey"
+    assert calls[0]["title"] == "Alien"
+    movie = load(target).get(1)
+    assert movie.director == ""  # preview only, catalog untouched
+    output = capsys.readouterr().out
+    assert "Preview for #1" in output
+    assert "use --apply to save" in output
+    assert "director: '' -> 'Ridley Scott'" in output
+
+
+def test_cli_imdb_lookup_apply_saves_the_previewed_changes(
+    monkeypatch, tmp_path: Path, capsys
+):
+    monkeypatch.setattr("amc.cli.fetch_omdb_record", lambda **kwargs: dict(_OMDB_RECORD))
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "k", "--apply"]) == 0
+
+    movie = load(target).get(1)
+    assert movie.director == "Ridley Scott"
+    assert movie.rating == 8.5
+    assert movie.year == 1979
+    assert "Updated #1" in capsys.readouterr().out
+
+
+def test_cli_imdb_lookup_reports_no_changes_without_touching_the_catalog(
+    monkeypatch, tmp_path: Path, capsys
+):
+    matching = Movie(
+        number=1, title="Alien", director="Ridley Scott", writer="Dan O'Bannon",
+        actors="Sigourney Weaver", description="A crew encounters a deadly lifeform.",
+        category="Horror, Sci-Fi", country="United States", languages="English",
+        certification="R", year=1979, length=117, rating=8.5,
+        url="https://www.imdb.com/title/tt0078748/",
+    )
+    monkeypatch.setattr("amc.cli.fetch_omdb_record", lambda **kwargs: dict(_OMDB_RECORD))
+    target = tmp_path / "catalog.json"
+    save(Catalog([matching]), target)
+    previous = target.read_bytes()
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "k", "--apply"]) == 0
+
+    assert target.read_bytes() == previous
+    assert "No changes for #1" in capsys.readouterr().out
+
+
+def test_cli_imdb_lookup_uses_the_env_var_api_key_when_no_flag_given(
+    monkeypatch, tmp_path: Path
+):
+    calls = []
+    monkeypatch.setattr(
+        "amc.cli.fetch_omdb_record",
+        lambda **kwargs: calls.append(kwargs) or dict(_OMDB_RECORD),
+    )
+    monkeypatch.setenv("OMDB_API_KEY", "from-env")
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1"]) == 0
+
+    assert calls[0]["api_key"] == "from-env"
+
+
+def test_cli_imdb_lookup_prefers_an_existing_imdb_url_over_title_search(
+    monkeypatch, tmp_path: Path
+):
+    calls = []
+    monkeypatch.setattr(
+        "amc.cli.fetch_omdb_record",
+        lambda **kwargs: calls.append(kwargs) or dict(_OMDB_RECORD),
+    )
+    target = tmp_path / "catalog.json"
+    save(Catalog([
+        Movie(number=1, title="Alien", url="https://www.imdb.com/title/tt0078748/"),
+    ]), target)
+
+    assert main(["-c", str(target), "imdb-lookup", "1", "--api-key", "k"]) == 0
+
+    assert calls[0]["imdb_id"] == "tt0078748"
+    assert calls[0]["title"] == ""
+
+
+def test_cli_imdb_lookup_requires_an_api_key(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("OMDB_API_KEY", raising=False)
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+    assert main(["-c", str(target), "imdb-lookup", "1"]) == 2
 
 
 def test_cli_exit_status_constants_are_stable():

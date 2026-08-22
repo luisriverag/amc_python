@@ -3,9 +3,7 @@ from pathlib import Path
 import tarfile
 
 
-SPEC = importlib.util.spec_from_file_location(
-    "check_package", Path("tools/check_package.py")
-)
+SPEC = importlib.util.spec_from_file_location("check_package", Path("tools/check_package.py"))
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader
 SPEC.loader.exec_module(MODULE)

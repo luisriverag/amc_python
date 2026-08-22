@@ -72,11 +72,14 @@ def render_catalog(
     if sort not in sort_fields:
         raise ValueError(f"unknown web sort field: {sort}")
     if sort == "title":
+
         def key(movie: Movie) -> str | int | bool:
             return movie.display_title().casefold()
     else:
+
         def key(movie: Movie) -> str | int | bool:
             return getattr(movie, sort)
+
     present = [movie for movie in movies if key(movie) is not None]
     missing = [movie for movie in movies if key(movie) is None]
     movies = sorted(present, key=key, reverse=descending) + missing
@@ -94,27 +97,31 @@ def render_catalog(
     movies = movies[start : start + page_size]
 
     def page_link(target: int, label: str) -> str:
-        params = urlencode({
-            "q": query,
-            "view": view,
-            "sort": sort,
-            "desc": int(descending),
-            "page": target,
-            "size": page_size,
-            "layout": layout,
-        })
+        params = urlencode(
+            {
+                "q": query,
+                "view": view,
+                "sort": sort,
+                "desc": int(descending),
+                "page": target,
+                "size": page_size,
+                "layout": layout,
+            }
+        )
         return f"<a href='/?{html.escape(params, quote=True)}'>{label}</a>"
 
     def heading(field: str, label: str) -> str:
         reverse = sort == field and not descending
-        params = urlencode({
-            "q": query,
-            "view": view,
-            "sort": field,
-            "desc": int(reverse),
-            "size": page_size,
-            "layout": layout,
-        })
+        params = urlencode(
+            {
+                "q": query,
+                "view": view,
+                "sort": field,
+                "desc": int(reverse),
+                "size": page_size,
+                "layout": layout,
+            }
+        )
         marker = " ▼" if sort == field and descending else " ▲" if sort == field else ""
         return f"<th scope='col'><a href='/?{html.escape(params, quote=True)}'>{label}{marker}</a></th>"
 
@@ -123,8 +130,7 @@ def render_catalog(
         "<td><a href='/movie/{number}'>{title}</a></td>"
         "<td>{year}</td><td>{director}</td></tr>".format(
             poster=(
-                f"<img class='poster-thumb' src='/poster/{movie.number}' "
-                "alt='' loading='lazy'>"
+                f"<img class='poster-thumb' src='/poster/{movie.number}' alt='' loading='lazy'>"
                 if poster_source(movie, service.path)
                 else "<span class='poster-placeholder' aria-hidden='true'>—</span>"
             ),
@@ -149,17 +155,12 @@ def render_catalog(
             year=movie.year or "",
             separator=" · " if movie.year and movie.director else "",
             director=html.escape(movie.director),
-            status=(
-                f"Loaned to {html.escape(movie.borrower)}"
-                if movie.borrower
-                else "Available"
-            ),
+            status=(f"Loaned to {html.escape(movie.borrower)}" if movie.borrower else "Available"),
         )
         for movie in movies
     )
     options = "".join(
-        f"<option{' selected' if item == view else ''}>{item}</option>"
-        for item in VIEW_FILTERS
+        f"<option{' selected' if item == view else ''}>{item}</option>" for item in VIEW_FILTERS
     )
     sizes = "".join(
         f"<option{' selected' if item == page_size else ''}>{item}</option>"
@@ -184,39 +185,58 @@ def render_catalog(
 def render_movie(service: CatalogService, movie: Movie) -> str:
     """Render one movie using the desktop details/poster vocabulary."""
     fields = (
-        ("Number", movie.number), ("Original title", movie.original_title),
-        ("Translated title", movie.translated_title), ("Director", movie.director),
-        ("Producer", movie.producer), ("Country", movie.country),
-        ("Category", movie.category), ("Year", movie.year),
-        ("Length", movie.length), ("Rating", movie.rating),
-        ("Date", movie.date), ("Borrower", movie.borrower),
-        ("Media label", movie.media_label), ("Media type", movie.media_type),
-        ("Media count", movie.media_count), ("Source", movie.source),
-        ("Languages", movie.languages), ("Subtitles", movie.subtitles),
+        ("Number", movie.number),
+        ("Original title", movie.original_title),
+        ("Translated title", movie.translated_title),
+        ("Director", movie.director),
+        ("Producer", movie.producer),
+        ("Country", movie.country),
+        ("Category", movie.category),
+        ("Year", movie.year),
+        ("Length", movie.length),
+        ("Rating", movie.rating),
+        ("Date", movie.date),
+        ("Borrower", movie.borrower),
+        ("Media label", movie.media_label),
+        ("Media type", movie.media_type),
+        ("Media count", movie.media_count),
+        ("Source", movie.source),
+        ("Languages", movie.languages),
+        ("Subtitles", movie.subtitles),
         ("Video format", movie.video_format),
         ("Video bitrate", movie.video_bitrate),
         ("Audio format", movie.audio_format),
         ("Audio bitrate", movie.audio_bitrate),
-        ("Resolution", movie.resolution), ("Framerate", movie.framerate),
+        ("Resolution", movie.resolution),
+        ("Framerate", movie.framerate),
         ("File size", movie.file_size),
         ("User rating", movie.user_rating),
         ("Color tag", movie.color_tag),
         ("File path", movie.file_path or movie.extras.get("native_file_path", "")),
-        ("Actors", movie.actors), ("Description", movie.description),
+        ("Actors", movie.actors),
+        ("Description", movie.description),
         ("Comments", movie.comments),
     )
     details = "".join(
         f"<dt>{html.escape(label)}</dt><dd>{html.escape(str(value))}</dd>"
-        for label, value in fields if value
+        for label, value in fields
+        if value
     )
     poster = poster_source(movie, service.path)
-    image = f"<img src='/poster/{movie.number}' alt='Poster for {html.escape(movie.display_title(), quote=True)}'>" if poster else "<p>No poster assigned</p>"
+    image = (
+        f"<img src='/poster/{movie.number}' alt='Poster for {html.escape(movie.display_title(), quote=True)}'>"
+        if poster
+        else "<p>No poster assigned</p>"
+    )
     link = ""
     parsed = urlparse(movie.url.strip())
     if parsed.scheme.casefold() in {"http", "https"} and parsed.netloc:
         safe_url = html.escape(movie.url.strip(), quote=True)
         link = f"<p><a href='{safe_url}' rel='noopener noreferrer'>Open movie URL</a></p>"
-    return _page(movie.display_title(), f"<header><a href='/'>← Catalog</a><h1>{html.escape(movie.display_title())}</h1></header><main class='details'>{image}<section><dl>{details}</dl>{link}</section></main>")
+    return _page(
+        movie.display_title(),
+        f"<header><a href='/'>← Catalog</a><h1>{html.escape(movie.display_title())}</h1></header><main class='details'>{image}<section><dl>{details}</dl>{link}</section></main>",
+    )
 
 
 def poster_response(service: CatalogService, movie: Movie) -> tuple[bytes, str]:
@@ -275,17 +295,19 @@ def handler_for(state: CatalogWebState) -> type[BaseHTTPRequestHandler]:
                     if len(query) > 500:
                         self.send_error(400, "search query is too long")
                         return
-                    self._html(render_catalog(
-                        service,
-                        query=query,
-                        view=params.get("view", ["All"])[0],
-                        sort=params.get("sort", ["number"])[0],
-                        descending=params.get("desc", ["0"])[0] == "1",
-                        reload_error=state.reload_error,
-                        page=int(params.get("page", ["1"])[0]),
-                        page_size=int(params.get("size", ["100"])[0]),
-                        layout=params.get("layout", ["Table"])[0],
-                    ))
+                    self._html(
+                        render_catalog(
+                            service,
+                            query=query,
+                            view=params.get("view", ["All"])[0],
+                            sort=params.get("sort", ["number"])[0],
+                            descending=params.get("desc", ["0"])[0] == "1",
+                            reload_error=state.reload_error,
+                            page=int(params.get("page", ["1"])[0]),
+                            page_size=int(params.get("size", ["100"])[0]),
+                            layout=params.get("layout", ["Table"])[0],
+                        )
+                    )
                 elif parsed.path.startswith("/movie/"):
                     self._html(render_movie(service, service.catalog.get(int(parsed.path[7:]))))
                 elif parsed.path.startswith("/poster/"):
@@ -299,7 +321,10 @@ def handler_for(state: CatalogWebState) -> type[BaseHTTPRequestHandler]:
             data = value.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+            )
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(data)))

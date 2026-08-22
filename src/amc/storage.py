@@ -27,13 +27,24 @@ from .native import (
 )
 
 _XML_FIELDS = {
-    "OriginalTitle": "original_title", "TranslatedTitle": "translated_title",
-    "FormattedTitle": "title", "Director": "director", "Producer": "producer",
-    "Writer": "writer", "Composer": "composer", "Country": "country",
-    "Category": "category", "Certification": "certification", "Year": "year",
-    "Length": "length", "FilePath": "file_path",
-    "Rating": "rating", "UserRating": "user_rating", "ColorTag": "color_tag",
-    "Date": "date", "Borrower": "borrower",
+    "OriginalTitle": "original_title",
+    "TranslatedTitle": "translated_title",
+    "FormattedTitle": "title",
+    "Director": "director",
+    "Producer": "producer",
+    "Writer": "writer",
+    "Composer": "composer",
+    "Country": "country",
+    "Category": "category",
+    "Certification": "certification",
+    "Year": "year",
+    "Length": "length",
+    "FilePath": "file_path",
+    "Rating": "rating",
+    "UserRating": "user_rating",
+    "ColorTag": "color_tag",
+    "Date": "date",
+    "Borrower": "borrower",
     # "Disks" and "Size" match Ant Movie Catalog's own field-tag table
     # (Movie Catalog/fields.pas: strTagFields), confirmed against a genuine
     # AMC 4.2.2 XML export: every movie in that file used these
@@ -42,18 +53,34 @@ _XML_FIELDS = {
     # in the upstream Delphi source and silently routed every real AMC XML
     # catalog's disk-count and file-size data into `extras` instead of the
     # typed `media_count`/`file_size` fields.
-    "MediaLabel": "media_label", "MediaType": "media_type", "Disks": "media_count",
-    "Source": "source", "URL": "url", "Description": "description", "Comments": "comments",
-    "Actors": "actors", "Languages": "languages", "Subtitles": "subtitles",
-    "VideoFormat": "video_format", "VideoBitrate": "video_bitrate",
-    "AudioFormat": "audio_format", "AudioBitrate": "audio_bitrate",
-    "Resolution": "resolution", "Framerate": "framerate", "Size": "file_size",
+    "MediaLabel": "media_label",
+    "MediaType": "media_type",
+    "Disks": "media_count",
+    "Source": "source",
+    "URL": "url",
+    "Description": "description",
+    "Comments": "comments",
+    "Actors": "actors",
+    "Languages": "languages",
+    "Subtitles": "subtitles",
+    "VideoFormat": "video_format",
+    "VideoBitrate": "video_bitrate",
+    "AudioFormat": "audio_format",
+    "AudioBitrate": "audio_bitrate",
+    "Resolution": "resolution",
+    "Framerate": "framerate",
+    "Size": "file_size",
     "Picture": "picture",
 }
 _PYTHON_TO_XML = {value: key for key, value in _XML_FIELDS.items()}
 _INTEGER_FIELDS = {
-    "year", "length", "media_count", "video_bitrate", "audio_bitrate",
-    "file_size", "color_tag",
+    "year",
+    "length",
+    "media_count",
+    "video_bitrate",
+    "audio_bitrate",
+    "file_size",
+    "color_tag",
 }
 _FLOAT_FIELDS = {"rating", "user_rating", "framerate"}
 
@@ -153,9 +180,7 @@ def _looks_like_json(prefix: bytes) -> bool:
     return prefix.lstrip().startswith((b"{", b"["))
 
 
-def _load_native(
-    path: Path, encoding: str, limits: NativeReadLimits | None
-) -> Catalog:
+def _load_native(path: Path, encoding: str, limits: NativeReadLimits | None) -> Catalog:
     native = read_native_catalog(path, encoding=encoding, limits=limits)
     metadata: dict[str, object] = {
         "native": {
@@ -175,7 +200,17 @@ def _load_native(
 def save(catalog: Catalog, path: str | Path) -> None:
     path = Path(path)
     with _atomic_text(path) as stream:
-        json.dump({"format": "amc-python", "version": 1, "metadata": catalog.metadata, "movies": [m.to_dict() for m in catalog]}, stream, ensure_ascii=False, indent=2)
+        json.dump(
+            {
+                "format": "amc-python",
+                "version": 1,
+                "metadata": catalog.metadata,
+                "movies": [m.to_dict() for m in catalog],
+            },
+            stream,
+            ensure_ascii=False,
+            indent=2,
+        )
         stream.write("\n")
 
 
@@ -231,9 +266,7 @@ def _reject_duplicate_csv_headers(
         field = aliases.get(stripped.casefold(), stripped.casefold().replace(" ", "_"))
         key = field if field in known and field != "extras" else stripped
         if key in seen:
-            raise ValueError(
-                f"duplicate CSV header {stripped!r} collides with {seen[key]!r}"
-            )
+            raise ValueError(f"duplicate CSV header {stripped!r} collides with {seen[key]!r}")
         seen[key] = stripped
 
 
@@ -251,7 +284,9 @@ def load_csv(path: str | Path) -> Catalog:
             for header, text in row.items():
                 if header is None:
                     continue
-                field = aliases.get(header.strip().casefold(), header.strip().casefold().replace(" ", "_"))
+                field = aliases.get(
+                    header.strip().casefold(), header.strip().casefold().replace(" ", "_")
+                )
                 text = text or ""
                 if field in _INTEGER_FIELDS or field == "number":
                     values[field] = _number(text, int)
@@ -277,16 +312,15 @@ def save_csv(catalog: Catalog, path: str | Path) -> None:
     """Export common movie fields to an Excel-compatible UTF-8 CSV file."""
     path = Path(path)
     fieldnames = [item.name for item in fields(Movie) if item.name != "extras"]
-    extra_names = sorted(
-        {str(key) for movie in catalog for key in movie.extras}
-        - set(fieldnames)
-    )
+    extra_names = sorted({str(key) for movie in catalog for key in movie.extras} - set(fieldnames))
     with _atomic_text(path, encoding="utf-8-sig", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fieldnames + extra_names)
         writer.writeheader()
         for movie in catalog:
             row = {name: getattr(movie, name) for name in fieldnames}
-            row.update({str(key): value for key, value in movie.extras.items() if str(key) in extra_names})
+            row.update(
+                {str(key): value for key, value in movie.extras.items() if str(key) in extra_names}
+            )
             writer.writerow(row)
 
 
@@ -380,9 +414,9 @@ def save_html(
         if row_path.stat().st_size > 256 * 1024:
             raise ValueError("HTML row template exceeds size limit")
         row_source = row_path.read_text(encoding="utf-8")
-    allowed = {
-        item.name.upper() for item in fields(Movie) if item.name != "extras"
-    } | {"DISPLAY_TITLE"}
+    allowed = {item.name.upper() for item in fields(Movie) if item.name != "extras"} | {
+        "DISPLAY_TITLE"
+    }
     markers = set(re.findall(r"{{([A-Z_]+)}}", row_source))
     unknown = sorted(markers - allowed)
     if unknown:
@@ -491,7 +525,9 @@ def load_xml(path: str | Path) -> Catalog:
             "checked": (node.get("Checked") or "").casefold() in {"true", "yes", "1"},
         }
         extras: dict[str, str] = {}
-        raw_fields = {key: value for key, value in node.attrib.items() if key not in {"Number", "Checked"}}
+        raw_fields = {
+            key: value for key, value in node.attrib.items() if key not in {"Number", "Checked"}
+        }
         raw_fields.update({child.tag: child.text or "" for child in node})
         for tag, text in raw_fields.items():
             field = _XML_FIELDS.get(tag)
@@ -558,12 +594,20 @@ def _camel_to_snake(value: str) -> str:
 
 def _snake_to_camel(value: str) -> str:
     special = {
-        "tag": "Tag", "name": "Name", "extension": "Ext", "field_type": "Type",
-        "default_value": "DefaultValue", "media_info": "MediaInfo",
-        "multi_values": "MultiValues", "multi_value_separator": "MultiValuesSep",
-        "remove_parentheses": "MultiValuesRmP", "patch_values": "MultiValuesPatch",
-        "excluded_in_scripts": "ExcludedInScripts", "gui_properties": "GUIProperties",
-        "list_auto_add": "ListAutoAdd", "list_sort": "ListSort",
+        "tag": "Tag",
+        "name": "Name",
+        "extension": "Ext",
+        "field_type": "Type",
+        "default_value": "DefaultValue",
+        "media_info": "MediaInfo",
+        "multi_values": "MultiValues",
+        "multi_value_separator": "MultiValuesSep",
+        "remove_parentheses": "MultiValuesRmP",
+        "patch_values": "MultiValuesPatch",
+        "excluded_in_scripts": "ExcludedInScripts",
+        "gui_properties": "GUIProperties",
+        "list_auto_add": "ListAutoAdd",
+        "list_sort": "ListSort",
         "list_auto_complete": "ListAutoComplete",
         "list_use_catalog_values": "ListUseCatalogValues",
     }

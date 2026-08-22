@@ -115,9 +115,7 @@ def movie_from_form(movie: Movie, values: dict[str, str], *, checked: bool) -> M
     return Movie.from_dict(data)
 
 
-def movie_with_picture(
-    movie: Movie, picture: str, *, embedded: bytes | None
-) -> Movie:
+def movie_with_picture(movie: Movie, picture: str, *, embedded: bytes | None) -> Movie:
     """Return a movie with linked and embedded picture state kept consistent."""
     data = movie.to_dict()
     data["picture"] = picture.strip()
@@ -154,7 +152,9 @@ def loan_event_row(event: LoanEvent) -> tuple[object, ...]:
     )
 
 
-def poster_size(width: int, height: int, *, maximum: tuple[int, int] = (320, 420)) -> tuple[int, int]:
+def poster_size(
+    width: int, height: int, *, maximum: tuple[int, int] = (320, 420)
+) -> tuple[int, int]:
     """Fit an image within the poster pane without changing its aspect ratio."""
     if width < 1 or height < 1:
         raise ValueError("poster dimensions must be positive")
@@ -272,12 +272,16 @@ def open_crop_dialog(
     dialog.title("Crop picture")
     dialog.transient(parent.winfo_toplevel())
     ttk.Label(
-        dialog, text="Drag a rectangle over the picture, then Apply Crop.",
+        dialog,
+        text="Drag a rectangle over the picture, then Apply Crop.",
         padding=(8, 8, 8, 0),
     ).pack()
     canvas = tk.Canvas(
-        dialog, width=display_size[0], height=display_size[1],
-        highlightthickness=0, cursor="crosshair",
+        dialog,
+        width=display_size[0],
+        height=display_size[1],
+        highlightthickness=0,
+        cursor="crosshair",
     )
     canvas.pack(padx=8, pady=8)
     canvas.create_image(0, 0, anchor="nw", image=photo)
@@ -302,7 +306,8 @@ def open_crop_dialog(
     def accept() -> None:
         if selection.rect is None:
             messagebox.showerror(
-                "Crop picture", "Drag a rectangle to select a crop area.",
+                "Crop picture",
+                "Drag a rectangle to select a crop area.",
                 parent=dialog,
             )
             return
@@ -321,9 +326,7 @@ def open_crop_dialog(
     buttons.pack(fill="x", padx=8, pady=(0, 8))
     cancel_button = ttk.Button(buttons, text="Cancel", command=dialog.destroy)
     cancel_button.pack(side="right")
-    ttk.Button(buttons, text="Apply Crop", command=accept).pack(
-        side="right", padx=(0, 4)
-    )
+    ttk.Button(buttons, text="Apply Crop", command=accept).pack(side="right", padx=(0, 4))
     make_modal(dialog, focus=cancel_button)
 
 
@@ -341,9 +344,7 @@ def movie_web_url(movie: Movie) -> str:
 class CatalogWindow(ttk.Frame):
     """Browse and edit a catalog without third-party GUI dependencies."""
 
-    def __init__(
-        self, master: tk.Tk, path: Path, *, preferences_path: Path | None = None
-    ) -> None:
+    def __init__(self, master: tk.Tk, path: Path, *, preferences_path: Path | None = None) -> None:
         super().__init__(master, padding=10)
         self.path = path
         self.preferences_path = (
@@ -356,9 +357,7 @@ class CatalogWindow(ttk.Frame):
         self.layout = tk.StringVar(value=self._preferences.layout)
         self.sort_field: str | None = None
         self.sort_reverse = False
-        master.geometry(
-            f"{self._preferences.window_width}x{self._preferences.window_height}"
-        )
+        master.geometry(f"{self._preferences.window_width}x{self._preferences.window_height}")
         self.pack(fill="both", expand=True)
         self._configure_style()
 
@@ -368,17 +367,13 @@ class CatalogWindow(ttk.Frame):
         ttk.Button(files, text="Save As", command=self.save_as).pack(side="left", padx=4)
         self.import_button = ttk.Button(files, text="Import", command=self.import_catalog)
         self.import_button.pack(side="left")
-        self.import_media_button = ttk.Button(
-            files, text="Import Media", command=self.import_media
-        )
+        self.import_media_button = ttk.Button(files, text="Import Media", command=self.import_media)
         self.import_media_button.pack(side="left", padx=4)
         ttk.Button(files, text="Export", command=self.export_catalog).pack(side="left", padx=4)
         ttk.Button(files, text="Backup", command=self.backup_catalog).pack(side="left")
         self.restore_button = ttk.Button(files, text="Restore", command=self.restore_catalog)
         self.restore_button.pack(side="left", padx=4)
-        ttk.Button(
-            files, text="Preferences", command=self.open_preferences
-        ).pack(side="right")
+        ttk.Button(files, text="Preferences", command=self.open_preferences).pack(side="right")
         self.location_label = ttk.Label(files, text=str(path))
         self.location_label.pack(side="left", fill="x", expand=True, padx=8)
 
@@ -548,8 +543,11 @@ class CatalogWindow(ttk.Frame):
         )
         limit = tk.IntVar(value=self.service.history_limit)
         spinbox = ttk.Spinbox(
-            dialog, from_=MIN_HISTORY_LIMIT, to=MAX_HISTORY_LIMIT,
-            textvariable=limit, width=8,
+            dialog,
+            from_=MIN_HISTORY_LIMIT,
+            to=MAX_HISTORY_LIMIT,
+            textvariable=limit,
+            width=8,
         )
         spinbox.grid(row=0, column=1, padx=8, pady=8)
 
@@ -565,9 +563,7 @@ class CatalogWindow(ttk.Frame):
 
         buttons = ttk.Frame(dialog)
         buttons.grid(row=1, column=0, columnspan=2, sticky="e", padx=8, pady=(0, 8))
-        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(
-            side="left", padx=(0, 4)
-        )
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="left", padx=(0, 4))
         ttk.Button(buttons, text="Save", command=accept).pack(side="left")
         dialog.bind("<Return>", lambda _event: accept())
         make_modal(dialog, focus=spinbox)
@@ -608,7 +604,9 @@ class CatalogWindow(ttk.Frame):
         menubar = tk.Menu(master, tearoff=False)
 
         file_menu = tk.Menu(menubar, tearoff=False)
-        file_menu.add_command(label="Open Catalog...", command=self.open_catalog, accelerator="Ctrl+O")
+        file_menu.add_command(
+            label="Open Catalog...", command=self.open_catalog, accelerator="Ctrl+O"
+        )
         file_menu.add_command(label="Reload", command=self.reload_catalog, accelerator="F5")
         file_menu.add_command(label="Save As...", command=self.save_as, accelerator="Ctrl+Shift+S")
         file_menu.add_separator()
@@ -663,14 +661,13 @@ class CatalogWindow(ttk.Frame):
         master.config(menu=menubar)
         self.menubar = menubar
 
-    def _add_menu_action(
-        self, menu: tk.Menu, label: str, name: str, accelerator: str = ""
-    ) -> None:
+    def _add_menu_action(self, menu: tk.Menu, label: str, name: str, accelerator: str = "") -> None:
         """Add a menu entry that invokes an `action_buttons` action, tracked
         for `update_action_states` under `name` alongside any other menu
         (menu bar, context menu) that already tracks the same name."""
         menu.add_command(
-            label=label, accelerator=accelerator,
+            label=label,
+            accelerator=accelerator,
             command=lambda: self.invoke_action(name),
         )
         end_index = menu.index("end")
@@ -678,7 +675,11 @@ class CatalogWindow(ttk.Frame):
         self._menu_entries.setdefault(name, []).append((menu, end_index))
 
     def _add_tracked_menu_command(
-        self, menu: tk.Menu, label: str, name: str, command: Callable[[], None],
+        self,
+        menu: tk.Menu,
+        label: str,
+        name: str,
+        command: Callable[[], None],
         accelerator: str = "",
     ) -> None:
         """Like `_add_menu_action`, but for a command not in `action_buttons`
@@ -865,9 +866,7 @@ class CatalogWindow(ttk.Frame):
         elif movie is not None and movie.picture:
             status = f"Poster file not found: {movie.picture}"
         self.poster_image = image
-        self.poster.configure(
-            image=image or "", text="" if image is not None else status
-        )
+        self.poster.configure(image=image or "", text="" if image is not None else status)
 
     def open_catalog(self) -> None:
         selected = filedialog.askopenfilename(
@@ -936,9 +935,7 @@ class CatalogWindow(ttk.Frame):
             messagebox.showerror("Could not import catalog", str(error), parent=self)
             return
         self.refresh()
-        messagebox.showinfo(
-            "Import complete", f"Imported {count} movie(s).", parent=self
-        )
+        messagebox.showinfo("Import complete", f"Imported {count} movie(s).", parent=self)
 
     def import_media(self) -> None:
         """Batch-add movies from chosen media files or a folder.
@@ -955,12 +952,14 @@ class CatalogWindow(ttk.Frame):
             return
         if from_folder:
             selected_folder = filedialog.askdirectory(
-                parent=self.winfo_toplevel(), title="Choose a media folder",
+                parent=self.winfo_toplevel(),
+                title="Choose a media folder",
             )
             if not selected_folder:
                 return
             recursive = messagebox.askyesno(
-                "Import media", "Include files in subfolders?",
+                "Import media",
+                "Include files in subfolders?",
                 parent=self.winfo_toplevel(),
             )
             extensions_text = simpledialog.askstring(
@@ -975,18 +974,15 @@ class CatalogWindow(ttk.Frame):
                     [Path(selected_folder)], recursive=recursive, extensions=extensions
                 )
             except ValueError as error:
-                messagebox.showerror(
-                    "Could not import media", str(error), parent=self
-                )
+                messagebox.showerror("Could not import media", str(error), parent=self)
                 return
             if not paths:
-                messagebox.showinfo(
-                    "Import media", "No media files were found.", parent=self
-                )
+                messagebox.showinfo("Import media", "No media files were found.", parent=self)
                 return
         else:
             selected = filedialog.askopenfilenames(
-                parent=self.winfo_toplevel(), title="Choose media files",
+                parent=self.winfo_toplevel(),
+                title="Choose media files",
             )
             if not selected:
                 return
@@ -1000,8 +996,10 @@ class CatalogWindow(ttk.Frame):
         dialog.title("Import media")
         dialog.transient(self.winfo_toplevel())
         status = ttk.Label(
-            dialog, text=f"Ready to inspect {total} file(s).",
-            width=48, anchor="w",
+            dialog,
+            text=f"Ready to inspect {total} file(s).",
+            width=48,
+            anchor="w",
         )
         status.grid(row=0, column=0, padx=8, pady=8)
         cancelled = {"value": False}
@@ -1020,9 +1018,7 @@ class CatalogWindow(ttk.Frame):
             try:
                 movies.append(movie_from_media(path))
             except ValueError as error:
-                messagebox.showerror(
-                    "Could not import media", str(error), parent=dialog
-                )
+                messagebox.showerror("Could not import media", str(error), parent=dialog)
                 dialog.destroy()
                 return
         if cancelled["value"]:
@@ -1077,8 +1073,7 @@ class CatalogWindow(ttk.Frame):
             return
         if format_name == "amc":
             backup_note = (
-                f"\n\nThe existing file will be preserved as "
-                f"{Path(selected).with_suffix('.bak')}."
+                f"\n\nThe existing file will be preserved as {Path(selected).with_suffix('.bak')}."
                 if destination_exists
                 else ""
             )
@@ -1226,9 +1221,7 @@ class CatalogWindow(ttk.Frame):
 
         def accept() -> None:
             try:
-                self.service.check_out_many(
-                    (movie.number for movie in movies), borrower.get()
-                )
+                self.service.check_out_many((movie.number for movie in movies), borrower.get())
             except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not check out movie", str(error), parent=dialog)
                 return
@@ -1258,13 +1251,9 @@ class CatalogWindow(ttk.Frame):
             return
         checked = not all(movie.checked for movie in movies)
         try:
-            self.service.set_checked_many(
-                (movie.number for movie in movies), checked
-            )
+            self.service.set_checked_many((movie.number for movie in movies), checked)
         except _SERVICE_ERRORS as error:
-            messagebox.showerror(
-                "Could not update checked state", str(error), parent=self
-            )
+            messagebox.showerror("Could not update checked state", str(error), parent=self)
             return
         self.refresh()
 
@@ -1345,13 +1334,13 @@ class CatalogWindow(ttk.Frame):
 
             def describe(number: int, status: ttk.Label = status) -> None:
                 name = Path(assignments[number]).name
-                status.configure(
-                    text=f"{name} (cropped)" if number in crops else name
-                )
+                status.configure(text=f"{name} (cropped)" if number in crops else name)
 
             def choose(number: int = movie.number, status: ttk.Label = status) -> None:
                 selected = filedialog.askopenfilename(
-                    parent=dialog, title="Choose poster", filetypes=_IMAGE_FILETYPES,
+                    parent=dialog,
+                    title="Choose poster",
+                    filetypes=_IMAGE_FILETYPES,
                 )
                 if not selected:
                     return
@@ -1382,9 +1371,7 @@ class CatalogWindow(ttk.Frame):
             browse_button.grid(row=row, column=2, padx=(0, 4))
             if first_browse_button is None:
                 first_browse_button = browse_button
-            ttk.Button(rows_frame, text="Crop", command=crop).grid(
-                row=row, column=3, padx=(0, 8)
-            )
+            ttk.Button(rows_frame, text="Crop", command=crop).grid(row=row, column=3, padx=(0, 8))
 
         embed = tk.BooleanVar(value=False)
         ttk.Checkbutton(dialog, text="Embed", variable=embed).grid(
@@ -1400,22 +1387,16 @@ class CatalogWindow(ttk.Frame):
                 )
                 return
             try:
-                self.service.set_picture_many(
-                    assignments.items(), embed=embed.get(), crops=crops
-                )
+                self.service.set_picture_many(assignments.items(), embed=embed.get(), crops=crops)
             except _SERVICE_ERRORS as error:
-                messagebox.showerror(
-                    "Could not assign pictures", str(error), parent=dialog
-                )
+                messagebox.showerror("Could not assign pictures", str(error), parent=dialog)
                 return
             dialog.destroy()
             self.refresh()
 
         buttons = ttk.Frame(dialog)
         buttons.grid(row=3, column=0, sticky="e", padx=8, pady=8)
-        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(
-            side="left", padx=(0, 4)
-        )
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="left", padx=(0, 4))
         ttk.Button(buttons, text="Apply", command=accept).pack(side="left")
         make_modal(dialog, focus=first_browse_button)
 
@@ -1429,9 +1410,7 @@ class CatalogWindow(ttk.Frame):
             if len(movies) == 1
             else f"these {len(movies)} selected movies"
         )
-        if not messagebox.askyesno(
-            "Clear pictures", f"Remove the picture for {description}?"
-        ):
+        if not messagebox.askyesno("Clear pictures", f"Remove the picture for {description}?"):
             return
         try:
             self.service.clear_picture_many(movie.number for movie in movies)
@@ -1474,7 +1453,9 @@ class CatalogWindow(ttk.Frame):
             dialog,
             text=f'Falls back to a title/year search for "{movie.display_title()}" '
             "when no IMDb ID is given.",
-            wraplength=420, justify="left", foreground="gray",
+            wraplength=420,
+            justify="left",
+            foreground="gray",
         ).grid(row=2, column=0, columnspan=2, sticky="w", padx=8)
         results = tk.Text(dialog, height=8, width=56, state="disabled", wrap="word")
         results.grid(row=3, column=0, columnspan=2, padx=8, pady=8)
@@ -1502,15 +1483,15 @@ class CatalogWindow(ttk.Frame):
                 )
                 preview = preview_omdb_update(movie, record)
             except (OSError, ValueError) as error:
-                messagebox.showerror(
-                    "Could not fetch IMDb metadata", str(error), parent=dialog
-                )
+                messagebox.showerror("Could not fetch IMDb metadata", str(error), parent=dialog)
                 show_lines([])
                 return
             current_preview = preview
             show_lines(
-                [f"{change.field}: {change.before!r} -> {change.after!r}"
-                 for change in preview.changes]
+                [
+                    f"{change.field}: {change.before!r} -> {change.after!r}"
+                    for change in preview.changes
+                ]
             )
             apply_button.configure(state="normal" if preview.changes else "disabled")
 
@@ -1521,18 +1502,14 @@ class CatalogWindow(ttk.Frame):
             try:
                 self.service.replace(movie.number, preview.movie)
             except _SERVICE_ERRORS as error:
-                messagebox.showerror(
-                    "Could not apply IMDb update", str(error), parent=dialog
-                )
+                messagebox.showerror("Could not apply IMDb update", str(error), parent=dialog)
                 return
             dialog.destroy()
             self.refresh()
 
         buttons = ttk.Frame(dialog)
         buttons.grid(row=4, column=0, columnspan=2, sticky="e", padx=8, pady=(0, 8))
-        ttk.Button(buttons, text="Fetch Preview", command=fetch).pack(
-            side="left", padx=(0, 4)
-        )
+        ttk.Button(buttons, text="Fetch Preview", command=fetch).pack(side="left", padx=(0, 4))
         apply_button = ttk.Button(buttons, text="Apply", command=accept, state="disabled")
         apply_button.pack(side="left")
         make_modal(dialog, focus=id_entry)
@@ -1598,9 +1575,9 @@ class CatalogWindow(ttk.Frame):
         frame.pack(fill="both", expand=True)
         footer = ttk.Frame(dialog, padding=(10, 0, 10, 10))
         footer.pack(fill="x")
-        ttk.Button(
-            footer, text="Export History", command=self.export_loan_history
-        ).pack(side="left")
+        ttk.Button(footer, text="Export History", command=self.export_loan_history).pack(
+            side="left"
+        )
         ttk.Button(footer, text="Close", command=dialog.destroy).pack(side="right")
         table = ttk.Treeview(
             frame,
@@ -1641,13 +1618,9 @@ class CatalogWindow(ttk.Frame):
         try:
             self.service.export_loan_history(selected)
         except (OSError, TypeError, ValueError) as error:
-            messagebox.showerror(
-                "Could not export loan history", str(error), parent=self
-            )
+            messagebox.showerror("Could not export loan history", str(error), parent=self)
             return
-        messagebox.showinfo(
-            "Loan history exported", f"Exported to {selected}.", parent=self
-        )
+        messagebox.showinfo("Loan history exported", f"Exported to {selected}.", parent=self)
 
     def show_duplicates(self) -> None:
         groups = self.service.duplicates()
@@ -1743,7 +1716,9 @@ class CatalogWindow(ttk.Frame):
         dialog.columnconfigure(0, weight=1)
         title_entry: ttk.Entry | None = None
         for row, (name, value) in enumerate(values.items()):
-            ttk.Label(fields_frame, text=name.replace("_", " ").title()).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+            ttk.Label(fields_frame, text=name.replace("_", " ").title()).grid(
+                row=row, column=0, sticky="w", padx=8, pady=4
+            )
             if name in _EDIT_MULTILINE_FIELDS:
                 text = tk.Text(fields_frame, width=48, height=5, wrap="word")
                 text.insert("1.0", value.get())
@@ -1791,7 +1766,8 @@ class CatalogWindow(ttk.Frame):
                 def crop_picture() -> None:
                     if picture_bytes is None:
                         messagebox.showerror(
-                            "Crop picture", "Choose a poster before cropping.",
+                            "Crop picture",
+                            "Choose a poster before cropping.",
                             parent=dialog,
                         )
                         return
@@ -1804,24 +1780,14 @@ class CatalogWindow(ttk.Frame):
                     try:
                         open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)
                     except (OSError, UnidentifiedImageError) as error:
-                        messagebox.showerror(
-                            "Crop picture", str(error), parent=dialog
-                        )
+                        messagebox.showerror("Crop picture", str(error), parent=dialog)
 
                 controls = ttk.Frame(fields_frame)
                 controls.grid(row=row, column=2, sticky="w", padx=(0, 8))
-                ttk.Button(
-                    controls, text="Browse", command=choose_picture
-                ).pack(side="left")
-                ttk.Button(
-                    controls, text="Crop", command=crop_picture
-                ).pack(side="left", padx=4)
-                ttk.Button(
-                    controls, text="Clear", command=clear_picture
-                ).pack(side="left", padx=4)
-                ttk.Checkbutton(
-                    controls, text="Embed", variable=embed_picture
-                ).pack(side="left")
+                ttk.Button(controls, text="Browse", command=choose_picture).pack(side="left")
+                ttk.Button(controls, text="Crop", command=crop_picture).pack(side="left", padx=4)
+                ttk.Button(controls, text="Clear", command=clear_picture).pack(side="left", padx=4)
+                ttk.Checkbutton(controls, text="Embed", variable=embed_picture).pack(side="left")
         ttk.Checkbutton(fields_frame, text="Checked", variable=checked).grid(
             row=len(values), column=1, sticky="w", padx=8, pady=4
         )
@@ -1862,7 +1828,9 @@ class CatalogWindow(ttk.Frame):
             self.refresh()
             dialog.destroy()
 
-        ttk.Button(dialog, text="Save", command=accept).grid(row=1, column=1, sticky="e", padx=8, pady=10)
+        ttk.Button(dialog, text="Save", command=accept).grid(
+            row=1, column=1, sticky="e", padx=8, pady=10
+        )
         dialog.bind("<Return>", lambda _event: accept())
         make_modal(dialog, focus=title_entry)
 

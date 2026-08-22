@@ -126,9 +126,7 @@ def test_extract_rar_tries_next_available_tool_after_failure(tmp_path: Path, mon
 def test_extract_rar_reports_all_available_tool_failures(tmp_path: Path, monkeypatch):
     archive = tmp_path / "source.rar"
     archive.write_bytes(b"not a zip")
-    monkeypatch.setattr(
-        MODULE.shutil, "which", lambda executable: f"/bin/{executable}"
-    )
+    monkeypatch.setattr(MODULE.shutil, "which", lambda executable: f"/bin/{executable}")
 
     def fail(command, *, check):
         raise MODULE.subprocess.CalledProcessError(2, command)
@@ -159,9 +157,7 @@ def test_compare_inventories_reports_every_difference(tmp_path: Path):
     (acquired / "missing.pas").write_text("missing", encoding="utf-8")
     (snapshot / "extra.pas").write_text("extra", encoding="utf-8")
 
-    result = MODULE.compare_inventories(
-        MODULE.inventory(acquired), MODULE.inventory(snapshot)
-    )
+    result = MODULE.compare_inventories(MODULE.inventory(acquired), MODULE.inventory(snapshot))
 
     assert result == {
         "equivalent": False,
@@ -208,16 +204,28 @@ def test_main_compares_zip_inside_wrapper_directory(tmp_path: Path):
     (snapshot / "unit.pas").write_text("unit Example;", encoding="utf-8")
     comparison = tmp_path / "comparison.json"
 
-    assert MODULE.main([
-        "--url", source.as_uri(),
-        "--output", str(tmp_path / "copy.zip"),
-        "--extract-to", str(tmp_path / "expanded"),
-        "--strip-root",
-        "--compare-to", str(snapshot),
-        "--comparison", str(comparison),
-        "--metadata", str(tmp_path / "archive.json"),
-        "--inventory", str(tmp_path / "inventory.json"),
-    ]) == 0
+    assert (
+        MODULE.main(
+            [
+                "--url",
+                source.as_uri(),
+                "--output",
+                str(tmp_path / "copy.zip"),
+                "--extract-to",
+                str(tmp_path / "expanded"),
+                "--strip-root",
+                "--compare-to",
+                str(snapshot),
+                "--comparison",
+                str(comparison),
+                "--metadata",
+                str(tmp_path / "archive.json"),
+                "--inventory",
+                str(tmp_path / "inventory.json"),
+            ]
+        )
+        == 0
+    )
 
     result = json.loads(comparison.read_text(encoding="utf-8"))
     assert result["equivalent"] is True
@@ -227,18 +235,18 @@ def test_main_compares_zip_inside_wrapper_directory(tmp_path: Path):
 def test_main_rejects_invalid_expected_digest_before_download(tmp_path: Path):
     destination = tmp_path / "archive.rar"
     try:
-        MODULE.main([
-            "--url",
-            (tmp_path / "missing.rar").as_uri(),
-            "--output",
-            str(destination),
-            "--expected-sha256",
-            "not-a-digest",
-        ])
-    except ValueError as error:
-        assert str(error) == (
-            "--expected-sha256 must be exactly 64 hexadecimal characters"
+        MODULE.main(
+            [
+                "--url",
+                (tmp_path / "missing.rar").as_uri(),
+                "--output",
+                str(destination),
+                "--expected-sha256",
+                "not-a-digest",
+            ]
         )
+    except ValueError as error:
+        assert str(error) == ("--expected-sha256 must be exactly 64 hexadecimal characters")
     else:
         raise AssertionError("main accepted an invalid digest")
     assert not destination.exists()
@@ -248,7 +256,19 @@ def test_main_writes_machine_readable_archive_metadata(tmp_path: Path):
     source = tmp_path / "source.rar"
     source.write_bytes(b"archive")
     metadata = tmp_path / "archive.json"
-    assert MODULE.main(["--url", source.as_uri(), "--output", str(tmp_path / "copy.rar"), "--metadata", str(metadata)]) == 0
+    assert (
+        MODULE.main(
+            [
+                "--url",
+                source.as_uri(),
+                "--output",
+                str(tmp_path / "copy.rar"),
+                "--metadata",
+                str(metadata),
+            ]
+        )
+        == 0
+    )
     document = json.loads(metadata.read_text(encoding="utf-8"))
     assert document["url"] == source.as_uri()
     assert document["archive"] == "copy.rar"

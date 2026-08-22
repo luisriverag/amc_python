@@ -88,9 +88,7 @@ def load_preferences(path: str | Path) -> GuiPreferences:
     height = document.get("window_height")
     history_limit = document.get("history_limit")
     return GuiPreferences(
-        view_filter=(
-            view_filter if view_filter in VALID_VIEW_FILTERS else defaults.view_filter
-        ),
+        view_filter=(view_filter if view_filter in VALID_VIEW_FILTERS else defaults.view_filter),
         layout=layout if layout in VALID_LAYOUTS else defaults.layout,
         window_width=(
             width

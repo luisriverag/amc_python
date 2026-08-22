@@ -54,14 +54,28 @@ class Catalog:
         if not needle:
             return list(self)
         searchable = (
-            "title", "original_title", "translated_title", "director", "producer",
-            "actors", "country", "category", "description", "comments", "languages",
+            "title",
+            "original_title",
+            "translated_title",
+            "director",
+            "producer",
+            "actors",
+            "country",
+            "category",
+            "description",
+            "comments",
+            "languages",
         )
-        return [movie for movie in self if any(needle in str(getattr(movie, key)).casefold() for key in searchable)]
+        return [
+            movie
+            for movie in self
+            if any(needle in str(getattr(movie, key)).casefold() for key in searchable)
+        ]
 
     def sort(self, field: str = "title", *, reverse: bool = False) -> None:
         if field not in Movie.__dataclass_fields__ or field == "extras":
             raise ValueError(f"unknown movie field: {field}")
+
         def key(item: Movie):
             value = getattr(item, field)
             return value.casefold() if isinstance(value, str) else value
@@ -117,7 +131,8 @@ class Catalog:
         if isinstance(movies, Catalog):
             incoming = _copy_metadata(movies.metadata)
             conflicts = [
-                key for key, value in incoming.items()
+                key
+                for key, value in incoming.items()
                 if key in self.metadata and self.metadata[key] != value
             ]
             if conflicts and metadata == "error":

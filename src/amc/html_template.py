@@ -51,27 +51,49 @@ _ITEM_EXTRA_BEGIN = "$$ITEM_EXTRA_BEGIN"
 _ITEM_EXTRA_END = "$$ITEM_EXTRA_END"
 
 _LABELS = {
-    "$$LABEL_NUMBER": "Number", "$$LABEL_CHECKED": "Checked",
-    "$$LABEL_MEDIA": "Media", "$$LABEL_TYPE": "Type", "$$LABEL_SOURCE": "Source",
-    "$$LABEL_DATEADD": "Date added", "$$LABEL_BORROWER": "Borrower",
-    "$$LABEL_RATING": "Rating", "$$LABEL_ORIGINALTITLE": "Original title",
+    "$$LABEL_NUMBER": "Number",
+    "$$LABEL_CHECKED": "Checked",
+    "$$LABEL_MEDIA": "Media",
+    "$$LABEL_TYPE": "Type",
+    "$$LABEL_SOURCE": "Source",
+    "$$LABEL_DATEADD": "Date added",
+    "$$LABEL_BORROWER": "Borrower",
+    "$$LABEL_RATING": "Rating",
+    "$$LABEL_ORIGINALTITLE": "Original title",
     "$$LABEL_TRANSLATEDTITLE": "Translated title",
-    "$$LABEL_FORMATTEDTITLE": "Title", "$$LABEL_DIRECTOR": "Director",
-    "$$LABEL_PRODUCER": "Producer", "$$LABEL_WRITER": "Writer",
-    "$$LABEL_COMPOSER": "Composer", "$$LABEL_ACTORS": "Actors",
-    "$$LABEL_COUNTRY": "Country", "$$LABEL_YEAR": "Year",
-    "$$LABEL_LENGTH": "Length", "$$LABEL_CATEGORY": "Category",
-    "$$LABEL_CERTIFICATION": "Certification", "$$LABEL_URL": "URL",
-    "$$LABEL_DESCRIPTION": "Description", "$$LABEL_COMMENTS": "Comments",
-    "$$LABEL_FILEPATH": "File path", "$$LABEL_VIDEOFORMAT": "Video format",
-    "$$LABEL_VIDEOBITRATE": "Video bitrate", "$$LABEL_AUDIOFORMAT": "Audio format",
-    "$$LABEL_AUDIOBITRATE": "Audio bitrate", "$$LABEL_RESOLUTION": "Resolution",
-    "$$LABEL_FRAMERATE": "Framerate", "$$LABEL_LANGUAGES": "Languages",
-    "$$LABEL_SUBTITLES": "Subtitles", "$$LABEL_SIZE": "Size",
-    "$$LABEL_DISKS": "Disks", "$$LABEL_COLORTAG": "Color tag",
-    "$$LABEL_PICTURE": "Picture", "$$LABEL_AUDIOKBPS": "Kbps",
-    "$$LABEL_VIDEOKBPS": "Kbps", "$$LABEL_UNIT": "MB", "$$LABEL_FPS": "fps",
-    "$$LABEL_DATEWATCHED": "Date watched", "$$LABEL_USERRATING": "My rating",
+    "$$LABEL_FORMATTEDTITLE": "Title",
+    "$$LABEL_DIRECTOR": "Director",
+    "$$LABEL_PRODUCER": "Producer",
+    "$$LABEL_WRITER": "Writer",
+    "$$LABEL_COMPOSER": "Composer",
+    "$$LABEL_ACTORS": "Actors",
+    "$$LABEL_COUNTRY": "Country",
+    "$$LABEL_YEAR": "Year",
+    "$$LABEL_LENGTH": "Length",
+    "$$LABEL_CATEGORY": "Category",
+    "$$LABEL_CERTIFICATION": "Certification",
+    "$$LABEL_URL": "URL",
+    "$$LABEL_DESCRIPTION": "Description",
+    "$$LABEL_COMMENTS": "Comments",
+    "$$LABEL_FILEPATH": "File path",
+    "$$LABEL_VIDEOFORMAT": "Video format",
+    "$$LABEL_VIDEOBITRATE": "Video bitrate",
+    "$$LABEL_AUDIOFORMAT": "Audio format",
+    "$$LABEL_AUDIOBITRATE": "Audio bitrate",
+    "$$LABEL_RESOLUTION": "Resolution",
+    "$$LABEL_FRAMERATE": "Framerate",
+    "$$LABEL_LANGUAGES": "Languages",
+    "$$LABEL_SUBTITLES": "Subtitles",
+    "$$LABEL_SIZE": "Size",
+    "$$LABEL_DISKS": "Disks",
+    "$$LABEL_COLORTAG": "Color tag",
+    "$$LABEL_PICTURE": "Picture",
+    "$$LABEL_AUDIOKBPS": "Kbps",
+    "$$LABEL_VIDEOKBPS": "Kbps",
+    "$$LABEL_UNIT": "MB",
+    "$$LABEL_FPS": "fps",
+    "$$LABEL_DATEWATCHED": "Date watched",
+    "$$LABEL_USERRATING": "My rating",
     "$$LABEL_NBEXTRAS": "Extras",
 }
 
@@ -110,8 +132,10 @@ def render_individual_template(
     """Render one movie's own page from the "individual" template."""
     page = _replace_general_tags(template, catalog, source_name, line_break)
     return _replace_movie_tags(
-        page, movie,
-        line_break=line_break, record_number=record_number,
+        page,
+        movie,
+        line_break=line_break,
+        record_number=record_number,
         individual_filename=individual_filename,
     )
 
@@ -143,25 +167,36 @@ def export_html_template(
     writes: list[tuple[Path, str]] = []
     if full_template is not None:
         source = _read_template(Path(full_template), max_template_bytes)
-        writes.append((
-            destination,
-            render_full_template(
-                catalog, source, source_name=source_name, line_break=line_break,
-                individual_filename=individual_filename,
-            ),
-        ))
+        writes.append(
+            (
+                destination,
+                render_full_template(
+                    catalog,
+                    source,
+                    source_name=source_name,
+                    line_break=line_break,
+                    individual_filename=individual_filename,
+                ),
+            )
+        )
     if individual_template is not None:
         source = _read_template(Path(individual_template), max_template_bytes)
         out_dir = Path(individual_dir) if individual_dir is not None else destination.parent
         for number, movie in enumerate(catalog, start=1):
-            writes.append((
-                out_dir / individual_filename.format(number=movie.number),
-                render_individual_template(
-                    movie, catalog, source, source_name=source_name,
-                    line_break=line_break, record_number=number,
-                    individual_filename=individual_filename,
-                ),
-            ))
+            writes.append(
+                (
+                    out_dir / individual_filename.format(number=movie.number),
+                    render_individual_template(
+                        movie,
+                        catalog,
+                        source,
+                        source_name=source_name,
+                        line_break=line_break,
+                        record_number=number,
+                        individual_filename=individual_filename,
+                    ),
+                )
+            )
     from .storage import _atomic_text  # local import: avoid a storage<->html_template cycle
 
     written: list[Path] = []
@@ -178,9 +213,7 @@ def _read_template(path: Path, max_bytes: int) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _replace_general_tags(
-    page: str, catalog: Catalog, source_name: str, line_break: str
-) -> str:
+def _replace_general_tags(page: str, catalog: Catalog, source_name: str, line_break: str) -> str:
     metadata = catalog.metadata.get("amc_xml", {}) if isinstance(catalog.metadata, dict) else {}
     if not isinstance(metadata, dict):
         metadata = {}
@@ -210,10 +243,13 @@ def _expand_item_loop(
     body_start = start + len(_ITEM_BEGIN)
     body_end = end if end != -1 else len(page)
     body = page[body_start:body_end]
-    after = page[body_end + len(_ITEM_END):] if end != -1 else ""
+    after = page[body_end + len(_ITEM_END) :] if end != -1 else ""
     rendered = "".join(
         _replace_movie_tags(
-            body, movie, line_break=line_break, record_number=index,
+            body,
+            movie,
+            line_break=line_break,
+            record_number=index,
             individual_filename=individual_filename,
         )
         for index, movie in enumerate(catalog, start=1)

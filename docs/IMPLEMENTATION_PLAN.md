@@ -136,7 +136,12 @@ unit and compatibility evidence are recorded.
   `docs/PORT_AUDIT.md` finding 37.
 - [x] Establish and automatically validate the fixture provenance manifest contract;
   genuine upstream fixtures still need to be produced and registered.
-- [ ] Add a changelog and architecture-decision log.
+- [x] Add a changelog and architecture-decision log: `CHANGELOG.md`
+  (Keep a Changelog format, seeded with the current capability baseline
+  since this project has never made a tagged release) and `docs/decisions.md`
+  (eight ADRs formalizing decisions already made informally across this
+  document, `docs/architecture.md`, and `docs/PORT_AUDIT.md` — including the
+  one still-open one, IFPS execution).
 - [x] Specify internal JSON v1 and test failed-write destination preservation for
   JSON, CSV, and XML serialization failures.
 

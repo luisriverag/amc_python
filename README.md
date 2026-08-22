@@ -67,9 +67,9 @@ publisher authentication or compatibility verification.
 
 ## Port progress
 
-**32% — 15 of 47 implementation-plan checklist items complete**
+**34% — 16 of 47 implementation-plan checklist items complete**
 
-`███████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **15 / 47**
+`████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **16 / 47**
 
 This bar is calculated from the checked boxes in the
 [implementation plan](docs/IMPLEMENTATION_PLAN.md); it is an auditable project-task

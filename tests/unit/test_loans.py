@@ -23,26 +23,62 @@ def test_append_and_decode_loan_event():
     catalog = Catalog()
     movie = Movie(number=7, title="Alien", media_label="DISC-1")
     event = append_event(
-        catalog, movie, action="out", borrower="Ripley",
+        catalog,
+        movie,
+        action="out",
+        borrower="Ripley",
         timestamp=datetime(2026, 8, 13, 12, 30, tzinfo=timezone.utc),
     )
     assert event == LoanEvent(
-        timestamp="2026-08-13T12:30:00+00:00", action="out", movie_number=7,
-        media_label="DISC-1", title="Alien", borrower="Ripley",
+        timestamp="2026-08-13T12:30:00+00:00",
+        action="out",
+        movie_number=7,
+        media_label="DISC-1",
+        title="Alien",
+        borrower="Ripley",
     )
     assert history(catalog) == [event]
 
 
-@pytest.mark.parametrize(("value", "error"), [
-    ({}, "missing or unknown"),
-    ({"timestamp": "not a date", "action": "out", "movie_number": 1,
-      "media_label": "", "title": "Alien", "borrower": "Ripley"}, "ISO 8601"),
-    ({"timestamp": "2026-08-13T12:30:00", "action": "out", "movie_number": 1,
-      "media_label": "", "title": "Alien", "borrower": "Ripley"}, "timezone"),
-    ({"timestamp": "2026-08-13T12:30:00+00:00", "action": "lost",
-      "movie_number": 1, "media_label": "", "title": "Alien",
-      "borrower": "Ripley"}, "action"),
-])
+@pytest.mark.parametrize(
+    ("value", "error"),
+    [
+        ({}, "missing or unknown"),
+        (
+            {
+                "timestamp": "not a date",
+                "action": "out",
+                "movie_number": 1,
+                "media_label": "",
+                "title": "Alien",
+                "borrower": "Ripley",
+            },
+            "ISO 8601",
+        ),
+        (
+            {
+                "timestamp": "2026-08-13T12:30:00",
+                "action": "out",
+                "movie_number": 1,
+                "media_label": "",
+                "title": "Alien",
+                "borrower": "Ripley",
+            },
+            "timezone",
+        ),
+        (
+            {
+                "timestamp": "2026-08-13T12:30:00+00:00",
+                "action": "lost",
+                "movie_number": 1,
+                "media_label": "",
+                "title": "Alien",
+                "borrower": "Ripley",
+            },
+            "action",
+        ),
+    ],
+)
 def test_history_rejects_malformed_metadata(value: object, error: str):
     catalog = Catalog(metadata={METADATA_KEY: [value]})
     with pytest.raises((TypeError, ValueError), match=error):
@@ -75,9 +111,7 @@ def test_add_and_remove_managed_borrower():
 
 
 def test_remove_borrower_rejects_active_or_unmanaged_name():
-    catalog = Catalog(
-        [Movie(borrower="Ripley")], metadata={BORROWERS_KEY: ["Ripley"]}
-    )
+    catalog = Catalog([Movie(borrower="Ripley")], metadata={BORROWERS_KEY: ["Ripley"]})
     with pytest.raises(ValueError, match="checked-out movies"):
         remove_borrower(catalog, "Ripley")
     with pytest.raises(KeyError, match="does not exist"):
@@ -94,8 +128,10 @@ def test_borrowers_reject_malformed_metadata(value: object):
 def test_export_legacy_history_uses_upstream_columns_and_crlf(tmp_path):
     catalog = Catalog()
     append_event(
-        catalog, Movie(number=7, title="Alien", media_label="DISC-1"),
-        action="out", borrower="Ripley",
+        catalog,
+        Movie(number=7, title="Alien", media_label="DISC-1"),
+        action="out",
+        borrower="Ripley",
         timestamp=datetime(2026, 8, 13, 12, 30, tzinfo=timezone.utc),
     )
     destination = tmp_path / "Loans history.csv"
@@ -115,8 +151,10 @@ def test_export_legacy_history_fsyncs_destination_directory_entry(
 ):
     catalog = Catalog()
     append_event(
-        catalog, Movie(number=7, title="Alien", media_label="DISC-1"),
-        action="out", borrower="Ripley",
+        catalog,
+        Movie(number=7, title="Alien", media_label="DISC-1"),
+        action="out",
+        borrower="Ripley",
         timestamp=datetime(2026, 8, 13, 12, 30, tzinfo=timezone.utc),
     )
     destination = tmp_path / "Loans history.csv"
@@ -137,9 +175,7 @@ def test_export_legacy_history_fsyncs_destination_directory_entry(
 
 def test_export_legacy_history_rejects_ambiguous_cells_without_replacing(tmp_path):
     catalog = Catalog()
-    append_event(
-        catalog, Movie(number=1, title="bad\ttitle"), action="in", borrower="Ripley"
-    )
+    append_event(catalog, Movie(number=1, title="bad\ttitle"), action="in", borrower="Ripley")
     destination = tmp_path / "history.csv"
     destination.write_text("trusted", encoding="utf-8")
 

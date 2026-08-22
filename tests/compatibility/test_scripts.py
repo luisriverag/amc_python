@@ -21,7 +21,8 @@ REAL_SCRIPT_FIXTURES = Path(__file__).parent.parent / "fixtures" / "scripts"
 
 def test_inspect_script_reads_upstream_style_metadata_without_execution(tmp_path: Path):
     target = tmp_path / "example.ifs"
-    target.write_text("""(*
+    target.write_text(
+        """(*
 [Infos]
 Authors=Example Author
 Title=Example Provider
@@ -52,20 +53,18 @@ Page=3
 begin
   raise_if_executed;
 end.
-""", encoding="utf-8")
-    info = inspect_script(target)
-    assert (info.title, info.authors, info.version) == (
-        "Example Provider", "Example Author", "1.2"
+""",
+        encoding="utf-8",
     )
+    info = inspect_script(target)
+    assert (info.title, info.authors, info.version) == ("Example Provider", "Example Author", "1.2")
     assert info.get_info is False and info.requires_movies is True
     assert info.options[0].name == "Mode"
     assert info.options[0].values == ((0, "Fast"), (1, "Complete"))
     assert info.parameters[0].description == "Title to search"
     assert info.excluded_fields == ("Comments", "URL")
     assert info.picture is False
-    assert (info.add_extras, info.delete_extras, info.modify_extras) == (
-        False, True, False
-    )
+    assert (info.add_extras, info.delete_extras, info.modify_extras) == (False, True, False)
     assert info.excluded_extra_fields == ("Trailer", "Fan Art")
     assert info.extra_picture is False
     assert info.static_names == ("SessionToken", "Page")
@@ -102,9 +101,7 @@ def test_inspect_script_tolerates_bytes_undefined_in_cp1252(tmp_path: Path):
     UnicodeDecodeError on instead of degrading gracefully like every other
     malformed-input path in this module."""
     target = tmp_path / "other-codepage.ifs"
-    target.write_bytes(
-        b"(*\n[Infos]\nTitle=Pol\x9dski\n[Options]\n*)\nbegin end."
-    )
+    target.write_bytes(b"(*\n[Infos]\nTitle=Pol\x9dski\n[Options]\n*)\nbegin end.")
     info = inspect_script(target)
     assert info.title == "Pol�ski"
     assert info.legacy_format is False
@@ -120,10 +117,17 @@ def test_discover_scripts_reads_the_real_fixture_set_without_error():
     infos = discover_scripts(REAL_SCRIPT_FIXTURES)
     names = {Path(info.path).name for info in infos}
     assert names == {
-        "Allocine (FR).ifs", "Amazon (FR).ifs", "Filmweb (PL).ifs",
-        "IMDB (Actor images).ifs", "IMDB.ifs", "IMDB_ALT.ifs",
-        "IMDB_ALT_ES.ifs", "ItalianMultisite (IT).ifs", "MyMovies (IT).ifs",
-        "OFDb-mobi-IMDb.ifs", "csfd.cz.ifs",
+        "Allocine (FR).ifs",
+        "Amazon (FR).ifs",
+        "Filmweb (PL).ifs",
+        "IMDB (Actor images).ifs",
+        "IMDB.ifs",
+        "IMDB_ALT.ifs",
+        "IMDB_ALT_ES.ifs",
+        "ItalianMultisite (IT).ifs",
+        "MyMovies (IT).ifs",
+        "OFDb-mobi-IMDb.ifs",
+        "csfd.cz.ifs",
     }
     for info in infos:
         assert info.legacy_format is False
@@ -184,9 +188,7 @@ def test_configure_script_applies_validated_case_insensitive_inputs(tmp_path: Pa
     )
     script = inspect_script(target)
 
-    configured = configure_script(
-        script, options={"mode": 1}, parameters={"QUERY": "Arrival"}
-    )
+    configured = configure_script(script, options={"mode": 1}, parameters={"QUERY": "Arrival"})
 
     assert configured.options[0].value == 1
     assert configured.parameters[0].value == "Arrival"
@@ -196,9 +198,7 @@ def test_configure_script_applies_validated_case_insensitive_inputs(tmp_path: Pa
 
 def test_configure_script_rejects_unknown_and_invalid_options(tmp_path: Path):
     target = tmp_path / "provider.ifs"
-    target.write_text(
-        "(*\n[Options]\nMode=0|0|0=Fast|1=Complete\n*)", encoding="utf-8"
-    )
+    target.write_text("(*\n[Options]\nMode=0|0|0=Fast|1=Complete\n*)", encoding="utf-8")
     script = inspect_script(target)
 
     with pytest.raises(ValueError, match="unknown script option"):
@@ -209,9 +209,7 @@ def test_configure_script_rejects_unknown_and_invalid_options(tmp_path: Path):
 
 def test_configure_script_rejects_ambiguous_duplicate_declarations(tmp_path: Path):
     target = tmp_path / "provider.ifs"
-    target.write_text(
-        "(*\n[Options]\nMode=0|0\nmode=1|1\n*)", encoding="utf-8"
-    )
+    target.write_text("(*\n[Options]\nMode=0|0\nmode=1|1\n*)", encoding="utf-8")
 
     with pytest.raises(ValueError, match="duplicate script option declaration"):
         configure_script(inspect_script(target))
@@ -225,10 +223,19 @@ def test_cli_configures_script_without_executing_it(tmp_path: Path, capsys):
         encoding="utf-8",
     )
 
-    assert main([
-        "configure-script", str(target), "--option", "Mode=1",
-        "--parameter", "Query=Moon",
-    ]) == 0
+    assert (
+        main(
+            [
+                "configure-script",
+                str(target),
+                "--option",
+                "Mode=1",
+                "--parameter",
+                "Query=Moon",
+            ]
+        )
+        == 0
+    )
 
     output = json.loads(capsys.readouterr().out)
     assert output["options"][0]["value"] == 1
@@ -306,14 +313,23 @@ def test_cli_loads_overrides_and_saves_script_configuration(tmp_path: Path, caps
         "[Parameters]\nQuery=Alien|Alien|Search title\n*)",
         encoding="utf-8",
     )
-    save_script_configuration(
-        configure_script(inspect_script(target), options={"Mode": 1}), source
-    )
+    save_script_configuration(configure_script(inspect_script(target), options={"Mode": 1}), source)
 
-    assert main([
-        "configure-script", str(target), "--load", str(source),
-        "--parameter", "Query=Arrival", "--save", str(destination),
-    ]) == 0
+    assert (
+        main(
+            [
+                "configure-script",
+                str(target),
+                "--load",
+                str(source),
+                "--parameter",
+                "Query=Arrival",
+                "--save",
+                str(destination),
+            ]
+        )
+        == 0
+    )
 
     output = json.loads(capsys.readouterr().out)
     saved = json.loads(destination.read_text(encoding="utf-8"))
@@ -328,18 +344,20 @@ def test_script_merge_preview_is_validated_isolated_and_field_level(tmp_path: Pa
     original = Movie(number=4, title="Alien", year=1979, extras={"Source": "old"})
 
     preview = preview_script_merge(
-        inspect_script(target), original,
+        inspect_script(target),
+        original,
         fields={"TITLE": "Aliens", "year": 1986},
         extras={"Source": "provider", "Score": 9},
     )
 
-    assert (original.title, original.year, original.extras) == (
-        "Alien", 1979, {"Source": "old"}
-    )
+    assert (original.title, original.year, original.extras) == ("Alien", 1979, {"Source": "old"})
     assert (preview.movie.title, preview.movie.year) == ("Aliens", 1986)
     assert preview.movie.extras == {"Source": "provider", "Score": 9}
     assert [change.field for change in preview.changes] == [
-        "title", "year", "extras.Source", "extras.Score"
+        "title",
+        "year",
+        "extras.Source",
+        "extras.Score",
     ]
 
 
@@ -357,9 +375,7 @@ def test_script_merge_preview_enforces_declared_permissions(tmp_path: Path):
     for fields in ({"comments": "no"}, {"Url": "no"}, {"picture": "no.jpg"}):
         with pytest.raises(ValueError, match="not permitted"):
             preview_script_merge(script, movie, fields=fields)
-    for extras in (
-        {"New": "no"}, {"Existing": "no"}, {"Existing": None}, {"Secret": "no"}
-    ):
+    for extras in ({"New": "no"}, {"Existing": "no"}, {"Existing": None}, {"Secret": "no"}):
         with pytest.raises(ValueError, match="not permitted"):
             preview_script_merge(script, movie, extras=extras)
 

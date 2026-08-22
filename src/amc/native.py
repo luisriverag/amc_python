@@ -59,19 +59,30 @@ _MAX_PROPERTY_BYTES = 16 * 1024 * 1024
 
 
 _LEGACY_BASE_FIELDS: tuple[tuple[str, str, int], ...] = (
-    ("number", "int", 4), ("original_title", "short", 64),
-    ("translated_title", "short", 64), ("director", "short", 32),
-    ("producer", "short", 32), ("country", "short", 32),
-    ("year", "int", 4), ("category", "short", 32), ("length", "int", 4),
-    ("actors", "short", 128), ("url", "short", 128),
-    ("description", "chars", 1024), ("comments", "short", 128),
-    ("video_format", "short", 32), ("file_size_text", "short", 32),
-    ("resolution", "short", 16), ("languages", "short", 32),
+    ("number", "int", 4),
+    ("original_title", "short", 64),
+    ("translated_title", "short", 64),
+    ("director", "short", 32),
+    ("producer", "short", 32),
+    ("country", "short", 32),
+    ("year", "int", 4),
+    ("category", "short", 32),
+    ("length", "int", 4),
+    ("actors", "short", 128),
+    ("url", "short", 128),
+    ("description", "chars", 1024),
+    ("comments", "short", 128),
+    ("video_format", "short", 32),
+    ("file_size_text", "short", 32),
+    ("resolution", "short", 16),
+    ("languages", "short", 32),
     ("subtitles", "short", 32),
 )
 _LEGACY_PROPERTIES: tuple[tuple[str, str, int], ...] = (
-    ("owner", "short", 64), ("icq", "short", 16),
-    ("site", "short", 128), ("mail", "short", 128),
+    ("owner", "short", 64),
+    ("icq", "short", 16),
+    ("site", "short", 128),
+    ("mail", "short", 128),
 )
 
 
@@ -82,10 +93,13 @@ def _legacy_layout(version: str) -> tuple[dict[str, tuple[int, str, int]], int]:
     if version in {"2.1", "3.0"}:
         fields.extend((("checked", "bool", 1), ("date", "int", 4)))
     if version == "3.0":
-        fields.extend((
-            ("picture", "short", 4), ("picture_size", "int", 4),
-            ("borrower", "short", 32),
-        ))
+        fields.extend(
+            (
+                ("picture", "short", 4),
+                ("picture_size", "int", 4),
+                ("borrower", "short", 32),
+            )
+        )
     return _layout(tuple(fields))
 
 
@@ -98,8 +112,7 @@ def _decode_native_string(raw: bytes, encoding: str) -> str:
             raise
         undefined = {0x81, 0x8D, 0x8F, 0x90, 0x9D}
         return "".join(
-            chr(value) if value in undefined else bytes((value,)).decode("cp1252")
-            for value in raw
+            chr(value) if value in undefined else bytes((value,)).decode("cp1252") for value in raw
         )
 
 
@@ -116,9 +129,9 @@ def _legacy_value(record: bytes, spec: tuple[int, str, int], encoding: str) -> o
         length = record[offset]
         if length > size:
             raise CorruptCatalogError("invalid legacy short-string length", offset=offset)
-        raw = record[offset + 1:offset + 1 + length]
+        raw = record[offset + 1 : offset + 1 + length]
     else:
-        raw = record[offset:offset + size].split(b"\0", 1)[0].rstrip(b" ")
+        raw = record[offset : offset + size].split(b"\0", 1)[0].rstrip(b" ")
     try:
         return _decode_native_string(raw, encoding)
     except UnicodeDecodeError as error:
@@ -351,9 +364,7 @@ def _read_string(stream: _BinaryReader, encoding: str) -> str:
         raise CorruptCatalogError("truncated native string length", offset=offset)
     (size,) = struct.unpack("<i", raw_size)
     if size < 0 or size > _MAX_PROPERTY_BYTES:
-        raise CorruptCatalogError(
-            f"invalid native string length: {size}", offset=offset
-        )
+        raise CorruptCatalogError(f"invalid native string length: {size}", offset=offset)
     account = getattr(stream, "account_string", None)
     if account is not None:
         account(size, offset)
@@ -406,9 +417,22 @@ def _read_custom_field(
             list_auto_complete = _read_bool(stream)
             list_use_catalog_values = _read_bool(stream)
     return NativeCustomField(
-        tag, name, extension, field_type, default_value, media_info, multi_values,
-        separator, remove_parentheses, patch_values, excluded, gui_properties,
-        list_values, list_auto_add, list_sort, list_auto_complete,
+        tag,
+        name,
+        extension,
+        field_type,
+        default_value,
+        media_info,
+        multi_values,
+        separator,
+        remove_parentheses,
+        patch_values,
+        excluded,
+        gui_properties,
+        list_values,
+        list_auto_add,
+        list_sort,
+        list_auto_complete,
         list_use_catalog_values,
     )
 
@@ -496,9 +520,7 @@ def read_native_catalog(
                     f"native catalog exceeds movie-count limit: {limits.max_movies}",
                     offset=bounded.tell() - 1,
                 )
-            movie, extras, picture_bytes = _read_movie(
-                bounded, properties, encoding, limits
-            )
+            movie, extras, picture_bytes = _read_movie(bounded, properties, encoding, limits)
             total_picture_bytes += picture_bytes
             if total_picture_bytes > limits.max_total_picture_bytes:
                 raise CorruptCatalogError(
@@ -535,9 +557,7 @@ def _read_legacy_catalog(
             owner = str(_legacy_value(raw_properties, property_layout["owner"], encoding))
             site = str(_legacy_value(raw_properties, property_layout["site"], encoding))
             mail = str(_legacy_value(raw_properties, property_layout["mail"], encoding))
-        properties = NativeCatalogProperties(
-            version, owner, mail, site, "", stream.tell()
-        )
+        properties = NativeCatalogProperties(version, owner, mail, site, "", stream.tell())
         while stream.read(1):
             stream.seek(-1, 1)
             if len(movies) >= limits.max_movies:
@@ -546,8 +566,10 @@ def _read_legacy_catalog(
             record = stream.read(record_size)
             if len(record) != record_size:
                 raise CorruptCatalogError("truncated legacy native movie record", offset=offset)
+
             def get(name: str) -> object:
                 return _legacy_value(record, layout[name], encoding)
+
             def get_int(name: str) -> int:
                 value = get(name)
                 if not isinstance(value, int):
@@ -555,6 +577,7 @@ def _read_legacy_catalog(
                         f"expected integer legacy native field: {name}", offset=offset
                     )
                 return value
+
             raw_rating = get_int("rating") if "rating" in layout else 0
             rating_map = {0: None, 1: 2.0, 2: 4.0, 3: 6.0, 4: 8.0, 5: 9.0}
             rating = rating_map.get(raw_rating)
@@ -585,14 +608,22 @@ def _read_legacy_catalog(
                     number=max(raw_number, 0),
                     original_title=str(get("original_title")),
                     translated_title=str(get("translated_title")),
-                    director=str(get("director")), producer=str(get("producer")),
-                    country=str(get("country")), year=get_int("year") or None,
-                    category=str(get("category")), length=get_int("length") or None,
-                    actors=str(get("actors")), url=str(get("url")),
-                    description=str(get("description")), comments=str(get("comments")),
-                    video_format=str(get("video_format")), file_size=file_size_value,
-                    resolution=str(get("resolution")), languages=str(get("languages")),
-                    subtitles=str(get("subtitles")), rating=rating,
+                    director=str(get("director")),
+                    producer=str(get("producer")),
+                    country=str(get("country")),
+                    year=get_int("year") or None,
+                    category=str(get("category")),
+                    length=get_int("length") or None,
+                    actors=str(get("actors")),
+                    url=str(get("url")),
+                    description=str(get("description")),
+                    comments=str(get("comments")),
+                    video_format=str(get("video_format")),
+                    file_size=file_size_value,
+                    resolution=str(get("resolution")),
+                    languages=str(get("languages")),
+                    subtitles=str(get("subtitles")),
+                    rating=rating,
                     checked=bool(get("checked")) if "checked" in layout else True,
                     picture=str(get("picture")) if "picture" in layout else "",
                     borrower=str(get("borrower")) if "borrower" in layout else "",
@@ -621,9 +652,7 @@ def _read_legacy_sidecars(
     picture_prefix = path.with_suffix("")
     for movie in movies:
         for extension in (".jpg", ".gif", ".png"):
-            picture = picture_prefix.with_name(
-                f"{picture_prefix.name}_{movie.number}{extension}"
-            )
+            picture = picture_prefix.with_name(f"{picture_prefix.name}_{movie.number}{extension}")
             if picture.is_file():
                 movie.picture = picture.name
                 break
@@ -634,12 +663,9 @@ def _read_legacy_sidecars(
     size = borrowers.stat().st_size
     if size > limits.max_file_bytes:
         raise CorruptCatalogError(
-            f"legacy borrower sidecar exceeds file-size limit: {size} > "
-            f"{limits.max_file_bytes}"
+            f"legacy borrower sidecar exceeds file-size limit: {size} > {limits.max_file_bytes}"
         )
-    parser = configparser.ConfigParser(
-        interpolation=None, delimiters=("=",), strict=False
-    )
+    parser = configparser.ConfigParser(interpolation=None, delimiters=("=",), strict=False)
     # mypy disallows any instance-method reassignment regardless of signature;
     # replacing optionxform to disable default option-name lowercasing is
     # ConfigParser's own documented customization mechanism.
@@ -659,13 +685,11 @@ def _read_legacy_sidecars(
                 if borrowed_movie is not None:
                     borrowed_movie.borrower = borrower
     except (configparser.Error, LookupError, UnicodeError) as error:
-        raise CorruptCatalogError(
-            f"cannot read legacy borrower sidecar: {error}"
-        ) from error
+        raise CorruptCatalogError(f"cannot read legacy borrower sidecar: {error}") from error
 
 
 def _layout(
-    fields: tuple[tuple[str, str, int], ...]
+    fields: tuple[tuple[str, str, int], ...],
 ) -> tuple[dict[str, tuple[int, str, int]], int]:
     result: dict[str, tuple[int, str, int]] = {}
     offset = 0
@@ -742,9 +766,7 @@ def _read_movie(
         else []
     )
     custom_values = dict(custom_value_items)
-    native_extras = (
-        _read_movie_extras(stream, encoding, limits) if version >= "4.2" else ()
-    )
+    native_extras = _read_movie_extras(stream, encoding, limits) if version >= "4.2" else ()
     extras: dict[str, object] = dict(custom_values)
     if custom_value_items:
         extras["native_custom_values"] = [
@@ -848,10 +870,21 @@ def _read_movie_extras(
                 f"invalid native extra picture size: {picture_size}", offset=stream.tell() - 4
             )
         picture_data = _read_exact(stream, picture_size, "extra picture data")
-        result.append(NativeExtra(
-            checked, tag, title, category, url, description, comments,
-            created_by, picture_path, picture_size, picture_data,
-        ))
+        result.append(
+            NativeExtra(
+                checked,
+                tag,
+                title,
+                category,
+                url,
+                description,
+                comments,
+                created_by,
+                picture_path,
+                picture_size,
+                picture_data,
+            )
+        )
     return tuple(result)
 
 
@@ -899,12 +932,10 @@ def write_native_catalog(
     temporary = path.with_name(f".{path.name}.tmp")
     try:
         with temporary.open("wb") as stream:
-            bounded = _BoundedWriter(
-                stream, limits.max_file_bytes, limits.max_total_string_bytes
+            bounded = _BoundedWriter(stream, limits.max_file_bytes, limits.max_total_string_bytes)
+            bounded.write(
+                next(header for header, version in NATIVE_HEADERS.items() if version == "4.2")
             )
-            bounded.write(next(
-                header for header, version in NATIVE_HEADERS.items() if version == "4.2"
-            ))
             native = catalog.metadata.get("native", {})
             if not isinstance(native, dict):
                 raise TypeError("catalog native metadata must be an object")
@@ -1121,8 +1152,12 @@ def _write_movie_42(stream: _BinaryWriter, movie: "Movie", tags: list[str], enco
         _retained_int(extras, "native_date", 0),
         _retained_int(extras, "native_date_watched", 0),
         _retained_rating(movie),
-        rating, movie.year or 0, movie.length or 0, movie.video_bitrate or 0,
-        movie.audio_bitrate or 0, movie.media_count or 0,
+        rating,
+        movie.year or 0,
+        movie.length or 0,
+        movie.video_bitrate or 0,
+        movie.audio_bitrate or 0,
+        movie.media_count or 0,
         (
             movie.color_tag
             if movie.color_tag is not None
@@ -1133,19 +1168,35 @@ def _write_movie_42(stream: _BinaryWriter, movie: "Movie", tags: list[str], enco
         _write_int(stream, value)
     _write_bool(stream, movie.checked, "movie checked")
     strings = (
-        movie.media_label, movie.media_type, movie.source, movie.borrower,
-        movie.original_title, movie.translated_title, movie.director, movie.producer,
+        movie.media_label,
+        movie.media_type,
+        movie.source,
+        movie.borrower,
+        movie.original_title,
+        movie.translated_title,
+        movie.director,
+        movie.producer,
         movie.writer or extras.get("native_writer", ""),
         movie.composer or extras.get("native_composer", ""),
-        movie.country, movie.category,
+        movie.country,
+        movie.category,
         movie.certification or extras.get("native_certification", ""),
-        movie.actors, movie.url, movie.description, movie.comments,
+        movie.actors,
+        movie.url,
+        movie.description,
+        movie.comments,
         movie.file_path or extras.get("native_file_path", ""),
-        movie.video_format, movie.audio_format,
+        movie.video_format,
+        movie.audio_format,
         movie.resolution,
-        extras.get("native_framerate_text", "") if movie.framerate is None else str(movie.framerate),
-        movie.languages, movie.subtitles,
-        extras.get("native_file_size_text", "") if movie.file_size is None else str(movie.file_size),
+        extras.get("native_framerate_text", "")
+        if movie.framerate is None
+        else str(movie.framerate),
+        movie.languages,
+        movie.subtitles,
+        extras.get("native_file_size_text", "")
+        if movie.file_size is None
+        else str(movie.file_size),
     )
     for index, text_value in enumerate(strings):
         _write_string(stream, text_value, encoding, f"movie string {index}")
@@ -1155,15 +1206,16 @@ def _write_movie_42(stream: _BinaryWriter, movie: "Movie", tags: list[str], enco
     stream.write(picture)
     ordered = extras.get("native_custom_values")
     ordered_values: list[object] | None = None
-    if isinstance(ordered, list) and len(ordered) == len(tags) and all(
-        isinstance(item, dict) and item.get("tag") == tag
-        for item, tag in zip(ordered, tags)
+    if (
+        isinstance(ordered, list)
+        and len(ordered) == len(tags)
+        and all(
+            isinstance(item, dict) and item.get("tag") == tag for item, tag in zip(ordered, tags)
+        )
     ):
         ordered_values = [item.get("value", "") for item in ordered]
     for index, tag in enumerate(tags):
-        custom_value = (
-            ordered_values[index] if ordered_values is not None else extras.get(tag, "")
-        )
+        custom_value = ordered_values[index] if ordered_values is not None else extras.get(tag, "")
         _write_string(stream, custom_value, encoding, f"custom value {tag}")
     records = extras.get("native_supplementary_records", [])
     if not isinstance(records, list):
@@ -1173,7 +1225,16 @@ def _write_movie_42(stream: _BinaryWriter, movie: "Movie", tags: list[str], enco
         if not isinstance(record, dict):
             raise TypeError("each native supplementary record must be an object")
         _write_bool(stream, record.get("checked", False), "supplementary checked")
-        for key in ("tag", "title", "category", "url", "description", "comments", "created_by", "picture_path"):
+        for key in (
+            "tag",
+            "title",
+            "category",
+            "url",
+            "description",
+            "comments",
+            "created_by",
+            "picture_path",
+        ):
             _write_string(stream, record.get(key, ""), encoding, f"supplementary {key}")
         picture = _picture_bytes(record, "picture_base64")
         _write_int(stream, len(picture))

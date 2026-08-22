@@ -27,9 +27,7 @@ def verify_directory(root: Path, *, require_expectations: bool = False) -> int:
             actual_header = fixture.read_bytes()[:NATIVE_HEADER_SIZE]
             expected_header = entry["header"].encode("ascii")
             if actual_header != expected_header:
-                raise ManifestError(
-                    f"{fixture}: native header does not match declared bytes"
-                )
+                raise ManifestError(f"{fixture}: native header does not match declared bytes")
             info = inspect_catalog(fixture)
             if info.format != entry["format"]:
                 raise ManifestError(
@@ -41,9 +39,7 @@ def verify_directory(root: Path, *, require_expectations: bool = False) -> int:
                 )
             movies = len(read_native_catalog(fixture).movies)
             if movies != entry["movies"]:
-                raise ManifestError(
-                    f"{fixture}: expected {entry['movies']} movie(s), got {movies}"
-                )
+                raise ManifestError(f"{fixture}: expected {entry['movies']} movie(s), got {movies}")
             converted = load(fixture)
             native_metadata = converted.metadata.get("native", {})
             if not isinstance(native_metadata, dict):
@@ -52,17 +48,14 @@ def verify_directory(root: Path, *, require_expectations: bool = False) -> int:
                 actual = native_metadata.get(field)
                 if actual != expected:
                     raise ManifestError(
-                        f"{fixture}: metadata {field!r} expected {expected!r}, "
-                        f"got {actual!r}"
+                        f"{fixture}: metadata {field!r} expected {expected!r}, got {actual!r}"
                     )
             converted_movies = list(converted)
             for index, expected_fields in enumerate(entry.get("movie_fields", [])):
                 actual_fields = converted_movies[index].to_dict()
                 for field, expected in expected_fields.items():
                     if field not in actual_fields:
-                        raise ManifestError(
-                            f"{fixture}: movie {index} has unknown field {field!r}"
-                        )
+                        raise ManifestError(f"{fixture}: movie {index} has unknown field {field!r}")
                     actual = actual_fields[field]
                     if actual != expected:
                         raise ManifestError(
@@ -85,9 +78,7 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
-        count = verify_directory(
-            args.root, require_expectations=args.require_expectations
-        )
+        count = verify_directory(args.root, require_expectations=args.require_expectations)
     except (ManifestError, OSError, ValueError) as error:
         print(error, file=sys.stderr)
         return 1

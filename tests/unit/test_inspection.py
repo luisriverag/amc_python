@@ -12,20 +12,28 @@ def test_inspect_json_xml_and_csv(tmp_path: Path):
     json_path = tmp_path / "catalog.data"
     json_path.write_text('{"format":"amc-python","version":1,"movies":[{},{}]}', encoding="utf-8")
     assert inspect_catalog(json_path).to_dict() | {"path": "ignored", "size": 0} == {
-        "path": "ignored", "format": "amc-python", "version": 1, "movies": 2, "size": 0,
+        "path": "ignored",
+        "format": "amc-python",
+        "version": 1,
+        "movies": 2,
+        "size": 0,
     }
 
     xml_path = tmp_path / "catalog.xml"
-    xml_path.write_text('<AntMovieCatalog Format="4.2"><Catalog><Movie/><Movie/></Catalog></AntMovieCatalog>', encoding="utf-8")
-    assert (inspect_catalog(xml_path).format, inspect_catalog(xml_path).version, inspect_catalog(xml_path).movies) == ("amc-xml", "4.2", 2)
+    xml_path.write_text(
+        '<AntMovieCatalog Format="4.2"><Catalog><Movie/><Movie/></Catalog></AntMovieCatalog>',
+        encoding="utf-8",
+    )
+    assert (
+        inspect_catalog(xml_path).format,
+        inspect_catalog(xml_path).version,
+        inspect_catalog(xml_path).movies,
+    ) == ("amc-xml", "4.2", 2)
 
 
 def test_inspect_json_accepts_a_leading_utf8_bom(tmp_path: Path):
     bom_path = tmp_path / "catalog.json"
-    bom_path.write_bytes(
-        b"\xef\xbb\xbf"
-        + b'{"format":"amc-python","version":1,"movies":[{}]}'
-    )
+    bom_path.write_bytes(b"\xef\xbb\xbf" + b'{"format":"amc-python","version":1,"movies":[{}]}')
 
     info = inspect_catalog(bom_path)
 
@@ -104,7 +112,11 @@ def test_validation_returns_stable_diagnostics(tmp_path: Path):
     broken = tmp_path / "broken.json"
     broken.write_text("{", encoding="utf-8")
     diagnostic = validate_catalog(broken)[0]
-    assert (diagnostic.code, diagnostic.severity, diagnostic.offset) == ("corrupt_catalog", "error", 1)
+    assert (diagnostic.code, diagnostic.severity, diagnostic.offset) == (
+        "corrupt_catalog",
+        "error",
+        1,
+    )
 
     missing = validate_catalog(tmp_path / "missing.json")[0]
     assert missing.code == "io_error"
@@ -146,7 +158,10 @@ def test_inspect_recognizes_source_derived_native_headers(
     info = inspect_catalog(target)
 
     assert (info.format, info.version, info.movies, info.size) == (
-        "amc-native", version, None, len(header)
+        "amc-native",
+        version,
+        None,
+        len(header),
     )
 
 
@@ -170,15 +185,14 @@ def test_native_inspection_rejects_truncated_unknown_and_false_extension(tmp_pat
 
 def test_native_validation_reports_source_verification_warning(tmp_path: Path):
     target = tmp_path / "catalog.amc"
-    target.write_bytes(
-        _NATIVE_HEADERS["4.2"]
-        + b"\x00\x00\x00\x00" * 7
-    )
+    target.write_bytes(_NATIVE_HEADERS["4.2"] + b"\x00\x00\x00\x00" * 7)
 
     diagnostic = validate_catalog(target)[0]
 
     assert (diagnostic.code, diagnostic.severity, diagnostic.offset) == (
-        "native_structure_unverified", "warning", None
+        "native_structure_unverified",
+        "warning",
+        None,
     )
     assert "upstream-fixture verification is pending" in diagnostic.message
 
@@ -189,9 +203,7 @@ def test_cli_inspect_native_header_json(tmp_path: Path, capsys):
 
     assert main(["inspect", str(target), "--json"]) == 0
     output = json.loads(capsys.readouterr().out)
-    assert (output["format"], output["version"], output["movies"]) == (
-        "amc-native", "4.2", None
-    )
+    assert (output["format"], output["version"], output["movies"]) == ("amc-native", "4.2", None)
 
 
 def test_native_validation_returns_corruption_diagnostic_instead_of_raising(tmp_path: Path):
@@ -201,7 +213,9 @@ def test_native_validation_returns_corruption_diagnostic_instead_of_raising(tmp_
     diagnostic = validate_catalog(target)[0]
 
     assert (diagnostic.code, diagnostic.severity, diagnostic.offset) == (
-        "corrupt_catalog", "error", 65
+        "corrupt_catalog",
+        "error",
+        65,
     )
     assert "truncated native string length" in diagnostic.message
 

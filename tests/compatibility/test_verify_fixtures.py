@@ -33,19 +33,23 @@ def test_verifier_checks_declared_native_version_and_movie_count(tmp_path: Path)
         "provenance": "Ephemeral test output; not an upstream compatibility fixture.",
         "redistribution": "allowed",
         "expected_contents": "One synthetic movie named Alien.",
-        "files": [{
-            "path": fixture.name,
-            "sha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
-        }],
-        "verification": [{
-            "path": fixture.name,
-            "format": "amc-native",
-            "header": AMC_42_HEADER,
-            "version": "4.2",
-            "movies": 1,
-            "metadata": {"version": "4.2", "owner": ""},
-            "movie_fields": [{"original_title": "Alien", "number": 1}],
-        }],
+        "files": [
+            {
+                "path": fixture.name,
+                "sha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
+            }
+        ],
+        "verification": [
+            {
+                "path": fixture.name,
+                "format": "amc-native",
+                "header": AMC_42_HEADER,
+                "version": "4.2",
+                "movies": 1,
+                "metadata": {"version": "4.2", "owner": ""},
+                "movie_fields": [{"original_title": "Alien", "number": 1}],
+            }
+        ],
     }
     (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
@@ -58,7 +62,8 @@ def test_verifier_checks_declared_native_version_and_movie_count(tmp_path: Path)
     )
 
     assert (result.returncode, result.stdout.strip()) == (
-        0, "Verified 1 native fixture expectation(s)",
+        0,
+        "Verified 1 native fixture expectation(s)",
     )
 
 

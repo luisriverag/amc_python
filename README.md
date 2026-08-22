@@ -67,9 +67,9 @@ publisher authentication or compatibility verification.
 
 ## Port progress
 
-**30% — 14 of 47 implementation-plan checklist items complete**
+**34% — 16 of 47 implementation-plan checklist items complete**
 
-`██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **14 / 47**
+`████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` **16 / 47**
 
 This bar is calculated from the checked boxes in the
 [implementation plan](docs/IMPLEMENTATION_PLAN.md); it is an auditable project-task
@@ -241,11 +241,11 @@ python tools/check.py
 python tools/check_package.py
 ```
 
-`check.py` runs the focused Ruff rule set, the complete test suite with branch
-coverage (minimum 80%), bytecode compilation, fixture-manifest validation, a
-source-tree CLI smoke test, and whitespace checks. `check_package.py` separately
-builds and inspects a source distribution, rejects accidental inclusion of retained
-historical evidence trees, builds and installs a wheel in an isolated virtual
-environment, and exercises the installed console entry points. Formatting and
-static type checking are not yet canonical gates; see the engineering baseline in
-the implementation plan.
+`check.py` runs the focused Ruff rule set, `mypy` in its default mode, the
+complete test suite with branch coverage (minimum 80%), bytecode compilation,
+fixture-manifest validation, a source-tree CLI smoke test, and whitespace
+checks. `check_package.py` separately builds and inspects a source
+distribution, rejects accidental inclusion of retained historical evidence
+trees, builds and installs a wheel in an isolated virtual environment, and
+exercises the installed console entry points. A formatter is not yet a
+canonical gate; see the engineering baseline in the implementation plan.

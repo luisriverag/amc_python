@@ -218,11 +218,13 @@ def test_service_clears_pictures_for_many_movies_in_one_persisted_mutation(
 ):
     catalog_path = tmp_path / "catalog.json"
     save(
-        Catalog([
-            Movie(number=1, title="One", picture="one.jpg"),
-            Movie(number=2, title="Two", picture="two.jpg"),
-            Movie(number=3, title="Three", picture="three.jpg"),
-        ]),
+        Catalog(
+            [
+                Movie(number=1, title="One", picture="one.jpg"),
+                Movie(number=2, title="Two", picture="two.jpg"),
+                Movie(number=3, title="Three", picture="three.jpg"),
+            ]
+        ),
         catalog_path,
     )
     service = CatalogService(catalog_path)
@@ -301,9 +303,7 @@ def test_service_crops_embedded_picture(tmp_path: Path):
 
 
 @pytest.mark.parametrize("crop", [(-1, 0, 1, 1), (0, 0, 0, 1), (3, 2, 2, 2)])
-def test_invalid_crop_does_not_mutate_catalog(
-    tmp_path: Path, crop: tuple[int, int, int, int]
-):
+def test_invalid_crop_does_not_mutate_catalog(tmp_path: Path, crop: tuple[int, int, int, int]):
     catalog_path = tmp_path / "catalog.json"
     picture = tmp_path / "cover.png"
     Image.new("RGB", (4, 3), "red").save(picture)
@@ -343,10 +343,18 @@ def test_picture_export_fsyncs_destination_directory_entry(
 
 def test_picture_export_failure_preserves_destination(tmp_path: Path):
     catalog_path = tmp_path / "catalog.json"
-    save(Catalog([Movie(
-        title="Alien", picture="cover.jpg",
-        extras={"native_picture_base64": "not base64"},
-    )]), catalog_path)
+    save(
+        Catalog(
+            [
+                Movie(
+                    title="Alien",
+                    picture="cover.jpg",
+                    extras={"native_picture_base64": "not base64"},
+                )
+            ]
+        ),
+        catalog_path,
+    )
     destination = tmp_path / "cover.jpg"
     destination.write_bytes(b"trusted")
 

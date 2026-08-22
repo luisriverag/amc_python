@@ -232,7 +232,7 @@ interactive rectangle selection, and CLI `picture-set-many --crop-for` sets a
 per-movie crop rectangle from the command line.
 
 Most GUI tests are headless adapter tests that bypass `CatalogWindow.__init__`
-and mock every widget. `tests/test_gui_display.py` is different: it builds
+and mock every widget. `tests/gui/test_gui_display.py` is different: it builds
 real Tk widget trees — the main window, Preferences, Assign Pictures, Import
 Media, Loan Out (a real combobox-and-button interaction verified against the
 real service afterward), Loan In, Set Pictures, Clear Pictures, the edit

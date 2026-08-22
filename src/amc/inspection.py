@@ -15,7 +15,12 @@ from .errors import (
     UnsupportedFormatError,
     UnsupportedVersionError,
 )
-from .native import NATIVE_HEADER_SIZE, NativeReadLimits, identify_native_header, read_native_catalog
+from .native import (
+    NATIVE_HEADER_SIZE,
+    NativeReadLimits,
+    identify_native_header,
+    read_native_catalog,
+)
 
 DEFAULT_MAX_INSPECT_BYTES = 1024**4
 
@@ -49,9 +54,7 @@ def inspect_catalog(
     except OSError:
         raise
     if size > max_file_bytes:
-        raise CorruptCatalogError(
-            f"catalog exceeds file-size limit: {size} > {max_file_bytes}"
-        )
+        raise CorruptCatalogError(f"catalog exceeds file-size limit: {size} > {max_file_bytes}")
     stripped = prefix.lstrip(b"\xef\xbb\xbf\x00\t\r\n ")
     suffix = path.suffix.casefold()
 
@@ -106,7 +109,9 @@ def _inspect_json(path: Path, size: int) -> CatalogInfo:
         with path.open(encoding="utf-8-sig") as stream:
             value = json.load(stream)
     except (UnicodeError, json.JSONDecodeError) as error:
-        raise CorruptCatalogError(f"invalid JSON catalog: {error}", offset=getattr(error, "pos", None)) from error
+        raise CorruptCatalogError(
+            f"invalid JSON catalog: {error}", offset=getattr(error, "pos", None)
+        ) from error
     if isinstance(value, dict):
         format_name = value.get("format", "json")
         version = value.get("version")

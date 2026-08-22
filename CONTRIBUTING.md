@@ -11,13 +11,16 @@ python tools/check.py
 python tools/check_package.py
 ```
 
-`check.py` runs focused Ruff lint rules, executes all tests with branch measurement,
-and enforces an 80% repository-wide coverage floor. It also verifies repository
-Markdown links and audit counts, checks README command registration, compiles the
-Python tree, validates fixture manifests, smoke-tests the source CLI, and rejects
-whitespace errors in staged and unstaged changes. The Ruff configuration currently
-checks import/name errors and selected `E4`, `E7`, and `E9` rules; it is not a claim
-that a formatter or comprehensive style policy has been adopted.
+`check.py` runs focused Ruff lint rules, `ruff format --check`, `mypy` (default,
+non-strict mode — see `docs/decisions.md` ADR-0008), executes all tests with branch
+measurement, and enforces an 80% repository-wide coverage floor. It also verifies
+repository Markdown links and audit counts, checks README command registration,
+compiles the Python tree, validates fixture manifests, smoke-tests the source CLI,
+and rejects whitespace errors in staged and unstaged changes. Run
+`python -m ruff format src tests tools` before committing if `ruff format --check`
+fails — the Ruff lint configuration itself still only checks import/name errors
+and selected `E4`, `E7`, and `E9` rules, a narrower claim than the formatter and
+type checker now cover.
 
 `check_package.py` builds a wheel, installs it into a temporary virtual environment,
 and smoke-tests the installed module and console entry points without letting the
@@ -35,6 +38,11 @@ that a hosted run has passed; record hosted-run evidence separately when availab
 6. Implement the smallest change that passes.
 7. Run the whole suite, not only the new test.
 8. Update `docs/compatibility.md` and user documentation.
+9. Add a `CHANGELOG.md` entry under `[Unreleased]` for anything a user or
+   contributor would notice. If the change involved a real choice among
+   alternatives, was expensive to reverse, and a future contributor would
+   plausibly ask "why is it like this?" — add an entry to `docs/decisions.md`
+   too; most changes will not need one.
 
 Do not use live network calls in ordinary tests. Do not invent native format details
 without source or fixture evidence. Never silently drop unsupported fields.

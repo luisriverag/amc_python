@@ -14,10 +14,7 @@ from .native import replace_and_sync_directory
 
 METADATA_KEY = "amc_python_loan_history"
 BORROWERS_KEY = "amc_python_borrowers"
-LEGACY_HEADER = (
-    "Date & Time\tCatalog\tIn/Out\tMovie Number\tMovieLabel\tMovie Title\t"
-    "Borrower Name"
-)
+LEGACY_HEADER = "Date & Time\tCatalog\tIn/Out\tMovie Number\tMovieLabel\tMovie Title\tBorrower Name"
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,9 +35,7 @@ class LoanEvent:
     def from_dict(cls, value: object) -> "LoanEvent":
         if not isinstance(value, dict):
             raise TypeError("loan history entries must be objects")
-        expected = {
-            "timestamp", "action", "movie_number", "media_label", "title", "borrower"
-        }
+        expected = {"timestamp", "action", "movie_number", "media_label", "title", "borrower"}
         if set(value) != expected:
             raise ValueError("loan history entry has missing or unknown fields")
         event = cls(
@@ -115,6 +110,8 @@ def add_borrower(catalog: Catalog, name: str) -> str:
     if any(item.casefold() == name.casefold() for item in existing):
         raise ValueError(f"borrower already exists: {name}")
     managed = catalog.metadata.get(BORROWERS_KEY, [])
+    if not isinstance(managed, list):
+        raise TypeError("catalog borrowers must be an array")
     catalog.metadata[BORROWERS_KEY] = [*managed, name]
     return name
 
@@ -128,9 +125,9 @@ def remove_borrower(catalog: Catalog, name: str) -> str:
         raise ValueError("borrower must not be empty")
     managed = catalog.metadata.get(BORROWERS_KEY, [])
     borrowers(catalog)  # validate metadata before changing it
-    match = next(
-        (item for item in managed if item.casefold() == name.casefold()), None
-    )
+    if not isinstance(managed, list):
+        raise TypeError("catalog borrowers must be an array")
+    match = next((item for item in managed if item.casefold() == name.casefold()), None)
     if match is None:
         raise KeyError(f"borrower does not exist: {name}")
     if any(movie.borrower.casefold() == name.casefold() for movie in catalog):
@@ -139,9 +136,7 @@ def remove_borrower(catalog: Catalog, name: str) -> str:
     return match
 
 
-def export_legacy_history(
-    catalog: Catalog, destination: str | Path, *, catalog_name: str
-) -> None:
+def export_legacy_history(catalog: Catalog, destination: str | Path, *, catalog_name: str) -> None:
     """Atomically export the tab-separated layout written by upstream AMC."""
     if not isinstance(catalog_name, str):
         raise TypeError("catalog name must be a string")

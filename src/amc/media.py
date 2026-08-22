@@ -74,8 +74,15 @@ def inspect_media(path: str | Path, *, max_file_bytes: int = 1024**4) -> MediaIn
         length, video_bitrate = _inspect_mp4_movie_header(path, size)
         video_format = label
     return MediaInfo(
-        str(path), path.stem, path.suffix, size, length,
-        audio_format, bitrate, video_format, video_bitrate,
+        str(path),
+        path.stem,
+        path.suffix,
+        size,
+        length,
+        audio_format,
+        bitrate,
+        video_format,
+        video_bitrate,
     )
 
 
@@ -141,8 +148,14 @@ def _inspect_aiff_common_chunk(path: Path, size: int) -> tuple[int | None, int |
     """
     with path.open("rb") as stream:
         header = stream.read(12)
-        if len(header) != 12 or header[0:4] != b"FORM" or header[8:12] not in (
-            b"AIFF", b"AIFC",
+        if (
+            len(header) != 12
+            or header[0:4] != b"FORM"
+            or header[8:12]
+            not in (
+                b"AIFF",
+                b"AIFC",
+            )
         ):
             raise ValueError("invalid AIFF media file: missing FORM/AIFF marker")
         form_type = header[8:12]
@@ -267,7 +280,7 @@ def _inspect_mp3(path: Path, size: int) -> tuple[int | None, int | None]:
     limit = len(window) - 3
     index = 0
     while index < limit:
-        word = int.from_bytes(window[index:index + 4], "big")
+        word = int.from_bytes(window[index : index + 4], "big")
         header = _mp3_frame_header(word)
         if header is not None:
             frame_offset = offset + index
@@ -333,9 +346,7 @@ def _inspect_ogg_vorbis(path: Path, size: int) -> tuple[int | None, int | None]:
             or len(packet) < _OGG_IDENTIFICATION_HEADER_SIZE
             or not packet.startswith(b"\x01vorbis")
         ):
-            raise ValueError(
-                "invalid Ogg media file: missing Vorbis identification header"
-            )
+            raise ValueError("invalid Ogg media file: missing Vorbis identification header")
         sample_rate = int.from_bytes(packet[12:16], "little")
         bitrate_nominal = int.from_bytes(packet[20:24], "little", signed=True)
     if sample_rate <= 0:
@@ -347,7 +358,7 @@ def _inspect_ogg_vorbis(path: Path, size: int) -> tuple[int | None, int | None]:
     total_samples = None
     index = tail.rfind(b"OggS")
     while index != -1:
-        candidate = tail[index:index + _OGG_PAGE_HEADER_SIZE]
+        candidate = tail[index : index + _OGG_PAGE_HEADER_SIZE]
         if len(candidate) == _OGG_PAGE_HEADER_SIZE and candidate[14:18] == serial:
             granule = int.from_bytes(candidate[6:14], "little", signed=True)
             if granule >= 0:
@@ -433,12 +444,12 @@ def _inspect_mp4_movie_header(path: Path, size: int) -> tuple[int | None, int | 
     for _ in range(_MP4_MAX_MOOV_CHILDREN):
         if offset + 8 > len(moov_payload):
             break
-        child_size = int.from_bytes(moov_payload[offset:offset + 4], "big")
-        child_type = moov_payload[offset + 4:offset + 8]
+        child_size = int.from_bytes(moov_payload[offset : offset + 4], "big")
+        child_type = moov_payload[offset + 4 : offset + 8]
         if child_size < 8 or offset + child_size > len(moov_payload):
             break
         if child_type == b"mvhd":
-            mvhd = moov_payload[offset + 8:offset + child_size]
+            mvhd = moov_payload[offset + 8 : offset + child_size]
             break
         offset += child_size
     if mvhd is None or len(mvhd) < 4:
@@ -474,9 +485,7 @@ def movie_from_media(path: str | Path) -> Movie:
     the two, rounding to the nearest whole minute.
     """
     info = inspect_media(path)
-    length_minutes = (
-        round(info.length_seconds / 60) if info.length_seconds is not None else None
-    )
+    length_minutes = round(info.length_seconds / 60) if info.length_seconds is not None else None
     return Movie(
         title=info.name,
         media_label=Path(info.path).name,
@@ -504,11 +513,12 @@ def discover_media(
         if extensions is not None
         else None
     )
+
     def include(item: Path) -> bool:
         return item.is_file() and (
-            normalized_extensions is None
-            or item.suffix.casefold() in normalized_extensions
+            normalized_extensions is None or item.suffix.casefold() in normalized_extensions
         )
+
     result: list[Path] = []
     for value in paths:
         path = Path(value)

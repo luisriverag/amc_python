@@ -81,8 +81,10 @@ def validate_manifest(path: Path) -> dict[str, object]:
             raise ManifestError(f"{prefix}.path duplicates {relative}")
         seen.add(relative)
         expected = entry.get("sha256")
-        if not isinstance(expected, str) or len(expected) != 64 or any(
-            character not in "0123456789abcdef" for character in expected
+        if (
+            not isinstance(expected, str)
+            or len(expected) != 64
+            or any(character not in "0123456789abcdef" for character in expected)
         ):
             raise ManifestError(f"{prefix}.sha256 must be 64 lowercase hex characters")
         fixture = path.parent / Path(*relative.parts)
@@ -121,8 +123,7 @@ def validate_manifest(path: Path) -> dict[str, object]:
             raise ManifestError(f"{prefix}.movies must be a non-negative integer")
         metadata = entry.get("metadata", {})
         if not isinstance(metadata, dict) or any(
-            not isinstance(key, str)
-            or not isinstance(value, (str, int, bool, type(None)))
+            not isinstance(key, str) or not isinstance(value, (str, int, bool, type(None)))
             for key, value in metadata.items()
         ):
             raise ManifestError(f"{prefix}.metadata must contain scalar expectations")

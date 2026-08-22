@@ -219,7 +219,7 @@ def inspect_script(path: str | Path) -> ScriptInfo:
         text = header.decode("cp1252", errors="replace")
     if not text.startswith("(*") or "*)" not in text:
         return ScriptInfo(str(path), path.name, legacy_format=True)
-    comment = text[2:text.index("*)")]
+    comment = text[2 : text.index("*)")]
     sections: dict[str, list[str]] = {}
     section = ""
     for raw_line in comment.splitlines():
@@ -232,23 +232,31 @@ def inspect_script(path: str | Path) -> ScriptInfo:
     info = _section_values(sections.get("Infos", []))
     fields = _section_values(sections.get("Fields", []))
     extra_fields = _section_values(sections.get("ExtraFields", []))
+
     def boolean(key: str, default: bool) -> bool:
         return info.get(key, "1" if default else "0") != "0"
 
     def section_boolean(values: dict[str, str], key: str, default: bool) -> bool:
         return values.get(key, "1" if default else "0") != "0"
-    options, option_warnings = _parsed_items(
-        sections.get("Options", []), _option, "option"
-    )
+
+    options, option_warnings = _parsed_items(sections.get("Options", []), _option, "option")
     parameters, parameter_warnings = _parsed_items(
         sections.get("Parameters", []), _parameter, "parameter"
     )
     return ScriptInfo(
-        str(path), info.get("Title") or path.name, info.get("Authors", ""),
-        info.get("Description", ""), info.get("Site", ""), info.get("Language", ""),
-        info.get("Version", ""), info.get("Requires", ""), info.get("Comments", ""),
-        info.get("License", ""), boolean("GetInfo", True),
-        boolean("RequiresMovies", True), False,
+        str(path),
+        info.get("Title") or path.name,
+        info.get("Authors", ""),
+        info.get("Description", ""),
+        info.get("Site", ""),
+        info.get("Language", ""),
+        info.get("Version", ""),
+        info.get("Requires", ""),
+        info.get("Comments", ""),
+        info.get("License", ""),
+        boolean("GetInfo", True),
+        boolean("RequiresMovies", True),
+        False,
         options,
         parameters,
         _names(fields.get("Excluded", "")),
@@ -285,9 +293,7 @@ def configure_script(
     option_values = _casefold_overrides(options or {}, "option")
     parameter_values = _casefold_overrides(parameters or {}, "parameter")
     known_options = _unique_names((item.name for item in script.options), "option")
-    known_parameters = _unique_names(
-        (item.name for item in script.parameters), "parameter"
-    )
+    known_parameters = _unique_names((item.name for item in script.parameters), "parameter")
     unknown_options = option_values.keys() - known_options
     unknown_parameters = parameter_values.keys() - known_parameters
     if unknown_options:
@@ -353,7 +359,10 @@ def load_script_configuration(script: ScriptInfo, path: str | Path) -> ScriptInf
     if document.get("version") != 1:
         raise ValueError(f"unsupported script settings version: {document.get('version')!r}")
     script_name = document.get("script")
-    if not isinstance(script_name, str) or script_name.casefold() != Path(script.path).name.casefold():
+    if (
+        not isinstance(script_name, str)
+        or script_name.casefold() != Path(script.path).name.casefold()
+    ):
         raise ValueError("script settings belong to a different script")
     options = document.get("options", {})
     parameters = document.get("parameters", {})
@@ -363,8 +372,7 @@ def load_script_configuration(script: ScriptInfo, path: str | Path) -> ScriptInf
     ):
         raise ValueError("script settings options must map names to integers")
     if not isinstance(parameters, dict) or any(
-        not isinstance(key, str) or not isinstance(value, str)
-        for key, value in parameters.items()
+        not isinstance(key, str) or not isinstance(value, str) for key, value in parameters.items()
     ):
         raise ValueError("script settings parameters must map names to strings")
     return configure_script(script, options=options, parameters=parameters)

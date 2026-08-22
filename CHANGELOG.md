@@ -1,0 +1,71 @@
+# Changelog
+
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), adapted for a
+project that has not yet made a tagged release: everything currently lands
+under **Unreleased**, grouped by when it was added rather than by version.
+This project intends to follow [Semantic Versioning](https://semver.org/)
+starting from its first tagged release.
+
+Entries here describe *what changed*, for someone deciding whether to update
+or what to test. They are not a substitute for `docs/PORT_AUDIT.md` (evidence
+and confidence per subsystem), `docs/compatibility.md` (status per format),
+or `docs/decisions.md` (why a choice was made) — link to those for detail
+rather than repeating it here.
+
+## [Unreleased]
+
+This project has not made a tagged release. The entries below are the
+current baseline as of this changelog's introduction, not a claim that any
+of it shipped as a version. Add new entries above this note as future
+changes land; do not rewrite this baseline retroactively.
+
+### Added
+
+- Command-line interface (`amc`) covering catalog CRUD, search, sort,
+  renumber, merge, loans (single/batch, with media-label and
+  retained-native-number grouping), managed borrowers, backup/restore,
+  statistics, duplicate detection, media import, picture link/embed/crop/
+  clear/export (single and atomic batch), legacy script metadata inspection
+  and configuration, and OMDb-backed IMDb lookup/update (`imdb-lookup`).
+- Desktop GUI (`amc-gui`, Tk) with table/details/poster layouts, a full
+  menu bar and matching toolbar/context menu, undo/redo, checked/loan
+  filters, interactive drag-to-select picture cropping, batch picture
+  set/assign/clear, an Import Media workflow, upstream `$$TAG_NAME` HTML
+  template export, a Preferences dialog, and a **Movie / Update from
+  IMDb...** dialog sharing the CLI's preview-then-apply OMDb contract.
+- Read-only web interface (`amc-web`) with a responsive table/poster
+  gallery, search, pagination, and safe external-link handling.
+- Internal JSON v1 catalog format: the project's own persistence format,
+  with strict envelope/schema validation, atomic writes, and BOM tolerance
+  on read.
+- Interchange support: AMC-compatible XML read/write, CSV read/write with
+  AMC and Python field-name aliases, static escaped HTML export, and an
+  experimental, source-derived AMC 4.2 native binary reader/writer (see
+  `docs/compatibility.md` — native format compatibility is not yet
+  upstream-verified; see ADR-0001 in `docs/decisions.md`).
+- `amc.application.CatalogService`: the one shared, failure-atomic
+  application boundary behind the CLI and GUI (see ADR-0002).
+- Non-executing legacy "Get Info" script metadata inspection
+  (`amc.scripts`) — permissions, options, parameters, static names — with
+  no IFPS execution (see ADR-0005); a first-party OMDb IMDb-lookup/update
+  provider (`amc.omdb`) covering the two most-used script use cases
+  instead.
+- Bounded, dependency-free media analysis (`amc.media`) for portable file
+  facts plus PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration and bitrate.
+- Fixture provenance infrastructure: `tests/fixtures/`'s manifest schema,
+  `tools/validate_fixtures.py`, `tools/verify_fixtures.py`, real
+  redistribution-cleared script fixtures, and a hand-authored synthetic
+  native/XML edge-case fixture pair (see ADR-0001).
+- Engineering baseline: `tools/check.py` (the one canonical local check —
+  Ruff lint, Ruff format, mypy, the full test suite with branch-coverage
+  floor, bytecode compilation, fixture validation, license-inventory
+  validation, native-fixture verification, and a CLI smoke check) and
+  `tools/check_package.py` (isolated sdist/wheel build and install);
+  `tests/` split into `unit/`, `integration/`, `compatibility/`, `cli/`,
+  `gui/`, and `tooling/` (see ADR-0007); `mypy` adopted in default mode
+  (see ADR-0008); `ruff format` adopted as the canonical formatter
+  (line length 100); Linux and Windows CI across four supported Python
+  versions.
+
+[Unreleased]: https://github.com/luisriverag/amc_python

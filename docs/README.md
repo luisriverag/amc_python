@@ -20,12 +20,15 @@ and compatibility material first.
   compatibility policy.
 - [Architecture](architecture.md) — module boundaries, error handling, and resource
   limits.
+- [Architecture decision log](decisions.md) — why, not just what, for this
+  project's consequential and hard-to-reverse choices.
 - [Port audit](PORT_AUDIT.md) — evidence-based progress and remaining gaps.
 
 ## Contributing and porting
 
 - [Contribution guide](../CONTRIBUTING.md) — development setup, checks, fixtures,
   and change expectations.
+- [Changelog](../CHANGELOG.md) — notable changes, newest first.
 - [Implementation plan](IMPLEMENTATION_PLAN.md) — milestones and prioritized work.
 - [Critical port sprints](NEXT_SPRINTS.md) — ordered near-term work, exit checks,
   and deferred non-critical features.

@@ -16,7 +16,7 @@ Every network call requires an explicit, caller-supplied API key (never
 hardcoded, never persisted by this module — obtain one at
 https://www.omdbapi.com/apikey.aspx) and a bounded timeout. Nothing here
 runs a real HTTP request during the normal test suite: `fetch_omdb_record`
-takes an injectable `opener`, and `tests/test_omdb.py` always supplies a
+takes an injectable `opener`, and `tests/unit/test_omdb.py` always supplies a
 fake one instead of reaching the network, matching this project's existing
 "live network tests must be opt-in" rule for any future provider.
 """

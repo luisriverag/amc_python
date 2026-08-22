@@ -40,9 +40,7 @@ def run_with_output(
         text=True,
     )
     if result.stdout != expected:
-        raise RuntimeError(
-            f"unexpected output from {' '.join(command)}: {result.stdout!r}"
-        )
+        raise RuntimeError(f"unexpected output from {' '.join(command)}: {result.stdout!r}")
 
 
 def environment_python(environment: Path) -> Path:
@@ -76,15 +74,13 @@ def validate_sdist(path: Path) -> None:
             raise RuntimeError(f"unsafe source-distribution member: {member.name}")
         relative = parts[1:]
         relative_names.append(relative)
-        if any(relative[:len(prefix)] == prefix for prefix in FORBIDDEN_SDIST_PARTS):
-            raise RuntimeError(
-                f"source distribution contains historical evidence: {member.name}"
-            )
+        if any(relative[: len(prefix)] == prefix for prefix in FORBIDDEN_SDIST_PARTS):
+            raise RuntimeError(f"source distribution contains historical evidence: {member.name}")
     required = {("LICENSE",), ("README.md",), ("pyproject.toml",), ("src", "amc")}
     missing = sorted(
         "/".join(prefix)
         for prefix in required
-        if not any(name[:len(prefix)] == prefix for name in relative_names)
+        if not any(name[: len(prefix)] == prefix for name in relative_names)
     )
     if missing:
         raise RuntimeError(f"source distribution is missing: {', '.join(missing)}")
@@ -98,25 +94,23 @@ def main() -> int:
         dist = workspace / "dist"
         environment = workspace / "venv"
         wheelhouse.mkdir()
-        run([
-            sys.executable, "-m", "build", "--sdist", "--outdir", str(dist), "."
-        ])
+        run([sys.executable, "-m", "build", "--sdist", "--outdir", str(dist), "."])
         sdists = list(dist.glob("amc_python-*.tar.gz"))
         if len(sdists) != 1:
-            raise RuntimeError(
-                f"expected one AMC Python source distribution, found {len(sdists)}"
-            )
+            raise RuntimeError(f"expected one AMC Python source distribution, found {len(sdists)}")
         validate_sdist(sdists[0])
-        run([
-            sys.executable,
-            "-m",
-            "pip",
-            "wheel",
-            ".",
-            "--no-deps",
-            "--wheel-dir",
-            str(wheelhouse),
-        ])
+        run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "wheel",
+                ".",
+                "--no-deps",
+                "--wheel-dir",
+                str(wheelhouse),
+            ]
+        )
         wheels = list(wheelhouse.glob("amc_python-*.whl"))
         if len(wheels) != 1:
             raise RuntimeError(f"expected one AMC Python wheel, found {len(wheels)}")

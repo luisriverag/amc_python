@@ -99,10 +99,7 @@ class CatalogService:
     def remove_many(self, numbers: Iterable[int]) -> list[Movie]:
         """Remove distinct movie numbers in one failure-atomic operation."""
         requested = list(numbers)
-        if any(
-            isinstance(number, bool) or not isinstance(number, int)
-            for number in requested
-        ):
+        if any(isinstance(number, bool) or not isinstance(number, int) for number in requested):
             raise TypeError("movie numbers must be integers")
         if len(set(requested)) != len(requested):
             raise ValueError("movie numbers must be unique")
@@ -136,9 +133,7 @@ class CatalogService:
             metadata=incoming.metadata,
         )
         return self._persist(
-            lambda catalog: catalog.merge(
-                isolated, collision=collision, metadata=metadata
-            )
+            lambda catalog: catalog.merge(isolated, collision=collision, metadata=metadata)
         )
 
     def import_from(
@@ -187,7 +182,9 @@ class CatalogService:
     ) -> Movie:
         """Assign a borrower unless the movie is already loaned elsewhere."""
         updated = self.check_out_many(
-            [number], borrower, include_media_label=include_media_label,
+            [number],
+            borrower,
+            include_media_label=include_media_label,
             include_native_number=include_native_number,
         )
         return next(movie for movie in updated if movie.number == number)
@@ -219,16 +216,12 @@ class CatalogService:
             for number in expanded:
                 movie = catalog.get(number)
                 if movie.borrower and movie.borrower != borrower:
-                    raise ValueError(
-                        f"movie {number} is already checked out to {movie.borrower}"
-                    )
+                    raise ValueError(f"movie {number} is already checked out to {movie.borrower}")
                 values = movie.to_dict()
                 values["borrower"] = borrower
                 replacement = catalog.replace(number, Movie.from_dict(values))
                 if not movie.borrower:
-                    append_event(
-                        catalog, replacement, action="out", borrower=borrower
-                    )
+                    append_event(catalog, replacement, action="out", borrower=borrower)
                 updated.append(replacement)
             return updated
 
@@ -243,7 +236,8 @@ class CatalogService:
     ) -> Movie:
         """Clear the current borrower for a loaned movie."""
         updated = self.check_in_many(
-            [number], include_media_label=include_media_label,
+            [number],
+            include_media_label=include_media_label,
             include_native_number=include_native_number,
         )
         return next(movie for movie in updated if movie.number == number)
@@ -275,9 +269,7 @@ class CatalogService:
                 values = movie.to_dict()
                 values["borrower"] = ""
                 replacement = catalog.replace(number, Movie.from_dict(values))
-                append_event(
-                    catalog, replacement, action="in", borrower=movie.borrower
-                )
+                append_event(catalog, replacement, action="in", borrower=movie.borrower)
                 updated.append(replacement)
             return updated
 
@@ -327,10 +319,7 @@ class CatalogService:
         if not isinstance(checked, bool):
             raise TypeError("checked must be a boolean")
         requested = list(numbers)
-        if any(
-            isinstance(number, bool) or not isinstance(number, int)
-            for number in requested
-        ):
+        if any(isinstance(number, bool) or not isinstance(number, int) for number in requested):
             raise TypeError("movie numbers must be integers")
         if len(set(requested)) != len(requested):
             raise ValueError("movie numbers must be unique")
@@ -395,8 +384,7 @@ class CatalogService:
         unknown_crop_numbers = sorted(set(crops) - set(requested))
         if unknown_crop_numbers:
             raise ValueError(
-                f"crops references movie numbers not in assignments: "
-                f"{unknown_crop_numbers}"
+                f"crops references movie numbers not in assignments: {unknown_crop_numbers}"
             )
         if not embed and (crop is not None or crops):
             raise ValueError("crop is only supported for embedded pictures")
@@ -412,14 +400,12 @@ class CatalogService:
                 size = source_path.stat().st_size
                 if size > max_bytes:
                     raise ValueError(
-                        f"picture exceeds size limit for movie {number}: "
-                        f"{size} > {max_bytes}"
+                        f"picture exceeds size limit for movie {number}: {size} > {max_bytes}"
                     )
                 data = source_path.read_bytes()
                 if len(data) > max_bytes:
                     raise ValueError(
-                        f"picture exceeds size limit for movie {number}: "
-                        f"{len(data)} > {max_bytes}"
+                        f"picture exceeds size limit for movie {number}: {len(data)} > {max_bytes}"
                     )
                 data = self._prepare_picture(data, max_pixels=max_pixels, crop=movie_crop)
                 if len(data) > max_bytes:
@@ -520,9 +506,8 @@ class CatalogService:
                         f"picture exceeds pixel limit: {width}x{height} > {max_pixels}"
                     )
                 if crop is not None:
-                    if (
-                        len(crop) != 4
-                        or any(isinstance(value, bool) or not isinstance(value, int) for value in crop)
+                    if len(crop) != 4 or any(
+                        isinstance(value, bool) or not isinstance(value, int) for value in crop
                     ):
                         raise TypeError("crop must contain four integers")
                     left, top, crop_width, crop_height = crop
@@ -531,9 +516,7 @@ class CatalogService:
                     if left + crop_width > width or top + crop_height > height:
                         raise ValueError("crop rectangle exceeds picture bounds")
                     output = io.BytesIO()
-                    cropped = image.crop(
-                        (left, top, left + crop_width, top + crop_height)
-                    )
+                    cropped = image.crop((left, top, left + crop_width, top + crop_height))
                     cropped.save(output, format=image.format or "PNG")
                     return output.getvalue()
                 image.verify()
@@ -563,7 +546,7 @@ class CatalogService:
         save(previous, self.path)
         self._undo.pop()
         self._redo.append(self._clone(self.catalog))
-        del self._redo[:-self.history_limit]
+        del self._redo[: -self.history_limit]
         self.catalog = previous
 
     def redo(self) -> None:
@@ -575,7 +558,7 @@ class CatalogService:
         save(following, self.path)
         self._redo.pop()
         self._undo.append(self._clone(self.catalog))
-        del self._undo[:-self.history_limit]
+        del self._undo[: -self.history_limit]
         self.catalog = following
 
     def backup(self, destination: str | Path) -> None:
@@ -588,17 +571,13 @@ class CatalogService:
         self.reload()
 
     @classmethod
-    def restore_to(
-        cls, source: str | Path, destination: str | Path
-    ) -> CatalogService:
+    def restore_to(cls, source: str | Path, destination: str | Path) -> CatalogService:
         """Restore a path that may currently be missing or unreadable."""
         copy_catalog(source, destination)
         return cls(destination)
 
     @classmethod
-    def convert_to(
-        cls, source: str | Path, destination: str | Path
-    ) -> CatalogService:
+    def convert_to(cls, source: str | Path, destination: str | Path) -> CatalogService:
         """Load an interchange catalog and atomically write internal JSON output."""
         catalog = load(source)
         save(catalog, destination)
@@ -690,7 +669,7 @@ class CatalogService:
             raise
         self.catalog = candidate
         self._undo.append(previous)
-        del self._undo[:-self.history_limit]
+        del self._undo[: -self.history_limit]
         self._redo.clear()
         self.dirty = False
         return result
@@ -718,10 +697,7 @@ class CatalogService:
     @staticmethod
     def _movie_numbers(numbers: Iterable[int]) -> list[int]:
         requested = list(numbers)
-        if any(
-            isinstance(number, bool) or not isinstance(number, int)
-            for number in requested
-        ):
+        if any(isinstance(number, bool) or not isinstance(number, int) for number in requested):
             raise TypeError("movie numbers must be integers")
         if len(set(requested)) != len(requested):
             raise ValueError("movie numbers must be unique")
@@ -745,21 +721,18 @@ class CatalogService:
             return numbers
         labels = {movie.media_label.casefold() for movie in selected if movie.media_label}
         native_numbers = {
-            movie.extras.get("native_movie_number", movie.number)
-            for movie in selected
+            movie.extras.get("native_movie_number", movie.number) for movie in selected
         }
         expanded = set(numbers)
         expanded.update(
             movie.number
             for movie in catalog
             if (
-                include_media_label
-                and movie.media_label
-                and movie.media_label.casefold() in labels
-            ) or (
+                include_media_label and movie.media_label and movie.media_label.casefold() in labels
+            )
+            or (
                 include_native_number
-                and movie.extras.get("native_movie_number", movie.number)
-                in native_numbers
+                and movie.extras.get("native_movie_number", movie.number) in native_numbers
             )
         )
         return [movie.number for movie in catalog if movie.number in expanded]

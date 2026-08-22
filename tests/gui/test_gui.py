@@ -102,13 +102,17 @@ def test_window_saves_current_view_layout_and_window_size():
 
     save.assert_called_once_with(
         GuiPreferences(
-            view_filter="Checked", layout="Poster",
-            window_width=1280, window_height=800, history_limit=100,
+            view_filter="Checked",
+            layout="Poster",
+            window_width=1280,
+            window_height=800,
+            history_limit=100,
         ),
         Path("prefs.json"),
     )
     assert (window._preferences.window_width, window._preferences.window_height) == (
-        1280, 800,
+        1280,
+        800,
     )
 
 
@@ -281,9 +285,7 @@ def test_window_set_pictures_links_instead_of_embedding_when_declined():
     ):
         window.set_pictures()
 
-    window.service.set_picture_many.assert_called_once_with(
-        [(2, "cover.jpg")], embed=False
-    )
+    window.service.set_picture_many.assert_called_once_with([(2, "cover.jpg")], embed=False)
 
 
 def test_window_assign_pictures_ignores_missing_selection():
@@ -474,9 +476,7 @@ def test_window_import_media_narrows_folder_scan_to_chosen_extensions():
     ):
         window.import_media()
 
-    discover.assert_called_once_with(
-        [Path("folder")], recursive=False, extensions={"mkv", "mp4"}
-    )
+    discover.assert_called_once_with([Path("folder")], recursive=False, extensions={"mkv", "mp4"})
 
 
 def test_window_import_media_reports_no_files_found_in_folder():
@@ -562,7 +562,8 @@ def test_window_import_media_reports_invalid_media_without_mutating_catalog():
     with (
         patch("amc.gui.messagebox.askyesnocancel", return_value=False),
         patch(
-            "amc.gui.filedialog.askopenfilenames", return_value=["broken.mkv"],
+            "amc.gui.filedialog.askopenfilenames",
+            return_value=["broken.mkv"],
         ),
         patch("amc.gui.tk.Toplevel", return_value=dialog),
         patch("amc.gui.ttk.Label", return_value=Mock()),
@@ -606,9 +607,7 @@ def test_window_native_export_explains_existing_backup(tmp_path: Path):
     destination = tmp_path / "movies.amc"
     destination.write_bytes(b"old catalog")
     with (
-        patch(
-            "amc.gui.filedialog.asksaveasfilename", return_value=str(destination)
-        ),
+        patch("amc.gui.filedialog.asksaveasfilename", return_value=str(destination)),
         patch("amc.gui.messagebox.askyesno", return_value=True) as confirm,
         patch("amc.gui.messagebox.showinfo") as showinfo,
     ):
@@ -695,10 +694,12 @@ def test_window_html_export_with_ant_template_cancelling_the_folder_does_nothing
 
 def test_window_checks_selected_movie_in():
     window = _window()
-    window.selected_movies = Mock(return_value=[
-        Movie(number=7, title="Moon", borrower="Sam"),
-        Movie(number=8, title="Alien", borrower="Sam"),
-    ])
+    window.selected_movies = Mock(
+        return_value=[
+            Movie(number=7, title="Moon", borrower="Sam"),
+            Movie(number=8, title="Alien", borrower="Sam"),
+        ]
+    )
 
     window.loan_in()
 
@@ -782,9 +783,7 @@ def test_window_exports_loan_history_to_selected_destination():
         window.export_loan_history()
 
     assert save_dialog.call_args.kwargs["initialfile"] == "movies loan history.csv"
-    window.service.export_loan_history.assert_called_once_with(
-        "movies loan history.csv"
-    )
+    window.service.export_loan_history.assert_called_once_with("movies loan history.csv")
     showinfo.assert_called_once()
 
 
@@ -805,10 +804,12 @@ def test_window_loan_history_export_cancel_and_failure_are_safe():
 
 def test_window_shows_duplicate_movie_groups():
     window = _window()
-    window.service.duplicates.return_value = [[
-        Movie(number=1, title="Moon", year=2009),
-        Movie(number=8, title="moon", year=2009),
-    ]]
+    window.service.duplicates.return_value = [
+        [
+            Movie(number=1, title="Moon", year=2009),
+            Movie(number=8, title="moon", year=2009),
+        ]
+    ]
 
     with patch("amc.gui.messagebox.showinfo") as showinfo:
         window.show_duplicates()
@@ -992,9 +993,20 @@ def test_window_keyboard_action_uses_button_state():
 def test_window_action_states_follow_selection_history_and_format():
     window = _window()
     names = (
-        "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
-        "Open URL", "Update from IMDb", "Renumber",
+        "Add",
+        "Edit",
+        "Remove",
+        "Loan Out",
+        "Loan In",
+        "Toggle Checked",
+        "Set Pictures",
+        "Assign Pictures",
+        "Clear Pictures",
+        "Undo",
+        "Redo",
+        "Open URL",
+        "Update from IMDb",
+        "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -1004,9 +1016,12 @@ def test_window_action_states_follow_selection_history_and_format():
     window.service.is_writable = True
     window.service.can_undo = True
     window.service.can_redo = False
-    window.service.catalog = Catalog([
-        Movie(number=7, borrower="Sam"), Movie(number=8, borrower="Sam"),
-    ])
+    window.service.catalog = Catalog(
+        [
+            Movie(number=7, borrower="Sam"),
+            Movie(number=8, borrower="Sam"),
+        ]
+    )
 
     window.update_action_states()
 
@@ -1016,8 +1031,7 @@ def test_window_action_states_follow_selection_history_and_format():
     assert window.action_buttons["Undo"].configure.call_args.kwargs["state"] == "normal"
     assert window.action_buttons["Redo"].configure.call_args.kwargs["state"] == "disabled"
     assert (
-        window.action_buttons["Update from IMDb"].configure.call_args.kwargs["state"]
-        == "disabled"
+        window.action_buttons["Update from IMDb"].configure.call_args.kwargs["state"] == "disabled"
     )
     assert window.import_button.configure.call_args.kwargs["state"] == "normal"
     assert window.restore_button.configure.call_args.kwargs["state"] == "normal"
@@ -1026,9 +1040,20 @@ def test_window_action_states_follow_selection_history_and_format():
 def test_window_disables_mutations_for_interchange_catalog():
     window = _window()
     names = (
-        "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
-        "Open URL", "Update from IMDb", "Renumber",
+        "Add",
+        "Edit",
+        "Remove",
+        "Loan Out",
+        "Loan In",
+        "Toggle Checked",
+        "Set Pictures",
+        "Assign Pictures",
+        "Clear Pictures",
+        "Undo",
+        "Redo",
+        "Open URL",
+        "Update from IMDb",
+        "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -1036,9 +1061,11 @@ def test_window_disables_mutations_for_interchange_catalog():
     window.restore_button = Mock()
     window.table.selection.return_value = ("7",)
     window.service.is_writable = False
-    window.service.catalog = Catalog([
-        Movie(number=7, url="https://example.com"),
-    ])
+    window.service.catalog = Catalog(
+        [
+            Movie(number=7, url="https://example.com"),
+        ]
+    )
 
     window.update_action_states()
 
@@ -1052,9 +1079,20 @@ def test_window_disables_mutations_for_interchange_catalog():
 def test_window_disables_actions_when_selection_lacks_required_data():
     window = _window()
     names = (
-        "Add", "Edit", "Remove", "Loan Out", "Loan In", "Toggle Checked",
-        "Set Pictures", "Assign Pictures", "Clear Pictures", "Undo", "Redo",
-        "Open URL", "Update from IMDb", "Renumber",
+        "Add",
+        "Edit",
+        "Remove",
+        "Loan Out",
+        "Loan In",
+        "Toggle Checked",
+        "Set Pictures",
+        "Assign Pictures",
+        "Clear Pictures",
+        "Undo",
+        "Redo",
+        "Open URL",
+        "Update from IMDb",
+        "Renumber",
     )
     window.action_buttons = {name: Mock() for name in names}
     window.import_button = Mock()
@@ -1070,21 +1108,20 @@ def test_window_disables_actions_when_selection_lacks_required_data():
 
     assert window.action_buttons["Loan In"].configure.call_args.kwargs["state"] == "disabled"
     assert window.action_buttons["Open URL"].configure.call_args.kwargs["state"] == "disabled"
-    assert (
-        window.action_buttons["Update from IMDb"].configure.call_args.kwargs["state"]
-        == "normal"
-    )
+    assert window.action_buttons["Update from IMDb"].configure.call_args.kwargs["state"] == "normal"
 
 
 def test_window_renders_selected_movie_details_read_only():
     window = _window()
-    window.selected = Mock(return_value=Movie(
-        number=7,
-        title="Moon",
-        director="Duncan Jones",
-        borrower="Sam Bell",
-        description="A lunar mystery.",
-    ))
+    window.selected = Mock(
+        return_value=Movie(
+            number=7,
+            title="Moon",
+            director="Duncan Jones",
+            borrower="Sam Bell",
+            description="A lunar mystery.",
+        )
+    )
 
     window.show_selected()
 
@@ -1106,9 +1143,7 @@ def test_window_clears_details_without_selection():
 
 
 def _form_values(**overrides: str) -> dict[str, str]:
-    values = {
-        name: "" for name in _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS + _EDIT_FLOAT_FIELDS
-    }
+    values = {name: "" for name in _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS + _EDIT_FLOAT_FIELDS}
     values.update(overrides)
     return values
 
@@ -1117,11 +1152,18 @@ def test_movie_form_parses_all_scalar_field_kinds():
     movie = movie_from_form(
         Movie(number=7, extras={"kept": True}),
         _form_values(
-            title=" Moon ", year="2009", length="97", rating="8.5",
-            user_rating="9", color_tag="2", framerate="23.976",
+            title=" Moon ",
+            year="2009",
+            length="97",
+            rating="8.5",
+            user_rating="9",
+            color_tag="2",
+            framerate="23.976",
             director=" Duncan Jones ",
-            writer=" Nathan Parker ", composer=" Clint Mansell ",
-            certification=" R ", file_path=" Media/Moon.mkv ",
+            writer=" Nathan Parker ",
+            composer=" Clint Mansell ",
+            certification=" R ",
+            file_path=" Media/Moon.mkv ",
             description="  A lunar mystery.\nSecond paragraph.  ",
             comments="  Restored edition.  ",
         ),
@@ -1130,11 +1172,17 @@ def test_movie_form_parses_all_scalar_field_kinds():
 
     assert (movie.number, movie.title, movie.year, movie.length) == (7, "Moon", 2009, 97)
     assert (movie.rating, movie.framerate, movie.director, movie.checked) == (
-        8.5, 23.976, "Duncan Jones", True
+        8.5,
+        23.976,
+        "Duncan Jones",
+        True,
     )
     assert (movie.user_rating, movie.color_tag) == (9, 2)
     assert (movie.writer, movie.composer, movie.certification, movie.file_path) == (
-        "Nathan Parker", "Clint Mansell", "R", "Media/Moon.mkv"
+        "Nathan Parker",
+        "Clint Mansell",
+        "R",
+        "Media/Moon.mkv",
     )
     assert movie.extras == {"kept": True}
     assert movie.description == "A lunar mystery.\nSecond paragraph."
@@ -1168,10 +1216,16 @@ def test_movie_view_filter_rejects_unknown_mode():
 
 
 def test_movie_row_includes_checked_and_borrower_status():
-    assert movie_row(Movie(
-        number=7, title="Moon", year=2009, director="Duncan Jones",
-        checked=True, borrower="Sam Bell",
-    )) == (7, "Moon", 2009, "Duncan Jones", "Yes", "Sam Bell")
+    assert movie_row(
+        Movie(
+            number=7,
+            title="Moon",
+            year=2009,
+            director="Duncan Jones",
+            checked=True,
+            borrower="Sam Bell",
+        )
+    ) == (7, "Moon", 2009, "Duncan Jones", "Yes", "Sam Bell")
 
 
 def test_loan_event_row_uses_readable_action_and_timestamp():
@@ -1185,15 +1239,17 @@ def test_loan_event_row_uses_readable_action_and_timestamp():
     )
 
     assert loan_event_row(event) == (
-        "2026-08-14 12:30:00+00:00", "Checked out", 7, "Moon", "Sam Bell",
+        "2026-08-14 12:30:00+00:00",
+        "Checked out",
+        7,
+        "Moon",
+        "Sam Bell",
     )
 
 
 def test_window_toggles_selected_checked_state():
     window = _window()
-    window.selected_movies = Mock(
-        return_value=[Movie(number=7, title="Moon", checked=False)]
-    )
+    window.selected_movies = Mock(return_value=[Movie(number=7, title="Moon", checked=False)])
 
     window.toggle_checked()
 
@@ -1205,10 +1261,12 @@ def test_window_toggles_selected_checked_state():
 
 def test_window_bulk_checked_toggle_checks_mixed_selection_then_clears_all():
     window = _window()
-    window.selected_movies = Mock(return_value=[
-        Movie(number=2, checked=True),
-        Movie(number=4, checked=False),
-    ])
+    window.selected_movies = Mock(
+        return_value=[
+            Movie(number=2, checked=True),
+            Movie(number=4, checked=False),
+        ]
+    )
 
     window.toggle_checked()
     first = window.service.set_checked_many.call_args
@@ -1227,9 +1285,7 @@ def test_window_bulk_checked_toggle_checks_mixed_selection_then_clears_all():
 
 def test_window_checked_failure_does_not_refresh():
     window = _window()
-    window.selected_movies = Mock(
-        return_value=[Movie(number=7, title="Moon", checked=True)]
-    )
+    window.selected_movies = Mock(return_value=[Movie(number=7, title="Moon", checked=True)])
     window.service.set_checked_many.side_effect = OSError("disk full")
     with patch("amc.gui.messagebox.showerror") as showerror:
         window.toggle_checked()
@@ -1294,21 +1350,23 @@ def test_poster_source_resolves_relative_link(tmp_path: Path):
     poster.write_bytes(b"GIF89a")
 
     assert poster_source(Movie(picture="covers/moon.gif"), tmp_path / "movies.json") == (
-        "file", str(poster)
+        "file",
+        str(poster),
     )
 
 
 def test_poster_source_rejects_invalid_or_missing_sources(tmp_path: Path):
-    assert poster_source(Movie(extras={"native_picture_base64": "not base64"}), tmp_path / "x.amc") is None
+    assert (
+        poster_source(Movie(extras={"native_picture_base64": "not base64"}), tmp_path / "x.amc")
+        is None
+    )
     assert poster_source(Movie(picture="missing.jpg"), tmp_path / "x.json") is None
 
 
 def test_poster_source_falls_back_from_invalid_embedded_to_linked(tmp_path: Path):
     poster = tmp_path / "cover.jpg"
     poster.write_bytes(b"poster")
-    movie = Movie(
-        picture="cover.jpg", extras={"native_picture_base64": "not base64"}
-    )
+    movie = Movie(picture="cover.jpg", extras={"native_picture_base64": "not base64"})
 
     assert poster_source(movie, tmp_path / "movies.amc") == ("file", str(poster))
 
@@ -1387,20 +1445,29 @@ def test_poster_size_preserves_aspect_ratio_without_upscaling():
 def test_crop_box_from_canvas_scales_to_image_pixels():
     # A 200x100 preview of a 400x200 image scales by exactly 2x.
     assert crop_box_from_canvas((10, 20, 110, 70), (200, 100), (400, 200)) == (
-        20, 40, 220, 140,
+        20,
+        40,
+        220,
+        140,
     )
 
 
 def test_crop_box_from_canvas_normalizes_reversed_drag_direction():
     # Dragging from bottom-right to top-left still yields an ordered box.
     assert crop_box_from_canvas((110, 70, 10, 20), (200, 100), (400, 200)) == (
-        20, 40, 220, 140,
+        20,
+        40,
+        220,
+        140,
     )
 
 
 def test_crop_box_from_canvas_clamps_out_of_bounds_coordinates():
     assert crop_box_from_canvas((-50, -50, 250, 150), (200, 100), (200, 100)) == (
-        0, 0, 200, 100,
+        0,
+        0,
+        200,
+        100,
     )
 
 

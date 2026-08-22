@@ -121,9 +121,7 @@ def parser() -> argparse.ArgumentParser:
     borrower_list.add_argument("--json", action="store_true", dest="as_json")
     borrower_add = commands.add_parser("borrower-add", help="add a borrower name")
     borrower_add.add_argument("name")
-    borrower_remove = commands.add_parser(
-        "borrower-remove", help="remove an unused borrower name"
-    )
+    borrower_remove = commands.add_parser("borrower-remove", help="remove an unused borrower name")
     borrower_remove.add_argument("name")
     picture_set = commands.add_parser("picture-set", help="link or embed a movie picture")
     picture_set.add_argument("number", type=int)
@@ -165,9 +163,7 @@ def parser() -> argparse.ArgumentParser:
         help="crop one movie's embedded picture with its own rectangle, "
         "overriding --crop for that movie; may be repeated",
     )
-    picture_clear = commands.add_parser(
-        "picture-clear", help="remove one or more movie pictures"
-    )
+    picture_clear = commands.add_parser("picture-clear", help="remove one or more movie pictures")
     picture_clear.add_argument("numbers", type=int, nargs="+")
     picture_export = commands.add_parser("picture-export", help="export a movie picture")
     picture_export.add_argument("number", type=int)
@@ -208,9 +204,7 @@ def parser() -> argparse.ArgumentParser:
         default="renumber",
         help="policy for duplicate movie numbers (default: renumber)",
     )
-    media_import = commands.add_parser(
-        "import-media", help="add entries from media-file metadata"
-    )
+    media_import = commands.add_parser("import-media", help="add entries from media-file metadata")
     media_import.add_argument("paths", nargs="+", type=Path)
     media_import.add_argument("--recursive", action="store_true")
     media_import.add_argument(
@@ -250,11 +244,13 @@ def parser() -> argparse.ArgumentParser:
     ant_html_export.add_argument("--full-template", type=Path)
     ant_html_export.add_argument("--individual-template", type=Path)
     ant_html_export.add_argument(
-        "--individual-dir", type=Path,
+        "--individual-dir",
+        type=Path,
         help="directory for one page per movie (default: destination's own directory)",
     )
     ant_html_export.add_argument(
-        "--individual-filename", default="{number}.html",
+        "--individual-filename",
+        default="{number}.html",
         help="filename pattern for individual pages, e.g. '{number}.html' (default)",
     )
     ant_html_export.add_argument("--line-break", default="<br>")
@@ -336,7 +332,8 @@ def parser() -> argparse.ArgumentParser:
     )
     imdb.add_argument("--timeout", type=float, default=DEFAULT_OMDB_TIMEOUT)
     imdb.add_argument(
-        "--apply", action="store_true",
+        "--apply",
+        action="store_true",
         help="write the previewed changes to the catalog (default: preview only)",
     )
     return result
@@ -361,17 +358,16 @@ def _run(args: argparse.Namespace) -> int:
         print(json.dumps(inspect_script(args.path).to_dict(), ensure_ascii=False, sort_keys=True))
         return EXIT_SUCCESS
     if args.command == "list-scripts":
-        print(json.dumps(
-            [item.to_dict() for item in discover_scripts(args.directory)],
-            ensure_ascii=False,
-            sort_keys=True,
-        ))
+        print(
+            json.dumps(
+                [item.to_dict() for item in discover_scripts(args.directory)],
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
         return EXIT_SUCCESS
     if args.command == "configure-script":
-        options = {
-            name: int(value)
-            for name, value in _assignments(args.option, "script option")
-        }
+        options = {name: int(value) for name, value in _assignments(args.option, "script option")}
         parameters = dict(_assignments(args.parameter, "script parameter"))
         configured = inspect_script(args.path)
         if args.load:
@@ -387,7 +383,11 @@ def _run(args: argparse.Namespace) -> int:
         )
         diagnostics = validate_catalog(args.path, max_file_bytes=max_input_bytes)
         if args.as_json:
-            print(json.dumps([asdict(item) for item in diagnostics], ensure_ascii=False, sort_keys=True))
+            print(
+                json.dumps(
+                    [asdict(item) for item in diagnostics], ensure_ascii=False, sort_keys=True
+                )
+            )
         else:
             for item in diagnostics:
                 location = f" at byte {item.offset}" if item.offset is not None else ""
@@ -434,14 +434,14 @@ def _run(args: argparse.Namespace) -> int:
             native_limits=NativeReadLimits(
                 max_file_bytes=(
                     defaults.max_file_bytes
-                    if args.max_input_bytes is None else args.max_input_bytes
+                    if args.max_input_bytes is None
+                    else args.max_input_bytes
                 ),
-                max_movies=(
-                    defaults.max_movies if args.max_movies is None else args.max_movies
-                ),
+                max_movies=(defaults.max_movies if args.max_movies is None else args.max_movies),
                 max_picture_bytes=(
                     defaults.max_picture_bytes
-                    if args.max_picture_bytes is None else args.max_picture_bytes
+                    if args.max_picture_bytes is None
+                    else args.max_picture_bytes
                 ),
                 max_total_picture_bytes=(
                     defaults.max_total_picture_bytes
@@ -450,15 +450,18 @@ def _run(args: argparse.Namespace) -> int:
                 ),
                 max_total_string_bytes=(
                     defaults.max_total_string_bytes
-                    if args.max_string_bytes is None else args.max_string_bytes
+                    if args.max_string_bytes is None
+                    else args.max_string_bytes
                 ),
                 max_custom_fields=(
                     defaults.max_custom_fields
-                    if args.max_custom_fields is None else args.max_custom_fields
+                    if args.max_custom_fields is None
+                    else args.max_custom_fields
                 ),
                 max_list_values_per_field=(
                     defaults.max_list_values_per_field
-                    if args.max_list_values is None else args.max_list_values
+                    if args.max_list_values is None
+                    else args.max_list_values
                 ),
                 max_extras_per_movie=(
                     defaults.max_extras_per_movie
@@ -467,7 +470,8 @@ def _run(args: argparse.Namespace) -> int:
                 ),
                 max_total_extras=(
                     defaults.max_total_extras
-                    if args.max_total_extras is None else args.max_total_extras
+                    if args.max_total_extras is None
+                    else args.max_total_extras
                 ),
             ),
         )
@@ -478,9 +482,7 @@ def _run(args: argparse.Namespace) -> int:
             if args.extensions
             else None
         )
-        paths = discover_media(
-            args.paths, recursive=args.recursive, extensions=extensions
-        )
+        paths = discover_media(args.paths, recursive=args.recursive, extensions=extensions)
         total = len(paths)
         movies = []
         for index, media_path in enumerate(paths, start=1):
@@ -521,9 +523,7 @@ def _run(args: argparse.Namespace) -> int:
                     f"#{event.movie_number} {event.title} — {event.borrower}"
                 )
     elif args.command == "loan-history-export":
-        service.export_loan_history(
-            args.destination, catalog_name=args.catalog_name
-        )
+        service.export_loan_history(args.destination, catalog_name=args.catalog_name)
     elif args.command == "borrowers":
         names = service.borrowers()
         if args.as_json:
@@ -601,10 +601,7 @@ def _run(args: argparse.Namespace) -> int:
             replacement = service.replace(args.number, preview.movie)
             print(f"Updated #{replacement.number}: {replacement.display_title()}")
         else:
-            print(
-                f"Preview for #{movie.number}: {movie.display_title()} "
-                "(use --apply to save)"
-            )
+            print(f"Preview for #{movie.number}: {movie.display_title()} (use --apply to save)")
         if preview.changes:
             for change in preview.changes:
                 print(f"  {change.field}: {change.before!r} -> {change.after!r}")
@@ -638,15 +635,18 @@ def _run(args: argparse.Namespace) -> int:
             native_limits=NativeWriteLimits(
                 max_file_bytes=(
                     write_defaults.max_file_bytes
-                    if args.max_output_bytes is None else args.max_output_bytes
+                    if args.max_output_bytes is None
+                    else args.max_output_bytes
                 ),
                 max_total_string_bytes=(
                     write_defaults.max_total_string_bytes
-                    if args.max_string_bytes is None else args.max_string_bytes
+                    if args.max_string_bytes is None
+                    else args.max_string_bytes
                 ),
                 max_picture_bytes=(
                     write_defaults.max_picture_bytes
-                    if args.max_picture_bytes is None else args.max_picture_bytes
+                    if args.max_picture_bytes is None
+                    else args.max_picture_bytes
                 ),
                 max_total_picture_bytes=(
                     write_defaults.max_total_picture_bytes
@@ -654,16 +654,17 @@ def _run(args: argparse.Namespace) -> int:
                     else args.max_total_picture_bytes
                 ),
                 max_movies=(
-                    write_defaults.max_movies
-                    if args.max_movies is None else args.max_movies
+                    write_defaults.max_movies if args.max_movies is None else args.max_movies
                 ),
                 max_custom_fields=(
                     write_defaults.max_custom_fields
-                    if args.max_custom_fields is None else args.max_custom_fields
+                    if args.max_custom_fields is None
+                    else args.max_custom_fields
                 ),
                 max_list_values_per_field=(
                     write_defaults.max_list_values_per_field
-                    if args.max_list_values is None else args.max_list_values
+                    if args.max_list_values is None
+                    else args.max_list_values
                 ),
                 max_extras_per_movie=(
                     write_defaults.max_extras_per_movie
@@ -672,7 +673,8 @@ def _run(args: argparse.Namespace) -> int:
                 ),
                 max_total_extras=(
                     write_defaults.max_total_extras
-                    if args.max_total_extras is None else args.max_total_extras
+                    if args.max_total_extras is None
+                    else args.max_total_extras
                 ),
             ),
         )
@@ -691,9 +693,11 @@ def _run(args: argparse.Namespace) -> int:
     elif args.command == "duplicates":
         groups = catalog.duplicates()
         if args.as_json:
-            print(json.dumps([
-                [movie.to_dict() for movie in group] for group in groups
-            ], ensure_ascii=False))
+            print(
+                json.dumps(
+                    [[movie.to_dict() for movie in group] for group in groups], ensure_ascii=False
+                )
+            )
         else:
             for group in groups:
                 print(", ".join(f"#{movie.number} {movie.display_title()}" for movie in group))

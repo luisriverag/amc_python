@@ -96,11 +96,13 @@ def test_service_remove_many_is_atomic_for_missing_or_duplicate_numbers(tmp_path
 def test_service_sets_checked_state_for_many_movies_atomically(tmp_path: Path):
     path = tmp_path / "catalog.json"
     service = CatalogService(path)
-    service.add_many([
-        Movie(title="One"),
-        Movie(title="Two", checked=True),
-        Movie(title="Three"),
-    ])
+    service.add_many(
+        [
+            Movie(title="One"),
+            Movie(title="Two", checked=True),
+            Movie(title="Three"),
+        ]
+    )
 
     updated = service.set_checked_many([1, 3], True)
 
@@ -214,9 +216,10 @@ def test_service_isolates_callers_and_can_reload(tmp_path: Path):
     service.add(incoming)
     incoming.title = "Changed by caller"
     incoming.extras["nested"].append(2)
-    assert service.catalog.get(1).to_dict() == Movie(
-        number=1, title="Alien", extras={"nested": [1]}
-    ).to_dict()
+    assert (
+        service.catalog.get(1).to_dict()
+        == Movie(number=1, title="Alien", extras={"nested": [1]}).to_dict()
+    )
 
     save(Catalog([Movie(title="External change")]), path)
     service.dirty = True
@@ -441,9 +444,7 @@ def test_service_records_persisted_check_out_and_check_in_history(tmp_path: Path
 
 def test_malformed_history_makes_loan_mutation_atomic(tmp_path: Path):
     path = tmp_path / "catalog.json"
-    save(Catalog(
-        [Movie(title="Alien")], metadata={"amc_python_loan_history": [{}]}
-    ), path)
+    save(Catalog([Movie(title="Alien")], metadata={"amc_python_loan_history": [{}]}), path)
     service = CatalogService(path)
 
     with pytest.raises(ValueError, match="missing or unknown"):
@@ -511,10 +512,12 @@ def test_service_checks_multiple_movies_out_and_in_atomically(tmp_path: Path):
 def test_service_bulk_loan_conflict_preserves_every_movie(tmp_path: Path):
     path = tmp_path / "catalog.json"
     service = CatalogService(path)
-    service.add_many([
-        Movie(title="Alien"),
-        Movie(title="Aliens", borrower="Hicks"),
-    ])
+    service.add_many(
+        [
+            Movie(title="Alien"),
+            Movie(title="Aliens", borrower="Hicks"),
+        ]
+    )
 
     with pytest.raises(ValueError, match="already checked out to Hicks"):
         service.check_out_many([1, 2], "Ripley")
@@ -526,12 +529,14 @@ def test_service_bulk_loan_conflict_preserves_every_movie(tmp_path: Path):
 def test_service_expands_loans_by_nonempty_media_label(tmp_path: Path):
     path = tmp_path / "catalog.json"
     service = CatalogService(path)
-    service.add_many([
-        Movie(title="Disc two", media_label="BOX-1"),
-        Movie(title="Unlabeled"),
-        Movie(title="Disc one", media_label="box-1"),
-        Movie(title="Other", media_label="BOX-2"),
-    ])
+    service.add_many(
+        [
+            Movie(title="Disc two", media_label="BOX-1"),
+            Movie(title="Unlabeled"),
+            Movie(title="Disc one", media_label="box-1"),
+            Movie(title="Other", media_label="BOX-2"),
+        ]
+    )
 
     selected = service.check_out(3, "Ripley", include_media_label=True)
     assert selected.number == 3
@@ -545,10 +550,12 @@ def test_service_expands_loans_by_nonempty_media_label(tmp_path: Path):
 def test_grouped_loan_conflict_is_atomic(tmp_path: Path):
     path = tmp_path / "catalog.json"
     service = CatalogService(path)
-    service.add_many([
-        Movie(title="One", media_label="BOX", borrower="Hicks"),
-        Movie(title="Two", media_label="BOX"),
-    ])
+    service.add_many(
+        [
+            Movie(title="One", media_label="BOX", borrower="Hicks"),
+            Movie(title="Two", media_label="BOX"),
+        ]
+    )
 
     with pytest.raises(ValueError, match="already checked out to Hicks"):
         service.check_out(2, "Ripley", include_media_label=True)
@@ -568,11 +575,13 @@ def test_empty_media_labels_are_not_grouped(tmp_path: Path):
 def test_service_expands_loans_by_retained_native_number(tmp_path: Path):
     path = tmp_path / "catalog.json"
     service = CatalogService(path)
-    service.add_many([
-        Movie(title="Disc one", extras={"native_movie_number": 7}),
-        Movie(title="Other", extras={"native_movie_number": 8}),
-        Movie(title="Disc two", extras={"native_movie_number": 7}),
-    ])
+    service.add_many(
+        [
+            Movie(title="Disc one", extras={"native_movie_number": 7}),
+            Movie(title="Other", extras={"native_movie_number": 8}),
+            Movie(title="Disc two", extras={"native_movie_number": 7}),
+        ]
+    )
 
     service.check_out(3, "Ripley", include_native_number=True)
     assert [movie.borrower for movie in load(path)] == ["Ripley", "", "Ripley"]
@@ -582,15 +591,15 @@ def test_service_expands_loans_by_retained_native_number(tmp_path: Path):
 
 def test_native_number_and_media_label_groups_form_union(tmp_path: Path):
     service = CatalogService(tmp_path / "catalog.json")
-    service.add_many([
-        Movie(title="Selected", media_label="BOX", extras={"native_movie_number": 7}),
-        Movie(title="Same number", extras={"native_movie_number": 7}),
-        Movie(title="Same label", media_label="box", extras={"native_movie_number": 8}),
-    ])
-
-    service.check_out(
-        1, "Ripley", include_media_label=True, include_native_number=True
+    service.add_many(
+        [
+            Movie(title="Selected", media_label="BOX", extras={"native_movie_number": 7}),
+            Movie(title="Same number", extras={"native_movie_number": 7}),
+            Movie(title="Same label", media_label="box", extras={"native_movie_number": 8}),
+        ]
     )
+
+    service.check_out(1, "Ripley", include_media_label=True, include_native_number=True)
 
     assert [movie.borrower for movie in service.catalog] == ["Ripley"] * 3
 
@@ -632,9 +641,7 @@ def test_service_import_from_loads_then_atomically_merges(tmp_path: Path):
 
 def test_service_exposes_statistics_and_duplicates_without_mutation(tmp_path: Path):
     service = CatalogService(tmp_path / "missing.json")
-    service.add_many(
-        [Movie(title="Moon", year=2009, rating=8), Movie(title="moon", year=2009)]
-    )
+    service.add_many([Movie(title="Moon", year=2009, rating=8), Movie(title="moon", year=2009)])
 
     assert service.statistics() == {
         "movies": 2,

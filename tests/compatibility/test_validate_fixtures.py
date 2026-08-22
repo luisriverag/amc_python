@@ -38,9 +38,7 @@ def write_manifest(directory, document):
 def test_validate_manifest_accepts_matching_fixture(tmp_path):
     payload = b"AMC_4.2 Ant Movie Catalog 4.2.x www.antp.be"
     (tmp_path / "empty.amc").write_bytes(payload)
-    path = write_manifest(
-        tmp_path, manifest_for("empty.amc", hashlib.sha256(payload).hexdigest())
-    )
+    path = write_manifest(tmp_path, manifest_for("empty.amc", hashlib.sha256(payload).hexdigest()))
     assert MODULE.validate_manifest(path)["producer_version"] == "4.2.3.2"
 
 
@@ -48,13 +46,15 @@ def test_validate_manifest_requires_exact_native_header_expectation(tmp_path):
     payload = b" AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be "
     (tmp_path / "empty.amc").write_bytes(payload)
     document = manifest_for("empty.amc", hashlib.sha256(payload).hexdigest())
-    document["verification"] = [{
-        "path": "empty.amc",
-        "format": "amc-native",
-        "header": "AMC 4.2",
-        "version": "4.2",
-        "movies": 0,
-    }]
+    document["verification"] = [
+        {
+            "path": "empty.amc",
+            "format": "amc-native",
+            "header": "AMC 4.2",
+            "version": "4.2",
+            "movies": 0,
+        }
+    ]
     path = write_manifest(tmp_path, document)
 
     try:

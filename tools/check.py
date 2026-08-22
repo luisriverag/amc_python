@@ -30,8 +30,10 @@ def _pytest_command() -> list[str]:
     where that file's tests skip themselves instead of failing.
     """
     command = [sys.executable, "-m", "coverage", "run", "-m", "pytest", "-q"]
-    if sys.platform.startswith("linux") and "DISPLAY" not in os.environ and shutil.which(
-        "xvfb-run"
+    if (
+        sys.platform.startswith("linux")
+        and "DISPLAY" not in os.environ
+        and shutil.which("xvfb-run")
     ):
         return ["xvfb-run", "-a", *command]
     return command
@@ -40,6 +42,7 @@ def _pytest_command() -> list[str]:
 def main() -> int:
     """Run linting, type checking, tests, compilation, and diff validation."""
     run([sys.executable, "-m", "ruff", "check", "src", "tests", "tools"])
+    run([sys.executable, "-m", "ruff", "format", "--check", "src", "tests", "tools"])
     run([sys.executable, "-m", "mypy"])
     run(_pytest_command())
     run([sys.executable, "-m", "coverage", "report"])

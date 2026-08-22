@@ -24,8 +24,7 @@ def test_relative_markdown_links_resolve():
 def test_port_audit_current_counts_match_repository():
     audit = (ROOT / "docs" / "PORT_AUDIT.md").read_text(encoding="utf-8")
     functional_modules = [
-        path for path in (ROOT / "src" / "amc").glob("*.py")
-        if path.name != "__init__.py"
+        path for path in (ROOT / "src" / "amc").glob("*.py") if path.name != "__init__.py"
     ]
     tools = list((ROOT / "tools").glob("*.py"))
     assert f"{len(functional_modules)} functional package modules" in audit

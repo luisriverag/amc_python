@@ -50,7 +50,8 @@ def _opener(body: bytes, *, error: Exception | None = None):
 
 def test_fetch_omdb_record_returns_the_parsed_json_on_success():
     record = fetch_omdb_record(
-        api_key="key", imdb_id="tt0078748",
+        api_key="key",
+        imdb_id="tt0078748",
         opener=_opener(json.dumps(_RECORD).encode()),
     )
     assert record["imdbID"] == "tt0078748"
@@ -68,9 +69,7 @@ def test_fetch_omdb_record_requires_an_imdb_id_or_title():
 
 def test_fetch_omdb_record_rejects_a_non_positive_timeout():
     with pytest.raises(ValueError, match="timeout must be positive"):
-        fetch_omdb_record(
-            api_key="key", title="Alien", timeout=0, opener=_opener(b"{}")
-        )
+        fetch_omdb_record(api_key="key", title="Alien", timeout=0, opener=_opener(b"{}"))
 
 
 def test_fetch_omdb_record_wraps_a_transport_failure_as_oserror():
@@ -88,9 +87,7 @@ def test_fetch_omdb_record_rejects_invalid_json():
 
 def test_fetch_omdb_record_rejects_a_non_object_response():
     with pytest.raises(OmdbLookupError, match="not a JSON object"):
-        fetch_omdb_record(
-            api_key="key", title="Alien", opener=_opener(json.dumps([1, 2]).encode())
-        )
+        fetch_omdb_record(api_key="key", title="Alien", opener=_opener(json.dumps([1, 2]).encode()))
 
 
 def test_fetch_omdb_record_surfaces_the_omdb_error_message():
@@ -130,7 +127,11 @@ def test_movie_fields_from_omdb_excludes_na_and_unmapped_values():
 
 def test_preview_omdb_update_only_reports_actual_changes():
     movie = Movie(
-        number=1, title="Alien", director="", year=None, rating=None,
+        number=1,
+        title="Alien",
+        director="",
+        year=None,
+        rating=None,
     )
 
     preview = preview_omdb_update(movie, _RECORD)

@@ -22,11 +22,13 @@ def test_interchange_writer_preserves_destination_on_serialization_failure(
     target.write_text("previous contents", encoding="utf-8")
 
     if writer is save_csv:
+
         def fail(_self, _row):
             raise RuntimeError("injected CSV serialization failure")
 
         monkeypatch.setattr(csv.DictWriter, "writerow", fail)
     else:
+
         def fail(_self, _file, **_kwargs):
             raise RuntimeError("injected XML serialization failure")
 

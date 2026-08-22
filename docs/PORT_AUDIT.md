@@ -71,7 +71,7 @@ confidence.
 | Inspection | JSON/XML/CSV identification plus native 1.0–4.2 header probe | API and CLI tests | Moderate for synthetic cases |
 | Validation | Stable diagnostics, native structural validation, CLI exit status | API and CLI tests, including corrupt native input | Moderate for synthetic cases |
 | Source acquisition tool | Streaming download, digest, extraction selection, inventory | Local HTTP and synthetic inventory tests | High for tested behavior |
-| Engineering checks | Canonical tests/compile/fixture checks plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
+| Engineering checks | Canonical tests/compile/fixture checks, `mypy` type checking (default mode), plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
 | HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
 | Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF/MP3 duration/bitrate (MP3 via a hand-decoded MPEG frame header, not upstream's MediaInfo.dll); CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, MP3 (CBR, ID3v2/ID3v1 tag handling, reserved-header rejection, Layer I/II/III frame-length formulas), bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
 | Script inventory/settings | Bounded non-executing Infos/options/parameters/permissions/static-name parser; validated option/parameter overrides; atomic Python JSON settings | Synthetic metadata, malformed-entry, configuration, persistence, and CLI tests | Moderate for the stated non-executing subset; no runtime parity |
@@ -85,7 +85,7 @@ confidence.
 
 | Area | Current state | Missing evidence |
 |---|---|---|
-| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests, plus a real-display smoke run (`tests/test_gui_display.py`, real Tk widget trees under Xvfb, self-skipping without a display) covering the main window and the Preferences/Assign Pictures/Import Media/edit/crop/Loan Out/Loan In/Set Pictures/Clear Pictures dialogs, including an end-to-end simulated drag-select-and-apply crop and a real Loan Out combobox-and-button interaction verified against the real service; no verified accessibility pass |
+| GUI | Tk catalog manager with file workflows, CRUD, filters, details/posters, loans, undo/redo, statistics, and duplicates | Headless controller/dialog tests, plus a real-display smoke run (`tests/gui/test_gui_display.py`, real Tk widget trees under Xvfb, self-skipping without a display) covering the main window and the Preferences/Assign Pictures/Import Media/edit/crop/Loan Out/Loan In/Set Pictures/Clear Pictures dialogs, including an end-to-end simulated drag-select-and-apply crop and a real Loan Out combobox-and-button interaction verified against the real service; no verified accessibility pass |
 | Installed CLI | Wheel console script and module entry point smoke-tested; empty JSON list exact output checked | Broader installed command contracts remain missing |
 | Packaging | Wheel build, isolated install, license inclusion, and smoke checks | Source-distribution build/install remains missing |
 | CI | Workflow configured for Linux/Windows and Python 3.10–3.13 | No run result is stored in the repository |
@@ -581,7 +581,7 @@ confidence.
     structurally faithful — is `synthetic` origin, not `upstream-generated`,
     and registering it does not move any format's status to "verified";
     that still requires provenance-tracked upstream bytes. Covered by
-    `tests/test_amc.py::test_edge_case_fixture_native_and_xml_agree_on_synthetic_movies`
+    `tests/compatibility/test_storage.py::test_edge_case_fixture_native_and_xml_agree_on_synthetic_movies`
     and `tools/verify_fixtures.py`.
 36. Wired `amc.omdb` into the desktop GUI as a **Movie / Update from
     IMDb...** dialog, closing the gap the "Website scripts" row and finding
@@ -602,7 +602,37 @@ confidence.
     and stays open with Apply disabled rather than closing or applying a
     partial change
     (`test_update_from_imdb_dialog_reports_a_lookup_failure_without_closing`),
-    both in `tests/test_gui_display.py`.
+    both in `tests/gui/test_gui_display.py`.
+37. Added `mypy` (default, non-strict mode) to the canonical local check
+    command and both CI matrices, closing part of Milestone 1's "formatting,
+    linting, static typing, and coverage" item and P3.2 of the upstream
+    backlog — `src/amc` already carried a `py.typed` marker, but nothing had
+    run a type checker against it. Fixing the resulting 63 errors across 7
+    files surfaced four categories: (1) genuine, if harmless, bugs — two
+    reused-loop/local-variable-name collisions (`cli.py`'s `defaults`/`value`,
+    `native.py`'s `movie`/`value`) that happened to hold unrelated types
+    across the same function, invisible at runtime only because Python has no
+    per-block scoping, and a `CatalogWindow.location` GUI attribute silently
+    shadowing `tkinter`'s own inherited `Grid.location` (`grid_location`)
+    method; (2) a real gap in `_read_movie_extras`'s construction of
+    `NativeExtra` records, which spread a `list[str]` of exactly 7 elements
+    into the constructor relying only on the loop always producing that exact
+    length — now built from explicit named locals instead; (3) type
+    annotations that were simply narrower than reality (several `dict`
+    invariance cases, an untyped `_number` helper, an `object`-typed
+    `catalog.metadata` retrieval in `amc.loans` now validated the same way
+    `borrowers()` already did); and (4) legitimate dynamic patterns typeshed's
+    stubs cannot express precisely — a `_BinaryReader`/`_BinaryWriter`
+    `Protocol` pair now documents the actual minimal interface
+    `native.py`'s bounded stream wrappers need instead of the overly broad
+    `BinaryIO`, and two narrow `# type: ignore` comments remain for
+    `configparser.ConfigParser.optionxform` reassignment (a documented
+    `ConfigParser` customization mechanism mypy's stub categorically
+    disallows) and a `Movie(**values)` dataclass double-star unpack (a known
+    mypy limitation, not a real type mismatch). Fixing all of this changed no
+    observed behavior; the full suite (563 tests) passes unchanged before and
+    after, verified since this sandbox's Python lacks `tkinter` via the same
+    throwaway tkinter-enabled-Python-3.12 venv used for finding 36.
 
 ## Gap matrix against the original application
 
@@ -629,11 +659,11 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 | Port requirement | Code | Tests | Upstream evidence | Status |
 |---|---|---|---|---|
-| Acquire/inventory source | `tools/acquire_upstream.py` | `test_acquire_upstream.py` | Supplied archives exactly match the 952-file snapshot; publisher authentication is unavailable | Archive/tree identity confirmed; acquisition timestamp and independent digest pending |
+| Acquire/inventory source | `tools/acquire_upstream.py` | `tooling/test_acquire_upstream.py` | Supplied archives exactly match the 952-file snapshot; publisher authentication is unavailable | Archive/tree identity confirmed; acquisition timestamp and independent digest pending |
 | Native header probe | Source-derived 1.0–4.2 recognition in `inspection.py` | All ten headers, truncation, unknown-version, CLI, and warning tests | Constants and dispatch in `movieclass.pas` | Implemented from source; genuine fixtures pending |
 | Native catalog reader | `native.py`, storage/CLI import | Source-derived synthetic happy/error tests | `TMovieList.LoadFromFile`, `ReadRecords`, fixed records, `ReadData`, pictures/custom/extras | 1.0–4.2 implemented; no genuine verification |
 | Native catalog writer | `native.py`, `storage.py`, `export-amc` | Synthetic round trip; atomic failure; malformed metadata/rating/separator; invalid-limit; encoded-string; full service/CLI budget and resource tests | `TMovieList.SaveToFile` and nested `WriteData` methods | Strict bounded configurable 4.2 writer implemented from source; upstream acceptance unverified |
-| Internal working format | `storage.py`, JSON v1 spec | `test_amc.py` | Not applicable | Implemented |
+| Internal working format | `storage.py`, JSON v1 spec | `compatibility/test_storage.py` | Not applicable | Implemented |
 | AMC XML reader/writer | `storage.py` | Synthetic tests | None | Prototype only |
 | AMC CSV reader/writer | `storage.py` | Synthetic tests | None | Prototype only |
 | Catalog operations | `catalog.py` | Direct tests | None | Prototype only |

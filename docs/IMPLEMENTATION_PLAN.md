@@ -116,17 +116,32 @@ unit and compatibility evidence are recorded.
 
 ## Milestone 1: engineering baseline
 
-- [ ] Split tests into `unit`, `integration`, `compatibility`, `cli`, and `gui`.
+- [x] Split tests into `unit`, `integration`, `compatibility`, `cli`, and `gui`
+  (plus `tooling` for the repository tool self-tests); see the P3 item below for
+  how the one large mixed-concern file was divided.
 - [x] Configure Linux and Windows CI for all supported Python versions; hosted run
   verification remains pending.
-- [ ] Add formatting, linting, static typing, and coverage (focused Ruff linting
-  and an 80% branch-coverage floor now run in the canonical command and CI;
-  formatter and static typing remain pending. Canonical commands also cover tests,
-  compilation, diff validation, wheel building, isolated installation, and
-  source-tree and installed-module CLI smoke checks).
+- [ ] Add formatting, linting, static typing, and coverage (focused Ruff linting,
+  mypy in its default, non-strict mode, and an 80% branch-coverage floor now run
+  in the canonical command and CI; a formatter remains pending. Canonical
+  commands also cover tests, compilation, diff validation, wheel building,
+  isolated installation, and source-tree and installed-module CLI smoke checks).
+  Adopting mypy found and fixed several real, pre-existing issues rather than
+  just satisfied the checker: two reused-loop/local-variable-name collisions in
+  `cli.py` and `native.py` that happened to hold unrelated types (harmless at
+  runtime since Python has no per-block scoping, but genuinely confusing and
+  fragile); a `self.location` GUI attribute silently shadowing `tkinter`'s
+  inherited `Grid.location` method; and a native-format `NativeExtra`
+  constructor call relying on an unchecked fixed-length list splat. See
+  `docs/PORT_AUDIT.md` finding 37.
 - [x] Establish and automatically validate the fixture provenance manifest contract;
   genuine upstream fixtures still need to be produced and registered.
-- [ ] Add a changelog and architecture-decision log.
+- [x] Add a changelog and architecture-decision log: `CHANGELOG.md`
+  (Keep a Changelog format, seeded with the current capability baseline
+  since this project has never made a tagged release) and `docs/decisions.md`
+  (eight ADRs formalizing decisions already made informally across this
+  document, `docs/architecture.md`, and `docs/PORT_AUDIT.md` — including the
+  one still-open one, IFPS execution).
 - [x] Specify internal JSON v1 and test failed-write destination preservation for
   JSON, CSV, and XML serialization failures.
 
@@ -340,10 +355,24 @@ gap for the Python-owned format; it is not evidence for an upstream format.
 
 ### P3 — engineering and release gates
 
-1. Split tests into unit/integration/compatibility/CLI/GUI groups and add one canonical
-   local check command.
-2. Add formatter, linter, type checker, coverage threshold, wheel/sdist build, clean
-   install, and subprocess CLI smoke tests to Linux and Windows CI.
+1. [Done] `tests/` is split into `unit/`, `integration/`, `compatibility/`, `cli/`,
+   `gui/`, and (one category beyond the four named here) `tooling/` for the
+   `tools/*.py` self-tests and repository-consistency checks that don't fit any of
+   the other five. `tests/test_amc.py`, a single 1276-line file mixing storage
+   round-trip and CLI end-to-end tests, was split along its clean `test_cli_*`
+   naming boundary into `tests/cli/test_cli.py` (39 tests) and
+   `tests/compatibility/test_storage.py` (44 tests); every other file moved
+   wholesale by its dominant concern, including a few files that keep one or two
+   incidental CLI smoke checks alongside their primary subject rather than
+   fragmenting further for marginal benefit. `pytest`'s recursive `testpaths`
+   discovery needed no configuration change; three `Path(__file__)`-relative
+   fixture/repo-root lookups were updated for the extra directory level. One
+   canonical local check command (`tools/check.py`) already existed before this
+   split and is unaffected by it.
+2. [Partial] `mypy` (default, non-strict mode; configured in `pyproject.toml`'s
+   `[tool.mypy]`) now runs in `tools/check.py` and both CI matrices alongside the
+   linter, coverage threshold, wheel/sdist build, clean install, and subprocess
+   CLI smoke tests already there. A formatter remains pending.
 3. [Partial] A shared application service now owns GUI open/reload and
    failure-atomic add/replace/remove, batch media import, catalog merge, sort, and
    renumber persistence, interchange conversion, export, and validated
@@ -426,7 +455,7 @@ both a CLI and a desktop entry point.
     once, after building its complete result, so interrupting any of
     them — Ctrl+C during `import-media`'s scan included — leaves the
     destination catalog completely untouched by construction. This is now a
-    documented, tested guarantee (`docs/cli.md`, `test_media.py`) rather
+    documented, tested guarantee (`docs/cli.md`, `unit/test_media.py`) rather
     than an unstated side effect.
   - [x] Added the prerequisite GUI media-import workflow the previous audit
     found missing: a toolbar **Import Media** action asks whether to import
@@ -445,9 +474,9 @@ both a CLI and a desktop entry point.
     Media gained a Ctrl+M shortcut alongside the existing toolbar shortcuts.
   - [x] Real-display smoke coverage: this development container turned out to
     have Xvfb installed, contradicting an earlier "no real display" note in
-    this document. `tests/test_gui_display.py` builds genuine Tk widget
+    this document. `tests/gui/test_gui_display.py` builds genuine Tk widget
     trees (not the `object.__new__`-bypassed, fully-mocked windows the rest
-    of `test_gui.py` uses) for the main window and the Preferences, Assign
+    of `gui/test_gui.py` uses) for the main window and the Preferences, Assign
     Pictures, Import Media, and edit/crop dialogs, including an end-to-end
     simulated drag-select-and-apply crop. `tools/check.py` wraps the test run
     in `xvfb-run` automatically on Linux when available and no `DISPLAY` is
@@ -563,9 +592,9 @@ tier's next unchecked item before returning to D4.
   - [x] Real-display smoke coverage. This development container turned out to
     have Xvfb installed, contradicting an earlier "no real display" note in
     this document (see D2 above) and in `docs/compatibility.md`/
-    `docs/PORT_AUDIT.md`. `tests/test_gui_display.py` builds genuine Tk widget
+    `docs/PORT_AUDIT.md`. `tests/gui/test_gui_display.py` builds genuine Tk widget
     trees — not the `object.__new__`-bypassed, fully-mocked windows the rest
-    of `test_gui.py` uses — for the main window and the Preferences, Assign
+    of `gui/test_gui.py` uses — for the main window and the Preferences, Assign
     Pictures, Import Media, and edit/crop dialogs, including an end-to-end
     simulated drag-select-and-apply crop (`canvas.event_generate` for the
     drag, a real button `.invoke()` for Apply Crop, asserting the callback
@@ -588,7 +617,7 @@ tier's next unchecked item before returning to D4.
     CLI's own `--extensions` semantics (narrowing an automatic scan) and not
     the individual-file-selection path, where the user already chooses each
     file explicitly.
-  - [x] Broader real-display widget coverage: extended `test_gui_display.py`
+  - [x] Broader real-display widget coverage: extended `gui/test_gui_display.py`
     to Loan Out (real `ttk.Combobox.set()` plus a real button `.invoke()`,
     checked against the real service afterward), Loan In, Set Pictures'
     single-shared-picture flow and Clear Pictures' confirmation (both against
@@ -619,7 +648,7 @@ tier's next unchecked item before returning to D4.
     directly because headless tests build a `CatalogWindow` via
     `object.__new__`, bypassing `__init__`/`_build_menu_bar` entirely, so
     there is no menu bar to sync in that path. New real-display tests in
-    `test_gui_display.py` cover the slimmed toolbar's visible-button set,
+    `gui/test_gui_display.py` cover the slimmed toolbar's visible-button set,
     the four top-level menu labels and a sample of their entries, menu/
     toolbar state staying in sync on selection, and invoking a menu command
     end-to-end (Add Movie via the **Edit** menu opens the same dialog the

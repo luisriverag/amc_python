@@ -25,10 +25,12 @@ from amc.web import (
 
 def _service(tmp_path: Path) -> CatalogService:
     service = CatalogService(tmp_path / "movies.json")
-    service.add_many([
-        Movie(title="Alien <script>", year=1979, director="Ridley Scott"),
-        Movie(title="Moon", checked=True, borrower="Sam", description="Lunar mystery"),
-    ])
+    service.add_many(
+        [
+            Movie(title="Alien <script>", year=1979, director="Ridley Scott"),
+            Movie(title="Moon", checked=True, borrower="Sam", description="Lunar mystery"),
+        ]
+    )
     return service
 
 
@@ -62,9 +64,7 @@ def test_catalog_table_shows_posters_without_checked_or_borrower_columns(tmp_pat
 
 
 def test_catalog_page_sorts_columns_and_preserves_filter_parameters(tmp_path: Path):
-    page = render_catalog(
-        _service(tmp_path), view="All", sort="title", descending=True
-    )
+    page = render_catalog(_service(tmp_path), view="All", sort="title", descending=True)
 
     assert page.index("Moon") < page.index("Alien &lt;script&gt;")
     assert "Title ▼" in page
@@ -85,9 +85,7 @@ def test_catalog_page_paginates_bounded_rows_and_preserves_state(tmp_path: Path)
     service = CatalogService(tmp_path / "large.json")
     service.add_many([Movie(title=f"Movie {number:03}") for number in range(30)])
 
-    page = render_catalog(
-        service, sort="title", descending=True, page=2, page_size=25
-    )
+    page = render_catalog(service, sort="title", descending=True, page=2, page_size=25)
 
     assert page.count("<tr><td class='poster-cell'>") == 5
     assert "Showing 26–30 of 30 matching movie(s); 30 total" in page
@@ -144,17 +142,25 @@ def test_movie_page_matches_details_and_allows_only_web_links(tmp_path: Path):
 def test_movie_page_includes_extended_media_fields_and_native_file_path(tmp_path: Path):
     service = _service(tmp_path)
     movie = Movie(
-        number=3, title="Media", producer="Producer", media_type="Blu-ray",
-        video_format="HEVC", resolution="3840x2160", file_size=123456,
+        number=3,
+        title="Media",
+        producer="Producer",
+        media_type="Blu-ray",
+        video_format="HEVC",
+        resolution="3840x2160",
+        file_size=123456,
         file_path=r"D:\\Movies\\Media.mkv",
     )
 
     page = render_movie(service, movie)
 
     for label, value in (
-        ("Producer", "Producer"), ("Media type", "Blu-ray"),
-        ("Video format", "HEVC"), ("Resolution", "3840x2160"),
-        ("File size", "123456"), ("File path", r"D:\\Movies\\Media.mkv"),
+        ("Producer", "Producer"),
+        ("Media type", "Blu-ray"),
+        ("Video format", "HEVC"),
+        ("Resolution", "3840x2160"),
+        ("File size", "123456"),
+        ("File path", r"D:\\Movies\\Media.mkv"),
     ):
         assert f"<dt>{label}</dt><dd>{value}</dd>" in page
 
@@ -179,8 +185,9 @@ def test_poster_response_rejects_oversized_link_before_reading(tmp_path: Path):
     poster.write_bytes(b"not read")
     movie = Movie(number=3, title="Large", picture=poster.name)
 
-    with patch("amc.web.MAX_POSTER_BYTES", 2), patch.object(
-        Path, "read_bytes", side_effect=AssertionError("oversized poster was read")
+    with (
+        patch("amc.web.MAX_POSTER_BYTES", 2),
+        patch.object(Path, "read_bytes", side_effect=AssertionError("oversized poster was read")),
     ):
         try:
             poster_response(service, movie)
@@ -197,9 +204,7 @@ def test_poster_response_rejects_excessive_decoded_dimensions(tmp_path: Path):
     movie = Movie(
         number=3,
         title="Poster",
-        extras={
-            "native_picture_base64": base64.b64encode(output.getvalue()).decode("ascii")
-        },
+        extras={"native_picture_base64": base64.b64encode(output.getvalue()).decode("ascii")},
     )
 
     with patch("amc.web.MAX_POSTER_PIXELS", 5):
@@ -221,9 +226,7 @@ def test_poster_endpoint_uses_request_catalog_service(tmp_path: Path):
     thread = threading.Thread(target=server.serve_forever)
     thread.start()
     try:
-        with urlopen(
-            f"http://127.0.0.1:{server.server_port}/poster/{movie.number}"
-        ) as response:
+        with urlopen(f"http://127.0.0.1:{server.server_port}/poster/{movie.number}") as response:
             assert response.status == 200
             assert response.headers["Content-Type"] == "image/png"
             assert response.read() == poster.read_bytes()

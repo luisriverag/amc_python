@@ -17,9 +17,7 @@ DEFAULT_URL = "https://update.antp.be/amc/amc_sources.rar"
 CHUNK_SIZE = 1024 * 1024
 
 
-def download(
-    url: str, destination: Path, expected_sha256: str | None = None
-) -> dict[str, object]:
+def download(url: str, destination: Path, expected_sha256: str | None = None) -> dict[str, object]:
     """Stream *url* to a temporary file and atomically install it."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".part")
@@ -27,7 +25,10 @@ def download(
     size = 0
     request = urllib.request.Request(url, headers={"User-Agent": "amc-python-source-acquirer/1"})
     try:
-        with urllib.request.urlopen(request, timeout=60) as response, temporary.open("wb") as stream:
+        with (
+            urllib.request.urlopen(request, timeout=60) as response,
+            temporary.open("wb") as stream,
+        ):
             while chunk := response.read(CHUNK_SIZE):
                 stream.write(chunk)
                 digest.update(chunk)
@@ -35,8 +36,7 @@ def download(
         actual_sha256 = digest.hexdigest()
         if expected_sha256 and actual_sha256 != expected_sha256.lower():
             raise ValueError(
-                f"archive SHA-256 mismatch: expected {expected_sha256.lower()}, "
-                f"got {actual_sha256}"
+                f"archive SHA-256 mismatch: expected {expected_sha256.lower()}, got {actual_sha256}"
             )
         temporary.replace(destination)
     finally:
@@ -100,9 +100,7 @@ def comparison_root(root: Path, strip_root: bool) -> Path:
         return root
     children = list(root.iterdir())
     if len(children) != 1 or not children[0].is_dir():
-        raise ValueError(
-            "--strip-root requires exactly one top-level directory in the archive"
-        )
+        raise ValueError("--strip-root requires exactly one top-level directory in the archive")
     return children[0]
 
 
@@ -111,11 +109,13 @@ def inventory(root: Path) -> list[dict[str, object]]:
     entries = []
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
         data = path.read_bytes()
-        entries.append({
-            "path": path.relative_to(root).as_posix(),
-            "size": len(data),
-            "sha256": hashlib.sha256(data).hexdigest(),
-        })
+        entries.append(
+            {
+                "path": path.relative_to(root).as_posix(),
+                "size": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        )
     return entries
 
 
@@ -198,9 +198,7 @@ def main(argv: list[str] | None = None) -> int:
             comparison["acquired_root"] = str(inventory_root)
             comparison["snapshot_root"] = str(args.compare_to)
             args.comparison.parent.mkdir(parents=True, exist_ok=True)
-            args.comparison.write_text(
-                json.dumps(comparison, indent=2) + "\n", encoding="utf-8"
-            )
+            args.comparison.write_text(json.dumps(comparison, indent=2) + "\n", encoding="utf-8")
             metadata["snapshot_equivalent"] = comparison["equivalent"]
     args.metadata.parent.mkdir(parents=True, exist_ok=True)
     args.metadata.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")

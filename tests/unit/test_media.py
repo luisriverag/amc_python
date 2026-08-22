@@ -22,13 +22,20 @@ def _write_extended_be(value: float) -> bytes:
         himant = int(math.floor(fmant))
         fmant = math.ldexp(fmant - himant, 32)
         lomant = int(math.floor(fmant))
-    return bytes([
-        (expon >> 8) & 0xFF, expon & 0xFF,
-        (himant >> 24) & 0xFF, (himant >> 16) & 0xFF,
-        (himant >> 8) & 0xFF, himant & 0xFF,
-        (lomant >> 24) & 0xFF, (lomant >> 16) & 0xFF,
-        (lomant >> 8) & 0xFF, lomant & 0xFF,
-    ])
+    return bytes(
+        [
+            (expon >> 8) & 0xFF,
+            expon & 0xFF,
+            (himant >> 24) & 0xFF,
+            (himant >> 16) & 0xFF,
+            (himant >> 8) & 0xFF,
+            himant & 0xFF,
+            (lomant >> 24) & 0xFF,
+            (lomant >> 16) & 0xFF,
+            (lomant >> 8) & 0xFF,
+            lomant & 0xFF,
+        ]
+    )
 
 
 def _write_aiff(
@@ -99,7 +106,10 @@ def test_inspect_media_collects_portable_file_facts(tmp_path: Path):
     assert (info.name, info.extension, info.size) == ("Movie", ".mkv", 5)
     movie = movie_from_media(target)
     assert (movie.title, movie.media_label, movie.media_type, movie.file_size) == (
-        "Movie", "Movie.mkv", "MKV", 5
+        "Movie",
+        "Movie.mkv",
+        "MKV",
+        5,
     )
     assert movie.extras == {"media_path": str(target)}
 
@@ -175,7 +185,11 @@ def test_inspect_media_reads_flac_duration_and_average_bitrate(tmp_path: Path):
 def test_inspect_media_flac_with_unknown_sample_count_has_no_duration(tmp_path: Path):
     target = tmp_path / "streamed.flac"
     _write_flac(
-        target, sample_rate=44100, channels=2, bits_per_sample=16, total_samples=0,
+        target,
+        sample_rate=44100,
+        channels=2,
+        bits_per_sample=16,
+        total_samples=0,
     )
 
     info = inspect_media(target)
@@ -211,7 +225,10 @@ def test_inspect_media_rejects_malformed_flac_files(tmp_path: Path):
 def test_inspect_media_reads_aiff_pcm_duration_and_exact_bitrate(tmp_path: Path):
     target = tmp_path / "audio.aiff"
     _write_aiff(
-        target, sample_rate=44100.0, channels=2, bits_per_sample=16,
+        target,
+        sample_rate=44100.0,
+        channels=2,
+        bits_per_sample=16,
         total_samples=44100 * 2,
     )
 
@@ -225,8 +242,13 @@ def test_inspect_media_reads_aiff_pcm_duration_and_exact_bitrate(tmp_path: Path)
 def test_inspect_media_reads_aifc_pcm_variant_with_exact_bitrate(tmp_path: Path):
     target = tmp_path / "audio.aifc"
     _write_aiff(
-        target, sample_rate=48000.0, channels=1, bits_per_sample=16,
-        total_samples=48000, form_type=b"AIFC", compression_type=b"sowt",
+        target,
+        sample_rate=48000.0,
+        channels=1,
+        bits_per_sample=16,
+        total_samples=48000,
+        form_type=b"AIFC",
+        compression_type=b"sowt",
     )
 
     info = inspect_media(target)
@@ -240,8 +262,13 @@ def test_inspect_media_reads_aifc_compressed_variant_with_average_bitrate(
 ):
     target = tmp_path / "audio.aifc"
     _write_aiff(
-        target, sample_rate=44100.0, channels=2, bits_per_sample=16,
-        total_samples=44100 * 3, form_type=b"AIFC", compression_type=b"ima4",
+        target,
+        sample_rate=44100.0,
+        channels=2,
+        bits_per_sample=16,
+        total_samples=44100 * 3,
+        form_type=b"AIFC",
+        compression_type=b"ima4",
         audio_bytes=b"\0" * 5000,
     )
 
@@ -254,7 +281,10 @@ def test_inspect_media_reads_aifc_compressed_variant_with_average_bitrate(
 def test_inspect_media_aiff_with_zero_sample_count_has_no_duration(tmp_path: Path):
     target = tmp_path / "streamed.aiff"
     _write_aiff(
-        target, sample_rate=44100.0, channels=2, bits_per_sample=16,
+        target,
+        sample_rate=44100.0,
+        channels=2,
+        bits_per_sample=16,
         total_samples=0,
     )
 
@@ -273,16 +303,19 @@ def test_inspect_media_rejects_malformed_aiff_files(tmp_path: Path):
 
     truncated_chunk = tmp_path / "truncated-chunk.aiff"
     truncated_chunk.write_bytes(
-        b"FORM" + (18).to_bytes(4, "big") + b"AIFF"
-        + b"COMM" + (18).to_bytes(4, "big") + b"\x00" * 4
+        b"FORM"
+        + (18).to_bytes(4, "big")
+        + b"AIFF"
+        + b"COMM"
+        + (18).to_bytes(4, "big")
+        + b"\x00" * 4
     )
     with pytest.raises(ValueError, match="truncated chunk"):
         inspect_media(truncated_chunk)
 
     missing_comm = tmp_path / "missing-comm.aiff"
     missing_comm.write_bytes(
-        b"FORM" + (12).to_bytes(4, "big") + b"AIFF"
-        + b"JUNK" + (0).to_bytes(4, "big")
+        b"FORM" + (12).to_bytes(4, "big") + b"AIFF" + b"JUNK" + (0).to_bytes(4, "big")
     )
     with pytest.raises(ValueError, match="missing COMM chunk"):
         inspect_media(missing_comm)
@@ -306,7 +339,11 @@ def _mp3_frame(*, bitrate_kbps: int = 128, sample_rate: int = 44100, padding: in
 
 
 def _write_mp3(
-    target: Path, *, frames: int, bitrate_kbps: int = 128, sample_rate: int = 44100,
+    target: Path,
+    *,
+    frames: int,
+    bitrate_kbps: int = 128,
+    sample_rate: int = 44100,
 ) -> None:
     frame = _mp3_frame(bitrate_kbps=bitrate_kbps, sample_rate=sample_rate)
     target.write_bytes(frame * frames)
@@ -327,10 +364,19 @@ def test_inspect_media_reads_mp3_cbr_duration_and_bitrate(tmp_path: Path):
 def test_inspect_media_mp3_skips_a_leading_id3v2_tag(tmp_path: Path):
     target = tmp_path / "tagged.mp3"
     tag_body = b"\0" * 100
-    tag = b"ID3" + bytes([4, 0, 0]) + bytes([
-        (len(tag_body) >> 21) & 0x7F, (len(tag_body) >> 14) & 0x7F,
-        (len(tag_body) >> 7) & 0x7F, len(tag_body) & 0x7F,
-    ]) + tag_body
+    tag = (
+        b"ID3"
+        + bytes([4, 0, 0])
+        + bytes(
+            [
+                (len(tag_body) >> 21) & 0x7F,
+                (len(tag_body) >> 14) & 0x7F,
+                (len(tag_body) >> 7) & 0x7F,
+                len(tag_body) & 0x7F,
+            ]
+        )
+        + tag_body
+    )
     frame = _mp3_frame(bitrate_kbps=192, sample_rate=48000)
     target.write_bytes(tag + frame * 20)
 
@@ -398,7 +444,11 @@ def test_inspect_media_mp3_scans_past_a_false_sync_before_a_real_frame(tmp_path:
 
 
 def _ogg_page(
-    *, payload: bytes, granule: int, serial: int = 42, sequence: int = 0,
+    *,
+    payload: bytes,
+    granule: int,
+    serial: int = 42,
+    sequence: int = 0,
     header_type: int = 0,
 ) -> bytes:
     """Build one Ogg page: a 27-byte fixed header, its lacing segment
@@ -414,20 +464,28 @@ def _ogg_page(
         if chunk < 255:
             break
     header = (
-        b"OggS" + bytes([0, header_type])
+        b"OggS"
+        + bytes([0, header_type])
         + granule.to_bytes(8, "little", signed=True)
-        + serial.to_bytes(4, "little") + sequence.to_bytes(4, "little")
+        + serial.to_bytes(4, "little")
+        + sequence.to_bytes(4, "little")
         + b"\x00\x00\x00\x00"
-        + bytes([len(segments)]) + bytes(segments)
+        + bytes([len(segments)])
+        + bytes(segments)
     )
     return header + payload
 
 
 def _vorbis_identification_packet(
-    *, sample_rate: int = 44100, bitrate_nominal: int = 128000, channels: int = 2,
+    *,
+    sample_rate: int = 44100,
+    bitrate_nominal: int = 128000,
+    channels: int = 2,
 ) -> bytes:
     return (
-        b"\x01vorbis" + (0).to_bytes(4, "little") + bytes([channels])
+        b"\x01vorbis"
+        + (0).to_bytes(4, "little")
+        + bytes([channels])
         + sample_rate.to_bytes(4, "little")
         + (0).to_bytes(4, "little", signed=True)
         + bitrate_nominal.to_bytes(4, "little", signed=True)
@@ -437,8 +495,12 @@ def _vorbis_identification_packet(
 
 
 def _write_ogg_vorbis(
-    target: Path, *, sample_rate: int = 44100, bitrate_nominal: int = 128000,
-    total_samples: int = 44100 * 5, serial: int = 42,
+    target: Path,
+    *,
+    sample_rate: int = 44100,
+    bitrate_nominal: int = 128000,
+    total_samples: int = 44100 * 5,
+    serial: int = 42,
 ) -> None:
     identification = _vorbis_identification_packet(
         sample_rate=sample_rate, bitrate_nominal=bitrate_nominal
@@ -447,7 +509,10 @@ def _write_ogg_vorbis(
         payload=identification, granule=0, serial=serial, sequence=0, header_type=0x02
     )
     last_page = _ogg_page(
-        payload=b"\x00" * 16, granule=total_samples, serial=serial, sequence=1,
+        payload=b"\x00" * 16,
+        granule=total_samples,
+        serial=serial,
+        sequence=1,
         header_type=0x04,
     )
     target.write_bytes(first_page + last_page)
@@ -455,9 +520,7 @@ def _write_ogg_vorbis(
 
 def test_inspect_media_reads_ogg_vorbis_duration_and_nominal_bitrate(tmp_path: Path):
     target = tmp_path / "audio.ogg"
-    _write_ogg_vorbis(
-        target, sample_rate=44100, bitrate_nominal=128000, total_samples=44100 * 5
-    )
+    _write_ogg_vorbis(target, sample_rate=44100, bitrate_nominal=128000, total_samples=44100 * 5)
 
     info = inspect_media(target)
 
@@ -470,9 +533,7 @@ def test_inspect_media_ogg_vorbis_falls_back_to_average_bitrate_when_nominal_is_
     tmp_path: Path,
 ):
     target = tmp_path / "vbr.ogg"
-    _write_ogg_vorbis(
-        target, sample_rate=44100, bitrate_nominal=0, total_samples=44100 * 4
-    )
+    _write_ogg_vorbis(target, sample_rate=44100, bitrate_nominal=0, total_samples=44100 * 4)
 
     info = inspect_media(target)
 
@@ -503,20 +564,30 @@ def _mp4_box(box_type: bytes, payload: bytes) -> bytes:
 def _mvhd_box(*, timescale: int, duration: int, version: int = 0) -> bytes:
     if version == 1:
         payload = (
-            bytes([1, 0, 0, 0]) + b"\x00" * 8 + b"\x00" * 8
-            + timescale.to_bytes(4, "big") + duration.to_bytes(8, "big")
+            bytes([1, 0, 0, 0])
+            + b"\x00" * 8
+            + b"\x00" * 8
+            + timescale.to_bytes(4, "big")
+            + duration.to_bytes(8, "big")
         )
     else:
         payload = (
-            bytes([0, 0, 0, 0]) + b"\x00" * 4 + b"\x00" * 4
-            + timescale.to_bytes(4, "big") + duration.to_bytes(4, "big")
+            bytes([0, 0, 0, 0])
+            + b"\x00" * 4
+            + b"\x00" * 4
+            + timescale.to_bytes(4, "big")
+            + duration.to_bytes(4, "big")
         )
     payload += b"\x00" * (36 + 4 + 2 + 10 + 36 + 24 + 4)  # rest of mvhd, unused
     return _mp4_box(b"mvhd", payload)
 
 
 def _write_mp4(
-    target: Path, *, timescale: int = 600, duration: int = 3000, version: int = 0,
+    target: Path,
+    *,
+    timescale: int = 600,
+    duration: int = 3000,
+    version: int = 0,
     padding: bytes = b"\x00" * 500,
 ) -> None:
     ftyp = _mp4_box(b"ftyp", b"isom" + (0).to_bytes(4, "big") + b"isomiso2mp41")
@@ -608,9 +679,7 @@ def test_cli_import_media_is_atomic_before_save(tmp_path: Path):
     assert main(["-c", str(catalog), "import-media", str(good)]) == 0
     assert load(catalog).get(1).title == "good"
     previous = catalog.read_bytes()
-    assert main([
-        "-c", str(catalog), "import-media", str(good), str(tmp_path / "missing.mkv")
-    ]) == 2
+    assert main(["-c", str(catalog), "import-media", str(good), str(tmp_path / "missing.mkv")]) == 2
     assert catalog.read_bytes() == previous
 
 
@@ -623,13 +692,24 @@ def test_cli_import_media_progress_reports_to_stderr(
     second = tmp_path / "second.mkv"
     second.write_bytes(b"two")
 
-    assert main([
-        "-c", str(catalog), "import-media", str(first), str(second), "--progress",
-    ]) == 0
+    assert (
+        main(
+            [
+                "-c",
+                str(catalog),
+                "import-media",
+                str(first),
+                str(second),
+                "--progress",
+            ]
+        )
+        == 0
+    )
 
     captured = capsys.readouterr()
     assert captured.err.splitlines() == [
-        "Inspected 1/2 file(s)", "Inspected 2/2 file(s)",
+        "Inspected 1/2 file(s)",
+        "Inspected 2/2 file(s)",
     ]
     assert captured.out.strip() == "Imported 2 media file(s)"
     assert load(catalog).get(1).title == "first"
@@ -687,13 +767,15 @@ def test_discover_media_expands_directories_deterministically_and_bounds_count(
     (nested / "c.mkv").write_bytes(b"c")
     assert [path.name for path in discover_media([tmp_path])] == ["a.mkv", "b.mkv"]
     assert [path.name for path in discover_media([tmp_path], recursive=True)] == [
-        "a.mkv", "b.mkv", "c.mkv"
+        "a.mkv",
+        "b.mkv",
+        "c.mkv",
     ]
     with pytest.raises(ValueError, match="file-count limit"):
         discover_media([tmp_path], recursive=True, max_files=2)
-    assert [path.name for path in discover_media(
-        [tmp_path], recursive=True, extensions={"MKV"}
-    )] == ["a.mkv", "b.mkv", "c.mkv"]
+    assert [
+        path.name for path in discover_media([tmp_path], recursive=True, extensions={"MKV"})
+    ] == ["a.mkv", "b.mkv", "c.mkv"]
 
 
 def test_cli_import_media_directory_recursively(tmp_path: Path):
@@ -704,8 +786,18 @@ def test_cli_import_media_directory_recursively(tmp_path: Path):
     (nested / "two.mkv").write_bytes(b"two")
     (media / "ignored.txt").write_bytes(b"ignored")
     catalog = tmp_path / "catalog.json"
-    assert main([
-        "-c", str(catalog), "import-media", str(media), "--recursive",
-        "--extensions", "mkv,mp4",
-    ]) == 0
+    assert (
+        main(
+            [
+                "-c",
+                str(catalog),
+                "import-media",
+                str(media),
+                "--recursive",
+                "--extensions",
+                "mkv,mp4",
+            ]
+        )
+        == 0
+    )
     assert [movie.title for movie in load(catalog)] == ["two", "one"]

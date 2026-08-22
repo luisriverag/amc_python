@@ -9,15 +9,40 @@ from typing import Any
 
 
 _STRING_FIELDS = {
-    "title", "original_title", "translated_title", "director", "producer",
-    "writer", "composer",
-    "country", "category", "date", "borrower", "media_label", "media_type",
-    "source", "languages", "subtitles", "video_format", "audio_format",
-    "resolution", "url", "description", "comments", "actors", "picture",
-    "certification", "file_path",
+    "title",
+    "original_title",
+    "translated_title",
+    "director",
+    "producer",
+    "writer",
+    "composer",
+    "country",
+    "category",
+    "date",
+    "borrower",
+    "media_label",
+    "media_type",
+    "source",
+    "languages",
+    "subtitles",
+    "video_format",
+    "audio_format",
+    "resolution",
+    "url",
+    "description",
+    "comments",
+    "actors",
+    "picture",
+    "certification",
+    "file_path",
 }
 _OPTIONAL_INTEGER_FIELDS = {
-    "year", "length", "media_count", "video_bitrate", "audio_bitrate", "file_size",
+    "year",
+    "length",
+    "media_count",
+    "video_bitrate",
+    "audio_bitrate",
+    "file_size",
     "color_tag",
 }
 _OPTIONAL_NUMBER_FIELDS = {"rating", "user_rating", "framerate"}
@@ -95,13 +120,9 @@ class Movie:
         if any(not isinstance(key, str) for key in self.extras):
             raise TypeError("movie extras keys must be strings")
         try:
-            encoded_extras = json.dumps(
-                self.extras, ensure_ascii=False, allow_nan=False
-            )
+            encoded_extras = json.dumps(self.extras, ensure_ascii=False, allow_nan=False)
         except (TypeError, ValueError) as error:
-            raise TypeError(
-                f"movie extras must be JSON-compatible: {error}"
-            ) from error
+            raise TypeError(f"movie extras must be JSON-compatible: {error}") from error
         self.extras = json.loads(encoded_extras)
         if self.rating is not None and not 0 <= self.rating <= 10:
             raise ValueError("rating must be between 0 and 10")

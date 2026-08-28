@@ -470,6 +470,65 @@ def test_read_amc_42_movie_and_extra(tmp_path: Path):
     assert movie.extras["native_supplementary_records"][0]["picture_base64"] == "aW0="
 
 
+def _blank_movie_42() -> bytes:
+    """A movie record with every -1-sentinelled integer field left at its
+    genuine default: `iYear`/`iLength`/`iVideoBitrate`/`iAudioBitrate`/
+    `iDisks` (this port's `media_count`) are each initialized to `-1` in
+    upstream's own `TMovie.Reset` (`Movie Catalog/movieclass.pas`), matching
+    a genuine blank one-movie AMC 4.1/4.2 catalog contributed by a user for
+    local debugging (not committed to the repository)."""
+    integers = [1, 46262, 0, -1, -1, -1, -1, -1, -1, -1, 0]
+    strings = [""] * 25
+    return (
+        b"".join(_integer(value) for value in integers)
+        + _boolean(True)
+        + b"".join(_string(value) for value in strings)
+        + _string("")
+        + _integer(0)
+        + _integer(0)
+    )
+
+
+def test_read_amc_42_movie_preserves_undefined_year_length_and_bitrates(tmp_path: Path):
+    """`_read_movie` previously mapped these five fields with `value or
+    None`, which only substitutes `None` for `0` -- not upstream's actual
+    `-1` "no value" sentinel confirmed above, so a genuinely blank movie's
+    year/length/bitrates/disk-count read back as the literal integer `-1`
+    instead of `None`. `rating`/`user_rating` already used the correct
+    `None if value < 0 else value` pattern; this brings the other five
+    fields in line with it."""
+    target = tmp_path / "blank-movie.amc"
+    target.write_bytes(_catalog("4.2", "", "", "", "", "", "") + _integer(0) + _blank_movie_42())
+
+    movie = read_native_catalog(target).movies[0]
+
+    assert (movie.year, movie.length, movie.media_count) == (None, None, None)
+    assert (movie.video_bitrate, movie.audio_bitrate) == (None, None)
+
+
+def test_write_amc_42_movie_encodes_unset_year_length_and_bitrates_as_negative_one(
+    tmp_path: Path,
+):
+    """The writer's inverse bug: `movie.year or 0` wrote the plain integer
+    `0` for an unset field instead of upstream's own `-1` sentinel, so a
+    Python-exported catalog would not present the same "no value" state a
+    genuine AMC catalog does if reopened in upstream AMC (0 is a very
+    different displayed year/length/bitrate/disk-count than "none entered
+    yet"). Fixed to mirror `rating`'s existing `-1`-when-`None` write."""
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import read_native_catalog, write_native_catalog
+
+    catalog = Catalog([Movie(number=1)])
+    target = tmp_path / "unset-fields.amc"
+
+    write_native_catalog(catalog, target)
+
+    reread = read_native_catalog(target).movies[0]
+    assert (reread.year, reread.length, reread.media_count) == (None, None, None)
+    assert (reread.video_bitrate, reread.audio_bitrate) == (None, None)
+
+
 def test_amc_42_rejects_truncated_extra_picture(tmp_path: Path):
     target = tmp_path / "broken42.amc"
     payload = _catalog("4.2", "", "", "", "", "", "") + _integer(0) + _movie_42()

@@ -603,6 +603,8 @@ def _read_legacy_catalog(
                 extras["native_file_size_text"] = file_size_text
             raw_number = get_int("number")
             extras["native_movie_number"] = raw_number
+            raw_year = get_int("year")
+            raw_length = get_int("length")
             try:
                 movie = Movie(
                     number=max(raw_number, 0),
@@ -611,9 +613,9 @@ def _read_legacy_catalog(
                     director=str(get("director")),
                     producer=str(get("producer")),
                     country=str(get("country")),
-                    year=get_int("year") or None,
+                    year=None if raw_year < 0 else raw_year,
                     category=str(get("category")),
-                    length=get_int("length") or None,
+                    length=None if raw_length < 0 else raw_length,
                     actors=str(get("actors")),
                     url=str(get("url")),
                     description=str(get("description")),
@@ -813,23 +815,23 @@ def _read_movie(
             country=country,
             category=category,
             certification=certification,
-            year=year or None,
-            length=length or None,
+            year=None if year < 0 else year,
+            length=None if length < 0 else length,
             rating=None if rating_raw < 0 else rating_raw / 10,
             user_rating=None if user_rating_raw < 0 else user_rating_raw / 10,
             color_tag=color_tag or 0,
             borrower=borrower,
             media_label=media_label,
             media_type=media_type,
-            media_count=media_count or None,
+            media_count=None if media_count < 0 else media_count,
             source=source,
             file_path=file_path,
             languages=languages,
             subtitles=subtitles,
             video_format=video_format,
-            video_bitrate=video_bitrate or None,
+            video_bitrate=None if video_bitrate < 0 else video_bitrate,
             audio_format=audio_format,
-            audio_bitrate=audio_bitrate or None,
+            audio_bitrate=None if audio_bitrate < 0 else audio_bitrate,
             resolution=resolution,
             framerate=framerate,
             file_size=file_size,
@@ -1153,11 +1155,11 @@ def _write_movie_42(stream: _BinaryWriter, movie: "Movie", tags: list[str], enco
         _retained_int(extras, "native_date_watched", 0),
         _retained_rating(movie),
         rating,
-        movie.year or 0,
-        movie.length or 0,
-        movie.video_bitrate or 0,
-        movie.audio_bitrate or 0,
-        movie.media_count or 0,
+        -1 if movie.year is None else movie.year,
+        -1 if movie.length is None else movie.length,
+        -1 if movie.video_bitrate is None else movie.video_bitrate,
+        -1 if movie.audio_bitrate is None else movie.audio_bitrate,
+        -1 if movie.media_count is None else movie.media_count,
         (
             movie.color_tag
             if movie.color_tag is not None

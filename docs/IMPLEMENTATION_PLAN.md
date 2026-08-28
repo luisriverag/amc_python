@@ -935,18 +935,27 @@ script execution at all — see the checked sub-item below.
     selection. Deliberately does not add upstream's in-place template
     editor (the code-editor pane in its Export dialog): selecting a
     template file, not authoring one, is what this port's renderer needs.
-  - [ ] Upstream's Export dialog (`export.pas`) has several controls this
-    port's export still lacks entirely: a "Movies to include" scope
-    (All/Selected/Checked/Visible, each with a live count) — this port's
-    export always writes the whole catalog; an export-time sort-order
-    control independent of the catalog's current order; and, for HTML
-    specifically, a Pictures section (copy pictures alongside the export,
-    into a subfolder, only if missing, include extras) — the same
-    "upstream picture/rating-icon file copying" gap already named in
-    `amc.html_template`'s own docstring and in `docs/compatibility.md`.
-    Also out of scope in the same dialog: SQL export and a dedicated
-    "Pictures" export format (bulk-exporting every picture), neither of
-    which this port implements under any export path.
+  - [x] "Movies to include" scope and export-time sort: upstream's Export
+    dialog (`export.pas`) lets an export cover all/selected/checked/visible
+    movies and sort them independently of the catalog's own current order.
+    Every CLI `export-*` command now accepts `--scope {all,checked}` and
+    `--sort-by FIELD [--sort-reverse]`; the desktop's Export flow opens an
+    **Export options** dialog offering all four scopes (with a live count
+    per option, `selected`/`visible` being desktop-only since the CLI has no
+    interactive selection or search) and the same sort/reverse control.
+    `CatalogService.export`/`export_html_template` take `movies`/`sort_by`/
+    `sort_reverse` and build a fresh, unregistered `Catalog` for the scoped
+    export — the live catalog and its own order are never touched by an
+    export. `Catalog.sort`'s ordering logic moved to a shared
+    `catalog.sort_movies` helper so both use one validated implementation.
+  - [ ] Upstream's Export dialog also has controls this port's export still
+    lacks entirely: for HTML specifically, a Pictures section (copy pictures
+    alongside the export, into a subfolder, only if missing, include
+    extras) — the same "upstream picture/rating-icon file copying" gap
+    already named in `amc.html_template`'s own docstring and in
+    `docs/compatibility.md`. Also out of scope in the same dialog: SQL
+    export and a dedicated "Pictures" export format (bulk-exporting every
+    picture), neither of which this port implements under any export path.
   - [x] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a

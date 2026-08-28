@@ -138,6 +138,14 @@ readers. An exceeded budget is reported as a `validate` diagnostic and as an
   `--max-custom-fields`, `--max-list-values`, `--max-extras-per-movie`, and
   `--max-total-extras` expose the remaining structural budgets. Invalid or exceeded
   budgets return status 2 without replacing an existing destination.
+- Every `export-*` command accepts `--scope {all,checked}` (default `all`) and
+  `--sort-by FIELD [--sort-reverse]`, matching upstream's Export dialog's
+  "Movies to include" and sort-order controls without changing the catalog
+  itself — `checked` scopes to checked movies the same way the desktop's
+  Checked view filter does; `--sort-by` accepts any `Movie` field name
+  (movies missing a value for it sort last). `selected`/`visible` scopes have
+  no CLI equivalent since there is no interactive selection or search here;
+  the desktop's own Export dialog offers those two in addition.
 - `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID] [--timeout SECONDS]
   [--apply]` fetches one movie's metadata from the OMDb API
   (https://www.omdbapi.com/, a REST API that legally re-serves a curated

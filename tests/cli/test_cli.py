@@ -112,6 +112,51 @@ def test_cli_edit_and_export(tmp_path: Path):
     assert (movie.title, movie.year) == ("Moon", 2009)
 
 
+def test_cli_export_scope_checked_includes_only_checked_movies(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    xml = tmp_path / "movies.xml"
+    save(
+        Catalog(
+            [
+                Movie(number=1, title="Alien", checked=True),
+                Movie(number=2, title="Aliens", checked=False),
+            ]
+        ),
+        catalog,
+    )
+
+    assert main(["-c", str(catalog), "export-xml", str(xml), "--scope", "checked"]) == 0
+
+    assert [movie.title for movie in load_xml(xml)] == ["Alien"]
+    assert len(load(catalog)) == 2
+
+
+def test_cli_export_sort_by_and_reverse_do_not_change_the_catalog(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    xml = tmp_path / "movies.xml"
+    save(Catalog([Movie(number=1, title="Bravo"), Movie(number=2, title="Alpha")]), catalog)
+
+    assert main(["-c", str(catalog), "export-xml", str(xml), "--sort-by", "title"]) == 0
+    assert [movie.title for movie in load_xml(xml)] == ["Alpha", "Bravo"]
+    assert [movie.title for movie in load(catalog)] == ["Bravo", "Alpha"]
+
+    assert (
+        main(
+            [
+                "-c",
+                str(catalog),
+                "export-xml",
+                str(xml),
+                "--sort-by",
+                "title",
+                "--sort-reverse",
+            ]
+        )
+        == 0
+    )
+    assert [movie.title for movie in load_xml(xml)] == ["Bravo", "Alpha"]
+
+
 def test_cli_native_export_accepts_encoding_and_budgets(tmp_path: Path):
     catalog = tmp_path / "movies.json"
     target = tmp_path / "movies.amc"

@@ -86,6 +86,15 @@ _EDIT_INTEGER_FIELDS = (
     "file_size",
 )
 _EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
+_EXPORT_SORT_FIELDS = (
+    "title",
+    "original_title",
+    "year",
+    "director",
+    "category",
+    "rating",
+    "length",
+)
 _IMAGE_FILETYPES = (
     ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
     ("All files", "*"),
@@ -1264,15 +1273,98 @@ class CatalogWindow(ttk.Frame):
                 parent=self,
             ):
                 return
-        try:
-            self.service.export(selected, format=format_name)
-        except _SERVICE_ERRORS as error:
-            messagebox.showerror("Could not export catalog", str(error), parent=self)
-            return
-        completion = f"Exported to {selected}."
-        if format_name == "amc" and destination_exists:
-            completion += f"\nPrevious file: {Path(selected).with_suffix('.bak')}"
-        messagebox.showinfo("Export complete", completion, parent=self)
+        self._export_with_scope(selected, format_name, destination_exists=destination_exists)
+
+    def _movies_by_scope(self, scope: str) -> list[Movie] | None:
+        """Resolve a "Movies to include" choice to an explicit list, or
+        None for the whole catalog, matching upstream's Export dialog."""
+        if scope == "all":
+            return None
+        if scope == "selected":
+            return self.selected_movies()
+        if scope == "checked":
+            return [movie for movie in self.service.catalog if movie.checked]
+        if scope == "visible":
+            return [self.service.catalog.get(int(iid)) for iid in self.table.get_children()]
+        raise ValueError(f"unknown export scope: {scope!r}")
+
+    def _build_export_scope_controls(
+        self, dialog: tk.Toplevel, start_row: int
+    ) -> tuple[tk.StringVar, tk.StringVar, tk.BooleanVar, int]:
+        """Build the "Movies to include"/"Sort by" controls shared by both
+        export dialogs, matching upstream's own Export screen (All/Selected/
+        Checked/Visible, each with a live count, plus an export-time sort
+        order independent of the catalog's current order). Returns the
+        scope/sort-by/reverse variables and the next unused grid row."""
+        counts = {
+            "all": len(self.service.catalog),
+            "selected": len(self.selected_movies()),
+            "checked": sum(1 for movie in self.service.catalog if movie.checked),
+            "visible": len(self.table.get_children()),
+        }
+        scope = tk.StringVar(value="all")
+        row = start_row
+        ttk.Label(dialog, text="Movies to include:").grid(
+            row=row, column=0, columnspan=3, sticky="w", padx=8, pady=(8, 0)
+        )
+        row += 1
+        for key in ("all", "selected", "checked", "visible"):
+            ttk.Radiobutton(
+                dialog, text=f"{key.capitalize()} ({counts[key]})", variable=scope, value=key
+            ).grid(row=row, column=0, columnspan=3, sticky="w", padx=24)
+            row += 1
+        sort_by = tk.StringVar(value="")
+        ttk.Label(dialog, text="Sort by:").grid(row=row, column=0, sticky="w", padx=8, pady=(8, 0))
+        sort_combo = ttk.Combobox(
+            dialog,
+            textvariable=sort_by,
+            values=("", *_EXPORT_SORT_FIELDS),
+            state="readonly",
+            width=14,
+        )
+        sort_combo.grid(row=row, column=1, sticky="w", pady=(8, 0))
+        reverse = tk.BooleanVar(value=False)
+        ttk.Checkbutton(dialog, text="Reverse", variable=reverse).grid(
+            row=row, column=2, sticky="w", pady=(8, 0)
+        )
+        return scope, sort_by, reverse, row + 1
+
+    def _export_with_scope(
+        self, destination: str, format_name: str, *, destination_exists: bool
+    ) -> None:
+        """Ask "Movies to include" and an export sort order, then export."""
+        dialog = tk.Toplevel(self)
+        dialog.title("Export options")
+        dialog.transient(self.winfo_toplevel())
+        scope, sort_by, reverse, next_row = self._build_export_scope_controls(dialog, 0)
+
+        def accept() -> None:
+            movies = self._movies_by_scope(scope.get())
+            if movies is not None and not movies:
+                messagebox.showerror("Export options", "No movies match that scope.", parent=dialog)
+                return
+            try:
+                self.service.export(
+                    destination,
+                    format=format_name,
+                    movies=movies,
+                    sort_by=sort_by.get() or None,
+                    sort_reverse=reverse.get(),
+                )
+            except _SERVICE_ERRORS as error:
+                messagebox.showerror("Could not export catalog", str(error), parent=dialog)
+                return
+            dialog.destroy()
+            completion = f"Exported to {destination}."
+            if format_name == "amc" and destination_exists:
+                completion += f"\nPrevious file: {Path(destination).with_suffix('.bak')}"
+            messagebox.showinfo("Export complete", completion, parent=self)
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=next_row, column=0, columnspan=3, sticky="e", padx=8, pady=8)
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="left", padx=(0, 4))
+        ttk.Button(buttons, text="Export...", command=accept).pack(side="left")
+        make_modal(dialog)
 
     def _export_html_template(self, destination: str) -> None:
         """Render Ant Movie Catalog's own $$TAG_NAME HTML templates.
@@ -1378,6 +1470,8 @@ class CatalogWindow(ttk.Frame):
             "write", lambda *_args: set_row_state(full_widgets, full_enabled.get())
         )
 
+        scope, sort_by, reverse, next_row = self._build_export_scope_controls(dialog, 6)
+
         def accept() -> None:
             if not full_enabled.get() and not individual_enabled.get():
                 messagebox.showerror(
@@ -1400,6 +1494,12 @@ class CatalogWindow(ttk.Frame):
                     parent=dialog,
                 )
                 return
+            movies = self._movies_by_scope(scope.get())
+            if movies is not None and not movies:
+                messagebox.showerror(
+                    "Export HTML template", "No movies match that scope.", parent=dialog
+                )
+                return
             try:
                 written = self.service.export_html_template(
                     destination,
@@ -1409,6 +1509,9 @@ class CatalogWindow(ttk.Frame):
                     ),
                     individual_dir=individual_dir.get() or None,
                     individual_filename=individual_filename.get() or "{number}.html",
+                    movies=movies,
+                    sort_by=sort_by.get() or None,
+                    sort_reverse=reverse.get(),
                 )
             except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not export catalog", str(error), parent=dialog)
@@ -1417,7 +1520,7 @@ class CatalogWindow(ttk.Frame):
             messagebox.showinfo("Export complete", f"Wrote {len(written)} file(s).", parent=self)
 
         buttons = ttk.Frame(dialog)
-        buttons.grid(row=6, column=0, columnspan=3, sticky="e", padx=8, pady=(0, 8))
+        buttons.grid(row=next_row, column=0, columnspan=3, sticky="e", padx=8, pady=(0, 8))
         ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="left", padx=(0, 4))
         ttk.Button(buttons, text="Export...", command=accept).pack(side="left")
         dialog.columnconfigure(1, weight=1)

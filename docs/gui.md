@@ -52,7 +52,11 @@ The packaging check verifies that an isolated wheel installation can import both
   full catalog listing, one for individual movie pages — from real AMC's own
   HTML export) instead of AMC Python's own default table export. See
   `amc.html_template` and the CLI's `export-html-template` for the same
-  capability and its documented scope.
+  capability and its documented scope. Either path then opens an **Export
+  options** dialog matching upstream's own Export screen: "Movies to
+  include" (All/Selected/Checked/Visible, each showing a live count) and an
+  export-time "Sort by" field with a Reverse toggle, independent of the
+  catalog's own current order.
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;
   remove one movie or an extended table selection in a single atomic operation,

@@ -22,7 +22,7 @@ from .native import replace_and_sync_directory
 _FORMAT = "amc-python-gui-preferences"
 _VERSION = 1
 VALID_VIEW_FILTERS = ("All", "Loaned", "Available", "Checked", "Unchecked")
-VALID_LAYOUTS = ("Table", "Details", "Poster")
+VALID_LAYOUTS = ("Table", "Details", "Poster", "HTML")
 MIN_WINDOW_SIZE = (760, 480)
 MIN_HISTORY_LIMIT = 1
 MAX_HISTORY_LIMIT = 1000
@@ -37,6 +37,7 @@ class GuiPreferences:
     window_width: int = 1100
     window_height: int = 720
     history_limit: int = 100
+    html_preview_template: str = ""
 
 
 def default_preferences_path() -> Path:
@@ -87,6 +88,7 @@ def load_preferences(path: str | Path) -> GuiPreferences:
     width = document.get("window_width")
     height = document.get("window_height")
     history_limit = document.get("history_limit")
+    html_preview_template = document.get("html_preview_template")
     return GuiPreferences(
         view_filter=(view_filter if view_filter in VALID_VIEW_FILTERS else defaults.view_filter),
         layout=layout if layout in VALID_LAYOUTS else defaults.layout,
@@ -111,6 +113,11 @@ def load_preferences(path: str | Path) -> GuiPreferences:
             and MIN_HISTORY_LIMIT <= history_limit <= MAX_HISTORY_LIMIT
             else defaults.history_limit
         ),
+        html_preview_template=(
+            html_preview_template
+            if isinstance(html_preview_template, str)
+            else defaults.html_preview_template
+        ),
     )
 
 
@@ -126,6 +133,7 @@ def save_preferences(preferences: GuiPreferences, path: str | Path) -> None:
         "window_width": preferences.window_width,
         "window_height": preferences.window_height,
         "history_limit": preferences.history_limit,
+        "html_preview_template": preferences.html_preview_template,
     }
     temporary = path.with_name(f".{path.name}.tmp")
     try:

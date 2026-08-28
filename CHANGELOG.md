@@ -17,6 +17,16 @@ rather than repeating it here.
 
 ### Fixed
 
+- Native `.amc` reader/writer: a `List`-type custom field previously
+  crashed `read_native_catalog` outright (`CorruptCatalogError: invalid
+  native string length`) for the whole catalog. `_read_custom_field`
+  compared `field_type` against the bare string `"list"`, but upstream
+  writes the literal Pascal enum identifier `"ftList"` (confirmed in the
+  checked-in Delphi source); the mismatch skipped the list-value section
+  entirely and corrupted every later byte offset. The writer had the
+  mirror-image bug, silently dropping list values instead of writing them.
+  Found from AMC's own official demo catalog. See `docs/PORT_AUDIT.md`
+  finding 39.
 - Native `.amc` reader/writer: `year`, `length`, `video_bitrate`,
   `audio_bitrate`, and `media_count` (upstream's `Disks`) now round-trip
   upstream's own `-1` "no value" sentinel as `None`, instead of the reader

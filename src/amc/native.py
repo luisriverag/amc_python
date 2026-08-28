@@ -404,7 +404,7 @@ def _read_custom_field(
     gui_properties = _read_string(stream, encoding)
     list_values: tuple[str, ...] = ()
     list_auto_add = list_sort = list_auto_complete = list_use_catalog_values = False
-    if field_type.casefold() == "list":
+    if field_type.casefold() == "ftlist":
         count = _read_count(stream, "list-value")
         if count > limits.max_list_values_per_field:
             raise CorruptCatalogError(
@@ -1103,7 +1103,7 @@ def _write_custom_field(stream: _BinaryWriter, field: dict[str, object], encodin
     for key in ("remove_parentheses", "patch_values", "excluded_in_scripts"):
         _write_bool(stream, field.get(key, False), f"custom {key}")
     _write_string(stream, field.get("gui_properties", ""), encoding, "custom GUI properties")
-    if str(field.get("field_type", "")).casefold() == "list":
+    if str(field.get("field_type", "")).casefold() == "ftlist":
         values = field.get("list_values", [])
         if not isinstance(values, (list, tuple)):
             raise TypeError("native custom-field list_values must be a list")

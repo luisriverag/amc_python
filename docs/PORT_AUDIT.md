@@ -679,6 +679,52 @@ confidence.
     empty-catalog and blank-one-movie shape, not populated movies, custom
     fields, pictures, other versions, or a write-then-reopen-in-real-AMC
     check.
+39. Fixed a real, total-parse-failure bug in AMC 4.x custom-field
+    definitions: any catalog with a `List`-type custom field crashed
+    `read_native_catalog` outright with a `CorruptCatalogError: invalid
+    native string length: <garbage>` (not a graceful degradation — the
+    entire catalog failed to load). Found from the official demo catalog
+    that ships with Ant Movie Catalog itself (`Sample_4.2.0.amc`, a user's
+    own AMC install, contributed for local debugging; a redistribution
+    decision on it is separate from and pending after this fix, given its
+    embedded movie-poster images). Root cause: `_read_custom_field`
+    compared the parsed `field_type` string against the bare literal
+    `"list"`, but upstream's own serializer writes the literal Pascal enum
+    identifier — confirmed directly in the checked-in Delphi source,
+    `ConvertFieldTypeToString` in `Movie Catalog/movieclass.pas`, which
+    returns `'ftList'` (and `'ftBoolean'`, `'ftDate'`, `'ftInteger'`,
+    `'ftReal'`/`'ftReal1'`/`'ftReal2'`, `'ftString'`, `'ftText'`, `'ftUrl'`,
+    `'ftVirtual'` for the other ten field types) — not `'List'`. Because the
+    comparison never matched, the reader silently skipped the list-value
+    section entirely instead of reading it, corrupting every subsequent
+    byte offset for the rest of the properties stream and eventually
+    crashing on a garbage string length. The native writer's mirror-image
+    `_write_custom_field` had the identical bug (`== "list"` instead of
+    `== "ftlist"`), so a Python-constructed list-type custom field
+    silently wrote no list values at all rather than raising. Both fixed to
+    compare against `"ftlist"` (casefolded). This also exposed that the
+    *existing* synthetic test coverage for list-type custom fields
+    (`test_read_amc_42_custom_field_definition`,
+    `test_custom_field_parser_applies_definition_and_list_limits`,
+    `test_write_native_42_round_trip_retained_data`,
+    `test_native_writer_limits_custom_fields_and_list_values`,
+    `test_native_writer_rejects_malformed_metadata_atomically`) had
+    synthesized the same wrong bare `"List"` string throughout — a
+    self-consistent but incorrect assumption that passed cleanly against
+    the buggy code and would not have been caught without a genuine
+    upstream-produced catalog to check against. All five tests corrected to
+    `"ftList"`, so they now exercise the real behavior. Verified: after the
+    fix, `Sample_4.2.0.amc` parses cleanly (7 movies, 8 custom fields
+    spanning 8 of upstream's 11 field types including a working `ftList`
+    field with real list values) and round-trips losslessly through this
+    port's writer via `amc.storage.load`/`write_native_catalog` (movie-field
+    equality, including every custom field value, every embedded picture —
+    verified as valid JPEG/PNG bytes via Pillow — and every supplementary
+    record). A genuine AMC 3.5.1 sample of the same demo catalog
+    (`Sample_3.5.1.amc`, 7 movies, no custom fields defined in that older
+    export) also round-trips losslessly and was unaffected by this
+    specific bug (3.5 predates the custom-fields feature). Neither sample
+    file is committed to the repository yet.
 
 ## Gap matrix against the original application
 

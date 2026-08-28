@@ -155,12 +155,19 @@ def _boolean(value: bool) -> bytes:
 
 
 def test_read_amc_42_custom_field_definition(tmp_path: Path):
+    """`field_type` uses the literal Pascal enum identifier upstream's own
+    `ConvertFieldTypeToString` writes (`Movie Catalog/movieclass.pas`) --
+    `ftList`, not bare `List`. This test originally synthesized the bare
+    form, which the buggy reader/writer's own `== "list"` check happened to
+    accept -- a self-consistent but wrong assumption a genuine AMC-produced
+    catalog (an official sample shipped with the application) exposed, see
+    `docs/PORT_AUDIT.md` finding 39."""
     field = b"".join(
         (
             _string("MyTag"),
             _string("My field"),
             _string("txt"),
-            _string("List"),
+            _string("ftList"),
             _string("default"),
             _string("General;0"),
             _boolean(True),
@@ -195,7 +202,7 @@ def test_read_amc_42_custom_field_definition(tmp_path: Path):
         "MyTag",
         "My field",
         "txt",
-        "List",
+        "ftList",
     )
     assert custom.list_values == ("One", "Two")
     assert (custom.multi_values, custom.multi_value_separator) == (True, ";")
@@ -250,7 +257,7 @@ def test_custom_field_parser_applies_definition_and_list_limits(tmp_path: Path):
             _string("tag"),
             _string("name"),
             _string(""),
-            _string("List"),
+            _string("ftList"),
             _string(""),
             _string(""),
             _boolean(False),
@@ -1164,7 +1171,7 @@ def test_write_native_42_round_trip_retained_data(tmp_path: Path):
         "tag": "Mood",
         "name": "Mood",
         "extension": "",
-        "field_type": "List",
+        "field_type": "ftList",
         "default_value": "Calm",
         "media_info": "",
         "multi_values": True,
@@ -1450,7 +1457,7 @@ def test_native_writer_limits_custom_fields_and_list_values(tmp_path: Path):
     from amc.catalog import Catalog
     from amc.native import NativeWriteLimits, write_native_catalog
 
-    field = {"tag": "Mood", "field_type": "List", "list_values": ["Calm"]}
+    field = {"tag": "Mood", "field_type": "ftList", "list_values": ["Calm"]}
     catalog = Catalog(metadata={"native": {"custom_fields": [field]}})
 
     with pytest.raises(ValueError, match="custom-field limit"):
@@ -1517,7 +1524,7 @@ def test_native_write_limits_validate_configuration():
         ({"native": {"custom_fields": ["Mood"]}}, "custom field must be an object"),
         ({"native": {"custom_fields": [{"multi_values": 1}]}}, "must be a boolean"),
         (
-            {"native": {"custom_fields": [{"field_type": "List", "list_values": "Calm"}]}},
+            {"native": {"custom_fields": [{"field_type": "ftList", "list_values": "Calm"}]}},
             "list_values must be a list",
         ),
     ],

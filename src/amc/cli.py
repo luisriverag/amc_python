@@ -129,6 +129,19 @@ def parser() -> argparse.ArgumentParser:
     listing.add_argument("--json", action="store_true", dest="as_json")
     find = commands.add_parser("search", help="search movie metadata")
     find.add_argument("query")
+    find.add_argument(
+        "--field", help="restrict the search to one movie field (default: several common fields)"
+    )
+    find.add_argument(
+        "--whole-field",
+        action="store_true",
+        help="require an exact match instead of a substring",
+    )
+    find.add_argument(
+        "--reverse",
+        action="store_true",
+        help="return movies that do NOT match instead of ones that do",
+    )
     find.add_argument("--json", action="store_true", dest="as_json")
     add = commands.add_parser("add", help="add a movie")
     add.add_argument("title")
@@ -825,7 +838,12 @@ def _run(args: argparse.Namespace) -> int:
             for group in groups:
                 print(", ".join(f"#{movie.number} {movie.display_title()}" for movie in group))
     else:
-        movies = catalog.search(args.query) if args.command == "search" else list(catalog)
+        if args.command == "search":
+            movies = catalog.search(
+                args.query, field=args.field, whole_field=args.whole_field, reverse=args.reverse
+            )
+        else:
+            movies = list(catalog)
         if args.as_json:
             print(json.dumps([movie.to_dict() for movie in movies], ensure_ascii=False))
         else:

@@ -789,21 +789,25 @@ tier's next unchecked item before returning to D4.
 Comparing the desktop main window against upstream's own (`main.pas`/
 `main.dfm`) surfaced further real, source-derived gaps:
 
-  - [ ] Field-scoped search bar: upstream's search (`ActionFindFindnextExecute`,
-    `main.pas` line ~7891) is far richer than this port's single free-text
-    box, which substring-matches a fixed 11 fields (`Catalog.search`).
-    Upstream offers a "Search in field" dropdown selecting one specific
-    field (or an "Expression" mode — `TExprVarMovieParser`/`TExpression` —
-    that evaluates an arbitrary boolean expression over movie fields
-    instead of a plain substring), a "Whole field only" toggle (exact match
-    via `TMovie.ContainsText(Value, SelectedField, WholeField)` instead of
-    substring), and a "Reverse results" toggle (find movies that do *not*
-    match). It also has two distinct search modes this port conflates into
-    one: pressing Enter is "Find Next" — jump the selection to the next
-    (wrapping) match without changing what the list shows — while a
-    separate "Display" toggle (`ActionFindDisplay`) switches to live-
-    filtering the list to only matching movies, which is the only mode
-    this port implements (via `search_text`'s `trace_add`).
+  - [x] Field-scoped search bar: upstream's search (`ActionFindFindnextExecute`,
+    `main.pas` line ~7891) was far richer than this port's single free-text
+    box, which only substring-matched a fixed 11 fields (`Catalog.search`).
+    `Catalog.search` now accepts `field` (restrict to one `Movie` field —
+    an unknown field raises `ValueError`, matching every other field-name
+    validation in this codebase), `whole_field` (exact casefolded match
+    instead of substring, matching `TMovie.ContainsText`'s "Whole field
+    only"), and `reverse` (movies that do *not* match, matching "Reverse
+    results"); an empty query still matches everything (or nothing, if
+    `reverse`). The desktop gained a second search-bar row — **Search in
+    field** (a friendly field-name dropdown, `_SEARCH_FIELDS`), **Whole
+    field only**, and **Reverse results** — and the CLI's `search` command
+    gained matching `--field`/`--whole-field`/`--reverse` flags. Upstream's
+    "Expression" search mode (`TExprVarMovieParser`/`TExpression`,
+    evaluating an arbitrary boolean expression over movie fields) and its
+    distinct "Find Next" (jump-to-next-match, no list filtering) vs.
+    "Display" (live-filter) modes are deliberately not implemented — this
+    port always live-filters, the only mode it had before this item, now
+    just with field/whole-field/reverse options added to it.
   - [x] Previous/Next movie navigation: upstream's toolbar has dedicated
     "select previous/next movie in the list" actions
     (`ActionMoviePrevious`/`ActionMovieNext`, `main.pas`), a plain

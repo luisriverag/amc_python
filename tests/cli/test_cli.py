@@ -644,6 +644,55 @@ def test_cli_list_search_and_stats_support_json(tmp_path: Path, capsys):
     }
 
 
+def test_cli_search_field_whole_field_and_reverse(tmp_path: Path, capsys):
+    target = tmp_path / "catalog.json"
+    save(
+        Catalog(
+            [
+                Movie(number=1, title="Alien", director="Ridley Scott"),
+                Movie(number=2, title="Scott Pilgrim", director="Edgar Wright"),
+            ]
+        ),
+        target,
+    )
+
+    assert main(["-c", str(target), "search", "scott", "--field", "director", "--json"]) == 0
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [1]
+
+    assert main(["-c", str(target), "search", "scott", "--field", "title", "--json"]) == 0
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [2]
+
+    assert (
+        main(
+            [
+                "-c",
+                str(target),
+                "search",
+                "alien",
+                "--field",
+                "title",
+                "--whole-field",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [1]
+
+    assert (
+        main(["-c", str(target), "search", "scott", "--field", "director", "--reverse", "--json"])
+        == 0
+    )
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [2]
+
+
+def test_cli_search_rejects_an_unknown_field(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "search", "x", "--field", "bogus"]) == 2
+
+
 def test_cli_duplicates_supports_json(tmp_path: Path, capsys):
     target = tmp_path / "catalog.json"
     save(

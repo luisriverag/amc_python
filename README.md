@@ -92,6 +92,11 @@ amc -c movies.json import legacy.amc --native-encoding cp1251
 amc -c movies.json import legacy.amc --max-input-bytes 1073741824 --max-movies 100000
 amc -c movies.json import-media Movie.mkv Trailer.wav
 amc -c movies.json import-media MediaFolder/ --recursive
+amc -c movies.json import-media MediaFolder/ --max-depth 2
+amc -c movies.json import-media MediaFolder/ --merge-parts
+amc -c movies.json import-media MediaFolder/ --import-pictures embed
+amc -c movies.json import-media MediaFolder/ --extract defer
+amc -c movies.json import-media MediaFolder/ --extensions default --title-filter-regex '1080p'
 amc -c movies.json import-media MediaFolder/ --recursive --extensions mkv,mp4,wav
 amc -c movies.json import-media MediaFolder/ --recursive --progress
 amc -c movies.json add "The Apartment" --year 1960 --director "Billy Wilder"

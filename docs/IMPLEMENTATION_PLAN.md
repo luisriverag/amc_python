@@ -516,11 +516,13 @@ format" → Media files dialog (`import2_engines.pas`'s `TImportEngineDir`,
 `getmedia.pas`) surfaced real, source-derived gaps this port does not cover
 yet:
 
-  - [ ] Depth-limited subfolder browsing: upstream's `BrowseDepth` setting
+  - [x] Depth-limited subfolder browsing: upstream's `BrowseDepth` setting
     (`*` for unlimited, else an integer) caps how many directory levels a
-    recursive scan descends; `discover_media`'s `recursive` is only a
-    boolean (fully recursive or not at all).
-  - [ ] Multi-part/multi-disk media merging: upstream (`TGetFileListThread.
+    recursive scan descends. `discover_media(max_depth=N)`, CLI
+    `import-media --max-depth N`, and the desktop folder-import prompt now
+    implement the same bounded-depth choice; zero scans the selected folder
+    only and an omitted value leaves recursion unlimited.
+  - [x] Multi-part/multi-disk media merging: upstream (`TGetFileListThread.
     Execute`, `getmedia.pas`) sorts filenames per directory and merges
     adjacent files into one movie entry when a configurable "disk tag"
     regex (default `(cd)[0-9]{1,3}`), stripped from both names, produces
@@ -529,19 +531,35 @@ yet:
     first file's value, `length` sums across parts, `video_bitrate`/
     `audio_bitrate` average iteratively (`(previous + new) / 2` per part),
     file size sums, and disk count is the number of parts merged. This
-    port has no equivalent — every file always becomes its own movie.
-  - [ ] Pictures importation method: upstream looks for a poster image
+    port now exposes the behavior as opt-in CLI `--merge-parts` (with bounded
+    configurable `--disk-tag-regex`) and a desktop folder-import choice. The
+    shared merger requires adjacent files in the same directory, preserves
+    every source path, keeps the first part's descriptive fields, sums length
+    and size, applies the source's iterative bitrate average, and records the
+    part count in `media_count`.
+  - [x] Pictures importation method: upstream looks for a poster image
     beside each media file or its containing folder (matching filename or
     a configured folder name) and can store it into the catalog or copy it
-    to a pictures folder. This port's media import never looks for or
-    attaches a picture.
-  - [ ] Extract process modes: upstream can extract full media info
+    to a pictures folder. AMC Python now searches bounded, explicit image
+    extensions beside each media file, preferring a same-stem image and then
+    a configurable folder-image base name. CLI `--import-pictures link|embed`
+    and the desktop folder workflow expose linked or size/pixel-bounded
+    embedded storage; every attachment is completed before the catalog's
+    single atomic mutation.
+  - [x] Extract process modes: upstream can extract full media info
     immediately, defer it, or skip it entirely for a faster scan; this
-    port's `inspect_media` always does full extraction.
-  - [ ] Extensions "Default" button and a configurable filename-cleanup
+    port now offers CLI `--extract full|defer|skip` and the same desktop
+    folder-import choice. Full preserves the existing codec inspection;
+    defer records portable file facts plus an explicit `pending` marker; skip
+    avoids metadata extraction and records an explicit `skipped` marker. All
+    three modes still resolve the complete batch before the atomic catalog
+    mutation.
+  - [x] Extensions "Default" button and a configurable filename-cleanup
     pattern ("Filter the file name") for deriving a title from a raw
-    filename; `--extensions`/`parse_extensions` cover the filter itself
-    but not either of these.
+    filename: `--extensions default` and the desktop prompt's `default`
+    keyword select the shared common-video extension set, while bounded CLI
+    `--title-filter-regex` and the desktop cleanup prompt remove matching text
+    and normalize the resulting title's whitespace/separators.
   - Allow duplicate numbers, allow to clear fields when empty, auto-assign
     fields to columns, and "use internal engine for AVI" are upstream
     settings without a clear equivalent here: the first two only make

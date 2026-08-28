@@ -1,10 +1,19 @@
+import base64
 import math
 import wave
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
-from amc.media import discover_media, inspect_media, movie_from_media
+from amc.media import (
+    attach_media_pictures,
+    discover_media,
+    inspect_media,
+    merge_media_parts,
+    movie_from_media,
+)
+from amc.model import Movie
 from amc.cli import main
 from amc.storage import load
 
@@ -149,6 +158,131 @@ def test_movie_from_media_leaves_length_unset_when_duration_is_unknown(tmp_path:
     movie = movie_from_media(target)
 
     assert movie.length is None
+
+
+def test_movie_from_media_supports_deferred_and_skipped_extraction(tmp_path: Path):
+    target = tmp_path / "Movie.mkv"
+    target.write_bytes(b"media")
+
+    deferred = movie_from_media(target, extraction="defer")
+    skipped = movie_from_media(target, extraction="skip")
+
+    assert deferred.file_size == 5
+    assert deferred.extras == {"media_path": str(target), "media_analysis": "pending"}
+    assert skipped.file_size is None
+    assert skipped.extras == {"media_path": str(target), "media_analysis": "skipped"}
+    with pytest.raises(ValueError, match="extraction mode"):
+        movie_from_media(target, extraction="later")
+
+
+def test_movie_from_media_can_clean_filename_derived_title(tmp_path: Path):
+    target = tmp_path / "Movie.2024.1080p.mkv"
+    target.write_bytes(b"media")
+
+    movie = movie_from_media(target, title_filter_pattern=r"[._]|\b(?:2024|1080p)\b")
+
+    assert movie.title == "Movie"
+    with pytest.raises(ValueError, match="invalid title filter"):
+        movie_from_media(target, title_filter_pattern="[")
+    with pytest.raises(ValueError, match="1 to 256"):
+        movie_from_media(target, title_filter_pattern="")
+
+
+def test_merge_media_parts_preserves_first_fields_and_combines_numeric_facts(tmp_path: Path):
+    first_path = tmp_path / "Movie CD1.avi"
+    second_path = tmp_path / "Movie cd2.avi"
+    first = Movie(
+        title="Movie CD1",
+        media_label="Movie CD1.avi",
+        length=60,
+        file_size=100,
+        video_bitrate=1000,
+        audio_bitrate=100,
+        extras={"media_path": str(first_path)},
+    )
+    second = Movie(
+        title="Movie cd2",
+        media_label="Movie cd2.avi",
+        length=30,
+        file_size=50,
+        video_bitrate=1400,
+        audio_bitrate=200,
+        extras={"media_path": str(second_path)},
+    )
+
+    movies = merge_media_parts([(first_path, first), (second_path, second)])
+
+    assert len(movies) == 1
+    assert movies[0].title == "Movie CD1"
+    assert movies[0].media_label == "Movie CD1.avi"
+    assert (movies[0].length, movies[0].file_size, movies[0].media_count) == (90, 150, 2)
+    assert (movies[0].video_bitrate, movies[0].audio_bitrate) == (1200, 150)
+    assert movies[0].extras == {
+        "media_path": str(first_path),
+        "media_parts": [str(first_path), str(second_path)],
+    }
+
+
+def test_merge_media_parts_requires_adjacent_same_directory_matches_and_valid_regex(
+    tmp_path: Path,
+):
+    paths = [tmp_path / "Film CD1.mkv", tmp_path / "Other.mkv", tmp_path / "Film CD2.mkv"]
+    movies = [Movie(title=path.stem) for path in paths]
+    assert len(merge_media_parts(list(zip(paths, movies)))) == 3
+    other_directory = tmp_path / "other" / "Film CD2.mkv"
+    assert len(merge_media_parts([(paths[0], movies[0]), (other_directory, movies[2])])) == 2
+    custom = merge_media_parts(
+        [(tmp_path / "Film part-1.mkv", movies[0]), (tmp_path / "Film part-2.mkv", movies[2])],
+        disk_tag_pattern=r"(?i)part-[0-9]+",
+    )
+    assert len(custom) == 1
+    with pytest.raises(ValueError, match="invalid disk tag pattern"):
+        merge_media_parts([], disk_tag_pattern="[")
+    with pytest.raises(ValueError, match="1 to 256"):
+        merge_media_parts([], disk_tag_pattern="")
+
+
+def test_attach_media_pictures_prefers_same_stem_and_can_link_or_embed(tmp_path: Path):
+    media = tmp_path / "Movie.mkv"
+    media.write_bytes(b"movie")
+    folder_picture = tmp_path / "folder.png"
+    Image.new("RGB", (2, 2), "blue").save(folder_picture)
+    same_stem = tmp_path / "Movie.JPG"
+    Image.new("RGB", (2, 2), "red").save(same_stem)
+    source = Movie(title="Movie")
+
+    linked = attach_media_pictures([(media, source)])[0]
+    embedded = attach_media_pictures([(media, source)], embed=True)[0]
+
+    assert linked.picture == str(same_stem)
+    assert "native_picture_base64" not in linked.extras
+    assert embedded.picture == "Movie.JPG"
+    assert base64.b64decode(embedded.extras["native_picture_base64"]) == same_stem.read_bytes()
+    assert source.picture == ""
+
+
+def test_attach_media_pictures_uses_configured_folder_name_and_validates_limits(
+    tmp_path: Path,
+):
+    media = tmp_path / "Movie.mkv"
+    media.write_bytes(b"movie")
+    poster = tmp_path / "poster.png"
+    Image.new("RGB", (3, 2), "green").save(poster)
+    source = Movie(title="Movie")
+
+    assert attach_media_pictures([(media, source)], folder_picture_name="poster")[0].picture == str(
+        poster
+    )
+    with pytest.raises(ValueError, match="without a path"):
+        attach_media_pictures([], folder_picture_name="../poster")
+    with pytest.raises(ValueError, match="size limit"):
+        attach_media_pictures(
+            [(media, source)], embed=True, folder_picture_name="poster", max_bytes=1
+        )
+    with pytest.raises(ValueError, match="pixel limit"):
+        attach_media_pictures(
+            [(media, source)], embed=True, folder_picture_name="poster", max_pixels=5
+        )
 
 
 def test_inspect_media_rejects_non_file_invalid_wav_and_size(tmp_path: Path):
@@ -742,7 +876,7 @@ def test_cli_import_media_interrupted_during_inspection_leaves_catalog_untouched
     second.write_bytes(b"two")
     inspected = []
 
-    def interrupt_on_second_file(path):
+    def interrupt_on_second_file(path, **_kwargs):
         inspected.append(path)
         if len(inspected) == 2:
             raise KeyboardInterrupt
@@ -771,11 +905,45 @@ def test_discover_media_expands_directories_deterministically_and_bounds_count(
         "b.mkv",
         "c.mkv",
     ]
+    deeper = nested / "deeper"
+    deeper.mkdir()
+    (deeper / "d.mkv").write_bytes(b"d")
+    assert [path.name for path in discover_media([tmp_path], max_depth=0)] == [
+        "a.mkv",
+        "b.mkv",
+    ]
+    assert [path.name for path in discover_media([tmp_path], max_depth=1)] == [
+        "a.mkv",
+        "b.mkv",
+        "c.mkv",
+    ]
+    with pytest.raises(ValueError, match="maximum depth"):
+        discover_media([tmp_path], max_depth=-1)
     with pytest.raises(ValueError, match="file-count limit"):
         discover_media([tmp_path], recursive=True, max_files=2)
     assert [
         path.name for path in discover_media([tmp_path], recursive=True, extensions={"MKV"})
-    ] == ["a.mkv", "b.mkv", "c.mkv"]
+    ] == ["a.mkv", "b.mkv", "c.mkv", "d.mkv"]
+
+
+def test_discover_media_depth_limit_prunes_traversal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    nested = tmp_path / "nested"
+    deeper = nested / "deeper"
+    deeper.mkdir(parents=True)
+    (deeper / "hidden.mkv").write_bytes(b"hidden")
+    visited: list[Path] = []
+    original_iterdir = Path.iterdir
+
+    def recording_iterdir(path: Path):
+        visited.append(path)
+        return original_iterdir(path)
+
+    monkeypatch.setattr(Path, "iterdir", recording_iterdir)
+
+    assert discover_media([tmp_path], max_depth=1) == []
+    assert visited == [tmp_path, nested]
 
 
 def test_cli_import_media_directory_recursively(tmp_path: Path):
@@ -801,3 +969,82 @@ def test_cli_import_media_directory_recursively(tmp_path: Path):
         == 0
     )
     assert [movie.title for movie in load(catalog)] == ["two", "one"]
+
+
+def test_cli_import_media_can_merge_adjacent_multi_part_files(tmp_path: Path):
+    media = tmp_path / "media"
+    media.mkdir()
+    (media / "Movie CD1.mkv").write_bytes(b"one")
+    (media / "Movie CD2.mkv").write_bytes(b"two")
+    catalog = tmp_path / "catalog.json"
+
+    assert main(["-c", str(catalog), "import-media", str(media), "--merge-parts"]) == 0
+
+    movies = list(load(catalog))
+    assert len(movies) == 1
+    assert movies[0].title == "Movie CD1"
+    assert movies[0].media_count == 2
+    assert movies[0].file_size == 6
+
+
+def test_cli_import_media_can_embed_discovered_picture(tmp_path: Path):
+    media = tmp_path / "Movie.mkv"
+    media.write_bytes(b"movie")
+    picture = tmp_path / "Movie.png"
+    Image.new("RGB", (2, 2), "red").save(picture)
+    catalog = tmp_path / "catalog.json"
+
+    assert (
+        main(
+            [
+                "-c",
+                str(catalog),
+                "import-media",
+                str(media),
+                "--import-pictures",
+                "embed",
+            ]
+        )
+        == 0
+    )
+
+    movie = load(catalog).get(1)
+    assert movie.picture == "Movie.png"
+    assert base64.b64decode(movie.extras["native_picture_base64"]) == picture.read_bytes()
+
+
+def test_cli_import_media_can_defer_metadata_extraction(tmp_path: Path):
+    media = tmp_path / "Movie.mkv"
+    media.write_bytes(b"movie")
+    catalog = tmp_path / "catalog.json"
+
+    assert main(["-c", str(catalog), "import-media", str(media), "--extract", "defer"]) == 0
+
+    movie = load(catalog).get(1)
+    assert movie.file_size == 5
+    assert movie.extras["media_analysis"] == "pending"
+
+
+def test_cli_import_media_supports_default_extensions_and_title_cleanup(tmp_path: Path):
+    media = tmp_path / "media"
+    media.mkdir()
+    (media / "Movie.1080p.mkv").write_bytes(b"movie")
+    (media / "notes.txt").write_bytes(b"notes")
+    catalog = tmp_path / "catalog.json"
+
+    assert (
+        main(
+            [
+                "-c",
+                str(catalog),
+                "import-media",
+                str(media),
+                "--extensions",
+                "default",
+                "--title-filter-regex",
+                r"[.]|1080p",
+            ]
+        )
+        == 0
+    )
+    assert [movie.title for movie in load(catalog)] == ["Movie"]

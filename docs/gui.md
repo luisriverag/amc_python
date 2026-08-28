@@ -28,10 +28,20 @@ The packaging check verifies that an isolated wheel installation can import both
   individual files, then adds a movie entry per file from portable facts and,
   for WAV/FLAC/AIFF/MP3, duration and bitrate — the desktop equivalent of the
   CLI's `import-media`. Choosing a folder also asks whether to include
-  subfolders, mirroring `--recursive`, and then offers an optional
+  subfolders, mirroring `--recursive`; recursive scans can be unlimited or
+  capped at a non-negative number of subfolder levels, mirroring CLI
+  `--max-depth`. It then offers an optional
   comma-separated extension filter (e.g. `mkv,mp4,wav`) that narrows the
   folder scan the same way as the CLI's `--extensions`; leaving it blank
-  imports every file, matching the CLI's own default. A modal progress dialog
+  imports every file, matching the CLI's own default. Folder import can also
+  merge adjacent same-title `CD1`/`CD2`-style files into one entry, summing
+  duration and size while retaining every part path. It can find a same-name
+  poster or `folder` image beside each media file and either link it or embed
+  its validated, bounded bytes in the catalog. The extraction prompt selects
+  full codec inspection, deferred analysis with portable facts, or a fast skip
+  that records naming/path facts only. Entering `default` in the extension
+  prompt selects common video extensions; the filename-cleanup prompt accepts
+  a bounded regex whose matches are removed from derived titles. A modal progress dialog
   reports which file is being inspected and can be cancelled mid-scan; like
   the CLI, the catalog is only mutated once, after every selected file has
   been inspected, so cancelling, an empty folder, or an invalid file leaves it

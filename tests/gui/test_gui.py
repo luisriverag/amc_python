@@ -29,6 +29,7 @@ from amc.gui import (
     run,
 )
 from amc.errors import CorruptCatalogError
+from amc.media import DEFAULT_MEDIA_EXTENSIONS
 from amc.catalog import Catalog
 from amc.model import Movie
 from amc.loans import LoanEvent
@@ -444,8 +445,10 @@ def test_window_import_media_expands_a_chosen_folder():
     with (
         patch("amc.gui.messagebox.askyesnocancel", return_value=True),
         patch("amc.gui.filedialog.askdirectory", return_value="folder"),
-        patch("amc.gui.messagebox.askyesno", return_value=True) as recurse_prompt,
-        patch("amc.gui.simpledialog.askstring", return_value=None) as extensions_prompt,
+        patch("amc.gui.messagebox.askyesno", side_effect=[True, True, False]) as recurse_prompt,
+        patch(
+            "amc.gui.simpledialog.askstring", side_effect=["1", None, None, "full"]
+        ) as extensions_prompt,
         patch("amc.gui.discover_media", return_value=discovered) as discover,
         patch("amc.gui.tk.Toplevel", return_value=dialog),
         patch("amc.gui.ttk.Label", return_value=Mock()),
@@ -456,9 +459,9 @@ def test_window_import_media_expands_a_chosen_folder():
     ):
         window.import_media()
 
-    discover.assert_called_once_with([Path("folder")], recursive=True, extensions=None)
-    recurse_prompt.assert_called_once()
-    extensions_prompt.assert_called_once()
+    discover.assert_called_once_with([Path("folder")], recursive=True, max_depth=1, extensions=None)
+    assert recurse_prompt.call_count == 3
+    assert extensions_prompt.call_count == 4
     window.service.add_many.assert_called_once_with(movies)
     showinfo.assert_called_once()
 
@@ -473,7 +476,7 @@ def test_window_import_media_narrows_folder_scan_to_chosen_extensions():
         patch("amc.gui.messagebox.askyesnocancel", return_value=True),
         patch("amc.gui.filedialog.askdirectory", return_value="folder"),
         patch("amc.gui.messagebox.askyesno", return_value=False),
-        patch("amc.gui.simpledialog.askstring", return_value=" mkv, mp4 "),
+        patch("amc.gui.simpledialog.askstring", side_effect=[" mkv, mp4 ", None, "full"]),
         patch("amc.gui.discover_media", return_value=discovered) as discover,
         patch("amc.gui.tk.Toplevel", return_value=dialog),
         patch("amc.gui.ttk.Label", return_value=Mock()),
@@ -484,7 +487,9 @@ def test_window_import_media_narrows_folder_scan_to_chosen_extensions():
     ):
         window.import_media()
 
-    discover.assert_called_once_with([Path("folder")], recursive=False, extensions={"mkv", "mp4"})
+    discover.assert_called_once_with(
+        [Path("folder")], recursive=False, max_depth=None, extensions={"mkv", "mp4"}
+    )
 
 
 def test_window_import_media_reports_no_files_found_in_folder():
@@ -494,7 +499,7 @@ def test_window_import_media_reports_no_files_found_in_folder():
         patch("amc.gui.messagebox.askyesnocancel", return_value=True),
         patch("amc.gui.filedialog.askdirectory", return_value="empty-folder"),
         patch("amc.gui.messagebox.askyesno", return_value=False),
-        patch("amc.gui.simpledialog.askstring", return_value=None),
+        patch("amc.gui.simpledialog.askstring", side_effect=[None, None, "full"]),
         patch("amc.gui.discover_media", return_value=[]),
         patch("amc.gui.tk.Toplevel") as toplevel,
         patch("amc.gui.messagebox.showinfo") as showinfo,
@@ -516,7 +521,7 @@ def test_window_import_media_reports_invalid_folder(tmp_path: Path):
             return_value=str(tmp_path / "missing"),
         ),
         patch("amc.gui.messagebox.askyesno", return_value=False),
-        patch("amc.gui.simpledialog.askstring", return_value=None),
+        patch("amc.gui.simpledialog.askstring", side_effect=[None, None, "full"]),
         patch(
             "amc.gui.discover_media",
             side_effect=ValueError("media path does not exist"),
@@ -537,7 +542,7 @@ def test_window_import_media_can_be_cancelled_mid_scan():
     paths = [Path("a.mkv"), Path("b.mkv"), Path("c.mkv")]
     inspected = []
 
-    def fake_movie_from_media(path):
+    def fake_movie_from_media(path, **_kwargs):
         inspected.append(path)
         if path == paths[0]:
             button.call_args_list[0].kwargs["command"]()
@@ -1593,6 +1598,7 @@ def test_parse_extensions_matches_cli_import_media_extensions_parsing():
     assert parse_extensions("") is None
     assert parse_extensions("   ") is None
     assert parse_extensions(",,,") is None
+    assert parse_extensions("default") == DEFAULT_MEDIA_EXTENSIONS
 
 
 def test_parse_history_limit_accepts_in_range_values():

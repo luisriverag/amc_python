@@ -15,7 +15,14 @@ from .errors import CatalogError
 from .inspection import DEFAULT_MAX_INSPECT_BYTES, inspect_catalog, validate_catalog
 from .model import Movie
 from .native import NativeReadLimits, NativeWriteLimits
-from .media import discover_media, movie_from_media
+from .media import (
+    DEFAULT_DISK_TAG_PATTERN,
+    DEFAULT_MEDIA_EXTENSIONS,
+    attach_media_pictures,
+    discover_media,
+    merge_media_parts,
+    movie_from_media,
+)
 from .omdb import (
     DEFAULT_TIMEOUT as DEFAULT_OMDB_TIMEOUT,
     fetch_omdb_record,
@@ -208,6 +215,35 @@ def parser() -> argparse.ArgumentParser:
     media_import.add_argument("paths", nargs="+", type=Path)
     media_import.add_argument("--recursive", action="store_true")
     media_import.add_argument(
+        "--max-depth",
+        type=int,
+        help="scan at most N directory levels below each input directory (0 = top level)",
+    )
+    media_import.add_argument(
+        "--title-filter-regex",
+        help="regular expression removed from each filename-derived title",
+    )
+    media_import.add_argument(
+        "--merge-parts",
+        action="store_true",
+        help="merge adjacent same-title CD1/CD2-style files into one movie",
+    )
+    media_import.add_argument(
+        "--disk-tag-regex",
+        default=DEFAULT_DISK_TAG_PATTERN,
+        help="regular expression removed when matching media parts",
+    )
+    media_import.add_argument(
+        "--import-pictures",
+        choices=("link", "embed"),
+        help="attach same-stem or folder poster images to imported movies",
+    )
+    media_import.add_argument(
+        "--folder-picture-name",
+        default="folder",
+        help="fallback poster base name used by --import-pictures (default: folder)",
+    )
+    media_import.add_argument(
         "--extensions",
         help="comma-separated extensions to include, for example mkv,mp4,wav",
     )
@@ -215,6 +251,12 @@ def parser() -> argparse.ArgumentParser:
         "--progress",
         action="store_true",
         help="print 'Inspected N/TOTAL file(s)' to stderr while scanning a large tree",
+    )
+    media_import.add_argument(
+        "--extract",
+        choices=("full", "defer", "skip"),
+        default="full",
+        help="media metadata extraction mode (default: full)",
     )
     merge.add_argument(
         "--metadata",
@@ -477,20 +519,47 @@ def _run(args: argparse.Namespace) -> int:
         )
         print(f"Imported {count} movie(s)")
     elif args.command == "import-media":
-        extensions = (
-            {item.strip() for item in args.extensions.split(",") if item.strip()}
-            if args.extensions
-            else None
+        extensions = None
+        if args.extensions:
+            extensions = (
+                DEFAULT_MEDIA_EXTENSIONS
+                if args.extensions.strip().casefold() == "default"
+                else {item.strip() for item in args.extensions.split(",") if item.strip()}
+            )
+        paths = discover_media(
+            args.paths,
+            recursive=args.recursive,
+            max_depth=args.max_depth,
+            extensions=extensions,
         )
-        paths = discover_media(args.paths, recursive=args.recursive, extensions=extensions)
         total = len(paths)
         movies = []
         for index, media_path in enumerate(paths, start=1):
-            movies.append(movie_from_media(media_path))
+            movies.append(
+                movie_from_media(
+                    media_path,
+                    extraction=args.extract,
+                    title_filter_pattern=args.title_filter_regex,
+                )
+            )
             if args.progress:
                 print(f"Inspected {index}/{total} file(s)", file=sys.stderr)
+        source_count = len(movies)
+        if args.import_pictures:
+            movies = attach_media_pictures(
+                list(zip(paths, movies)),
+                embed=args.import_pictures == "embed",
+                folder_picture_name=args.folder_picture_name,
+            )
+        if args.merge_parts:
+            movies = merge_media_parts(
+                list(zip(paths, movies)), disk_tag_pattern=args.disk_tag_regex
+            )
         service.add_many(movies)
-        print(f"Imported {len(movies)} media file(s)")
+        if args.merge_parts:
+            print(f"Imported {len(movies)} movie(s) from {source_count} media file(s)")
+        else:
+            print(f"Imported {len(movies)} media file(s)")
     elif args.command == "add":
         movie = service.add(Movie(title=args.title, year=args.year, director=args.director))
         print(f"Added #{movie.number}: {movie.display_title()}")

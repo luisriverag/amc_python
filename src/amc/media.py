@@ -2,13 +2,38 @@
 
 from __future__ import annotations
 
+import re
 import wave
+import base64
 from dataclasses import dataclass
 from pathlib import Path
+
+from PIL import Image, UnidentifiedImageError
 
 from .model import Movie
 
 MAX_MEDIA_FILES = 100_000
+DEFAULT_DISK_TAG_PATTERN = r"(?i)(cd)[0-9]{1,3}"
+MAX_DISK_TAG_PATTERN_LENGTH = 256
+MEDIA_PICTURE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp")
+MAX_MEDIA_PICTURE_BYTES = 64 * 1024 * 1024
+MAX_MEDIA_PICTURE_PIXELS = 100_000_000
+DEFAULT_MEDIA_EXTENSIONS = {
+    "avi",
+    "m2ts",
+    "m4v",
+    "mkv",
+    "mov",
+    "mp4",
+    "mpeg",
+    "mpg",
+    "ogm",
+    "ts",
+    "vob",
+    "webm",
+    "wmv",
+}
+MAX_TITLE_FILTER_PATTERN_LENGTH = 256
 
 
 @dataclass(frozen=True, slots=True)
@@ -472,7 +497,12 @@ def _inspect_mp4_movie_header(path: Path, size: int) -> tuple[int | None, int | 
     return length, bitrate
 
 
-def movie_from_media(path: str | Path) -> Movie:
+def movie_from_media(
+    path: str | Path,
+    *,
+    extraction: str = "full",
+    title_filter_pattern: str | None = None,
+) -> Movie:
     """Create a movie populated only with facts established by media inspection.
 
     `Movie.length` is minutes, matching upstream's own documented unit for
@@ -484,10 +514,42 @@ def movie_from_media(path: str | Path) -> Movie:
     file's exact duration; this is the one boundary that converts between
     the two, rounding to the nearest whole minute.
     """
-    info = inspect_media(path)
+    if extraction not in {"full", "defer", "skip"}:
+        raise ValueError("media extraction mode must be 'full', 'defer', or 'skip'")
+    media_path = Path(path)
+    title_filter = None
+    if title_filter_pattern is not None:
+        if not isinstance(title_filter_pattern, str):
+            raise TypeError("title filter pattern must be a string")
+        if not title_filter_pattern or len(title_filter_pattern) > MAX_TITLE_FILTER_PATTERN_LENGTH:
+            raise ValueError(
+                "title filter pattern must contain 1 to "
+                f"{MAX_TITLE_FILTER_PATTERN_LENGTH} characters"
+            )
+        try:
+            title_filter = re.compile(title_filter_pattern)
+        except re.error as error:
+            raise ValueError(f"invalid title filter pattern: {error}") from error
+    if extraction == "full":
+        info = inspect_media(media_path)
+    else:
+        if not media_path.is_file():
+            raise ValueError(f"media path is not a file: {media_path}")
+        info = MediaInfo(
+            str(media_path),
+            media_path.stem,
+            media_path.suffix,
+            media_path.stat().st_size if extraction == "defer" else 0,
+        )
     length_minutes = round(info.length_seconds / 60) if info.length_seconds is not None else None
+    extras = {"media_path": info.path}
+    if extraction != "full":
+        extras["media_analysis"] = "pending" if extraction == "defer" else "skipped"
+    title = info.name
+    if title_filter is not None:
+        title = " ".join(title_filter.sub(" ", title).split()).strip(" ._-")
     return Movie(
-        title=info.name,
+        title=title,
         media_label=Path(info.path).name,
         media_type=info.extension.lstrip(".").upper(),
         length=length_minutes,
@@ -495,19 +557,142 @@ def movie_from_media(path: str | Path) -> Movie:
         audio_bitrate=info.audio_bitrate,
         video_format=info.video_format,
         video_bitrate=info.video_bitrate,
-        file_size=info.size,
-        extras={"media_path": info.path},
+        file_size=info.size if extraction != "skip" else None,
+        extras=extras,
     )
+
+
+def merge_media_parts(
+    entries: list[tuple[Path, Movie]],
+    *,
+    disk_tag_pattern: str = DEFAULT_DISK_TAG_PATTERN,
+) -> list[Movie]:
+    """Merge adjacent, same-directory media parts with matching stripped names.
+
+    The first part supplies descriptive fields. Durations and sizes are summed,
+    bitrates use upstream's iterative pairwise average, and every source path is
+    retained in ``extras["media_parts"]``.
+    """
+    if not isinstance(disk_tag_pattern, str):
+        raise TypeError("disk tag pattern must be a string")
+    if not disk_tag_pattern or len(disk_tag_pattern) > MAX_DISK_TAG_PATTERN_LENGTH:
+        raise ValueError(
+            f"disk tag pattern must contain 1 to {MAX_DISK_TAG_PATTERN_LENGTH} characters"
+        )
+    try:
+        disk_tag = re.compile(disk_tag_pattern)
+    except re.error as error:
+        raise ValueError(f"invalid disk tag pattern: {error}") from error
+
+    def key(path: Path) -> tuple[Path, str] | None:
+        stripped, count = disk_tag.subn("", path.stem)
+        return (path.parent, stripped.casefold()) if count else None
+
+    merged: list[Movie] = []
+    previous_key: tuple[Path, str] | None = None
+    previous_path: Path | None = None
+    for path, movie in entries:
+        current_key = key(path)
+        if current_key is None or current_key != previous_key:
+            merged.append(Movie.from_dict(movie.to_dict()))
+        else:
+            target = merged[-1]
+            if movie.length is not None:
+                target.length = (target.length or 0) + movie.length
+            if movie.file_size is not None:
+                target.file_size = (target.file_size or 0) + movie.file_size
+            for field_name in ("video_bitrate", "audio_bitrate"):
+                old = getattr(target, field_name)
+                new = getattr(movie, field_name)
+                if new is not None:
+                    setattr(target, field_name, new if old is None else round((old + new) / 2))
+            if target.media_count is None:
+                target.media_count = 1
+                target.extras["media_parts"] = [str(previous_path)]
+            target.media_count += 1
+            target.extras["media_parts"].append(str(path))
+        previous_key = current_key
+        previous_path = path
+    return merged
+
+
+def attach_media_pictures(
+    entries: list[tuple[Path, Movie]],
+    *,
+    embed: bool = False,
+    folder_picture_name: str = "folder",
+    max_bytes: int = MAX_MEDIA_PICTURE_BYTES,
+    max_pixels: int = MAX_MEDIA_PICTURE_PIXELS,
+) -> list[Movie]:
+    """Attach same-stem or configured folder pictures to imported movies."""
+    if not isinstance(folder_picture_name, str):
+        raise TypeError("folder picture name must be a string")
+    if Path(folder_picture_name).name != folder_picture_name or not folder_picture_name:
+        raise ValueError("folder picture name must be a non-empty file name without a path")
+    if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 0:
+        raise ValueError("max_bytes must be a non-negative integer")
+    if isinstance(max_pixels, bool) or not isinstance(max_pixels, int) or max_pixels < 1:
+        raise ValueError("max_pixels must be a positive integer")
+
+    result: list[Movie] = []
+    directory_images: dict[Path, dict[str, Path]] = {}
+    for media_path, source_movie in entries:
+        movie = Movie.from_dict(source_movie.to_dict())
+        if media_path.parent not in directory_images:
+            index: dict[str, Path] = {}
+            for candidate in sorted(media_path.parent.iterdir()):
+                if candidate.is_file() and candidate.suffix.casefold() in MEDIA_PICTURE_EXTENSIONS:
+                    index.setdefault(candidate.name.casefold(), candidate)
+            directory_images[media_path.parent] = index
+        index = directory_images[media_path.parent]
+        candidate_names = [
+            f"{base_name}{extension}".casefold()
+            for base_name in (media_path.stem, folder_picture_name)
+            for extension in MEDIA_PICTURE_EXTENSIONS
+        ]
+        picture = next((index[name] for name in candidate_names if name in index), None)
+        if picture is not None:
+            movie.picture = str(picture)
+            if embed:
+                size = picture.stat().st_size
+                if size > max_bytes:
+                    raise ValueError(f"media picture exceeds size limit: {size} > {max_bytes}")
+                data = picture.read_bytes()
+                try:
+                    with Image.open(picture) as image:
+                        if image.width * image.height > max_pixels:
+                            raise ValueError(
+                                "media picture exceeds pixel limit: "
+                                f"{image.width * image.height} > {max_pixels}"
+                            )
+                        image.verify()
+                except (OSError, UnidentifiedImageError) as error:
+                    raise ValueError(f"invalid media picture: {picture}: {error}") from error
+                movie.picture = picture.name
+                movie.extras["native_picture_base64"] = base64.b64encode(data).decode("ascii")
+        result.append(movie)
+    return result
 
 
 def discover_media(
     paths: list[str | Path],
     *,
     recursive: bool = False,
+    max_depth: int | None = None,
     extensions: set[str] | None = None,
     max_files: int = MAX_MEDIA_FILES,
 ) -> list[Path]:
-    """Expand files and directories deterministically with an explicit count bound."""
+    """Expand files and directories deterministically with explicit bounds.
+
+    ``max_depth`` counts directory levels below each supplied directory: zero
+    scans only that directory, one also scans its immediate children, and so
+    on.  It implies recursive discovery; ``None`` retains the older
+    ``recursive`` all-or-nothing behavior.
+    """
+    if max_depth is not None and (
+        isinstance(max_depth, bool) or not isinstance(max_depth, int) or max_depth < 0
+    ):
+        raise ValueError("media import maximum depth must be a non-negative integer")
     normalized_extensions = (
         {f".{item.lstrip('.').casefold()}" for item in extensions}
         if extensions is not None
@@ -520,14 +705,33 @@ def discover_media(
         )
 
     result: list[Path] = []
+
+    def directory_files(directory: Path):
+        if not recursive and max_depth is None:
+            yield from sorted(directory.iterdir())
+            return
+
+        def walk(current: Path, depth: int):
+            for child in sorted(current.iterdir()):
+                if child.is_dir() and not child.is_symlink():
+                    if max_depth is None or depth < max_depth:
+                        yield from walk(child, depth + 1)
+                else:
+                    yield child
+
+        yield from walk(directory, 0)
+
     for value in paths:
         path = Path(value)
         if path.is_file():
             if include(path):
                 result.append(path)
         elif path.is_dir():
-            candidates = path.rglob("*") if recursive else path.glob("*")
-            result.extend(item for item in sorted(candidates) if include(item))
+            for item in directory_files(path):
+                if include(item):
+                    result.append(item)
+                    if len(result) > max_files:
+                        raise ValueError(f"media import exceeds file-count limit: {max_files}")
         else:
             raise ValueError(f"media path does not exist: {path}")
         if len(result) > max_files:

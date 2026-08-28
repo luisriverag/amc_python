@@ -55,7 +55,22 @@ readers. An exceeded budget is reported as a `validate` diagnostic and as an
 - `backup` and `restore` copy to a same-directory temporary file, fsync it,
   validate the copied bytes, and replace the destination only after validation.
 - `import-media` fully discovers and inspects its bounded input set before saving;
-  directory recursion is opt-in and extension filters are explicit. `--progress`
+  directory recursion is opt-in and extension filters are explicit. Use
+  `--max-depth N` to include at most N subfolder levels (`0` scans only each
+  supplied directory); unlike `--recursive`, a maximum depth implies recursion.
+  `--merge-parts` combines adjacent, same-directory `CD1`/`CD2`-style names;
+  `--disk-tag-regex` can replace that bounded default matching expression.
+  `--import-pictures link|embed` attaches a same-stem poster (preferred) or a
+  `folder` image beside each media file; `--folder-picture-name` changes that
+  fallback base name. Embedded images retain the same byte and pixel limits as
+  the catalog picture workflow.
+  `--extract full|defer|skip` controls metadata work: `full` performs normal
+  codec inspection, `defer` records portable file facts and a pending-analysis
+  marker, and `skip` records only naming/path facts and a skipped marker.
+  Use `--extensions default` for the built-in common-video extension set, or
+  `--title-filter-regex PATTERN` to remove release tags and separators from
+  filename-derived titles. Cleanup expressions are bounded to 256 characters.
+  `--progress`
   prints `Inspected N/TOTAL file(s)` to stderr as each file is inspected, useful
   for a large tree where inspection itself takes noticeable time. Because the
   catalog is only written once, after every file has been inspected, interrupting

@@ -39,6 +39,18 @@ The JSON shapes are part of the CLI contract:
 - `inspect` returns a catalog-information object.
 - `validate` returns an array of diagnostic objects.
 
+`search QUERY` matches upstream's own field-scoped search
+(`ActionFindFindnextExecute` in `main.pas`) rather than only a fixed default
+field set: `--field NAME` restricts matching to one `Movie` field,
+`--whole-field` requires an exact (case-insensitive) match instead of a
+substring, and `--reverse` returns movies that do *not* match instead of ones
+that do. An unknown `--field` returns status 2. Without `--field`, matching
+checks the same broad default set as before (`amc.catalog.
+DEFAULT_SEARCH_FIELDS`). Upstream's expression-evaluation search mode and its
+distinct "Find Next" (jump-to-match) vs. live-filter modes are not
+implemented — this command always filters, matching the desktop's own search
+bar.
+
 `inspect` and `validate` also accept `--max-input-bytes` to reject a file larger
 than the given size before any format-specific parsing starts (default 1 TiB).
 JSON and native inspection load the full file to identify it, so this bounds the

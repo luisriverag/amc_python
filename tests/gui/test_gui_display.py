@@ -651,6 +651,34 @@ def test_loan_history_dialog_reports_none_recorded_in_the_status_bar(
     dialog.destroy()
 
 
+def test_search_bar_field_scope_whole_field_and_reverse_filter_the_real_table(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    window.service.add(Movie(number=2, title="Aliens", director="Scott"))
+    window.refresh()
+    real_root.update()
+    assert len(window.table.get_children()) == 2
+
+    window.search_field.set("Director")
+    window.search_text.set("scott")
+    real_root.update()
+    assert {window.table.item(iid)["values"][0] for iid in window.table.get_children()} == {1, 2}
+
+    window.search_field.set("Title")
+    real_root.update()
+    assert len(window.table.get_children()) == 0
+
+    window.search_whole_field.set(True)
+    window.search_text.set("Aliens")
+    real_root.update()
+    assert [window.table.item(iid)["values"][0] for iid in window.table.get_children()] == [2]
+
+    window.search_reverse.set(True)
+    real_root.update()
+    assert [window.table.item(iid)["values"][0] for iid in window.table.get_children()] == [1]
+
+
 def test_table_sort_click_reorders_rows_and_marks_the_heading(real_root: tk.Tk, tmp_path: Path):
     window = _open_window(real_root, tmp_path)
     window.service.add(Movie(number=2, title="Before Alien", year=1975))

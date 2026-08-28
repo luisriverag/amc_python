@@ -23,7 +23,13 @@ from .application import CatalogService
 from .errors import CatalogError
 from .html_template import _read_template, render_individual_template
 from .loans import LoanEvent
-from .media import discover_media, movie_from_media
+from .media import (
+    DEFAULT_MEDIA_EXTENSIONS,
+    attach_media_pictures,
+    discover_media,
+    merge_media_parts,
+    movie_from_media,
+)
 from .model import Movie
 from .omdb import (
     DEFAULT_TIMEOUT as DEFAULT_OMDB_TIMEOUT,
@@ -178,6 +184,8 @@ def parse_history_limit(value: int) -> int:
 def parse_extensions(text: str) -> set[str] | None:
     """Parse a comma-separated extension list the same way the CLI's
     ``import-media --extensions`` does: blank input means no filter."""
+    if text.strip().casefold() == "default":
+        return set(DEFAULT_MEDIA_EXTENSIONS)
     extensions = {item.strip() for item in text.split(",") if item.strip()}
     return extensions or None
 
@@ -1033,16 +1041,75 @@ class CatalogWindow(ttk.Frame):
                 "Include files in subfolders?",
                 parent=self.winfo_toplevel(),
             )
+            max_depth = None
+            if recursive:
+                depth_text = simpledialog.askstring(
+                    "Import media",
+                    "Maximum subfolder depth (0 = this folder only)?\nLeave blank for unlimited.",
+                    parent=self.winfo_toplevel(),
+                )
+                if depth_text and depth_text.strip():
+                    try:
+                        max_depth = int(depth_text)
+                    except ValueError:
+                        messagebox.showerror(
+                            "Could not import media",
+                            "Maximum depth must be a non-negative integer.",
+                            parent=self,
+                        )
+                        return
             extensions_text = simpledialog.askstring(
                 "Import media",
                 "Limit to these extensions (comma-separated, e.g. mkv,mp4,wav)?\n"
-                "Leave blank to import every file.",
+                "Enter 'default' for common video types; leave blank for every file.",
                 parent=self.winfo_toplevel(),
             )
             extensions = parse_extensions(extensions_text) if extensions_text else None
+            title_filter_pattern = simpledialog.askstring(
+                "Import media",
+                "Filename cleanup regex (matching text is removed)?\n"
+                "Leave blank to keep the original filename-derived title.",
+                parent=self.winfo_toplevel(),
+            )
+            title_filter_pattern = title_filter_pattern or None
+            merge_parts = messagebox.askyesno(
+                "Import media",
+                "Merge adjacent CD1/CD2-style files into one movie?",
+                parent=self.winfo_toplevel(),
+            )
+            import_pictures = messagebox.askyesno(
+                "Import media",
+                "Attach same-name or folder poster images?",
+                parent=self.winfo_toplevel(),
+            )
+            embed_pictures = import_pictures and messagebox.askyesno(
+                "Import media",
+                "Embed found poster images in the catalog?\n"
+                "Choose No to keep links to the image files.",
+                parent=self.winfo_toplevel(),
+            )
+            extraction = simpledialog.askstring(
+                "Import media",
+                "Metadata extraction mode: full, defer, or skip?",
+                initialvalue="full",
+                parent=self.winfo_toplevel(),
+            )
+            if extraction is None:
+                return
+            extraction = extraction.strip().casefold()
+            if extraction not in {"full", "defer", "skip"}:
+                messagebox.showerror(
+                    "Could not import media",
+                    "Extraction mode must be full, defer, or skip.",
+                    parent=self,
+                )
+                return
             try:
                 paths = discover_media(
-                    [Path(selected_folder)], recursive=recursive, extensions=extensions
+                    [Path(selected_folder)],
+                    recursive=recursive,
+                    max_depth=max_depth,
+                    extensions=extensions,
                 )
             except ValueError as error:
                 messagebox.showerror("Could not import media", str(error), parent=self)
@@ -1058,9 +1125,30 @@ class CatalogWindow(ttk.Frame):
             if not selected:
                 return
             paths = [Path(item) for item in selected]
-        self._import_media_paths(paths)
+            merge_parts = False
+            import_pictures = False
+            embed_pictures = False
+            extraction = "full"
+            title_filter_pattern = None
+        self._import_media_paths(
+            paths,
+            merge_parts=merge_parts,
+            import_pictures=import_pictures,
+            embed_pictures=embed_pictures,
+            extraction=extraction,
+            title_filter_pattern=title_filter_pattern,
+        )
 
-    def _import_media_paths(self, paths: list[Path]) -> None:
+    def _import_media_paths(
+        self,
+        paths: list[Path],
+        *,
+        merge_parts: bool = False,
+        import_pictures: bool = False,
+        embed_pictures: bool = False,
+        extraction: str = "full",
+        title_filter_pattern: str | None = None,
+    ) -> None:
         """Inspect resolved media paths with progress/cancel, then add atomically."""
         total = len(paths)
         dialog = tk.Toplevel(self)
@@ -1087,7 +1175,13 @@ class CatalogWindow(ttk.Frame):
             status.configure(text=f"Inspecting {index}/{total}: {path.name}")
             dialog.update()
             try:
-                movies.append(movie_from_media(path))
+                movies.append(
+                    movie_from_media(
+                        path,
+                        extraction=extraction,
+                        title_filter_pattern=title_filter_pattern,
+                    )
+                )
             except ValueError as error:
                 messagebox.showerror("Could not import media", str(error), parent=dialog)
                 dialog.destroy()
@@ -1095,6 +1189,16 @@ class CatalogWindow(ttk.Frame):
         if cancelled["value"]:
             dialog.destroy()
             return
+        source_count = len(movies)
+        if import_pictures:
+            try:
+                movies = attach_media_pictures(list(zip(paths, movies)), embed=embed_pictures)
+            except (OSError, ValueError) as error:
+                messagebox.showerror("Could not import media", str(error), parent=dialog)
+                dialog.destroy()
+                return
+        if merge_parts:
+            movies = merge_media_parts(list(zip(paths, movies)))
         try:
             self.service.add_many(movies)
         except _SERVICE_ERRORS as error:
@@ -1103,9 +1207,12 @@ class CatalogWindow(ttk.Frame):
             return
         dialog.destroy()
         self.refresh()
-        messagebox.showinfo(
-            "Import complete", f"Imported {len(movies)} media file(s).", parent=self
+        summary = (
+            f"Imported {len(movies)} movie(s) from {source_count} media file(s)."
+            if merge_parts
+            else f"Imported {len(movies)} media file(s)."
         )
+        messagebox.showinfo("Import complete", summary, parent=self)
 
     def export_catalog(self) -> None:
         selected = filedialog.asksaveasfilename(

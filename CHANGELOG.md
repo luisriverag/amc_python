@@ -17,6 +17,17 @@ rather than repeating it here.
 
 ### Added
 
+- Depth-limited media-folder discovery through `discover_media(max_depth=...)`,
+  CLI `import-media --max-depth`, and the desktop Import Media workflow.
+- Optional multi-part media merging for adjacent `CD1`/`CD2`-style files,
+  including a bounded configurable disk-tag expression in the CLI.
+- Optional linked or embedded poster discovery during media-folder imports,
+  preferring same-stem images before a configurable folder-image name.
+- Full, deferred, and skipped media-metadata extraction modes in the CLI and
+  desktop folder-import workflow.
+- A shared default common-video extension set and bounded regex cleanup for
+  filename-derived media titles.
+
 - Desktop GUI: a fourth main-window layout (**HTML**) renders the selected
   movie live through a user-chosen Individual template, matching upstream's
   own main window. Adopted `tkinterweb` as this port's second dependency

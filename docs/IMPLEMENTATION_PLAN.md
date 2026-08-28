@@ -755,17 +755,18 @@ tier's next unchecked item before returning to D4.
     this container. This item stays open until it can be verified on a
     platform where Tk's accessibility support is meaningful (Windows/macOS
     native widgets) or a contributor can verify it directly.
-  - [ ] A fourth main-window layout rendering the selected movie's
+  - [x] A fourth main-window layout (`HTML`) rendering the selected movie's
     **Individual** HTML template live in the right-hand pane, matching
-    upstream's own main window (an embedded browser control showing that
-    movie's page, alongside the existing table/details/poster layouts).
-    Blocked on a rendering-approach decision, not effort: Tk has no
-    built-in HTML renderer, so this needs either a new dependency (this
-    port currently has exactly one, Pillow) or a deliberately reduced-
-    fidelity plain-text preview — a real trade-off between capability and
-    this project's current dependency-free-except-Pillow footprint that is
-    worth a decision recorded in `docs/decisions.md` before building it,
-    not something to default silently.
+    upstream's own main window. Adopted `tkinterweb` as this port's second
+    dependency (ADR-0009) after confirming it ships prebuilt wheels for
+    Linux/Windows/macOS; **Tools → Choose HTML Preview Template...** picks
+    the template file (persisted in `GuiPreferences.html_preview_template`),
+    and selecting a movie renders it through `amc.html_template.
+    render_individual_template` with `base_url` set to the template's own
+    directory so relative CSS/image references resolve correctly. A
+    real-display test (`test_gui_display.py`) confirms a genuine
+    `tkinterweb.HtmlFrame` constructs and packs inside this app's actual
+    widget tree under Xvfb and renders a real movie end to end.
 
 ### D6 — remaining "not ported at all" subsystems
 

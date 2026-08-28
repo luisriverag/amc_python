@@ -93,6 +93,7 @@ def test_window_saves_current_view_layout_and_window_size():
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
     window.service = Mock(history_limit=100)
+    window.html_preview_template = "template.html"
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1280
     window.winfo_toplevel.return_value.winfo_height.return_value = 800
@@ -107,6 +108,7 @@ def test_window_saves_current_view_layout_and_window_size():
             window_width=1280,
             window_height=800,
             history_limit=100,
+            html_preview_template="template.html",
         ),
         Path("prefs.json"),
     )
@@ -123,6 +125,7 @@ def test_window_save_preferences_keeps_previous_size_when_window_not_yet_drawn()
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences(window_width=999, window_height=555)
     window.service = Mock(history_limit=100)
+    window.html_preview_template = ""
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1
     window.winfo_toplevel.return_value.winfo_height.return_value = 1
@@ -141,6 +144,7 @@ def test_window_save_preferences_includes_the_current_history_limit():
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
     window.service = Mock(history_limit=250)
+    window.html_preview_template = ""
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1100
     window.winfo_toplevel.return_value.winfo_height.return_value = 720
@@ -159,6 +163,7 @@ def test_window_save_preferences_ignores_write_failures():
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
     window.service = Mock(history_limit=100)
+    window.html_preview_template = ""
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1100
     window.winfo_toplevel.return_value.winfo_height.return_value = 720
@@ -188,6 +193,9 @@ def _window() -> CatalogWindow:
     window.status = Mock()
     window.details = Mock()
     window.poster = Mock()
+    window.html_view = Mock()
+    window.html_preview_template = ""
+    window.layout = Mock(get=Mock(return_value="Table"))
     window.table = Mock()
     window.sort_field = None
     window.sort_reverse = False
@@ -1221,6 +1229,124 @@ def test_window_clears_details_without_selection():
     window.show_selected()
 
     window.details.insert.assert_called_once_with("1.0", "")
+
+
+def test_html_layout_selection_renders_the_movie_through_the_html_preview():
+    window = _window()
+    window.layout = Mock(get=Mock(return_value="HTML"))
+    window.selected = Mock(return_value=Movie(number=7, title="Moon"))
+    window._show_html_preview = Mock()
+
+    window.show_selected()
+
+    window._show_html_preview.assert_called_once_with(window.selected.return_value)
+
+
+def test_non_html_layout_selection_does_not_render_the_html_preview():
+    window = _window()
+    window.selected = Mock(return_value=Movie(number=7, title="Moon"))
+    window._show_html_preview = Mock()
+
+    window.show_selected()
+
+    window._show_html_preview.assert_not_called()
+
+
+def test_html_preview_shows_a_placeholder_when_no_template_is_chosen():
+    window = _window()
+    window.html_preview_template = ""
+
+    window._show_html_preview(Movie(number=1, title="Alien"))
+
+    rendered = window.html_view.load_html.call_args.args[0]
+    assert "Choose a template" in rendered
+
+
+def test_html_preview_shows_a_placeholder_when_nothing_is_selected():
+    window = _window()
+    window.html_preview_template = "individual.html"
+
+    window._show_html_preview(None)
+
+    rendered = window.html_view.load_html.call_args.args[0]
+    assert "No movie selected" in rendered
+
+
+def test_html_preview_shows_an_error_when_the_template_cannot_be_read():
+    window = _window()
+    window.html_preview_template = "missing.html"
+
+    with patch("amc.gui._read_template", side_effect=OSError("no such file")):
+        window._show_html_preview(Movie(number=1, title="Alien"))
+
+    rendered = window.html_view.load_html.call_args.args[0]
+    assert "Could not read template" in rendered
+
+
+def test_html_preview_renders_the_selected_movie_with_a_directory_base_url():
+    window = _window()
+    window.html_preview_template = "/templates/individual.html"
+    window.service.catalog = [Movie(number=1, title="Alien"), Movie(number=2, title="Aliens")]
+    window.service.path = Path("catalog.json")
+    movie = window.service.catalog[1]
+
+    with (
+        patch("amc.gui._read_template", return_value="$$ITEM_FORMATTEDTITLE") as read_template,
+        patch("amc.gui.render_individual_template", return_value="<h1>Aliens</h1>") as render,
+    ):
+        window._show_html_preview(movie)
+
+    read_template.assert_called_once_with(Path("/templates/individual.html"), 1024 * 1024)
+    render.assert_called_once_with(
+        movie,
+        window.service.catalog,
+        "$$ITEM_FORMATTEDTITLE",
+        source_name="catalog.json",
+        record_number=2,
+    )
+    window.html_view.load_html.assert_called_once_with(
+        "<h1>Aliens</h1>", base_url="file:///templates/"
+    )
+
+
+def test_choose_html_preview_template_persists_and_refreshes_the_active_view():
+    window = _window()
+    window.layout = Mock(get=Mock(return_value="HTML"))
+    window.show_selected = Mock()
+    window._save_preferences = Mock()
+
+    with patch("amc.gui.filedialog.askopenfilename", return_value="chosen.html"):
+        window.choose_html_preview_template()
+
+    assert window.html_preview_template == "chosen.html"
+    window._save_preferences.assert_called_once_with()
+    window.show_selected.assert_called_once_with()
+
+
+def test_choose_html_preview_template_does_nothing_without_an_active_html_view():
+    window = _window()
+    window.layout = Mock(get=Mock(return_value="Table"))
+    window.show_selected = Mock()
+    window._save_preferences = Mock()
+
+    with patch("amc.gui.filedialog.askopenfilename", return_value="chosen.html"):
+        window.choose_html_preview_template()
+
+    assert window.html_preview_template == "chosen.html"
+    window._save_preferences.assert_called_once_with()
+    window.show_selected.assert_not_called()
+
+
+def test_choose_html_preview_template_cancelling_does_nothing():
+    window = _window()
+    window.html_preview_template = ""
+    window._save_preferences = Mock()
+
+    with patch("amc.gui.filedialog.askopenfilename", return_value=""):
+        window.choose_html_preview_template()
+
+    assert window.html_preview_template == ""
+    window._save_preferences.assert_not_called()
 
 
 def _form_values(**overrides: str) -> dict[str, str]:

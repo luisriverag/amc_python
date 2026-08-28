@@ -25,6 +25,7 @@ from under it. Mark the old entry **Superseded**, with a forward link.
 | [0006](#adr-0006-freereport-and-localization-are-not-the-same-kind-of-no) | FreeReport and localization are not the same kind of "no" | Accepted |
 | [0007](#adr-0007-split-tests-by-kind-not-by-source-module) | Split tests by kind, not by source module | Accepted |
 | [0008](#adr-0008-adopt-mypy-in-default-mode-not-strict) | Adopt mypy in default mode, not strict | Accepted |
+| [0009](#adr-0009-adopt-tkinterweb-for-the-desktop-html-preview-pane) | Adopt `tkinterweb` for the desktop HTML preview pane | Accepted |
 
 ## ADR-0001: No compatibility claim without a registered upstream fixture
 
@@ -249,3 +250,43 @@ unchecked fixed-length list splat into a dataclass constructor). Going stricter
 later (`disallow_untyped_defs`, `no_implicit_optional`, etc.) remains available
 as a follow-up once the codebase has lived under default mode for a while;
 this decision picks the adoption floor, not a ceiling.
+
+## ADR-0009: Adopt `tkinterweb` for the desktop HTML preview pane
+
+**Context.** Upstream's main window can show the selected movie's own page —
+rendered through its "Individual" HTML export template — live in a pane
+alongside the movie list. Reproducing that in Tk needs an actual HTML/CSS
+renderer: Tk has none built in, and this port had exactly one dependency
+before this decision (Pillow, used for picture decoding/cropping across the
+CLI, GUI, and web interface). Three approaches were weighed: add a rendering
+dependency; degrade to a tag-stripped plain-text preview in a `tk.Text`
+widget (no new dependency, but not a real HTML view — no tables, images, or
+CSS); or open the rendered page in the OS default browser on demand (no new
+dependency, full fidelity, but a separate window rather than an inline pane,
+which is what was actually asked for).
+
+**Decision.** Add `tkinterweb` (MIT-licensed, pure Python, wraps the `Tkhtml3`
+Tcl/Tk widget via the `tkinterweb-tkhtml` package) as an unconditional
+dependency in `pyproject.toml`, the same way Pillow already is, rather than a
+new optional extra: this port's GUI has never gated on an extras group before,
+and `amc.gui` already hard-imports `tkinter` itself (unavailable in some
+minimal Python installs, treated as an environmental gap rather than a
+packaging concern) — the same posture now covers `tkinterweb`. Confirmed
+`tkinterweb-tkhtml` ships prebuilt wheels for Linux (`manylinux1_x86_64`),
+Windows (`win_amd64`), and macOS (`macosx_11_0_arm64`) before adopting it, so
+this port's Linux/Windows CI matrix and this project's documented macOS
+target are all covered without a source build.
+
+**Consequences.** The GUI gains a fourth main-window layout (`HTML`,
+alongside `Table`/`Details`/`Poster`) that renders the selected movie through
+a user-chosen Individual template via `amc.html_template.
+render_individual_template`, loaded into a `tkinterweb.HtmlFrame` with
+`base_url` set to the template's own directory so its relative CSS/image
+references resolve the same way they would in a real export. This is this
+port's second dependency and its first with a compiled/platform-specific
+wheel (previously only pure-Python plus Pillow's own wheels); `tools/
+check_package.py`'s isolated sdist/wheel install check now also exercises
+that this package installs cleanly across the supported Python/platform
+matrix. Fidelity is bounded by `Tkhtml3`'s own HTML/CSS support (a mature but
+not evergreen-browser-complete engine) — acceptable here since upstream's own
+templates target a similarly modest rendering target, not a modern web app.

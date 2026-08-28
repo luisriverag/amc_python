@@ -165,6 +165,34 @@ def test_main_window_renders_with_expected_controls(real_root: tk.Tk, tmp_path: 
     }
 
 
+def test_html_layout_maps_a_real_tkinterweb_widget_and_renders_the_selection(
+    real_root: tk.Tk, tmp_path: Path
+):
+    """Proves the real reason for adopting tkinterweb (ADR-0009): a genuine
+    HtmlFrame constructs and packs correctly inside this app's own real
+    widget tree under Xvfb, and switching to the HTML layout renders the
+    selected movie through the chosen Individual template end to end. Only
+    the final `load_html` browser-render call is spied, so the rendering
+    pipeline in between (`amc.html_template.render_individual_template`)
+    still runs for real."""
+    template = tmp_path / "individual.html"
+    template.write_text(
+        "<html><body><h1>$$ITEM_FORMATTEDTITLE</h1></body></html>", encoding="utf-8"
+    )
+    window = _open_window(real_root, tmp_path)
+    window.table.selection_set(window.table.get_children()[0])
+    window.html_preview_template = str(template)
+
+    with patch.object(window.html_view, "load_html") as load_html:
+        window.layout.set("HTML")
+        window._layout_changed()
+        real_root.update()
+
+    assert window.html_view.winfo_ismapped()
+    rendered = load_html.call_args.args[0]
+    assert "Alien" in rendered
+
+
 def test_main_window_toolbar_only_shows_the_tightest_edit_loop(real_root: tk.Tk, tmp_path: Path):
     """Every action still exists (test_main_window_renders_with_expected_controls,
     and the menu bar below), but the visible toolbar row is limited to the
@@ -192,7 +220,12 @@ def test_main_window_has_a_grouped_menu_bar(real_root: tk.Tk, tmp_path: Path):
     assert {"Loan Out...", "Set Pictures...", "Renumber"} <= set(_menu_labels(movie_menu))
 
     tools_menu = real_root.nametowidget(menubar.entrycget(3, "menu"))
-    assert _menu_labels(tools_menu) == ["Statistics...", "Duplicates..."]
+    assert _menu_labels(tools_menu) == [
+        "Statistics...",
+        "Duplicates...",
+        "---",
+        "Choose HTML Preview Template...",
+    ]
 
 
 def test_menu_bar_disabled_state_tracks_selection_like_the_toolbar(

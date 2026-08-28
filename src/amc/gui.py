@@ -17,9 +17,11 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from tkinter import font as tkfont
 
 from PIL import Image, ImageTk, UnidentifiedImageError
+from tkinterweb import HtmlFrame
 
 from .application import CatalogService
 from .errors import CatalogError
+from .html_template import _read_template, render_individual_template
 from .loans import LoanEvent
 from .media import discover_media, movie_from_media
 from .model import Movie
@@ -355,6 +357,7 @@ class CatalogWindow(ttk.Frame):
         self.search_text = tk.StringVar()
         self.view_filter = tk.StringVar(value=self._preferences.view_filter)
         self.layout = tk.StringVar(value=self._preferences.layout)
+        self.html_preview_template = self._preferences.html_preview_template
         self.sort_field: str | None = None
         self.sort_reverse = False
         master.geometry(f"{self._preferences.window_width}x{self._preferences.window_height}")
@@ -397,7 +400,7 @@ class CatalogWindow(ttk.Frame):
         layout = ttk.Combobox(
             bar,
             textvariable=self.layout,
-            values=("Table", "Details", "Poster"),
+            values=("Table", "Details", "Poster", "HTML"),
             state="readonly",
             width=8,
         )
@@ -468,6 +471,7 @@ class CatalogWindow(ttk.Frame):
             details_frame, height=6, wrap="word", state="disabled", takefocus=False
         )
         self.details.pack(fill="x")
+        self.html_view = HtmlFrame(details_frame, messages_enabled=False)
         self.status = ttk.Label(self, anchor="w")
         self.status.pack(fill="x", pady=(6, 0))
         self._bind_shortcuts()
@@ -483,12 +487,16 @@ class CatalogWindow(ttk.Frame):
         ttk.Style(self).configure("Treeview", rowheight=max(24, font.metrics("linespace") + 8))
 
     def apply_layout(self) -> None:
-        """Switch among compact table, textual details, and poster-focused views."""
+        """Switch among compact table, textual details, poster, and HTML views."""
         mode = self.layout.get()
         self.details.pack_forget()
         self.poster.pack_forget()
+        self.html_view.pack_forget()
         if mode == "Table":
             self.details_frame.pack_forget()
+        elif mode == "HTML":
+            self.details_frame.pack(fill="both", expand=True, pady=(8, 0))
+            self.html_view.pack(fill="both", expand=True)
         else:
             self.details_frame.pack(fill="x", pady=(8, 0))
             if mode == "Poster":
@@ -522,6 +530,7 @@ class CatalogWindow(ttk.Frame):
             window_width=width if width > 1 else self._preferences.window_width,
             window_height=height if height > 1 else self._preferences.window_height,
             history_limit=self.service.history_limit,
+            html_preview_template=self.html_preview_template,
         )
         self._preferences = preferences
         try:
@@ -656,6 +665,10 @@ class CatalogWindow(ttk.Frame):
         tools_menu = tk.Menu(menubar, tearoff=False)
         tools_menu.add_command(label="Statistics...", command=self.show_statistics)
         tools_menu.add_command(label="Duplicates...", command=self.show_duplicates)
+        tools_menu.add_separator()
+        tools_menu.add_command(
+            label="Choose HTML Preview Template...", command=self.choose_html_preview_template
+        )
         menubar.add_cascade(label="Tools", menu=tools_menu)
 
         master.config(menu=menubar)
@@ -845,6 +858,8 @@ class CatalogWindow(ttk.Frame):
         self.details.insert("1.0", "\n".join(lines))
         self.details.configure(state="disabled")
         self._show_poster(movie)
+        if self.layout.get() == "HTML":
+            self._show_html_preview(movie)
 
     def _show_poster(self, movie: Movie | None) -> None:
         source = poster_source(movie, self.service.path) if movie is not None else None
@@ -867,6 +882,62 @@ class CatalogWindow(ttk.Frame):
             status = f"Poster file not found: {movie.picture}"
         self.poster_image = image
         self.poster.configure(image=image or "", text="" if image is not None else status)
+
+    def _show_html_preview(self, movie: Movie | None) -> None:
+        """Render the selected movie through the chosen Individual template.
+
+        Matches upstream's own main window, which shows the selected movie's
+        page live in a pane next to the list. `base_url` is set to the
+        template's own directory so its relative CSS/image references
+        resolve the same way they would in a real HTML export.
+        """
+        if not self.html_preview_template:
+            self.html_view.load_html(
+                "<p>Choose a template via <b>Tools → Choose HTML Preview Template...</b></p>"
+            )
+            return
+        if movie is None:
+            self.html_view.load_html("<p>No movie selected.</p>")
+            return
+        template_path = Path(self.html_preview_template)
+        try:
+            source = _read_template(template_path, 1024 * 1024)
+        except (OSError, ValueError, UnicodeDecodeError) as error:
+            self.html_view.load_html(f"<p>Could not read template: {error}</p>")
+            return
+        record_number = next(
+            (
+                index
+                for index, candidate in enumerate(self.service.catalog, start=1)
+                if candidate.number == movie.number
+            ),
+            1,
+        )
+        rendered = render_individual_template(
+            movie,
+            self.service.catalog,
+            source,
+            source_name=self.service.path.name,
+            record_number=record_number,
+        )
+        directory = template_path.resolve().parent.as_posix()
+        if not directory.startswith("/"):
+            directory = f"/{directory}"
+        self.html_view.load_html(rendered, base_url=f"file://{directory}/")
+
+    def choose_html_preview_template(self) -> None:
+        """Pick the Individual-template file the HTML layout renders live."""
+        chosen = filedialog.askopenfilename(
+            parent=self.winfo_toplevel(),
+            title="Choose an individual-movie template for the HTML preview",
+            filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
+        )
+        if not chosen:
+            return
+        self.html_preview_template = chosen
+        self._save_preferences()
+        if self.layout.get() == "HTML":
+            self.show_selected()
 
     def open_catalog(self) -> None:
         selected = filedialog.askopenfilename(

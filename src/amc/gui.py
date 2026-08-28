@@ -19,6 +19,7 @@ from tkinter import font as tkfont
 from PIL import Image, ImageTk, UnidentifiedImageError
 from tkinterweb import HtmlFrame
 
+from . import __version__
 from .application import CatalogService
 from .errors import CatalogError
 from .html_template import _read_template, render_individual_template
@@ -608,6 +609,8 @@ class CatalogWindow(ttk.Frame):
         root.bind("<Control-z>", lambda _event: self.invoke_action("Undo"))
         root.bind("<Control-y>", lambda _event: self.invoke_action("Redo"))
         root.bind("<Control-u>", lambda _event: self.invoke_action("Open URL"))
+        root.bind("<Control-Prior>", lambda _event: self.select_previous())
+        root.bind("<Control-Next>", lambda _event: self.select_next())
 
     def _build_menu_bar(self, master: tk.Tk) -> None:
         """Group every action into a standard File/Edit/Movie/Tools menu bar.
@@ -664,6 +667,13 @@ class CatalogWindow(ttk.Frame):
         menubar.add_cascade(label="Edit", menu=edit_menu)
 
         movie_menu = tk.Menu(menubar, tearoff=False)
+        movie_menu.add_command(
+            label="Previous Movie", command=self.select_previous, accelerator="Ctrl+PageUp"
+        )
+        movie_menu.add_command(
+            label="Next Movie", command=self.select_next, accelerator="Ctrl+PageDown"
+        )
+        movie_menu.add_separator()
         add_action(movie_menu, "Loan Out...", "Loan Out")
         add_action(movie_menu, "Loan In", "Loan In")
         movie_menu.add_command(label="Loan History...", command=self.show_loan_history)
@@ -687,6 +697,10 @@ class CatalogWindow(ttk.Frame):
             label="Choose HTML Preview Template...", command=self.choose_html_preview_template
         )
         menubar.add_cascade(label="Tools", menu=tools_menu)
+
+        help_menu = tk.Menu(menubar, tearoff=False)
+        help_menu.add_command(label="About AMC Python...", command=self.show_about)
+        menubar.add_cascade(label="Help", menu=help_menu)
 
         master.config(menu=menubar)
         self.menubar = menubar
@@ -852,6 +866,40 @@ class CatalogWindow(ttk.Frame):
     def selected_movies(self) -> list[Movie]:
         """Return every selected table movie in selection order."""
         return [self.service.catalog.get(int(item)) for item in self.table.selection()]
+
+    def select_next(self) -> None:
+        """Select the next row, matching upstream's ActionMovieNext."""
+        self._step_selection(1)
+
+    def select_previous(self) -> None:
+        """Select the previous row, matching upstream's ActionMoviePrevious."""
+        self._step_selection(-1)
+
+    def _step_selection(self, delta: int) -> None:
+        """Move the current row selection by one, matching upstream
+        (`main.pas`'s `ActionMovieNext`/`ActionMoviePreviousExecute`): with
+        nothing selected, Next starts at the first row and Previous at the
+        last; otherwise each steps by exactly one row with no wraparound —
+        stepping past either end clears the selection instead of wrapping.
+        """
+        children = self.table.get_children()
+        if not children:
+            return
+        current = self.table.selection()
+        if current:
+            try:
+                index = children.index(current[0]) + delta
+            except ValueError:
+                index = 0 if delta > 0 else len(children) - 1
+        else:
+            index = 0 if delta > 0 else len(children) - 1
+        if 0 <= index < len(children):
+            target = children[index]
+            self.table.selection_set(target)
+            self.table.focus(target)
+            self.table.see(target)
+        else:
+            self.table.selection_set()
 
     def show_selected(self) -> None:
         """Render the selected movie's useful summary fields read-only."""
@@ -2028,6 +2076,41 @@ class CatalogWindow(ttk.Frame):
                 )
             )
         messagebox.showinfo("Duplicate movies", "\n".join(lines), parent=self)
+
+    def show_about(self) -> None:
+        """Version, license, and a project link, matching upstream's own
+        Help menu (`main.dfm`) — this port previously had neither a Help
+        menu nor an About dialog anywhere in the desktop GUI."""
+        dialog = tk.Toplevel(self)
+        dialog.title("About AMC Python")
+        dialog.transient(self.winfo_toplevel())
+        ttk.Label(dialog, text="AMC Python", font=("TkDefaultFont", 12, "bold")).grid(
+            row=0, column=0, sticky="w", padx=12, pady=(12, 0)
+        )
+        ttk.Label(dialog, text=f"Version {__version__}").grid(row=1, column=0, sticky="w", padx=12)
+        ttk.Label(
+            dialog,
+            text="A portable Python port of Ant Movie Catalog.",
+            wraplength=320,
+        ).grid(row=2, column=0, sticky="w", padx=12, pady=(4, 0))
+        ttk.Label(dialog, text="License: GPL-2.0-or-later").grid(
+            row=3, column=0, sticky="w", padx=12, pady=(8, 0)
+        )
+        link = ttk.Label(
+            dialog,
+            text="github.com/luisriverag/amc_python",
+            foreground="blue",
+            cursor="hand2",
+        )
+        link.grid(row=4, column=0, sticky="w", padx=12, pady=(0, 12))
+        link.bind(
+            "<Button-1>",
+            lambda _event: webbrowser.open("https://github.com/luisriverag/amc_python"),
+        )
+        ttk.Button(dialog, text="Close", command=dialog.destroy).grid(
+            row=5, column=0, sticky="e", padx=12, pady=(0, 12)
+        )
+        make_modal(dialog, focus=link)
 
     def renumber(self) -> None:
         if not len(self.service.catalog):

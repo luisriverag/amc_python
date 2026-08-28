@@ -15,6 +15,16 @@ rather than repeating it here.
 
 ## [Unreleased]
 
+### Changed
+
+- Desktop **Export** action's Ant Movie Catalog HTML-template path: replaced
+  three sequential blocking file dialogs (full-catalog template,
+  individual-movie template, individual-pages folder) with one dialog
+  presenting both as independently enabled sections — matching upstream's
+  own Export screen's separate "Full"/"Individual" templates — each with
+  its own template picker, plus upfront validation instead of silently
+  doing nothing on a blank selection.
+
 ### Fixed
 
 - Native `.amc` reader/writer: a `List`-type custom field previously

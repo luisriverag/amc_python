@@ -1100,42 +1100,150 @@ class CatalogWindow(ttk.Frame):
         """Render Ant Movie Catalog's own $$TAG_NAME HTML templates.
 
         Distinct from AMC Python's own {{MOVIES}}-template export: this asks
-        for a real AMC template file (full-catalog and/or individual-movie),
-        so a template the user already has keeps working. See
-        amc.html_template for exact tag coverage and scope.
+        for a real AMC template file, so a template the user already has
+        keeps working. Mirrors upstream's own Export dialog, which treats
+        the full-catalog page and the individual-movie page as two
+        independently selected templates (its "Full" and "Individual" tabs);
+        this dialog offers the same two-template choice without upstream's
+        in-place template editor, since selecting a template file is all
+        this port's renderer needs. See amc.html_template for exact tag
+        coverage and scope.
         """
-        full_template = filedialog.askopenfilename(
-            parent=self.winfo_toplevel(),
-            title="Choose a full-catalog template (optional)",
-            filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
-        )
-        individual_template = filedialog.askopenfilename(
-            parent=self.winfo_toplevel(),
-            title="Choose an individual-movie template (optional)",
-            filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
-        )
-        if not full_template and not individual_template:
-            return
-        individual_dir = None
-        if individual_template:
-            chosen_dir = filedialog.askdirectory(
-                parent=self.winfo_toplevel(),
-                title="Choose a folder for individual movie pages",
+        dialog = tk.Toplevel(self)
+        dialog.title("Export HTML template")
+        dialog.transient(self.winfo_toplevel())
+
+        full_enabled = tk.BooleanVar(value=True)
+        full_template = tk.StringVar()
+        individual_enabled = tk.BooleanVar(value=False)
+        individual_template = tk.StringVar()
+        individual_dir = tk.StringVar()
+        individual_filename = tk.StringVar(value="{number}.html")
+
+        def browse_template(target: tk.StringVar, title: str) -> None:
+            chosen = filedialog.askopenfilename(
+                parent=dialog,
+                title=title,
+                filetypes=(("HTML template", "*.html *.htm"), ("All files", "*")),
             )
-            if not chosen_dir:
+            if chosen:
+                target.set(chosen)
+
+        def browse_dir(target: tk.StringVar) -> None:
+            chosen = filedialog.askdirectory(
+                parent=dialog, title="Choose a folder for individual movie pages"
+            )
+            if chosen:
+                target.set(chosen)
+
+        def set_row_state(widgets: list[ttk.Widget], enabled: bool) -> None:
+            flag = "!disabled" if enabled else "disabled"
+            for widget in widgets:
+                widget.state([flag])
+
+        full_check = ttk.Checkbutton(dialog, text="Full catalog page", variable=full_enabled)
+        full_check.grid(row=0, column=0, columnspan=3, sticky="w", padx=8, pady=(8, 0))
+        ttk.Label(dialog, text="Template:").grid(row=1, column=0, sticky="w", padx=(24, 8))
+        full_entry = ttk.Entry(dialog, textvariable=full_template, width=40)
+        full_entry.grid(row=1, column=1, sticky="we", pady=(0, 8))
+        full_browse = ttk.Button(
+            dialog,
+            text="Browse...",
+            command=lambda: browse_template(full_template, "Choose a full-catalog template"),
+        )
+        full_browse.grid(row=1, column=2, padx=8, pady=(0, 8))
+
+        individual_check = ttk.Checkbutton(
+            dialog, text="Individual movie pages", variable=individual_enabled
+        )
+        individual_check.grid(row=2, column=0, columnspan=3, sticky="w", padx=8)
+        ttk.Label(dialog, text="Template:").grid(row=3, column=0, sticky="w", padx=(24, 8))
+        individual_entry = ttk.Entry(dialog, textvariable=individual_template, width=40)
+        individual_entry.grid(row=3, column=1, sticky="we")
+        individual_browse = ttk.Button(
+            dialog,
+            text="Browse...",
+            command=lambda: browse_template(
+                individual_template, "Choose an individual-movie template"
+            ),
+        )
+        individual_browse.grid(row=3, column=2, padx=8)
+        ttk.Label(dialog, text="Folder:").grid(
+            row=4, column=0, sticky="w", padx=(24, 8), pady=(4, 0)
+        )
+        dir_entry = ttk.Entry(dialog, textvariable=individual_dir, width=40)
+        dir_entry.grid(row=4, column=1, sticky="we", pady=(4, 0))
+        dir_browse = ttk.Button(
+            dialog, text="Browse...", command=lambda: browse_dir(individual_dir)
+        )
+        dir_browse.grid(row=4, column=2, padx=8, pady=(4, 0))
+        ttk.Label(dialog, text="Filename pattern:").grid(
+            row=5, column=0, sticky="w", padx=(24, 8), pady=(4, 8)
+        )
+        filename_entry = ttk.Entry(dialog, textvariable=individual_filename, width=40)
+        filename_entry.grid(row=5, column=1, sticky="we", pady=(4, 8))
+
+        individual_widgets = [
+            individual_entry,
+            individual_browse,
+            dir_entry,
+            dir_browse,
+            filename_entry,
+        ]
+        set_row_state(individual_widgets, individual_enabled.get())
+        individual_enabled.trace_add(
+            "write", lambda *_args: set_row_state(individual_widgets, individual_enabled.get())
+        )
+        full_widgets = [full_entry, full_browse]
+        set_row_state(full_widgets, full_enabled.get())
+        full_enabled.trace_add(
+            "write", lambda *_args: set_row_state(full_widgets, full_enabled.get())
+        )
+
+        def accept() -> None:
+            if not full_enabled.get() and not individual_enabled.get():
+                messagebox.showerror(
+                    "Export HTML template",
+                    "Choose at least one of Full catalog page or Individual movie pages.",
+                    parent=dialog,
+                )
                 return
-            individual_dir = chosen_dir
-        try:
-            written = self.service.export_html_template(
-                destination,
-                full_template=full_template or None,
-                individual_template=individual_template or None,
-                individual_dir=individual_dir,
-            )
-        except _SERVICE_ERRORS as error:
-            messagebox.showerror("Could not export catalog", str(error), parent=self)
-            return
-        messagebox.showinfo("Export complete", f"Wrote {len(written)} file(s).", parent=self)
+            if full_enabled.get() and not full_template.get():
+                messagebox.showerror(
+                    "Export HTML template",
+                    "Choose a template file for the full catalog page.",
+                    parent=dialog,
+                )
+                return
+            if individual_enabled.get() and not individual_template.get():
+                messagebox.showerror(
+                    "Export HTML template",
+                    "Choose a template file for individual movie pages.",
+                    parent=dialog,
+                )
+                return
+            try:
+                written = self.service.export_html_template(
+                    destination,
+                    full_template=full_template.get() if full_enabled.get() else None,
+                    individual_template=(
+                        individual_template.get() if individual_enabled.get() else None
+                    ),
+                    individual_dir=individual_dir.get() or None,
+                    individual_filename=individual_filename.get() or "{number}.html",
+                )
+            except _SERVICE_ERRORS as error:
+                messagebox.showerror("Could not export catalog", str(error), parent=dialog)
+                return
+            dialog.destroy()
+            messagebox.showinfo("Export complete", f"Wrote {len(written)} file(s).", parent=self)
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=6, column=0, columnspan=3, sticky="e", padx=8, pady=(0, 8))
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="left", padx=(0, 4))
+        ttk.Button(buttons, text="Export...", command=accept).pack(side="left")
+        dialog.columnconfigure(1, weight=1)
+        make_modal(dialog, focus=full_entry)
 
     def backup_catalog(self) -> None:
         selected = filedialog.asksaveasfilename(

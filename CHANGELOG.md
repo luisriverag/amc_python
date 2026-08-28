@@ -37,6 +37,13 @@ rather than repeating it here.
 
 ### Added
 
+- `tests/fixtures/native-sample-catalog/`: genuine, redistribution-cleared
+  populated-catalog native fixtures — AMC's own official bundled
+  seven-movie demo catalog from genuine 3.5.1 and 4.2.0 installs, with all
+  eight represented custom-field types, embedded pictures, and
+  supplementary records, plus a provenance manifest. This port's first
+  genuine evidence for populated movies, custom fields, and embedded
+  pictures in native format. See `docs/PORT_AUDIT.md` finding 39.
 - `tests/fixtures/native-empty-one-movie/`: this port's first
   `upstream-generated`-origin native fixtures — genuine empty (3.5/4.1/4.2)
   and one-movie (4.1/4.2) AMC catalogs, with a provenance manifest.

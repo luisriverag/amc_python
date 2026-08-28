@@ -37,7 +37,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 563 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 565 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
 
@@ -633,6 +633,38 @@ confidence.
     observed behavior; the full suite (563 tests) passes unchanged before and
     after, verified since this sandbox's Python lacks `tkinter` via the same
     throwaway tkinter-enabled-Python-3.12 venv used for finding 36.
+38. Fixed a real reader/writer bug in five native fields — `year`, `length`,
+    `video_bitrate`, `audio_bitrate`, and `media_count` (upstream's `Disks`)
+    — found from genuine empty and one-movie AMC 3.5/4.1/4.2 catalogs a user
+    generated and contributed for exactly this purpose (not yet committed to
+    the repository pending a redistribution decision). The one-movie
+    fixtures' single, never-edited movie read back with `year=-1`,
+    `length=-1`, `media_count=-1`, `video_bitrate=-1`, and `audio_bitrate=-1`
+    instead of `None`. Root cause: `_read_movie` mapped these five fields
+    with `value or None`, which only substitutes `None` for the falsy value
+    `0` — not upstream's actual "no value" sentinel, confirmed by the
+    checked-in Delphi source's own `TMovie.Reset`
+    (`Movie Catalog/movieclass.pas`: `iYear := -1`, `iLength := -1`,
+    `iVideoBitrate := -1`, `iAudioBitrate := -1`, `iDisks := -1`) and
+    matching `rating`/`user_rating`'s adjacent handling in the same function,
+    which already used the correct `None if value < 0 else value` pattern.
+    The native writer had the exact inverse bug — `movie.year or 0` (etc.)
+    wrote the plain integer `0` for an unset field, not upstream's own `-1`,
+    which would not present the same "no value" state if the Python-written
+    file were reopened in genuine AMC. Both sides now match `rating`'s
+    existing convention. Verified against all five genuine files: identical
+    movies (`Movie.to_dict()` equality) after a full native
+    write-then-reread round trip through this port's own reader/writer, for
+    both the corrected empty-catalog case (0 movies, versions 3.5/4.1/4.2)
+    and the corrected one-movie case (versions 4.1/4.2); a synthetic
+    byte-level regression test for both the reader and the writer is
+    committed (`tests/compatibility/test_native.py`,
+    `test_read_amc_42_movie_preserves_undefined_year_length_and_bitrates`
+    and
+    `test_write_amc_42_movie_encodes_unset_year_length_and_bitrates_as_negative_one`).
+    This is the first native-format bug this port has found and fixed from
+    genuine files spanning three different AMC versions in one pass, rather
+    than from one contributor's single populated catalog (findings 26/27/34).
 
 ## Gap matrix against the original application
 
@@ -641,7 +673,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 | Original subsystem | Upstream source | Python coverage | Remaining gap |
 |---|---|---|---|
-| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes; read/write/reread round-trip checked byte-for-decoded-field against a genuine native catalog locally, which found and fixed a real encode/decode asymmetry (finding 34), now also regression-guarded by a registered synthetic fixture (finding 35) | Genuine registered files for every version; code-page behavior beyond one real catalog; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
+| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes; read/write/reread round-trip checked byte-for-decoded-field against genuine native catalogs locally (a populated 4.2 catalog, and empty/one-movie 3.5/4.1/4.2 catalogs across two contributions), which found and fixed a real encode/decode asymmetry (finding 34) and a real `-1`-sentinel-vs-`None` bug in five integer fields confirmed against the checked-in Delphi source itself (finding 38), the latter regression-guarded by a committed synthetic test; finding 35's registered fixture adds a redistributable regression guard alongside the uncommitted genuine files | Genuine registered files for every version (a redistribution decision on the empty/one-movie set is pending); code-page behavior beyond one real catalog; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
 | Movie and custom-field model | `movieclass.pas`, `fields.pas`, `customfieldsmanager.pas`, `extrasedit.pas` | Common scalar fields plus opaque metadata/extras retention | Typed writer/composer/certification/file-path and extra records; duplicate/order/type preservation; custom-field editing semantics and defaults |
 | XML/CSV import and export | `movieclass.pas`, `import2*.pas`, `export.pas` | Synthetic XML/CSV codecs | Upstream dialect/locale fixtures, streaming/resource limits, repeated/nested unknown XML, and cross-application round trips |
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |

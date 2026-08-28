@@ -768,7 +768,41 @@ tier's next unchecked item before returning to D4.
     `tkinterweb.HtmlFrame` constructs and packs inside this app's actual
     widget tree under Xvfb and renders a real movie end to end.
 
-### D6 — remaining "not ported at all" subsystems
+Comparing the desktop main window against upstream's own (`main.pas`/
+`main.dfm`) surfaced further real, source-derived gaps:
+
+  - [ ] Field-scoped search bar: upstream's search (`ActionFindFindnextExecute`,
+    `main.pas` line ~7891) is far richer than this port's single free-text
+    box, which substring-matches a fixed 11 fields (`Catalog.search`).
+    Upstream offers a "Search in field" dropdown selecting one specific
+    field (or an "Expression" mode — `TExprVarMovieParser`/`TExpression` —
+    that evaluates an arbitrary boolean expression over movie fields
+    instead of a plain substring), a "Whole field only" toggle (exact match
+    via `TMovie.ContainsText(Value, SelectedField, WholeField)` instead of
+    substring), and a "Reverse results" toggle (find movies that do *not*
+    match). It also has two distinct search modes this port conflates into
+    one: pressing Enter is "Find Next" — jump the selection to the next
+    (wrapping) match without changing what the list shows — while a
+    separate "Display" toggle (`ActionFindDisplay`) switches to live-
+    filtering the list to only matching movies, which is the only mode
+    this port implements (via `search_text`'s `trace_add`).
+  - [ ] Previous/Next movie navigation: upstream's toolbar has dedicated,
+    independently-shortcut-configurable "select previous/next movie in the
+    list" actions (`ActionMoviePrevious`/`ActionMovieNext`,
+    `rMovieList.ShortcutPrev`/`ShortcutNext`) — a plain list-position step,
+    distinct from Undo/Redo. This port has no equivalent; the table must be
+    clicked directly to change the selection.
+  - Menu-bar structure: upstream's top-level menus are File/Movie/Display/
+    Tools/Help (`main.dfm`) — no "Edit" menu at all. This port's is
+    File/Edit/Movie/Tools: "Edit" is this port's own grouping (Add/Remove/
+    Undo/Redo/Find, all of which exist upstream too, just not under a menu
+    by that name), and there is no "Display" menu (upstream's home for
+    view/layout-related toggles — the closest equivalent here is the
+    toolbar's Layout combobox and the Preferences dialog). The "Edit"
+    naming is cosmetic, not filed as a gap on its own.
+  - [ ] No Help menu or About dialog: upstream has a dedicated Help menu
+    (`main.dfm`) as its own top-level entry; this port has neither a Help
+    menu nor an About dialog (version, license, links) anywhere.
 
 Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
 all: website script execution, localization, printing/reports, and compressed

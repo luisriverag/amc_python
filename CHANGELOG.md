@@ -15,10 +15,65 @@ rather than repeating it here.
 
 ## [Unreleased]
 
-This project has not made a tagged release. The entries below are the
-current baseline as of this changelog's introduction, not a claim that any
-of it shipped as a version. Add new entries above this note as future
-changes land; do not rewrite this baseline retroactively.
+### Added
+
+- Desktop GUI: a fourth main-window layout (**HTML**) renders the selected
+  movie live through a user-chosen Individual template, matching upstream's
+  own main window. Adopted `tkinterweb` as this port's second dependency
+  (see ADR-0009 in `docs/decisions.md`) after confirming it ships prebuilt
+  wheels for Linux/Windows/macOS. **Tools → Choose HTML Preview
+  Template...** sets the template file, persisted in `GuiPreferences.
+  html_preview_template`.
+
+### Changed
+
+- Desktop **Export** action's Ant Movie Catalog HTML-template path: replaced
+  three sequential blocking file dialogs (full-catalog template,
+  individual-movie template, individual-pages folder) with one dialog
+  presenting both as independently enabled sections — matching upstream's
+  own Export screen's separate "Full"/"Individual" templates — each with
+  its own template picker, plus upfront validation instead of silently
+  doing nothing on a blank selection.
+
+### Fixed
+
+- Native `.amc` reader/writer: a `List`-type custom field previously
+  crashed `read_native_catalog` outright (`CorruptCatalogError: invalid
+  native string length`) for the whole catalog. `_read_custom_field`
+  compared `field_type` against the bare string `"list"`, but upstream
+  writes the literal Pascal enum identifier `"ftList"` (confirmed in the
+  checked-in Delphi source); the mismatch skipped the list-value section
+  entirely and corrupted every later byte offset. The writer had the
+  mirror-image bug, silently dropping list values instead of writing them.
+  Found from AMC's own official demo catalog. See `docs/PORT_AUDIT.md`
+  finding 39.
+- Native `.amc` reader/writer: `year`, `length`, `video_bitrate`,
+  `audio_bitrate`, and `media_count` (upstream's `Disks`) now round-trip
+  upstream's own `-1` "no value" sentinel as `None`, instead of the reader
+  silently passing through the literal integer `-1` and the writer
+  silently writing `0` for an unset field. Found from genuine AMC
+  3.5/4.1/4.2 catalogs; confirmed against the checked-in Delphi source's
+  own `TMovie.Reset`. See `docs/PORT_AUDIT.md` finding 38.
+
+### Added
+
+- `tests/fixtures/native-sample-catalog/`: genuine, redistribution-cleared
+  populated-catalog native fixtures — AMC's own official bundled
+  seven-movie demo catalog from genuine 3.5.1 and 4.2.0 installs, with all
+  eight represented custom-field types, embedded pictures, and
+  supplementary records, plus a provenance manifest. This port's first
+  genuine evidence for populated movies, custom fields, and embedded
+  pictures in native format. See `docs/PORT_AUDIT.md` finding 39.
+- `tests/fixtures/native-empty-one-movie/`: this port's first
+  `upstream-generated`-origin native fixtures — genuine empty (3.5/4.1/4.2)
+  and one-movie (4.1/4.2) AMC catalogs, with a provenance manifest.
+
+---
+
+This project has not made a tagged release. The entries below the divider
+are the current baseline as of this changelog's introduction, not a claim
+that any of it shipped as a version. Add new entries above this note as
+future changes land; do not rewrite this baseline retroactively.
 
 ### Added
 

@@ -169,6 +169,33 @@ def test_load_preferences_rejects_boolean_window_dimensions(tmp_path: Path):
     assert preferences.window_height == GuiPreferences().window_height
 
 
+def test_save_and_load_preferences_round_trips_html_preview_template(tmp_path: Path):
+    path = tmp_path / "gui-preferences.json"
+    preferences = GuiPreferences(html_preview_template="/templates/individual.html")
+
+    save_preferences(preferences, path)
+
+    assert load_preferences(path) == preferences
+
+
+def test_load_preferences_falls_back_to_default_for_non_string_html_preview_template(
+    tmp_path: Path,
+):
+    path = tmp_path / "gui-preferences.json"
+    path.write_text(
+        json.dumps(
+            {
+                "format": "amc-python-gui-preferences",
+                "version": 1,
+                "html_preview_template": 12345,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert load_preferences(path).html_preview_template == GuiPreferences().html_preview_template
+
+
 def test_default_preferences_path_honors_config_dir_override(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("AMC_PYTHON_CONFIG_DIR", str(tmp_path))
 

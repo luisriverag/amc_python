@@ -17,6 +17,13 @@ rather than repeating it here.
 
 ### Added
 
+- Export "Movies to include" scope and export-time sort, matching
+  upstream's own Export dialog: every CLI `export-*` command now accepts
+  `--scope {all,checked}` and `--sort-by FIELD [--sort-reverse]`; the
+  desktop's Export flow opens an **Export options** dialog offering
+  All/Selected/Checked/Visible (each with a live count) and the same
+  sort/reverse control. Neither the catalog's own movie order nor its
+  saved file are touched by an export.
 - Depth-limited media-folder discovery through `discover_media(max_depth=...)`,
   CLI `import-media --max-depth`, and the desktop Import Media workflow.
 - Optional multi-part media merging for adjacent `CD1`/`CD2`-style files,

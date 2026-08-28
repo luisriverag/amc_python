@@ -11,7 +11,7 @@ from typing import TypeVar
 
 from PIL import Image, UnidentifiedImageError
 
-from .catalog import Catalog
+from .catalog import Catalog, sort_movies
 from .html_template import export_html_template
 from .loans import (
     LoanEvent,
@@ -583,6 +583,27 @@ class CatalogService:
         save(catalog, destination)
         return cls(destination)
 
+    def _scoped_export_catalog(
+        self,
+        movies: list[Movie] | None,
+        sort_by: str | None,
+        sort_reverse: bool,
+    ) -> Catalog:
+        """Build the `Catalog` an export should read from.
+
+        Matches upstream's Export dialog offering a "Movies to include"
+        scope and an export-time sort order independent of the catalog's
+        current order (`docs/IMPLEMENTATION_PLAN.md` D6). Returns the live
+        catalog unchanged when neither is requested, to avoid an
+        unnecessary copy on the common path.
+        """
+        if movies is None and sort_by is None:
+            return self.catalog
+        selected = list(self.catalog) if movies is None else movies
+        if sort_by is not None:
+            selected = sort_movies(selected, sort_by, reverse=sort_reverse)
+        return Catalog(selected, metadata=self.catalog.metadata)
+
     def export(
         self,
         destination: str | Path,
@@ -592,8 +613,18 @@ class CatalogService:
         row_template: str | Path | None = None,
         native_encoding: str = "cp1252",
         native_limits: NativeWriteLimits | None = None,
+        movies: list[Movie] | None = None,
+        sort_by: str | None = None,
+        sort_reverse: bool = False,
     ) -> None:
-        """Export the current catalog through an explicitly selected adapter."""
+        """Export a catalog through an explicitly selected adapter.
+
+        *movies*, when given, scopes the export to exactly those movies
+        instead of the whole catalog (upstream's "Movies to include");
+        *sort_by*/*sort_reverse* apply an export-time order independent of
+        the catalog's current order, without changing it.
+        """
+        export_catalog = self._scoped_export_catalog(movies, sort_by, sort_reverse)
         exporters = {
             "xml": save_xml,
             "csv": save_csv,
@@ -601,7 +632,7 @@ class CatalogService:
         }
         if format == "html":
             save_html(
-                self.catalog,
+                export_catalog,
                 destination,
                 template=template,
                 row_template=row_template,
@@ -611,7 +642,7 @@ class CatalogService:
             if template is not None or row_template is not None:
                 raise ValueError("templates are only supported for HTML export")
             save_native(
-                self.catalog,
+                export_catalog,
                 destination,
                 encoding=native_encoding,
                 limits=native_limits,
@@ -625,7 +656,7 @@ class CatalogService:
             exporter = exporters[format]
         except KeyError as error:
             raise ValueError(f"unsupported export format: {format}") from error
-        exporter(self.catalog, destination)
+        exporter(export_catalog, destination)
 
     def export_html_template(
         self,
@@ -636,6 +667,9 @@ class CatalogService:
         individual_dir: str | Path | None = None,
         individual_filename: str = "{number}.html",
         line_break: str = "<br>",
+        movies: list[Movie] | None = None,
+        sort_by: str | None = None,
+        sort_reverse: bool = False,
     ) -> list[Path]:
         """Render Ant Movie Catalog's own `$$TAG_NAME` HTML templates.
 
@@ -643,9 +677,12 @@ class CatalogService:
         `{{MOVIES}}` template: this loads a template written for real Ant
         Movie Catalog, using its placeholder syntax, so a template a user
         already has keeps working. See `amc.html_template` for scope notes.
+        *movies*/*sort_by*/*sort_reverse* scope and order the export the
+        same way as `export` (see `_scoped_export_catalog`).
         """
+        export_catalog = self._scoped_export_catalog(movies, sort_by, sort_reverse)
         return export_html_template(
-            self.catalog,
+            export_catalog,
             destination,
             full_template=full_template,
             individual_template=individual_template,

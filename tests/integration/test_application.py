@@ -294,6 +294,67 @@ def test_service_backup_restore_and_exports(tmp_path: Path):
     assert "Original" in html.read_text(encoding="utf-8")
 
 
+def test_service_export_scopes_to_the_given_movies_without_changing_the_catalog(
+    tmp_path: Path,
+):
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add(Movie(title="Alien", year=1979))
+    service.add(Movie(title="Aliens", year=1986))
+    destination = tmp_path / "scoped.xml"
+
+    service.export(destination, format="xml", movies=[service.catalog.get(1)])
+
+    exported = load(destination)
+    assert [movie.title for movie in exported] == ["Alien"]
+    assert len(service.catalog) == 2
+
+
+def test_service_export_sorts_without_changing_the_catalogs_own_order(tmp_path: Path):
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add(Movie(title="Bravo", year=2000))
+    service.add(Movie(title="Alpha", year=1990))
+    destination = tmp_path / "sorted.xml"
+
+    service.export(destination, format="xml", sort_by="title")
+
+    exported = load(destination)
+    assert [movie.title for movie in exported] == ["Alpha", "Bravo"]
+    assert [movie.title for movie in service.catalog] == ["Bravo", "Alpha"]
+
+
+def test_service_export_sort_reverse_and_scope_compose(tmp_path: Path):
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add(Movie(title="Alpha", year=1990))
+    service.add(Movie(title="Bravo", year=2000))
+    service.add(Movie(title="Charlie", year=2010))
+    destination = tmp_path / "scoped-sorted.xml"
+
+    service.export(
+        destination,
+        format="xml",
+        movies=[service.catalog.get(1), service.catalog.get(3)],
+        sort_by="title",
+        sort_reverse=True,
+    )
+
+    exported = load(destination)
+    assert [movie.title for movie in exported] == ["Charlie", "Alpha"]
+
+
+def test_service_export_html_template_scopes_and_sorts(tmp_path: Path):
+    service = CatalogService(tmp_path / "catalog.json")
+    service.add(Movie(title="Bravo", year=2000))
+    service.add(Movie(title="Alpha", year=1990))
+    template = tmp_path / "full.html"
+    template.write_text("$$ITEM_BEGIN$$ITEM_FORMATTEDTITLE\n$$ITEM_END", encoding="utf-8")
+    destination = tmp_path / "full.html.out"
+
+    service.export_html_template(destination, full_template=template, sort_by="title")
+
+    rendered = destination.read_text(encoding="utf-8")
+    assert rendered.index("Alpha") < rendered.index("Bravo")
+
+
 def test_service_rejects_invalid_export_options(tmp_path: Path):
     service = CatalogService(tmp_path / "missing.json")
 

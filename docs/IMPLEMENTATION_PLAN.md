@@ -804,23 +804,35 @@ Comparing the desktop main window against upstream's own (`main.pas`/
     separate "Display" toggle (`ActionFindDisplay`) switches to live-
     filtering the list to only matching movies, which is the only mode
     this port implements (via `search_text`'s `trace_add`).
-  - [ ] Previous/Next movie navigation: upstream's toolbar has dedicated,
-    independently-shortcut-configurable "select previous/next movie in the
-    list" actions (`ActionMoviePrevious`/`ActionMovieNext`,
-    `rMovieList.ShortcutPrev`/`ShortcutNext`) — a plain list-position step,
-    distinct from Undo/Redo. This port has no equivalent; the table must be
-    clicked directly to change the selection.
+  - [x] Previous/Next movie navigation: upstream's toolbar has dedicated
+    "select previous/next movie in the list" actions
+    (`ActionMoviePrevious`/`ActionMovieNext`, `main.pas`), a plain
+    list-position step distinct from Undo/Redo, with nothing focused
+    starting Next at the first row and Previous at the last, and no
+    wraparound past either end (stepping out of range clears the
+    selection, matching `ItemFocused` becoming `nil` in the Delphi source).
+    Added `select_next`/`select_previous` (`_step_selection`) reproducing
+    that exact behavior against the real `ttk.Treeview`, wired to a new
+    **Movie** menu entry pair and `Ctrl+PageUp`/`Ctrl+PageDown` (decoded
+    from upstream's own default `ShortcutPrev`/`ShortcutNext` TShortcut
+    values in `programsettings.pas`). Not added as toolbar buttons, per
+    this port's existing "only the tightest add/edit/remove/undo/redo loop
+    is a toolbar button" convention — every other action is menu/shortcut-
+    only.
   - Menu-bar structure: upstream's top-level menus are File/Movie/Display/
     Tools/Help (`main.dfm`) — no "Edit" menu at all. This port's is
-    File/Edit/Movie/Tools: "Edit" is this port's own grouping (Add/Remove/
-    Undo/Redo/Find, all of which exist upstream too, just not under a menu
-    by that name), and there is no "Display" menu (upstream's home for
-    view/layout-related toggles — the closest equivalent here is the
-    toolbar's Layout combobox and the Preferences dialog). The "Edit"
-    naming is cosmetic, not filed as a gap on its own.
-  - [ ] No Help menu or About dialog: upstream has a dedicated Help menu
-    (`main.dfm`) as its own top-level entry; this port has neither a Help
-    menu nor an About dialog (version, license, links) anywhere.
+    File/Edit/Movie/Tools/Help: "Edit" is this port's own grouping (Add/
+    Remove/Undo/Redo/Find, all of which exist upstream too, just not under
+    a menu by that name), and there is still no "Display" menu (upstream's
+    home for view/layout-related toggles — the closest equivalent here is
+    the toolbar's Layout combobox and the Preferences dialog). The "Edit"
+    naming and the missing "Display" menu are cosmetic, not filed as gaps
+    on their own.
+  - [x] No Help menu or About dialog: upstream has a dedicated Help menu
+    (`main.dfm`) as its own top-level entry; this port had neither. Added
+    a **Help** menu with an **About AMC Python...** entry showing the
+    installed version (`amc.__version__`), license, and a clickable link
+    to this project's own repository.
 
 Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
 all: website script execution, localization, printing/reports, and compressed

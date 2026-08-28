@@ -133,18 +133,26 @@ The packaging check verifies that an isolated wheel installation can import both
   configurable history limit (100 by default; see **Preferences** below); opening
   or reloading a catalog starts new history.
 
-A **File / Edit / Movie / Tools** menu bar groups every action, alongside File,
-search/view, and catalog-action toolbar rows so controls remain reachable at the
-supported 760-pixel minimum window width. The desktop opens at 1100×720 by
-default and remains resizable down to 760×480.
+A **File / Edit / Movie / Tools / Help** menu bar groups every action, alongside
+File, search/view, and catalog-action toolbar rows so controls remain reachable
+at the supported 760-pixel minimum window width. The desktop opens at 1100×720
+by default and remains resizable down to 760×480.
 
 - **File**: Open Catalog, Reload, Save As, Import Catalog, Import Media,
   Export, Backup, Restore, Preferences, Exit.
 - **Edit**: Add/Edit/Remove Movie, Undo, Redo, Toggle Checked, Find, Clear
   Search.
-- **Movie**: Loan Out, Loan In, Loan History, Set/Assign/Clear Pictures,
-  Open URL, Renumber.
-- **Tools**: Statistics, Duplicates.
+- **Movie**: Previous/Next Movie, Loan Out, Loan In, Loan History,
+  Set/Assign/Clear Pictures, Open URL, Renumber.
+- **Tools**: Statistics, Duplicates, Choose HTML Preview Template.
+- **Help**: About AMC Python (version, license, and a link to this
+  project's own repository).
+
+**Previous Movie**/**Next Movie** (`Ctrl+PageUp`/`Ctrl+PageDown`) step the
+table's current selection by one row, matching upstream's own
+`ActionMoviePrevious`/`ActionMovieNext`: with nothing selected, Next starts at
+the first row and Previous at the last; there is no wraparound past either
+end — stepping out of range clears the selection instead.
 
 Only the tightest add/edit/remove/toggle/undo/redo loop — the actions clicked
 over and over while browsing a catalog — stays on the toolbar as a one-click
@@ -168,7 +176,8 @@ menu, and the toolbar button all at once.
 Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
 search, Escape to clear search, Ctrl+N for a new movie, Ctrl+M for Import Media,
 Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked state,
-Delete for removal, and F5 for reload; the menu bar shows each as an accelerator
+Delete for removal, F5 for reload, and Ctrl+PageUp/Ctrl+PageDown for
+Previous/Next Movie; the menu bar shows each as an accelerator
 label next to its command. Action shortcuts follow the same enabled/disabled
 state as their toolbar buttons and menu entries, so they cannot bypass
 read-only, selection, URL-safety, or history checks.

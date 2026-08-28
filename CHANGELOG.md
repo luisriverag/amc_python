@@ -17,6 +17,13 @@ rather than repeating it here.
 
 ### Added
 
+- Field-scoped search, matching upstream's own search bar:
+  `Catalog.search` accepts `field` (restrict to one movie field),
+  `whole_field` (exact match instead of substring), and `reverse`
+  (movies that do *not* match). The desktop search bar gained a
+  **Search in field** dropdown, **Whole field only**, and **Reverse
+  results** controls; the CLI's `search` command gained matching
+  `--field`/`--whole-field`/`--reverse` flags.
 - Desktop GUI: **Previous Movie**/**Next Movie** (`Ctrl+PageUp`/
   `Ctrl+PageDown`, and a new **Movie** menu entry pair) step the table
   selection by one row, matching upstream's own navigation actions —

@@ -87,6 +87,24 @@ _EDIT_INTEGER_FIELDS = (
     "file_size",
 )
 _EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
+_SEARCH_FIELDS: tuple[tuple[str, str | None], ...] = (
+    ("All fields", None),
+    ("Title", "title"),
+    ("Original title", "original_title"),
+    ("Translated title", "translated_title"),
+    ("Director", "director"),
+    ("Producer", "producer"),
+    ("Actors", "actors"),
+    ("Category", "category"),
+    ("Country", "country"),
+    ("Year", "year"),
+    ("Description", "description"),
+    ("Comments", "comments"),
+    ("Borrower", "borrower"),
+    ("URL", "url"),
+    ("File Path", "file_path"),
+)
+_SEARCH_FIELD_BY_LABEL = dict(_SEARCH_FIELDS)
 _EXPORT_SORT_FIELDS = (
     "title",
     "original_title",
@@ -424,6 +442,34 @@ class CatalogWindow(ttk.Frame):
         )
         layout.pack(side="left", padx=(0, 6))
         layout.bind("<<ComboboxSelected>>", lambda _event: self._layout_changed())
+
+        search_options = ttk.Frame(self)
+        search_options.pack(fill="x", pady=(0, 8))
+        ttk.Label(search_options, text="Search in field:").pack(side="left")
+        self.search_field = tk.StringVar(value=_SEARCH_FIELDS[0][0])
+        field_combo = ttk.Combobox(
+            search_options,
+            textvariable=self.search_field,
+            values=[label for label, _ in _SEARCH_FIELDS],
+            state="readonly",
+            width=16,
+        )
+        field_combo.pack(side="left", padx=(0, 12))
+        self.search_field.trace_add("write", lambda *_: self.refresh())
+        self.search_whole_field = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            search_options,
+            text="Whole field only",
+            variable=self.search_whole_field,
+        ).pack(side="left", padx=(0, 12))
+        self.search_whole_field.trace_add("write", lambda *_: self.refresh())
+        self.search_reverse = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            search_options,
+            text="Reverse results",
+            variable=self.search_reverse,
+        ).pack(side="left")
+        self.search_reverse.trace_add("write", lambda *_: self.refresh())
 
         # Keep catalog actions on their own row. Putting every action beside the
         # search field clipped the right-most controls on common 760px displays.
@@ -841,8 +887,12 @@ class CatalogWindow(ttk.Frame):
     def refresh(self) -> None:
         selection = self.table.selection()
         self.table.delete(*self.table.get_children())
-        query = self.search_text.get().strip()
-        movies = self.service.catalog.search(query) if query else list(self.service.catalog)
+        movies = self.service.catalog.search(
+            self.search_text.get(),
+            field=_SEARCH_FIELD_BY_LABEL.get(self.search_field.get()),
+            whole_field=self.search_whole_field.get(),
+            reverse=self.search_reverse.get(),
+        )
         movies = filter_movies(movies, self.view_filter.get())
         for movie in movies:
             self.table.insert("", "end", iid=str(movie.number), values=movie_row(movie))

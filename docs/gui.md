@@ -86,13 +86,21 @@ The packaging check verifies that an isolated wheel installation can import both
   through single-line fields; borrower changes remain in the dedicated loan
   controls.
 - Search the visible list; filter all, loaned, available, checked, or unchecked
-  movies; and review displayed/total counts. The table includes borrower and checked
-  status and retains a visible selection across refreshes. Clicking a column heading
-  sorts ascending; clicking it again sorts descending. An arrow shows the active
-  direction, and missing numeric values remain at the end in either direction.
-  The active view filter, layout, and window size are remembered across
-  restarts (see **Preferences** below); this does not affect sorting, which
-  always starts unsorted for a freshly opened catalog.
+  movies; and review displayed/total counts. A second row below the search box —
+  **Search in field** (a specific field, or All fields), **Whole field only**
+  (exact match instead of substring), and **Reverse results** (movies that do
+  *not* match) — matches upstream's own field-scoped search controls
+  (`main.pas`'s `ActionFindFindnextExecute`); this port always live-filters the
+  list as those change, rather than upstream's separate jump-to-next-match mode,
+  and does not implement its expression-evaluation search mode. The table
+  includes borrower and checked status and retains a visible selection across
+  refreshes. Clicking a column heading sorts ascending; clicking it again sorts
+  descending. An arrow shows the active direction, and missing numeric values
+  remain at the end in either direction. The active view filter, layout, and
+  window size are remembered across restarts (see **Preferences** below); this
+  does not affect sorting, which always starts unsorted for a freshly opened
+  catalog, nor the search-field/whole-field/reverse controls, which — like the
+  search text itself — reset each session.
 - Use Ctrl+F to move directly to search and Escape to clear the current query and
   return to the movie table. Selection-dependent actions are disabled until they
   can succeed, and mutation controls remain disabled while an interchange catalog

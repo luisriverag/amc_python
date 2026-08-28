@@ -1,3 +1,4 @@
+import io
 import os
 import random
 import stat
@@ -18,6 +19,7 @@ from amc.native import (
 )
 
 REAL_NATIVE_FIXTURES = Path(__file__).parent.parent / "fixtures" / "native-empty-one-movie"
+REAL_SAMPLE_CATALOG_FIXTURES = Path(__file__).parent.parent / "fixtures" / "native-sample-catalog"
 
 
 def _string(value: str) -> bytes:
@@ -586,6 +588,88 @@ def test_genuine_native_fixture_round_trips_through_this_ports_writer(name: str,
 
     reread = read_native_catalog(target)
     assert [m.to_dict() for m in reread.movies] == [m.to_dict() for m in original.movies]
+
+
+@pytest.mark.parametrize(
+    ("name", "version"),
+    [("Sample_3.5.1.amc", "3.5"), ("Sample_4.2.0.amc", "4.2")],
+)
+def test_reads_the_genuine_official_sample_catalog(name: str, version: str):
+    """Ant Movie Catalog's own bundled seven-movie demo catalog, saved
+    unmodified from genuine 3.5.1 and 4.2.0 installs
+    (tests/fixtures/native-sample-catalog/manifest.json) -- this port's
+    first genuine *populated* native fixtures, with real titles, embedded
+    pictures, and (4.2.0 only) custom-field definitions and values."""
+    catalog = read_native_catalog(REAL_SAMPLE_CATALOG_FIXTURES / name)
+    assert catalog.properties.version == version
+    assert len(catalog.movies) == 7
+    assert catalog.movies[0].year == 1999
+    assert catalog.movies[0].length == 136
+    assert catalog.movies[0].rating == 8.0
+
+
+def test_reads_every_custom_field_type_from_the_genuine_sample_catalog():
+    """The regression case for finding 39: `Sample_4.2.0.amc` defines a
+    ftList-type custom field with real list values, which previously
+    crashed the reader outright (a field-type-string mismatch skipped the
+    list-value bytes, corrupting every later offset). All eight of the
+    sample's custom-field definitions must parse, and the movies' actual
+    custom-field values (not just the definitions) must come through."""
+    catalog = read_native_catalog(REAL_SAMPLE_CATALOG_FIXTURES / "Sample_4.2.0.amc")
+
+    field_types = {field.tag: field.field_type for field in catalog.properties.custom_fields}
+    assert field_types == {
+        "BooleanCustomField": "ftBoolean",
+        "DateCustomField": "ftDate",
+        "IntegerCustomField": "ftInteger",
+        "ListCustomField": "ftList",
+        "RealCustomField": "ftReal2",
+        "StringCustomField": "ftString",
+        "TextCustomField": "ftText",
+        "URLCustomField": "ftUrl",
+    }
+    list_field = next(
+        field for field in catalog.properties.custom_fields if field.tag == "ListCustomField"
+    )
+    assert list_field.list_values == ("Amazing", "Very Good", "Good", "Bad", "Very Bad")
+    assert catalog.movies[0].extras["ListCustomField"]
+
+
+def test_genuine_sample_catalog_pictures_decode_as_real_images():
+    """Every movie in the 4.2.0 sample embeds a genuine JPEG or PNG poster;
+    confirm the embedded bytes actually decode, not just that they're
+    present, since a truncated or corrupted picture wouldn't otherwise be
+    caught by a length or presence check alone."""
+    import base64
+
+    from PIL import Image
+
+    catalog = read_native_catalog(REAL_SAMPLE_CATALOG_FIXTURES / "Sample_4.2.0.amc")
+
+    decoded = 0
+    for movie in catalog.movies:
+        picture_base64 = movie.extras.get("native_picture_base64")
+        assert picture_base64
+        Image.open(io.BytesIO(base64.b64decode(picture_base64))).verify()
+        decoded += 1
+    assert decoded == 7
+
+
+@pytest.mark.parametrize("name", ["Sample_3.5.1.amc", "Sample_4.2.0.amc"])
+def test_genuine_sample_catalog_round_trips_through_this_ports_writer(name: str, tmp_path: Path):
+    """Writing the genuine sample catalog back out and rereading it must
+    reproduce identical movies, including every custom-field value,
+    embedded picture, and supplementary record -- the strongest check
+    available without a genuine AMC installation to reopen the result in."""
+    from amc.storage import load, write_native_catalog
+
+    original = load(REAL_SAMPLE_CATALOG_FIXTURES / name)
+    target = tmp_path / "roundtrip.amc"
+
+    write_native_catalog(original, target)
+
+    reread = load(target)
+    assert [m.to_dict() for m in reread] == [m.to_dict() for m in original]
 
 
 def test_amc_42_rejects_truncated_extra_picture(tmp_path: Path):

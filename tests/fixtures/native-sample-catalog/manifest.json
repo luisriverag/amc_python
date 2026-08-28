@@ -1,0 +1,42 @@
+{
+  "id": "amc-native-official-sample-catalog-3.5.1-4.2.0",
+  "origin": "upstream-generated",
+  "format": "AMC native 3.5 / 4.2",
+  "producer": "Ant Movie Catalog",
+  "producer_version": "3.5.1 and 4.2.0 (the official demo/sample catalog these two Ant Movie Catalog releases ship with, exported/saved unmodified from each)",
+  "created_at": "2026-08-28T00:00:00Z",
+  "creation_steps": "These are Ant Movie Catalog's own bundled sample catalog -- the demonstration data that ships inside the official 3.5.1 and 4.2.0 installers -- contributed to this repository by its owner from their own licensed installs, unmodified from what the installer provides. Both files hold the same seven-movie demo set (The Matrix, Lethal Weapon 4, Indiana Jones and the Last Crusade, Memento, Jurassic Park, and two more), each with an embedded JPEG or PNG poster; the 4.2.0 file additionally defines eight custom fields (one of every type except ftReal1 and ftVirtual) with sample values, and both include native-format supplementary ('extra') records.",
+  "provenance": "Contributed directly to this repository by its owner from their own locally installed, licensed copies of Ant Movie Catalog 3.5.1 and 4.2.0, specifically to give this port genuine populated-catalog native-format evidence (custom fields, embedded pictures, supplementary records) for the first time -- see docs/decisions.md ADR-0001 and docs/PORT_AUDIT.md's P0 evidence gate. This is the application's own bundled sample data, not the contributor's personal catalog. Not independently authenticated beyond the file contents and the owner's own account of their origin.",
+  "redistribution": "allowed",
+  "expected_contents": "Ant Movie Catalog's own bundled seven-movie demo catalog, saved unmodified from genuine 3.5.1 and 4.2.0 installs. Both hold identical movie data (title, year, length, rating, and an embedded JPEG/PNG poster per movie -- promotional artwork bundled with the application itself, not user-contributed personal data). The 4.2.0 file additionally carries eight custom-field definitions spanning boolean, date, integer, list (with real list values), currency/real, string, text, and URL types, and native supplementary ('extra') records. Found and fixed a real, total-parse-failure bug in this port (docs/PORT_AUDIT.md finding 39): a List-type custom field crashed the native reader outright, because the reader compared the field-type string against the bare literal 'list' instead of upstream's actual serialized identifier 'ftList' (confirmed in the checked-in Delphi source's own `ConvertFieldTypeToString`); the writer had the mirror-image bug, silently dropping list values instead of writing them.",
+  "files": [
+    {"path": "Sample_3.5.1.amc", "sha256": "668e070119a4739bdc62bf98c240e138fe6a330de20e70a963e15e792a5c1f12"},
+    {"path": "Sample_4.2.0.amc", "sha256": "eeae92e9dfd28b2945a700608cf086faf117306085902350e5f80ef06a0bfc93"}
+  ],
+  "verification": [
+    {
+      "path": "Sample_3.5.1.amc",
+      "format": "amc-native",
+      "header": " AMC_3.5 Ant Movie Catalog 3.5.x   www.buypin.com    www.antp.be ",
+      "version": "3.5",
+      "movies": 7,
+      "metadata": {"owner": ""},
+      "movie_fields": [
+        {"number": 1, "original_title": "Matrix, The", "year": 1999, "length": 136, "rating": 8.0},
+        {"number": 2, "original_title": "Lethal Weapon 4", "year": 1998, "length": 127, "rating": 6.0}
+      ]
+    },
+    {
+      "path": "Sample_4.2.0.amc",
+      "format": "amc-native",
+      "header": " AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be ",
+      "version": "4.2",
+      "movies": 7,
+      "metadata": {"owner": ""},
+      "movie_fields": [
+        {"number": 1, "original_title": "The Matrix", "year": 1999, "length": 136, "rating": 8.0},
+        {"number": 2, "original_title": "Lethal Weapon 4", "year": 1998, "length": 127, "rating": 6.0}
+      ]
+    }
+  ]
+}

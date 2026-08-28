@@ -152,11 +152,14 @@ unit and compatibility evidence are recorded.
 - [ ] Identify the native signature, header, versions, encodings, record framing,
   checksums, compression, and picture representation.
 - [ ] Add empty, one-record, all-fields, Unicode, picture, and corrupt fixtures.
-  Empty and one-record are done, across three versions
+  Empty, one-record, all-fields, custom-field, and picture are done
   (`tests/fixtures/native-empty-one-movie/`: genuine 3.5/4.1/4.2 empty
   catalogs and 4.1/4.2 one-movie catalogs, this port's first
   `upstream-generated` native fixtures — see `docs/PORT_AUDIT.md`
-  finding 38). All-fields, Unicode, picture, and corrupt fixtures remain.
+  finding 38; `tests/fixtures/native-sample-catalog/`: genuine 3.5/4.2
+  populated catalogs with all eight represented custom-field types and
+  embedded pictures — see finding 39). Unicode/code-page and corrupt
+  fixtures remain.
 - [x] Implement source-derived native 1.0–4.2 header detection and read-only record
   parsing; compatibility verification remains blocked on genuine fixtures.
 - [x] Add explicit, atomic source-derived AMC 4.2 export with synthetic round-trip
@@ -302,11 +305,14 @@ unblock earlier evidence gates.
    linked-picture, supplementary-record, Unicode/code-page, and corrupt catalogs.
    [Partial] Empty and one-movie catalogs are done, across AMC 3.5.x/4.1.x/4.2.x
    (not confirmed as specifically 4.2.3.2) — see `docs/PORT_AUDIT.md` finding 38.
-   All-fields, custom-field, embedded-picture, linked-picture,
-   supplementary-record, Unicode/code-page, and corrupt catalogs remain.
+   All-fields, custom-field, embedded-picture, and supplementary-record catalogs
+   are also done, across AMC 3.5.1/4.2.0 (`tests/fixtures/native-sample-catalog/`,
+   AMC's own bundled demo catalog — see finding 39). Linked-picture,
+   Unicode/code-page, and corrupt catalogs remain.
 4. Record producer version, creation steps, SHA-256, expected contents, mutations,
    and redistribution permission for every fixture. [Done for the fixtures generated
-   so far] — `tests/fixtures/native-empty-one-movie/manifest.json`.
+   so far] — `tests/fixtures/native-empty-one-movie/manifest.json`,
+   `tests/fixtures/native-sample-catalog/manifest.json`.
 
 **Exit criterion:** the checked-in source and first compatibility fixture set have
 reviewable provenance. Until then, native support stays **investigating**.

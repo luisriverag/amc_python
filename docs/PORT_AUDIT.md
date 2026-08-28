@@ -37,9 +37,9 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 563 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 581 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
-| Upstream port verification | 0 upstream-derived fixtures; 0 verified upstream subsystems | Port parity is not established |
+| Upstream port verification | 7 upstream-generated fixtures registered (`tests/fixtures/native-empty-one-movie/`, finding 38; `tests/fixtures/native-sample-catalog/`, finding 39); 0 verified upstream subsystems | Narrow, genuine read-path evidence exists for the first time — empty and blank-one-movie native catalogs across AMC 3.5/4.1/4.2, plus populated movies, all eight represented custom-field types, and embedded pictures across AMC 3.5/4.2; this does not verify native format compatibility as a whole — other versions and a write-then-reopen-in-real-AMC check remain unevidenced |
 
 Line count and test count must not be used as a substitute for upstream
 compatibility evidence.
@@ -633,6 +633,109 @@ confidence.
     observed behavior; the full suite (563 tests) passes unchanged before and
     after, verified since this sandbox's Python lacks `tkinter` via the same
     throwaway tkinter-enabled-Python-3.12 venv used for finding 36.
+38. Fixed a real reader/writer bug in five native fields — `year`, `length`,
+    `video_bitrate`, `audio_bitrate`, and `media_count` (upstream's `Disks`)
+    — found from genuine empty and one-movie AMC 3.5/4.1/4.2 catalogs a user
+    generated and contributed for exactly this purpose, then registered as
+    this port's first `upstream-generated` fixtures with explicit
+    redistribution permission: `tests/fixtures/native-empty-one-movie/`
+    (three empty catalogs, versions 3.5/4.1/4.2, and two one-movie catalogs,
+    versions 4.1/4.2). The one-movie fixtures' single, never-edited movie
+    read back with `year=-1`, `length=-1`, `media_count=-1`,
+    `video_bitrate=-1`, and `audio_bitrate=-1` instead of `None`. Root cause:
+    `_read_movie` mapped these five fields with `value or None`, which only
+    substitutes `None` for the falsy value `0` — not upstream's actual "no
+    value" sentinel, confirmed by the checked-in Delphi source's own
+    `TMovie.Reset` (`Movie Catalog/movieclass.pas`: `iYear := -1`,
+    `iLength := -1`, `iVideoBitrate := -1`, `iAudioBitrate := -1`,
+    `iDisks := -1`) and matching `rating`/`user_rating`'s adjacent handling
+    in the same function, which already used the correct
+    `None if value < 0 else value` pattern. The native writer had the exact
+    inverse bug — `movie.year or 0` (etc.) wrote the plain integer `0` for
+    an unset field, not upstream's own `-1`, which would not present the
+    same "no value" state if the Python-written file were reopened in
+    genuine AMC. Both sides now match `rating`'s existing convention.
+    Verified against all five genuine files: identical movies
+    (`Movie.to_dict()` equality) after a full native write-then-reread round
+    trip through this port's own reader/writer, for both the corrected
+    empty-catalog case (0 movies, versions 3.5/4.1/4.2) and the corrected
+    one-movie case (versions 4.1/4.2). Covered by both a synthetic
+    byte-level regression test
+    (`test_read_amc_42_movie_preserves_undefined_year_length_and_bitrates`,
+    `test_write_amc_42_movie_encodes_unset_year_length_and_bitrates_as_negative_one`)
+    and, now that the genuine files are committed, direct tests against them
+    (`test_reads_a_genuine_empty_native_catalog`,
+    `test_reads_a_genuine_one_movie_native_catalog_with_every_optional_field_unset`,
+    `test_genuine_native_fixture_round_trips_through_this_ports_writer`),
+    all in `tests/compatibility/test_native.py`; the manifest's
+    `verification` block independently checks the same facts via
+    `tools/verify_fixtures.py`. This is the first native-format bug this
+    port has found and fixed from genuine files spanning three different AMC
+    versions in one pass, rather than from one contributor's single
+    populated catalog (findings 26/27/34), and the first time this port has
+    had permission to commit any genuine native fixture at all. It still
+    does not move native format's overall status to `verified` (see the
+    confidence vocabulary above): these five files cover only the
+    empty-catalog and blank-one-movie shape, not populated movies, custom
+    fields, pictures, other versions, or a write-then-reopen-in-real-AMC
+    check.
+39. Fixed a real, total-parse-failure bug in AMC 4.x custom-field
+    definitions: any catalog with a `List`-type custom field crashed
+    `read_native_catalog` outright with a `CorruptCatalogError: invalid
+    native string length: <garbage>` (not a graceful degradation — the
+    entire catalog failed to load). Found from the official demo catalog
+    that ships with Ant Movie Catalog itself (`Sample_4.2.0.amc`, a user's
+    own AMC install, contributed for local debugging; a redistribution
+    decision on it is separate from and pending after this fix, given its
+    embedded movie-poster images). Root cause: `_read_custom_field`
+    compared the parsed `field_type` string against the bare literal
+    `"list"`, but upstream's own serializer writes the literal Pascal enum
+    identifier — confirmed directly in the checked-in Delphi source,
+    `ConvertFieldTypeToString` in `Movie Catalog/movieclass.pas`, which
+    returns `'ftList'` (and `'ftBoolean'`, `'ftDate'`, `'ftInteger'`,
+    `'ftReal'`/`'ftReal1'`/`'ftReal2'`, `'ftString'`, `'ftText'`, `'ftUrl'`,
+    `'ftVirtual'` for the other ten field types) — not `'List'`. Because the
+    comparison never matched, the reader silently skipped the list-value
+    section entirely instead of reading it, corrupting every subsequent
+    byte offset for the rest of the properties stream and eventually
+    crashing on a garbage string length. The native writer's mirror-image
+    `_write_custom_field` had the identical bug (`== "list"` instead of
+    `== "ftlist"`), so a Python-constructed list-type custom field
+    silently wrote no list values at all rather than raising. Both fixed to
+    compare against `"ftlist"` (casefolded). This also exposed that the
+    *existing* synthetic test coverage for list-type custom fields
+    (`test_read_amc_42_custom_field_definition`,
+    `test_custom_field_parser_applies_definition_and_list_limits`,
+    `test_write_native_42_round_trip_retained_data`,
+    `test_native_writer_limits_custom_fields_and_list_values`,
+    `test_native_writer_rejects_malformed_metadata_atomically`) had
+    synthesized the same wrong bare `"List"` string throughout — a
+    self-consistent but incorrect assumption that passed cleanly against
+    the buggy code and would not have been caught without a genuine
+    upstream-produced catalog to check against. All five tests corrected to
+    `"ftList"`, so they now exercise the real behavior. Verified: after the
+    fix, `Sample_4.2.0.amc` parses cleanly (7 movies, 8 custom fields
+    spanning 8 of upstream's 11 field types including a working `ftList`
+    field with real list values) and round-trips losslessly through this
+    port's writer via `amc.storage.load`/`write_native_catalog` (movie-field
+    equality, including every custom field value, every embedded picture —
+    verified as valid JPEG/PNG bytes via Pillow — and every supplementary
+    record). A genuine AMC 3.5.1 sample of the same demo catalog
+    (`Sample_3.5.1.amc`, 7 movies, no custom fields defined in that older
+    export) also round-trips losslessly and was unaffected by this
+    specific bug (3.5 predates the custom-fields feature). Both sample
+    files are now committed at `tests/fixtures/native-sample-catalog/`
+    (redistribution permission granted separately from the bug fix, given
+    their embedded movie-poster images — see that directory's
+    `manifest.json`), with genuine-fixture regression tests in
+    `tests/compatibility/test_native.py` covering the populated-movie read,
+    all eight custom-field types and their values, embedded-picture
+    decoding for every movie, and the full read/write/reread round trip for
+    both files. This is this port's first genuine, redistribution-cleared
+    native fixture evidence for populated movies, custom fields, and
+    embedded pictures — it still does not move native format's overall
+    status to `verified`, since a documented cross-application test (write,
+    then reopen in genuine AMC) remains outstanding.
 
 ## Gap matrix against the original application
 
@@ -641,7 +744,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 | Original subsystem | Upstream source | Python coverage | Remaining gap |
 |---|---|---|---|
-| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes; read/write/reread round-trip checked byte-for-decoded-field against a genuine native catalog locally, which found and fixed a real encode/decode asymmetry (finding 34), now also regression-guarded by a registered synthetic fixture (finding 35) | Genuine registered files for every version; code-page behavior beyond one real catalog; pre-3.0 sidecar verification; 3.5/4.1 writers; upstream open/save/reopen evidence |
+| Native catalog persistence | `movieclass.pas`, `movieclass_old.pas` | Source-derived 1.0–4.2 reads, legacy sidecar lookup, and experimental 4.2 writes; read/write/reread round-trip checked byte-for-decoded-field against genuine native catalogs — a committed empty/one-movie 3.5/4.1/4.2 set (`tests/fixtures/native-empty-one-movie/`) and a committed populated-catalog 3.5/4.2 set with custom fields and embedded pictures (`tests/fixtures/native-sample-catalog/`), this port's first genuine, redistribution-cleared native fixtures — which found and fixed a real encode/decode asymmetry (finding 34), a real `-1`-sentinel-vs-`None` bug in five integer fields confirmed against the checked-in Delphi source itself (finding 38), and a real total-parse-failure bug for `List`-type custom fields (finding 39); finding 35's synthetic fixture adds a further regression guard alongside the genuine ones | Code-page behavior beyond one real catalog; pre-3.0 sidecar verification; 3.5/4.1 writers; every remaining version beyond 3.5/4.1/4.2; upstream open/save/reopen evidence |
 | Movie and custom-field model | `movieclass.pas`, `fields.pas`, `customfieldsmanager.pas`, `extrasedit.pas` | Common scalar fields plus opaque metadata/extras retention | Typed writer/composer/certification/file-path and extra records; duplicate/order/type preservation; custom-field editing semantics and defaults |
 | XML/CSV import and export | `movieclass.pas`, `import2*.pas`, `export.pas` | Synthetic XML/CSV codecs | Upstream dialect/locale fixtures, streaming/resource limits, repeated/nested unknown XML, and cross-application round trips |
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |

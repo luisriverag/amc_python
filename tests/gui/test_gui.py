@@ -93,6 +93,7 @@ def test_window_saves_current_view_layout_and_window_size():
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
     window.service = Mock(history_limit=100)
+    window.html_preview_template = "template.html"
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1280
     window.winfo_toplevel.return_value.winfo_height.return_value = 800
@@ -107,6 +108,7 @@ def test_window_saves_current_view_layout_and_window_size():
             window_width=1280,
             window_height=800,
             history_limit=100,
+            html_preview_template="template.html",
         ),
         Path("prefs.json"),
     )
@@ -123,6 +125,7 @@ def test_window_save_preferences_keeps_previous_size_when_window_not_yet_drawn()
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences(window_width=999, window_height=555)
     window.service = Mock(history_limit=100)
+    window.html_preview_template = ""
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1
     window.winfo_toplevel.return_value.winfo_height.return_value = 1
@@ -141,6 +144,7 @@ def test_window_save_preferences_includes_the_current_history_limit():
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
     window.service = Mock(history_limit=250)
+    window.html_preview_template = ""
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1100
     window.winfo_toplevel.return_value.winfo_height.return_value = 720
@@ -159,6 +163,7 @@ def test_window_save_preferences_ignores_write_failures():
     window.preferences_path = Path("prefs.json")
     window._preferences = GuiPreferences()
     window.service = Mock(history_limit=100)
+    window.html_preview_template = ""
     window.winfo_toplevel = Mock(return_value=Mock())
     window.winfo_toplevel.return_value.winfo_width.return_value = 1100
     window.winfo_toplevel.return_value.winfo_height.return_value = 720
@@ -188,6 +193,9 @@ def _window() -> CatalogWindow:
     window.status = Mock()
     window.details = Mock()
     window.poster = Mock()
+    window.html_view = Mock()
+    window.html_preview_template = ""
+    window.layout = Mock(get=Mock(return_value="Table"))
     window.table = Mock()
     window.sort_field = None
     window.sort_reverse = False
@@ -641,54 +649,135 @@ def test_window_html_export_declining_ant_template_uses_default_export():
     window.service.export_html_template.assert_not_called()
 
 
+def _template_dialog_vars(
+    *,
+    full_enabled: bool,
+    full_template: str,
+    individual_enabled: bool,
+    individual_template: str,
+    individual_dir: str,
+    individual_filename: str,
+):
+    """Build the (BooleanVar, BooleanVar) / (StringVar x4) side effects the
+    Export HTML template dialog creates, in the exact order it creates them,
+    so a patched ``tk.BooleanVar``/``tk.StringVar`` hands back one distinct
+    mock per variable instead of one mock shared by all of them."""
+    booleans = [
+        Mock(get=Mock(return_value=full_enabled)),
+        Mock(get=Mock(return_value=individual_enabled)),
+    ]
+    strings = [
+        Mock(get=Mock(return_value=full_template)),
+        Mock(get=Mock(return_value=individual_template)),
+        Mock(get=Mock(return_value=individual_dir)),
+        Mock(get=Mock(return_value=individual_filename)),
+    ]
+    return booleans, strings
+
+
 def test_window_html_export_with_ant_template_renders_full_and_individual():
     window = _window()
     window.service.export_html_template.return_value = [Path("movies.html"), Path("pages/1.html")]
+    booleans, strings = _template_dialog_vars(
+        full_enabled=True,
+        full_template="full.html",
+        individual_enabled=True,
+        individual_template="individual.html",
+        individual_dir="pages",
+        individual_filename="{number}.html",
+    )
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
         patch("amc.gui.messagebox.askyesno", return_value=True),
-        patch(
-            "amc.gui.filedialog.askopenfilename",
-            side_effect=["full.html", "individual.html"],
-        ),
-        patch("amc.gui.filedialog.askdirectory", return_value="pages"),
+        patch("amc.gui.tk.Toplevel", return_value=Mock()),
+        patch("amc.gui.tk.BooleanVar", side_effect=booleans),
+        patch("amc.gui.tk.StringVar", side_effect=strings),
+        patch("amc.gui.ttk.Checkbutton"),
+        patch("amc.gui.ttk.Entry"),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
         patch("amc.gui.messagebox.showinfo") as showinfo,
+        patch("amc.gui.messagebox.showerror") as showerror,
     ):
         window.export_catalog()
+        export_command = button.call_args_list[-1].kwargs["command"]
+        export_command()
 
     window.service.export.assert_not_called()
+    showerror.assert_not_called()
     window.service.export_html_template.assert_called_once_with(
         "movies.html",
         full_template="full.html",
         individual_template="individual.html",
         individual_dir="pages",
+        individual_filename="{number}.html",
     )
     showinfo.assert_called_once()
 
 
-def test_window_html_export_with_ant_template_cancelling_both_templates_does_nothing():
+def test_window_html_export_template_dialog_requires_at_least_one_section():
     window = _window()
+    booleans, strings = _template_dialog_vars(
+        full_enabled=False,
+        full_template="",
+        individual_enabled=False,
+        individual_template="",
+        individual_dir="",
+        individual_filename="{number}.html",
+    )
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
         patch("amc.gui.messagebox.askyesno", return_value=True),
-        patch("amc.gui.filedialog.askopenfilename", return_value=""),
+        patch("amc.gui.tk.Toplevel", return_value=Mock()),
+        patch("amc.gui.tk.BooleanVar", side_effect=booleans),
+        patch("amc.gui.tk.StringVar", side_effect=strings),
+        patch("amc.gui.ttk.Checkbutton"),
+        patch("amc.gui.ttk.Entry"),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.messagebox.showerror") as showerror,
     ):
         window.export_catalog()
+        export_command = button.call_args_list[-1].kwargs["command"]
+        export_command()
+
+    showerror.assert_called_once()
     window.service.export_html_template.assert_not_called()
 
 
-def test_window_html_export_with_ant_template_cancelling_the_folder_does_nothing():
+def test_window_html_export_template_dialog_requires_a_template_when_enabled():
     window = _window()
+    booleans, strings = _template_dialog_vars(
+        full_enabled=True,
+        full_template="",
+        individual_enabled=False,
+        individual_template="",
+        individual_dir="",
+        individual_filename="{number}.html",
+    )
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
         patch("amc.gui.messagebox.askyesno", return_value=True),
-        patch(
-            "amc.gui.filedialog.askopenfilename",
-            side_effect=["", "individual.html"],
-        ),
-        patch("amc.gui.filedialog.askdirectory", return_value=""),
+        patch("amc.gui.tk.Toplevel", return_value=Mock()),
+        patch("amc.gui.tk.BooleanVar", side_effect=booleans),
+        patch("amc.gui.tk.StringVar", side_effect=strings),
+        patch("amc.gui.ttk.Checkbutton"),
+        patch("amc.gui.ttk.Entry"),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.messagebox.showerror") as showerror,
     ):
         window.export_catalog()
+        export_command = button.call_args_list[-1].kwargs["command"]
+        export_command()
+
+    showerror.assert_called_once()
     window.service.export_html_template.assert_not_called()
 
 
@@ -1140,6 +1229,124 @@ def test_window_clears_details_without_selection():
     window.show_selected()
 
     window.details.insert.assert_called_once_with("1.0", "")
+
+
+def test_html_layout_selection_renders_the_movie_through_the_html_preview():
+    window = _window()
+    window.layout = Mock(get=Mock(return_value="HTML"))
+    window.selected = Mock(return_value=Movie(number=7, title="Moon"))
+    window._show_html_preview = Mock()
+
+    window.show_selected()
+
+    window._show_html_preview.assert_called_once_with(window.selected.return_value)
+
+
+def test_non_html_layout_selection_does_not_render_the_html_preview():
+    window = _window()
+    window.selected = Mock(return_value=Movie(number=7, title="Moon"))
+    window._show_html_preview = Mock()
+
+    window.show_selected()
+
+    window._show_html_preview.assert_not_called()
+
+
+def test_html_preview_shows_a_placeholder_when_no_template_is_chosen():
+    window = _window()
+    window.html_preview_template = ""
+
+    window._show_html_preview(Movie(number=1, title="Alien"))
+
+    rendered = window.html_view.load_html.call_args.args[0]
+    assert "Choose a template" in rendered
+
+
+def test_html_preview_shows_a_placeholder_when_nothing_is_selected():
+    window = _window()
+    window.html_preview_template = "individual.html"
+
+    window._show_html_preview(None)
+
+    rendered = window.html_view.load_html.call_args.args[0]
+    assert "No movie selected" in rendered
+
+
+def test_html_preview_shows_an_error_when_the_template_cannot_be_read():
+    window = _window()
+    window.html_preview_template = "missing.html"
+
+    with patch("amc.gui._read_template", side_effect=OSError("no such file")):
+        window._show_html_preview(Movie(number=1, title="Alien"))
+
+    rendered = window.html_view.load_html.call_args.args[0]
+    assert "Could not read template" in rendered
+
+
+def test_html_preview_renders_the_selected_movie_with_a_directory_base_url():
+    window = _window()
+    window.html_preview_template = "/templates/individual.html"
+    window.service.catalog = [Movie(number=1, title="Alien"), Movie(number=2, title="Aliens")]
+    window.service.path = Path("catalog.json")
+    movie = window.service.catalog[1]
+
+    with (
+        patch("amc.gui._read_template", return_value="$$ITEM_FORMATTEDTITLE") as read_template,
+        patch("amc.gui.render_individual_template", return_value="<h1>Aliens</h1>") as render,
+    ):
+        window._show_html_preview(movie)
+
+    read_template.assert_called_once_with(Path("/templates/individual.html"), 1024 * 1024)
+    render.assert_called_once_with(
+        movie,
+        window.service.catalog,
+        "$$ITEM_FORMATTEDTITLE",
+        source_name="catalog.json",
+        record_number=2,
+    )
+    window.html_view.load_html.assert_called_once_with(
+        "<h1>Aliens</h1>", base_url="file:///templates/"
+    )
+
+
+def test_choose_html_preview_template_persists_and_refreshes_the_active_view():
+    window = _window()
+    window.layout = Mock(get=Mock(return_value="HTML"))
+    window.show_selected = Mock()
+    window._save_preferences = Mock()
+
+    with patch("amc.gui.filedialog.askopenfilename", return_value="chosen.html"):
+        window.choose_html_preview_template()
+
+    assert window.html_preview_template == "chosen.html"
+    window._save_preferences.assert_called_once_with()
+    window.show_selected.assert_called_once_with()
+
+
+def test_choose_html_preview_template_does_nothing_without_an_active_html_view():
+    window = _window()
+    window.layout = Mock(get=Mock(return_value="Table"))
+    window.show_selected = Mock()
+    window._save_preferences = Mock()
+
+    with patch("amc.gui.filedialog.askopenfilename", return_value="chosen.html"):
+        window.choose_html_preview_template()
+
+    assert window.html_preview_template == "chosen.html"
+    window._save_preferences.assert_called_once_with()
+    window.show_selected.assert_not_called()
+
+
+def test_choose_html_preview_template_cancelling_does_nothing():
+    window = _window()
+    window.html_preview_template = ""
+    window._save_preferences = Mock()
+
+    with patch("amc.gui.filedialog.askopenfilename", return_value=""):
+        window.choose_html_preview_template()
+
+    assert window.html_preview_template == ""
+    window._save_preferences.assert_not_called()
 
 
 def _form_values(**overrides: str) -> dict[str, str]:

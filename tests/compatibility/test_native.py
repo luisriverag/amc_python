@@ -1,3 +1,4 @@
+import io
 import os
 import random
 import stat
@@ -16,6 +17,9 @@ from amc.native import (
     read_native_catalog,
     read_native_properties,
 )
+
+REAL_NATIVE_FIXTURES = Path(__file__).parent.parent / "fixtures" / "native-empty-one-movie"
+REAL_SAMPLE_CATALOG_FIXTURES = Path(__file__).parent.parent / "fixtures" / "native-sample-catalog"
 
 
 def _string(value: str) -> bytes:
@@ -153,12 +157,19 @@ def _boolean(value: bool) -> bytes:
 
 
 def test_read_amc_42_custom_field_definition(tmp_path: Path):
+    """`field_type` uses the literal Pascal enum identifier upstream's own
+    `ConvertFieldTypeToString` writes (`Movie Catalog/movieclass.pas`) --
+    `ftList`, not bare `List`. This test originally synthesized the bare
+    form, which the buggy reader/writer's own `== "list"` check happened to
+    accept -- a self-consistent but wrong assumption a genuine AMC-produced
+    catalog (an official sample shipped with the application) exposed, see
+    `docs/PORT_AUDIT.md` finding 39."""
     field = b"".join(
         (
             _string("MyTag"),
             _string("My field"),
             _string("txt"),
-            _string("List"),
+            _string("ftList"),
             _string("default"),
             _string("General;0"),
             _boolean(True),
@@ -193,7 +204,7 @@ def test_read_amc_42_custom_field_definition(tmp_path: Path):
         "MyTag",
         "My field",
         "txt",
-        "List",
+        "ftList",
     )
     assert custom.list_values == ("One", "Two")
     assert (custom.multi_values, custom.multi_value_separator) == (True, ";")
@@ -248,7 +259,7 @@ def test_custom_field_parser_applies_definition_and_list_limits(tmp_path: Path):
             _string("tag"),
             _string("name"),
             _string(""),
-            _string("List"),
+            _string("ftList"),
             _string(""),
             _string(""),
             _boolean(False),
@@ -468,6 +479,197 @@ def test_read_amc_42_movie_and_extra(tmp_path: Path):
     assert extra.checked and extra.created_by == "script"
     assert extra.picture_data == b"im"
     assert movie.extras["native_supplementary_records"][0]["picture_base64"] == "aW0="
+
+
+def _blank_movie_42() -> bytes:
+    """A movie record with every -1-sentinelled integer field left at its
+    genuine default: `iYear`/`iLength`/`iVideoBitrate`/`iAudioBitrate`/
+    `iDisks` (this port's `media_count`) are each initialized to `-1` in
+    upstream's own `TMovie.Reset` (`Movie Catalog/movieclass.pas`), matching
+    a genuine blank one-movie AMC 4.1/4.2 catalog contributed by a user for
+    local debugging (not committed to the repository)."""
+    integers = [1, 46262, 0, -1, -1, -1, -1, -1, -1, -1, 0]
+    strings = [""] * 25
+    return (
+        b"".join(_integer(value) for value in integers)
+        + _boolean(True)
+        + b"".join(_string(value) for value in strings)
+        + _string("")
+        + _integer(0)
+        + _integer(0)
+    )
+
+
+def test_read_amc_42_movie_preserves_undefined_year_length_and_bitrates(tmp_path: Path):
+    """`_read_movie` previously mapped these five fields with `value or
+    None`, which only substitutes `None` for `0` -- not upstream's actual
+    `-1` "no value" sentinel confirmed above, so a genuinely blank movie's
+    year/length/bitrates/disk-count read back as the literal integer `-1`
+    instead of `None`. `rating`/`user_rating` already used the correct
+    `None if value < 0 else value` pattern; this brings the other five
+    fields in line with it."""
+    target = tmp_path / "blank-movie.amc"
+    target.write_bytes(_catalog("4.2", "", "", "", "", "", "") + _integer(0) + _blank_movie_42())
+
+    movie = read_native_catalog(target).movies[0]
+
+    assert (movie.year, movie.length, movie.media_count) == (None, None, None)
+    assert (movie.video_bitrate, movie.audio_bitrate) == (None, None)
+
+
+def test_write_amc_42_movie_encodes_unset_year_length_and_bitrates_as_negative_one(
+    tmp_path: Path,
+):
+    """The writer's inverse bug: `movie.year or 0` wrote the plain integer
+    `0` for an unset field instead of upstream's own `-1` sentinel, so a
+    Python-exported catalog would not present the same "no value" state a
+    genuine AMC catalog does if reopened in upstream AMC (0 is a very
+    different displayed year/length/bitrate/disk-count than "none entered
+    yet"). Fixed to mirror `rating`'s existing `-1`-when-`None` write."""
+    from amc.catalog import Catalog
+    from amc.model import Movie
+    from amc.native import read_native_catalog, write_native_catalog
+
+    catalog = Catalog([Movie(number=1)])
+    target = tmp_path / "unset-fields.amc"
+
+    write_native_catalog(catalog, target)
+
+    reread = read_native_catalog(target).movies[0]
+    assert (reread.year, reread.length, reread.media_count) == (None, None, None)
+    assert (reread.video_bitrate, reread.audio_bitrate) == (None, None)
+
+
+@pytest.mark.parametrize("version", ["3.5", "4.1", "4.2"])
+def test_reads_a_genuine_empty_native_catalog(version: str):
+    """Genuine empty catalogs from real, separately installed Ant Movie
+    Catalog 3.5/4.1/4.2 (tests/fixtures/native-empty-one-movie/
+    manifest.json) -- the first native-format fixtures this port has ever
+    had permission to commit, and the first spanning more than one version
+    at once."""
+    catalog = read_native_catalog(REAL_NATIVE_FIXTURES / f"empty-{version}.amc")
+    assert catalog.properties.version == version
+    assert catalog.movies == ()
+
+
+@pytest.mark.parametrize("version", ["4.1", "4.2"])
+def test_reads_a_genuine_one_movie_native_catalog_with_every_optional_field_unset(
+    version: str,
+):
+    """The regression case for finding 38: a genuine, never-edited blank
+    movie added in real AMC and immediately saved. Before the fix, this
+    movie's year/length/media_count/video_bitrate/audio_bitrate read back as
+    the literal integer -1 (upstream's own sentinel) instead of `None`."""
+    catalog = read_native_catalog(REAL_NATIVE_FIXTURES / f"one-movie-{version}.amc")
+
+    assert len(catalog.movies) == 1
+    movie = catalog.movies[0]
+    assert (movie.title, movie.original_title) == ("", "")
+    assert (movie.year, movie.length, movie.media_count) == (None, None, None)
+    assert (movie.video_bitrate, movie.audio_bitrate) == (None, None)
+    assert movie.checked is True
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["empty-3.5.amc", "empty-4.1.amc", "empty-4.2.amc", "one-movie-4.1.amc", "one-movie-4.2.amc"],
+)
+def test_genuine_native_fixture_round_trips_through_this_ports_writer(name: str, tmp_path: Path):
+    """Writing back a genuinely upstream-produced catalog and rereading it
+    must reproduce identical movies -- the strongest round-trip check
+    available without a genuine AMC installation to reopen the result in."""
+    from amc.catalog import Catalog
+    from amc.native import write_native_catalog
+
+    original = read_native_catalog(REAL_NATIVE_FIXTURES / name)
+    target = tmp_path / "roundtrip.amc"
+
+    write_native_catalog(Catalog(original.movies), target)
+
+    reread = read_native_catalog(target)
+    assert [m.to_dict() for m in reread.movies] == [m.to_dict() for m in original.movies]
+
+
+@pytest.mark.parametrize(
+    ("name", "version"),
+    [("Sample_3.5.1.amc", "3.5"), ("Sample_4.2.0.amc", "4.2")],
+)
+def test_reads_the_genuine_official_sample_catalog(name: str, version: str):
+    """Ant Movie Catalog's own bundled seven-movie demo catalog, saved
+    unmodified from genuine 3.5.1 and 4.2.0 installs
+    (tests/fixtures/native-sample-catalog/manifest.json) -- this port's
+    first genuine *populated* native fixtures, with real titles, embedded
+    pictures, and (4.2.0 only) custom-field definitions and values."""
+    catalog = read_native_catalog(REAL_SAMPLE_CATALOG_FIXTURES / name)
+    assert catalog.properties.version == version
+    assert len(catalog.movies) == 7
+    assert catalog.movies[0].year == 1999
+    assert catalog.movies[0].length == 136
+    assert catalog.movies[0].rating == 8.0
+
+
+def test_reads_every_custom_field_type_from_the_genuine_sample_catalog():
+    """The regression case for finding 39: `Sample_4.2.0.amc` defines a
+    ftList-type custom field with real list values, which previously
+    crashed the reader outright (a field-type-string mismatch skipped the
+    list-value bytes, corrupting every later offset). All eight of the
+    sample's custom-field definitions must parse, and the movies' actual
+    custom-field values (not just the definitions) must come through."""
+    catalog = read_native_catalog(REAL_SAMPLE_CATALOG_FIXTURES / "Sample_4.2.0.amc")
+
+    field_types = {field.tag: field.field_type for field in catalog.properties.custom_fields}
+    assert field_types == {
+        "BooleanCustomField": "ftBoolean",
+        "DateCustomField": "ftDate",
+        "IntegerCustomField": "ftInteger",
+        "ListCustomField": "ftList",
+        "RealCustomField": "ftReal2",
+        "StringCustomField": "ftString",
+        "TextCustomField": "ftText",
+        "URLCustomField": "ftUrl",
+    }
+    list_field = next(
+        field for field in catalog.properties.custom_fields if field.tag == "ListCustomField"
+    )
+    assert list_field.list_values == ("Amazing", "Very Good", "Good", "Bad", "Very Bad")
+    assert catalog.movies[0].extras["ListCustomField"]
+
+
+def test_genuine_sample_catalog_pictures_decode_as_real_images():
+    """Every movie in the 4.2.0 sample embeds a genuine JPEG or PNG poster;
+    confirm the embedded bytes actually decode, not just that they're
+    present, since a truncated or corrupted picture wouldn't otherwise be
+    caught by a length or presence check alone."""
+    import base64
+
+    from PIL import Image
+
+    catalog = read_native_catalog(REAL_SAMPLE_CATALOG_FIXTURES / "Sample_4.2.0.amc")
+
+    decoded = 0
+    for movie in catalog.movies:
+        picture_base64 = movie.extras.get("native_picture_base64")
+        assert picture_base64
+        Image.open(io.BytesIO(base64.b64decode(picture_base64))).verify()
+        decoded += 1
+    assert decoded == 7
+
+
+@pytest.mark.parametrize("name", ["Sample_3.5.1.amc", "Sample_4.2.0.amc"])
+def test_genuine_sample_catalog_round_trips_through_this_ports_writer(name: str, tmp_path: Path):
+    """Writing the genuine sample catalog back out and rereading it must
+    reproduce identical movies, including every custom-field value,
+    embedded picture, and supplementary record -- the strongest check
+    available without a genuine AMC installation to reopen the result in."""
+    from amc.storage import load, write_native_catalog
+
+    original = load(REAL_SAMPLE_CATALOG_FIXTURES / name)
+    target = tmp_path / "roundtrip.amc"
+
+    write_native_catalog(original, target)
+
+    reread = load(target)
+    assert [m.to_dict() for m in reread] == [m.to_dict() for m in original]
 
 
 def test_amc_42_rejects_truncated_extra_picture(tmp_path: Path):
@@ -1053,7 +1255,7 @@ def test_write_native_42_round_trip_retained_data(tmp_path: Path):
         "tag": "Mood",
         "name": "Mood",
         "extension": "",
-        "field_type": "List",
+        "field_type": "ftList",
         "default_value": "Calm",
         "media_info": "",
         "multi_values": True,
@@ -1339,7 +1541,7 @@ def test_native_writer_limits_custom_fields_and_list_values(tmp_path: Path):
     from amc.catalog import Catalog
     from amc.native import NativeWriteLimits, write_native_catalog
 
-    field = {"tag": "Mood", "field_type": "List", "list_values": ["Calm"]}
+    field = {"tag": "Mood", "field_type": "ftList", "list_values": ["Calm"]}
     catalog = Catalog(metadata={"native": {"custom_fields": [field]}})
 
     with pytest.raises(ValueError, match="custom-field limit"):
@@ -1406,7 +1608,7 @@ def test_native_write_limits_validate_configuration():
         ({"native": {"custom_fields": ["Mood"]}}, "custom field must be an object"),
         ({"native": {"custom_fields": [{"multi_values": 1}]}}, "must be a boolean"),
         (
-            {"native": {"custom_fields": [{"field_type": "List", "list_values": "Calm"}]}},
+            {"native": {"custom_fields": [{"field_type": "ftList", "list_values": "Calm"}]}},
             "list_values must be a list",
         ),
     ],

@@ -152,6 +152,14 @@ unit and compatibility evidence are recorded.
 - [ ] Identify the native signature, header, versions, encodings, record framing,
   checksums, compression, and picture representation.
 - [ ] Add empty, one-record, all-fields, Unicode, picture, and corrupt fixtures.
+  Empty, one-record, all-fields, custom-field, and picture are done
+  (`tests/fixtures/native-empty-one-movie/`: genuine 3.5/4.1/4.2 empty
+  catalogs and 4.1/4.2 one-movie catalogs, this port's first
+  `upstream-generated` native fixtures — see `docs/PORT_AUDIT.md`
+  finding 38; `tests/fixtures/native-sample-catalog/`: genuine 3.5/4.2
+  populated catalogs with all eight represented custom-field types and
+  embedded pictures — see finding 39). Unicode/code-page and corrupt
+  fixtures remain.
 - [x] Implement source-derived native 1.0–4.2 header detection and read-only record
   parsing; compatibility verification remains blocked on genuine fixtures.
 - [x] Add explicit, atomic source-derived AMC 4.2 export with synthetic round-trip
@@ -295,8 +303,16 @@ unblock earlier evidence gates.
    files are now present.
 3. Generate AMC 4.2.3.2 empty, one-movie, all-fields, custom-field, embedded-picture,
    linked-picture, supplementary-record, Unicode/code-page, and corrupt catalogs.
+   [Partial] Empty and one-movie catalogs are done, across AMC 3.5.x/4.1.x/4.2.x
+   (not confirmed as specifically 4.2.3.2) — see `docs/PORT_AUDIT.md` finding 38.
+   All-fields, custom-field, embedded-picture, and supplementary-record catalogs
+   are also done, across AMC 3.5.1/4.2.0 (`tests/fixtures/native-sample-catalog/`,
+   AMC's own bundled demo catalog — see finding 39). Linked-picture,
+   Unicode/code-page, and corrupt catalogs remain.
 4. Record producer version, creation steps, SHA-256, expected contents, mutations,
-   and redistribution permission for every fixture.
+   and redistribution permission for every fixture. [Done for the fixtures generated
+   so far] — `tests/fixtures/native-empty-one-movie/manifest.json`,
+   `tests/fixtures/native-sample-catalog/manifest.json`.
 
 **Exit criterion:** the checked-in source and first compatibility fixture set have
 reviewable provenance. Until then, native support stays **investigating**.
@@ -494,6 +510,48 @@ complete, and real-display smoke coverage closes the "no real-display tests"
 gap this document previously described as environment-blocked. A verified
 accessibility pass with actual assistive technology remains the only open
 item in D2 — that part is still genuinely blocked, unlike the D4 items below.
+
+Comparing `import-media` against upstream's own "Import from another file
+format" → Media files dialog (`import2_engines.pas`'s `TImportEngineDir`,
+`getmedia.pas`) surfaced real, source-derived gaps this port does not cover
+yet:
+
+  - [ ] Depth-limited subfolder browsing: upstream's `BrowseDepth` setting
+    (`*` for unlimited, else an integer) caps how many directory levels a
+    recursive scan descends; `discover_media`'s `recursive` is only a
+    boolean (fully recursive or not at all).
+  - [ ] Multi-part/multi-disk media merging: upstream (`TGetFileListThread.
+    Execute`, `getmedia.pas`) sorts filenames per directory and merges
+    adjacent files into one movie entry when a configurable "disk tag"
+    regex (default `(cd)[0-9]{1,3}`), stripped from both names, produces
+    the same result — e.g. `Movie CD1.avi`/`Movie CD2.avi`. The merge
+    formulas are traceable in `GetInfoFromMedia`: title/path/label keep the
+    first file's value, `length` sums across parts, `video_bitrate`/
+    `audio_bitrate` average iteratively (`(previous + new) / 2` per part),
+    file size sums, and disk count is the number of parts merged. This
+    port has no equivalent — every file always becomes its own movie.
+  - [ ] Pictures importation method: upstream looks for a poster image
+    beside each media file or its containing folder (matching filename or
+    a configured folder name) and can store it into the catalog or copy it
+    to a pictures folder. This port's media import never looks for or
+    attaches a picture.
+  - [ ] Extract process modes: upstream can extract full media info
+    immediately, defer it, or skip it entirely for a faster scan; this
+    port's `inspect_media` always does full extraction.
+  - [ ] Extensions "Default" button and a configurable filename-cleanup
+    pattern ("Filter the file name") for deriving a title from a raw
+    filename; `--extensions`/`parse_extensions` cover the filter itself
+    but not either of these.
+  - Allow duplicate numbers, allow to clear fields when empty, auto-assign
+    fields to columns, and "use internal engine for AVI" are upstream
+    settings without a clear equivalent here: the first two only make
+    sense for an update-existing-catalog import (this port's import-media
+    only adds new movies), the third is upstream's own preview-grid
+    column-mapping mechanism (this port has no preview grid — it builds
+    `Movie` objects directly), and the fourth toggles upstream's own
+    internal-vs-external AVI parser, which has no analog since this port
+    only ever has one parser per format. Not tracked as gaps for that
+    reason, but noted here for completeness against the screenshot.
 
 ### D3 — catalog/GUI preferences
 
@@ -697,8 +755,54 @@ tier's next unchecked item before returning to D4.
     this container. This item stays open until it can be verified on a
     platform where Tk's accessibility support is meaningful (Windows/macOS
     native widgets) or a contributor can verify it directly.
+  - [x] A fourth main-window layout (`HTML`) rendering the selected movie's
+    **Individual** HTML template live in the right-hand pane, matching
+    upstream's own main window. Adopted `tkinterweb` as this port's second
+    dependency (ADR-0009) after confirming it ships prebuilt wheels for
+    Linux/Windows/macOS; **Tools → Choose HTML Preview Template...** picks
+    the template file (persisted in `GuiPreferences.html_preview_template`),
+    and selecting a movie renders it through `amc.html_template.
+    render_individual_template` with `base_url` set to the template's own
+    directory so relative CSS/image references resolve correctly. A
+    real-display test (`test_gui_display.py`) confirms a genuine
+    `tkinterweb.HtmlFrame` constructs and packs inside this app's actual
+    widget tree under Xvfb and renders a real movie end to end.
 
-### D6 — remaining "not ported at all" subsystems
+Comparing the desktop main window against upstream's own (`main.pas`/
+`main.dfm`) surfaced further real, source-derived gaps:
+
+  - [ ] Field-scoped search bar: upstream's search (`ActionFindFindnextExecute`,
+    `main.pas` line ~7891) is far richer than this port's single free-text
+    box, which substring-matches a fixed 11 fields (`Catalog.search`).
+    Upstream offers a "Search in field" dropdown selecting one specific
+    field (or an "Expression" mode — `TExprVarMovieParser`/`TExpression` —
+    that evaluates an arbitrary boolean expression over movie fields
+    instead of a plain substring), a "Whole field only" toggle (exact match
+    via `TMovie.ContainsText(Value, SelectedField, WholeField)` instead of
+    substring), and a "Reverse results" toggle (find movies that do *not*
+    match). It also has two distinct search modes this port conflates into
+    one: pressing Enter is "Find Next" — jump the selection to the next
+    (wrapping) match without changing what the list shows — while a
+    separate "Display" toggle (`ActionFindDisplay`) switches to live-
+    filtering the list to only matching movies, which is the only mode
+    this port implements (via `search_text`'s `trace_add`).
+  - [ ] Previous/Next movie navigation: upstream's toolbar has dedicated,
+    independently-shortcut-configurable "select previous/next movie in the
+    list" actions (`ActionMoviePrevious`/`ActionMovieNext`,
+    `rMovieList.ShortcutPrev`/`ShortcutNext`) — a plain list-position step,
+    distinct from Undo/Redo. This port has no equivalent; the table must be
+    clicked directly to change the selection.
+  - Menu-bar structure: upstream's top-level menus are File/Movie/Display/
+    Tools/Help (`main.dfm`) — no "Edit" menu at all. This port's is
+    File/Edit/Movie/Tools: "Edit" is this port's own grouping (Add/Remove/
+    Undo/Redo/Find, all of which exist upstream too, just not under a menu
+    by that name), and there is no "Display" menu (upstream's home for
+    view/layout-related toggles — the closest equivalent here is the
+    toolbar's Layout combobox and the Preferences dialog). The "Edit"
+    naming is cosmetic, not filed as a gap on its own.
+  - [ ] No Help menu or About dialog: upstream has a dedicated Help menu
+    (`main.dfm`) as its own top-level entry; this port has neither a Help
+    menu nor an About dialog (version, license, links) anywhere.
 
 Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
 all: website script execution, localization, printing/reports, and compressed
@@ -798,6 +902,33 @@ script execution at all — see the checked sub-item below.
     docstring). This is distinct from — and does not reduce the scope of
     — the FreeReport report-designer item below. See PORT_AUDIT.md
     finding 27.
+  - [x] Desktop template selection dialog: the **Export** action's "use an
+    Ant Movie Catalog template" path previously chained three sequential
+    blocking file dialogs (full-catalog template, individual-movie
+    template, then an individual-pages folder) with no way to see or
+    change a choice before committing to the next prompt. Replaced with one
+    modal dialog presenting the full-catalog page and individual-movie
+    pages as two independently enabled sections — matching upstream's own
+    Export screen, which treats "Full" and "Individual" as two separately
+    selected templates — each with its own template-file picker (and the
+    individual section's own folder and filename-pattern fields), plus
+    upfront validation ("choose at least one", "choose a template for each
+    enabled section") instead of silently doing nothing on a blank
+    selection. Deliberately does not add upstream's in-place template
+    editor (the code-editor pane in its Export dialog): selecting a
+    template file, not authoring one, is what this port's renderer needs.
+  - [ ] Upstream's Export dialog (`export.pas`) has several controls this
+    port's export still lacks entirely: a "Movies to include" scope
+    (All/Selected/Checked/Visible, each with a live count) — this port's
+    export always writes the whole catalog; an export-time sort-order
+    control independent of the catalog's current order; and, for HTML
+    specifically, a Pictures section (copy pictures alongside the export,
+    into a subfolder, only if missing, include extras) — the same
+    "upstream picture/rating-icon file copying" gap already named in
+    `amc.html_template`'s own docstring and in `docs/compatibility.md`.
+    Also out of scope in the same dialog: SQL export and a dedicated
+    "Pictures" export format (bulk-exporting every picture), neither of
+    which this port implements under any export path.
   - [x] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a

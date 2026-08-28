@@ -15,6 +15,16 @@ rather than repeating it here.
 
 ## [Unreleased]
 
+### Added
+
+- Desktop GUI: a fourth main-window layout (**HTML**) renders the selected
+  movie live through a user-chosen Individual template, matching upstream's
+  own main window. Adopted `tkinterweb` as this port's second dependency
+  (see ADR-0009 in `docs/decisions.md`) after confirming it ships prebuilt
+  wheels for Linux/Windows/macOS. **Tools → Choose HTML Preview
+  Template...** sets the template file, persisted in `GuiPreferences.
+  html_preview_template`.
+
 ### Changed
 
 - Desktop **Export** action's Ant Movie Catalog HTML-template path: replaced

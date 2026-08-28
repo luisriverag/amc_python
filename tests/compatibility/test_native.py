@@ -17,6 +17,8 @@ from amc.native import (
     read_native_properties,
 )
 
+REAL_NATIVE_FIXTURES = Path(__file__).parent.parent / "fixtures" / "native-empty-one-movie"
+
 
 def _string(value: str) -> bytes:
     encoded = value.encode("cp1252")
@@ -527,6 +529,56 @@ def test_write_amc_42_movie_encodes_unset_year_length_and_bitrates_as_negative_o
     reread = read_native_catalog(target).movies[0]
     assert (reread.year, reread.length, reread.media_count) == (None, None, None)
     assert (reread.video_bitrate, reread.audio_bitrate) == (None, None)
+
+
+@pytest.mark.parametrize("version", ["3.5", "4.1", "4.2"])
+def test_reads_a_genuine_empty_native_catalog(version: str):
+    """Genuine empty catalogs from real, separately installed Ant Movie
+    Catalog 3.5/4.1/4.2 (tests/fixtures/native-empty-one-movie/
+    manifest.json) -- the first native-format fixtures this port has ever
+    had permission to commit, and the first spanning more than one version
+    at once."""
+    catalog = read_native_catalog(REAL_NATIVE_FIXTURES / f"empty-{version}.amc")
+    assert catalog.properties.version == version
+    assert catalog.movies == ()
+
+
+@pytest.mark.parametrize("version", ["4.1", "4.2"])
+def test_reads_a_genuine_one_movie_native_catalog_with_every_optional_field_unset(
+    version: str,
+):
+    """The regression case for finding 38: a genuine, never-edited blank
+    movie added in real AMC and immediately saved. Before the fix, this
+    movie's year/length/media_count/video_bitrate/audio_bitrate read back as
+    the literal integer -1 (upstream's own sentinel) instead of `None`."""
+    catalog = read_native_catalog(REAL_NATIVE_FIXTURES / f"one-movie-{version}.amc")
+
+    assert len(catalog.movies) == 1
+    movie = catalog.movies[0]
+    assert (movie.title, movie.original_title) == ("", "")
+    assert (movie.year, movie.length, movie.media_count) == (None, None, None)
+    assert (movie.video_bitrate, movie.audio_bitrate) == (None, None)
+    assert movie.checked is True
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["empty-3.5.amc", "empty-4.1.amc", "empty-4.2.amc", "one-movie-4.1.amc", "one-movie-4.2.amc"],
+)
+def test_genuine_native_fixture_round_trips_through_this_ports_writer(name: str, tmp_path: Path):
+    """Writing back a genuinely upstream-produced catalog and rereading it
+    must reproduce identical movies -- the strongest round-trip check
+    available without a genuine AMC installation to reopen the result in."""
+    from amc.catalog import Catalog
+    from amc.native import write_native_catalog
+
+    original = read_native_catalog(REAL_NATIVE_FIXTURES / name)
+    target = tmp_path / "roundtrip.amc"
+
+    write_native_catalog(Catalog(original.movies), target)
+
+    reread = read_native_catalog(target)
+    assert [m.to_dict() for m in reread.movies] == [m.to_dict() for m in original.movies]
 
 
 def test_amc_42_rejects_truncated_extra_picture(tmp_path: Path):

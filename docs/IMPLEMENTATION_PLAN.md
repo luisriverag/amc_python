@@ -511,6 +511,48 @@ gap this document previously described as environment-blocked. A verified
 accessibility pass with actual assistive technology remains the only open
 item in D2 — that part is still genuinely blocked, unlike the D4 items below.
 
+Comparing `import-media` against upstream's own "Import from another file
+format" → Media files dialog (`import2_engines.pas`'s `TImportEngineDir`,
+`getmedia.pas`) surfaced real, source-derived gaps this port does not cover
+yet:
+
+  - [ ] Depth-limited subfolder browsing: upstream's `BrowseDepth` setting
+    (`*` for unlimited, else an integer) caps how many directory levels a
+    recursive scan descends; `discover_media`'s `recursive` is only a
+    boolean (fully recursive or not at all).
+  - [ ] Multi-part/multi-disk media merging: upstream (`TGetFileListThread.
+    Execute`, `getmedia.pas`) sorts filenames per directory and merges
+    adjacent files into one movie entry when a configurable "disk tag"
+    regex (default `(cd)[0-9]{1,3}`), stripped from both names, produces
+    the same result — e.g. `Movie CD1.avi`/`Movie CD2.avi`. The merge
+    formulas are traceable in `GetInfoFromMedia`: title/path/label keep the
+    first file's value, `length` sums across parts, `video_bitrate`/
+    `audio_bitrate` average iteratively (`(previous + new) / 2` per part),
+    file size sums, and disk count is the number of parts merged. This
+    port has no equivalent — every file always becomes its own movie.
+  - [ ] Pictures importation method: upstream looks for a poster image
+    beside each media file or its containing folder (matching filename or
+    a configured folder name) and can store it into the catalog or copy it
+    to a pictures folder. This port's media import never looks for or
+    attaches a picture.
+  - [ ] Extract process modes: upstream can extract full media info
+    immediately, defer it, or skip it entirely for a faster scan; this
+    port's `inspect_media` always does full extraction.
+  - [ ] Extensions "Default" button and a configurable filename-cleanup
+    pattern ("Filter the file name") for deriving a title from a raw
+    filename; `--extensions`/`parse_extensions` cover the filter itself
+    but not either of these.
+  - Allow duplicate numbers, allow to clear fields when empty, auto-assign
+    fields to columns, and "use internal engine for AVI" are upstream
+    settings without a clear equivalent here: the first two only make
+    sense for an update-existing-catalog import (this port's import-media
+    only adds new movies), the third is upstream's own preview-grid
+    column-mapping mechanism (this port has no preview grid — it builds
+    `Movie` objects directly), and the fourth toggles upstream's own
+    internal-vs-external AVI parser, which has no analog since this port
+    only ever has one parser per format. Not tracked as gaps for that
+    reason, but noted here for completeness against the screenshot.
+
 ### D3 — catalog/GUI preferences
 
   - [x] Persist Python-owned GUI preferences (last-used view filter, layout,
@@ -713,6 +755,17 @@ tier's next unchecked item before returning to D4.
     this container. This item stays open until it can be verified on a
     platform where Tk's accessibility support is meaningful (Windows/macOS
     native widgets) or a contributor can verify it directly.
+  - [ ] A fourth main-window layout rendering the selected movie's
+    **Individual** HTML template live in the right-hand pane, matching
+    upstream's own main window (an embedded browser control showing that
+    movie's page, alongside the existing table/details/poster layouts).
+    Blocked on a rendering-approach decision, not effort: Tk has no
+    built-in HTML renderer, so this needs either a new dependency (this
+    port currently has exactly one, Pillow) or a deliberately reduced-
+    fidelity plain-text preview — a real trade-off between capability and
+    this project's current dependency-free-except-Pillow footprint that is
+    worth a decision recorded in `docs/decisions.md` before building it,
+    not something to default silently.
 
 ### D6 — remaining "not ported at all" subsystems
 
@@ -829,6 +882,18 @@ script execution at all — see the checked sub-item below.
     selection. Deliberately does not add upstream's in-place template
     editor (the code-editor pane in its Export dialog): selecting a
     template file, not authoring one, is what this port's renderer needs.
+  - [ ] Upstream's Export dialog (`export.pas`) has several controls this
+    port's export still lacks entirely: a "Movies to include" scope
+    (All/Selected/Checked/Visible, each with a live count) — this port's
+    export always writes the whole catalog; an export-time sort-order
+    control independent of the catalog's current order; and, for HTML
+    specifically, a Pictures section (copy pictures alongside the export,
+    into a subfolder, only if missing, include extras) — the same
+    "upstream picture/rating-icon file copying" gap already named in
+    `amc.html_template`'s own docstring and in `docs/compatibility.md`.
+    Also out of scope in the same dialog: SQL export and a dedicated
+    "Pictures" export format (bulk-exporting every picture), neither of
+    which this port implements under any export path.
   - [x] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a

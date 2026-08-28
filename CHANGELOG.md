@@ -15,10 +15,28 @@ rather than repeating it here.
 
 ## [Unreleased]
 
-This project has not made a tagged release. The entries below are the
-current baseline as of this changelog's introduction, not a claim that any
-of it shipped as a version. Add new entries above this note as future
-changes land; do not rewrite this baseline retroactively.
+### Fixed
+
+- Native `.amc` reader/writer: `year`, `length`, `video_bitrate`,
+  `audio_bitrate`, and `media_count` (upstream's `Disks`) now round-trip
+  upstream's own `-1` "no value" sentinel as `None`, instead of the reader
+  silently passing through the literal integer `-1` and the writer
+  silently writing `0` for an unset field. Found from genuine AMC
+  3.5/4.1/4.2 catalogs; confirmed against the checked-in Delphi source's
+  own `TMovie.Reset`. See `docs/PORT_AUDIT.md` finding 38.
+
+### Added
+
+- `tests/fixtures/native-empty-one-movie/`: this port's first
+  `upstream-generated`-origin native fixtures — genuine empty (3.5/4.1/4.2)
+  and one-movie (4.1/4.2) AMC catalogs, with a provenance manifest.
+
+---
+
+This project has not made a tagged release. The entries below the divider
+are the current baseline as of this changelog's introduction, not a claim
+that any of it shipped as a version. Add new entries above this note as
+future changes land; do not rewrite this baseline retroactively.
 
 ### Added
 

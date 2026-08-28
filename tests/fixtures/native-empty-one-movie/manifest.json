@@ -1,0 +1,87 @@
+{
+  "id": "amc-native-empty-and-one-movie-3.5-4.1-4.2",
+  "origin": "upstream-generated",
+  "format": "AMC native 3.5 / 4.1 / 4.2",
+  "producer": "Ant Movie Catalog",
+  "producer_version": "3.5.x, 4.1.x, 4.2.x (exact patch build per file not independently confirmed beyond the header's own declared major.minor version)",
+  "created_at": "2026-08-28T00:00:00Z",
+  "creation_steps": "In each of three genuine, separately installed Ant Movie Catalog versions (3.5.x, 4.1.x, 4.2.x): created a new catalog and saved it immediately, unmodified (the three empty-*.amc files). Separately, in the 4.1.x and 4.2.x installations only, added one movie via the application's own Add Movie action without filling in any field, then saved (the two one-movie-*.amc files) -- there is no 3.5 one-movie file in this set. No field was ever edited on that added movie; its only non-default content is the creation timestamp AMC itself records.",
+  "provenance": "Contributed directly to this repository by its owner from locally run, licensed Ant Movie Catalog installations, specifically to give this port genuine multi-version native-format evidence for the first time (see docs/decisions.md ADR-0001 and docs/PORT_AUDIT.md's P0 evidence gate). Not independently authenticated beyond the file contents and the owner's own account of how they were produced.",
+  "redistribution": "allowed",
+  "expected_contents": "Five genuine native catalogs with no personal data: three empty catalogs (3.5, 4.1, 4.2 -- 0 movies, blank owner/mail/site/description) and two one-movie catalogs (4.1, 4.2) each holding a single blank, never-edited movie (every string field empty, every optional integer field unset, checked=True as AMC's own default for a newly added movie). Found and fixed a real reader/writer bug in this port (docs/PORT_AUDIT.md finding 38): the blank movie's year, length, media_count, video_bitrate, and audio_bitrate previously read back as the literal integer -1 (upstream's own 'no value' sentinel, confirmed in the checked-in Delphi source's TMovie.Reset in `Movie Catalog/movieclass.pas`) instead of being normalized to Python `None` the way this port's own Movie model expects; the native writer had the mirror-image bug, writing plain 0 instead of upstream's own -1 for an unset field.",
+  "files": [
+    {"path": "empty-3.5.amc", "sha256": "ad6c1f5276aaf0ef90b0767c7a50a62737e983d3813e5faaea457ab05b956910"},
+    {"path": "empty-4.1.amc", "sha256": "aaab0d13cf5a953a6c5bf1bd524f08e827e1b5006259ac52379b611aa92c722c"},
+    {"path": "empty-4.2.amc", "sha256": "4628da6d380a5acf230f0776525a0b8b28a455a79886f7854f659fc690f40e99"},
+    {"path": "one-movie-4.1.amc", "sha256": "1e6f5febed3ba91aae83e16ee938dd06852679994abacbe57c8fa58a28a915f0"},
+    {"path": "one-movie-4.2.amc", "sha256": "2e36ddef055c13fb11ace2b7a9c33b21d66cd648a7221c5ae3ffc219d9a26547"}
+  ],
+  "verification": [
+    {
+      "path": "empty-3.5.amc",
+      "format": "amc-native",
+      "header": " AMC_3.5 Ant Movie Catalog 3.5.x   www.buypin.com    www.antp.be ",
+      "version": "3.5",
+      "movies": 0,
+      "metadata": {"owner": "", "description": "", "gui_properties": ""}
+    },
+    {
+      "path": "empty-4.1.amc",
+      "format": "amc-native",
+      "header": " AMC_4.1 Ant Movie Catalog 4.1.x   antp/soulsnake    www.antp.be ",
+      "version": "4.1",
+      "movies": 0,
+      "metadata": {"owner": "", "description": "", "gui_properties": "fw533:fh449"}
+    },
+    {
+      "path": "empty-4.2.amc",
+      "format": "amc-native",
+      "header": " AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be ",
+      "version": "4.2",
+      "movies": 0,
+      "metadata": {"owner": "", "description": "", "gui_properties": "fw533:fh449"}
+    },
+    {
+      "path": "one-movie-4.1.amc",
+      "format": "amc-native",
+      "header": " AMC_4.1 Ant Movie Catalog 4.1.x   antp/soulsnake    www.antp.be ",
+      "version": "4.1",
+      "movies": 1,
+      "metadata": {"owner": "", "gui_properties": "fw533:fh449"},
+      "movie_fields": [
+        {
+          "number": 1,
+          "title": "",
+          "original_title": "",
+          "year": null,
+          "length": null,
+          "media_count": null,
+          "video_bitrate": null,
+          "audio_bitrate": null,
+          "checked": true
+        }
+      ]
+    },
+    {
+      "path": "one-movie-4.2.amc",
+      "format": "amc-native",
+      "header": " AMC_4.2 Ant Movie Catalog 4.2.x   antp/soulsnake    www.antp.be ",
+      "version": "4.2",
+      "movies": 1,
+      "metadata": {"owner": "", "gui_properties": "fw533:fh449"},
+      "movie_fields": [
+        {
+          "number": 1,
+          "title": "",
+          "original_title": "",
+          "year": null,
+          "length": null,
+          "media_count": null,
+          "video_bitrate": null,
+          "audio_bitrate": null,
+          "checked": true
+        }
+      ]
+    }
+  ]
+}

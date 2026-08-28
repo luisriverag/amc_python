@@ -814,6 +814,21 @@ script execution at all — see the checked sub-item below.
     docstring). This is distinct from — and does not reduce the scope of
     — the FreeReport report-designer item below. See PORT_AUDIT.md
     finding 27.
+  - [x] Desktop template selection dialog: the **Export** action's "use an
+    Ant Movie Catalog template" path previously chained three sequential
+    blocking file dialogs (full-catalog template, individual-movie
+    template, then an individual-pages folder) with no way to see or
+    change a choice before committing to the next prompt. Replaced with one
+    modal dialog presenting the full-catalog page and individual-movie
+    pages as two independently enabled sections — matching upstream's own
+    Export screen, which treats "Full" and "Individual" as two separately
+    selected templates — each with its own template-file picker (and the
+    individual section's own folder and filename-pattern fields), plus
+    upfront validation ("choose at least one", "choose a template for each
+    enabled section") instead of silently doing nothing on a blank
+    selection. Deliberately does not add upstream's in-place template
+    editor (the code-editor pane in its Export dialog): selecting a
+    template file, not authoring one, is what this port's renderer needs.
   - [x] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a

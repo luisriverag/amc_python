@@ -641,54 +641,135 @@ def test_window_html_export_declining_ant_template_uses_default_export():
     window.service.export_html_template.assert_not_called()
 
 
+def _template_dialog_vars(
+    *,
+    full_enabled: bool,
+    full_template: str,
+    individual_enabled: bool,
+    individual_template: str,
+    individual_dir: str,
+    individual_filename: str,
+):
+    """Build the (BooleanVar, BooleanVar) / (StringVar x4) side effects the
+    Export HTML template dialog creates, in the exact order it creates them,
+    so a patched ``tk.BooleanVar``/``tk.StringVar`` hands back one distinct
+    mock per variable instead of one mock shared by all of them."""
+    booleans = [
+        Mock(get=Mock(return_value=full_enabled)),
+        Mock(get=Mock(return_value=individual_enabled)),
+    ]
+    strings = [
+        Mock(get=Mock(return_value=full_template)),
+        Mock(get=Mock(return_value=individual_template)),
+        Mock(get=Mock(return_value=individual_dir)),
+        Mock(get=Mock(return_value=individual_filename)),
+    ]
+    return booleans, strings
+
+
 def test_window_html_export_with_ant_template_renders_full_and_individual():
     window = _window()
     window.service.export_html_template.return_value = [Path("movies.html"), Path("pages/1.html")]
+    booleans, strings = _template_dialog_vars(
+        full_enabled=True,
+        full_template="full.html",
+        individual_enabled=True,
+        individual_template="individual.html",
+        individual_dir="pages",
+        individual_filename="{number}.html",
+    )
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
         patch("amc.gui.messagebox.askyesno", return_value=True),
-        patch(
-            "amc.gui.filedialog.askopenfilename",
-            side_effect=["full.html", "individual.html"],
-        ),
-        patch("amc.gui.filedialog.askdirectory", return_value="pages"),
+        patch("amc.gui.tk.Toplevel", return_value=Mock()),
+        patch("amc.gui.tk.BooleanVar", side_effect=booleans),
+        patch("amc.gui.tk.StringVar", side_effect=strings),
+        patch("amc.gui.ttk.Checkbutton"),
+        patch("amc.gui.ttk.Entry"),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
         patch("amc.gui.messagebox.showinfo") as showinfo,
+        patch("amc.gui.messagebox.showerror") as showerror,
     ):
         window.export_catalog()
+        export_command = button.call_args_list[-1].kwargs["command"]
+        export_command()
 
     window.service.export.assert_not_called()
+    showerror.assert_not_called()
     window.service.export_html_template.assert_called_once_with(
         "movies.html",
         full_template="full.html",
         individual_template="individual.html",
         individual_dir="pages",
+        individual_filename="{number}.html",
     )
     showinfo.assert_called_once()
 
 
-def test_window_html_export_with_ant_template_cancelling_both_templates_does_nothing():
+def test_window_html_export_template_dialog_requires_at_least_one_section():
     window = _window()
+    booleans, strings = _template_dialog_vars(
+        full_enabled=False,
+        full_template="",
+        individual_enabled=False,
+        individual_template="",
+        individual_dir="",
+        individual_filename="{number}.html",
+    )
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
         patch("amc.gui.messagebox.askyesno", return_value=True),
-        patch("amc.gui.filedialog.askopenfilename", return_value=""),
+        patch("amc.gui.tk.Toplevel", return_value=Mock()),
+        patch("amc.gui.tk.BooleanVar", side_effect=booleans),
+        patch("amc.gui.tk.StringVar", side_effect=strings),
+        patch("amc.gui.ttk.Checkbutton"),
+        patch("amc.gui.ttk.Entry"),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.messagebox.showerror") as showerror,
     ):
         window.export_catalog()
+        export_command = button.call_args_list[-1].kwargs["command"]
+        export_command()
+
+    showerror.assert_called_once()
     window.service.export_html_template.assert_not_called()
 
 
-def test_window_html_export_with_ant_template_cancelling_the_folder_does_nothing():
+def test_window_html_export_template_dialog_requires_a_template_when_enabled():
     window = _window()
+    booleans, strings = _template_dialog_vars(
+        full_enabled=True,
+        full_template="",
+        individual_enabled=False,
+        individual_template="",
+        individual_dir="",
+        individual_filename="{number}.html",
+    )
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
         patch("amc.gui.messagebox.askyesno", return_value=True),
-        patch(
-            "amc.gui.filedialog.askopenfilename",
-            side_effect=["", "individual.html"],
-        ),
-        patch("amc.gui.filedialog.askdirectory", return_value=""),
+        patch("amc.gui.tk.Toplevel", return_value=Mock()),
+        patch("amc.gui.tk.BooleanVar", side_effect=booleans),
+        patch("amc.gui.tk.StringVar", side_effect=strings),
+        patch("amc.gui.ttk.Checkbutton"),
+        patch("amc.gui.ttk.Entry"),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.messagebox.showerror") as showerror,
     ):
         window.export_catalog()
+        export_command = button.call_args_list[-1].kwargs["command"]
+        export_command()
+
+    showerror.assert_called_once()
     window.service.export_html_template.assert_not_called()
 
 

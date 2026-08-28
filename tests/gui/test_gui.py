@@ -240,6 +240,77 @@ def test_window_opens_selected_catalog():
     window._path_changed.assert_called_once_with()
 
 
+def test_select_next_from_nothing_selected_picks_the_first_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=())
+
+    window.select_next()
+
+    window.table.selection_set.assert_called_once_with("1")
+    window.table.focus.assert_called_once_with("1")
+
+
+def test_select_previous_from_nothing_selected_picks_the_last_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=())
+
+    window.select_previous()
+
+    window.table.selection_set.assert_called_once_with("3")
+
+
+def test_select_next_steps_by_one_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("2",))
+
+    window.select_next()
+
+    window.table.selection_set.assert_called_once_with("3")
+
+
+def test_select_previous_steps_by_one_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("2",))
+
+    window.select_previous()
+
+    window.table.selection_set.assert_called_once_with("1")
+
+
+def test_select_next_past_the_last_row_clears_the_selection_without_wrapping():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("3",))
+
+    window.select_next()
+
+    window.table.selection_set.assert_called_once_with()
+
+
+def test_select_previous_past_the_first_row_clears_the_selection_without_wrapping():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("1",))
+
+    window.select_previous()
+
+    window.table.selection_set.assert_called_once_with()
+
+
+def test_select_next_on_an_empty_table_does_nothing():
+    window = _window()
+    window.table.get_children = Mock(return_value=())
+    window.table.selection = Mock(return_value=())
+
+    window.select_next()
+
+    window.table.selection_set.assert_not_called()
+
+
 def test_movie_web_url_accepts_only_absolute_http_urls():
     assert movie_web_url(Movie(url=" https://example.com/movie?id=7 ")) == (
         "https://example.com/movie?id=7"
@@ -1759,6 +1830,29 @@ def test_window_preferences_dialog_updates_service_history_limit():
     showerror.assert_not_called()
     assert window.service.history_limit == 250
     window._save_preferences.assert_called_once_with()
+    dialog.destroy.assert_called_once_with()
+
+
+def test_window_about_dialog_shows_version_and_opens_link_on_click():
+    window = object.__new__(CatalogWindow)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    dialog = Mock()
+    link = Mock()
+
+    with (
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", side_effect=[Mock(), Mock(), Mock(), Mock(), link]),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.webbrowser.open") as browser_open,
+    ):
+        window.show_about()
+        close = button.call_args.kwargs["command"]
+        click = link.bind.call_args.args[1]
+        click(Mock())
+        close()
+
+    browser_open.assert_called_once_with("https://github.com/luisriverag/amc_python")
     dialog.destroy.assert_called_once_with()
 
 

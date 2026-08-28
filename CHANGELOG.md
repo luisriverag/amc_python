@@ -17,6 +17,13 @@ rather than repeating it here.
 
 ### Added
 
+- Desktop GUI: **Previous Movie**/**Next Movie** (`Ctrl+PageUp`/
+  `Ctrl+PageDown`, and a new **Movie** menu entry pair) step the table
+  selection by one row, matching upstream's own navigation actions —
+  including its no-wraparound behavior at either end.
+- Desktop GUI: a **Help** menu with an **About AMC Python...** dialog
+  (version, license, and a link to this project's own repository) —
+  upstream has a dedicated Help menu; this port previously had neither.
 - Export "Movies to include" scope and export-time sort, matching
   upstream's own Export dialog: every CLI `export-*` command now accepts
   `--scope {all,checked}` and `--sort-by FIELD [--sort-reverse]`; the

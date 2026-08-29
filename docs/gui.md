@@ -26,8 +26,8 @@ The packaging check verifies that an isolated wheel installation can import both
 - Merge another catalog using safe default collision policies.
 - **Import Media** first asks whether to import from a folder or choose
   individual files, then adds a movie entry per file from portable facts and,
-  for WAV/FLAC/AIFF/MP3, duration and bitrate — the desktop equivalent of the
-  CLI's `import-media`. Choosing a folder also asks whether to include
+  for WAV/FLAC/AIFF/MP3/MP4/OGG, duration and bitrate — the desktop
+  equivalent of the CLI's `import-media`. Choosing a folder also asks whether to include
   subfolders, mirroring `--recursive`; recursive scans can be unlimited or
   capped at a non-negative number of subfolder levels, mirroring CLI
   `--max-depth`. It then offers an optional
@@ -107,8 +107,9 @@ The packaging check verifies that an isolated wheel installation can import both
   is open read-only. Undo and redo also reflect whether history is available.
 - Select a movie to review titles, director, category, actors, borrower, URL,
   description, and comments in a read-only details pane.
-- Switch between table-only, combined poster/details, and poster-focused layouts.
-  Posters appear by default in the combined Details layout; choosing Poster gives
+- Switch between table-only, combined poster/details, poster-focused, and
+  **HTML** layouts. Posters appear by default in the combined Details layout;
+  choosing Poster gives
   the image the full lower pane. Linked
   poster paths are resolved relative to the catalog, and embedded native pictures
   are decoded with Pillow. JPEG, PNG, GIF, BMP, TIFF, and other Pillow-supported
@@ -116,6 +117,17 @@ The packaging check verifies that an isolated wheel installation can import both
   catalog moved from Windows retains an unavailable drive path, the GUI also looks
   for the poster filename beside the catalog. Invalid embedded data falls back to a
   valid linked poster.
+- The **HTML** layout renders the selected movie live through a
+  user-chosen Ant Movie Catalog Individual template — matching upstream's own
+  main window, which shows the current movie's page in a pane next to the
+  list — using `amc.html_template.render_individual_template` with the
+  template's own directory as its `base_url` so relative CSS/image
+  references resolve the same way they would in a real export. **Tools →
+  Choose HTML Preview Template...** picks the template file, persisted
+  across restarts in the same preferences file described below. This is
+  this port's second dependency beyond Pillow: `tkinterweb` (see ADR-0009 in
+  `docs/decisions.md`), chosen after confirming it ships prebuilt wheels for
+  Linux, Windows, and macOS.
 - Check one movie or an extended selection out to one borrower, or check the
   selection back in. The whole loan batch is validated and persisted atomically;
   one conflicting or unavailable movie leaves every selected loan unchanged. The
@@ -223,8 +235,9 @@ upstream fixtures.
 
 ## Preferences
 
-The desktop remembers the last-used view filter, layout, window size, and
-undo/redo history depth across restarts. This is an AMC Python convenience with
+The desktop remembers the last-used view filter, layout, window size,
+undo/redo history depth, and chosen HTML preview template path across
+restarts. This is an AMC Python convenience with
 no upstream counterpart, so it is deliberately stored outside any catalog file —
 never in the JSON catalog, and never confused with a retained Ant Movie Catalog
 property — in a small per-user JSON file (`amc.preferences`):
@@ -234,7 +247,8 @@ property — in a small per-user JSON file (`amc.preferences`):
 elsewhere. Set `AMC_PYTHON_CONFIG_DIR` to use a different location, such as in
 tests or portable installs. Preferences are written atomically whenever the view
 filter or layout changes, once when the **Preferences** toolbar button's history
-limit is saved, and once more when the window closes to capture its final size.
+limit is saved, once when a new HTML preview template is chosen, and once more
+when the window closes to capture its final size.
 A missing, corrupt, or invalid preferences file — or a failed write — is never
 treated as an error: the desktop falls back to built-in defaults (view All,
 layout Details, 1100×720, 100-entry history) rather than failing to start or

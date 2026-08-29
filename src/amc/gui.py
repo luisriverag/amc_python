@@ -109,6 +109,10 @@ _EDIT_LABEL_WIDTH = max(
 # gets its own row, one per line. The flattened field set must stay a
 # partition of _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS + _EDIT_FLOAT_FIELDS —
 # enforced by test_edit_field_groups_cover_every_edit_field_exactly_once.
+# The "Checked" checkbox has no dedicated field and is appended to this one
+# group's frame after the fields below are built; referenced by this
+# constant rather than a repeated literal so the two spots can't desync.
+_EDIT_CHECKED_GROUP_TITLE = "Classification"
 _EDIT_FIELD_GROUPS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
     (
         "Identification",
@@ -122,7 +126,7 @@ _EDIT_FIELD_GROUPS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
         ),
     ),
     (
-        "Classification",
+        _EDIT_CHECKED_GROUP_TITLE,
         (
             ("category", "certification"),
             ("country", "year", "length"),
@@ -2370,7 +2374,11 @@ class CatalogWindow(ttk.Frame):
         canvas_window = canvas.create_window((0, 0), window=fields_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
+        # sticky="w" (not just "ns"): column 1 also holds the Save button
+        # (row 1), which is wider than the scrollbar, so column 1 is sized
+        # to the button's width. Without "w" the scrollbar centers in that
+        # wider column instead of hugging the canvas it scrolls.
+        scrollbar.grid(row=0, column=1, sticky="nsw")
         dialog.rowconfigure(0, weight=1)
         dialog.columnconfigure(0, weight=1)
 
@@ -2390,7 +2398,7 @@ class CatalogWindow(ttk.Frame):
         for group_title, group_rows in _EDIT_FIELD_GROUPS:
             group = ttk.LabelFrame(fields_frame, text=group_title)
             group.pack(fill="x", padx=8, pady=(4, 8))
-            if group_title == "Classification":
+            if group_title == _EDIT_CHECKED_GROUP_TITLE:
                 classification_group = group
             for row_fields in group_rows:
                 row_frame = ttk.Frame(group)

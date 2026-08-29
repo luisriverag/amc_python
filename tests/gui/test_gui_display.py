@@ -922,3 +922,27 @@ def test_edit_dialog_stacks_every_field_on_its_own_row_when_narrow(
     assert year_entry.grid_info()["row"] != length_entry.grid_info()["row"]
 
     dialog.destroy()
+
+
+def test_edit_dialog_scrollbar_has_no_gap_from_its_canvas(real_root: tk.Tk, tmp_path: Path):
+    """The scrollbar shares its grid column with the wider Save button
+    (a different row), so it must stick to the canvas's edge explicitly —
+    without that, it centers in the wider column and floats away from the
+    content it scrolls."""
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+    dialog.geometry("900x700")
+    real_root.update_idletasks()
+    real_root.update()
+
+    canvas = next(c for c in dialog.winfo_children() if isinstance(c, tk.Canvas))
+    scrollbar = next(c for c in dialog.winfo_children() if isinstance(c, ttk.Scrollbar))
+
+    assert scrollbar.winfo_x() == canvas.winfo_x() + canvas.winfo_width()
+
+    dialog.destroy()

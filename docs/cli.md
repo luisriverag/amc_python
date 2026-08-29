@@ -138,7 +138,10 @@ readers. An exceeded budget is reported as a `validate` diagnostic and as an
   `--individual-filename` sets their naming pattern (default
   `{number}.html`). See `amc.html_template`'s module docstring for the exact
   tag coverage and documented scope boundaries (no upstream-verified parity
-  claim; picture files and rating-icon images are not copied; the
+  claim). `--copy-pictures` copies resolvable linked or embedded posters;
+  `--picture-directory` selects their relative output subdirectory (default
+  `pictures`), and `--pictures-only-if-missing` preserves existing files.
+  Rating-icon images remain template-owned assets and are not copied. The
   supplementary-record `$$ITEM_EXTRA_*` loop is not implemented and any such
   block is stripped rather than left as literal template syntax).
 - `export-amc` atomically writes the source-derived AMC 4.2 layout. It preserves

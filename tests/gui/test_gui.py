@@ -832,8 +832,11 @@ def _template_dialog_vars(
     scope: str = "all",
     sort_by: str = "",
     reverse: bool = False,
+    copy_pictures: bool = False,
+    picture_directory: str = "pictures",
+    pictures_only_if_missing: bool = False,
 ):
-    """Build the (BooleanVar x3) / (StringVar x6) side effects the Export
+    """Build the BooleanVar/StringVar side effects the Export
     HTML template dialog creates, in the exact order it creates them
     (including the shared "Movies to include"/"Sort by" controls), so a
     patched ``tk.BooleanVar``/``tk.StringVar`` hands back one distinct mock
@@ -841,6 +844,8 @@ def _template_dialog_vars(
     booleans = [
         Mock(get=Mock(return_value=full_enabled)),
         Mock(get=Mock(return_value=individual_enabled)),
+        Mock(get=Mock(return_value=copy_pictures)),
+        Mock(get=Mock(return_value=pictures_only_if_missing)),
         Mock(get=Mock(return_value=reverse)),
     ]
     strings = [
@@ -848,6 +853,7 @@ def _template_dialog_vars(
         Mock(get=Mock(return_value=individual_template)),
         Mock(get=Mock(return_value=individual_dir)),
         Mock(get=Mock(return_value=individual_filename)),
+        Mock(get=Mock(return_value=picture_directory)),
         Mock(get=Mock(return_value=scope)),
         Mock(get=Mock(return_value=sort_by)),
     ]
@@ -865,6 +871,9 @@ def test_window_html_export_with_ant_template_renders_full_and_individual():
         individual_template="individual.html",
         individual_dir="pages",
         individual_filename="{number}.html",
+        copy_pictures=True,
+        picture_directory="images",
+        pictures_only_if_missing=True,
     )
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
@@ -898,8 +907,26 @@ def test_window_html_export_with_ant_template_renders_full_and_individual():
         movies=None,
         sort_by=None,
         sort_reverse=False,
+        copy_pictures=True,
+        picture_directory="images",
+        pictures_only_if_missing=True,
     )
     showinfo.assert_called_once()
+
+
+def test_window_direct_html_template_export_opens_template_dialog():
+    window = _window()
+    window._export_html_template = Mock()
+
+    with patch(
+        "amc.gui.filedialog.asksaveasfilename", return_value="site/index.html"
+    ) as choose_destination:
+        window.export_html_template_dialog()
+
+    assert choose_destination.call_args.kwargs["title"] == (
+        "Export HTML template — choose full catalog page"
+    )
+    window._export_html_template.assert_called_once_with("site/index.html")
 
 
 def test_window_html_export_template_dialog_requires_at_least_one_section():
@@ -1753,6 +1780,77 @@ def test_poster_source_resolves_relative_link(tmp_path: Path):
     )
 
 
+def test_poster_source_recovers_windows_case_for_relative_subfolder(tmp_path: Path):
+    poster = tmp_path / "Pictures" / "Moon.GIF"
+    poster.parent.mkdir()
+    poster.write_bytes(b"GIF89a")
+
+    assert poster_source(Movie(picture=r"pictures\moon.gif"), tmp_path / "movies.amc") == (
+        "file",
+        str(poster),
+    )
+
+
+def test_poster_source_resolves_amc_named_picture_subfolder(tmp_path: Path):
+    poster = tmp_path / "RPlex_Mov.amc_pics" / "RPlex_Mov_10.jpg"
+    poster.parent.mkdir()
+    poster.write_bytes(b"poster")
+
+    assert poster_source(
+        Movie(picture=r"RPlex_Mov.amc_pics\RPlex_Mov_10.jpg"),
+        tmp_path / "RPlex_Mov.amc",
+    ) == ("file", str(poster))
+
+
+def test_poster_source_uses_real_catalog_location_when_catalog_is_symlink(tmp_path: Path):
+    real_dir = tmp_path / "real"
+    catalog = real_dir / "movies.amc"
+    poster = real_dir / "pictures" / "cover.jpg"
+    poster.parent.mkdir(parents=True)
+    catalog.write_bytes(b"catalog")
+    poster.write_bytes(b"poster")
+    link_dir = tmp_path / "links"
+    link_dir.mkdir()
+    link = link_dir / "movies.amc"
+    try:
+        link.symlink_to(catalog)
+    except OSError:
+        pytest.skip("symbolic links are unavailable")
+
+    assert poster_source(Movie(picture=r"pictures\cover.jpg"), link) == ("file", str(poster))
+
+
+def test_poster_source_finds_unique_picture_when_stored_subfolder_is_stale(tmp_path: Path):
+    poster = tmp_path / "actual-pictures" / "RPlex_Mov_10.jpg"
+    poster.parent.mkdir()
+    poster.write_bytes(b"poster")
+
+    assert poster_source(
+        Movie(picture=r"RPlex_Mov.amc_pics\RPlex_Mov_10.jpg"),
+        tmp_path / "RPlex_Mov.amc",
+    ) == ("file", str(poster))
+
+
+def test_poster_source_does_not_guess_between_duplicate_descendant_names(tmp_path: Path):
+    for directory in ("pictures-one", "pictures-two"):
+        poster = tmp_path / directory / "cover.jpg"
+        poster.parent.mkdir()
+        poster.write_bytes(b"poster")
+
+    assert poster_source(Movie(picture=r"missing\cover.jpg"), tmp_path / "movies.amc") is None
+
+
+def test_poster_source_rebases_windows_absolute_subfolder_to_moved_catalog(tmp_path: Path):
+    catalog_dir = tmp_path / "Movies"
+    poster = catalog_dir / "Pictures" / "moon.jpg"
+    poster.parent.mkdir(parents=True)
+    poster.write_bytes(b"poster")
+
+    assert poster_source(
+        Movie(picture=r"D:\Archive\Movies\Pictures\moon.jpg"), catalog_dir / "movies.amc"
+    ) == ("file", str(poster))
+
+
 def test_poster_source_rejects_invalid_or_missing_sources(tmp_path: Path):
     assert (
         poster_source(Movie(extras={"native_picture_base64": "not base64"}), tmp_path / "x.amc")
@@ -1934,6 +2032,21 @@ def test_window_reports_missing_linked_poster():
     assert window.poster.configure.call_args.kwargs["text"] == (
         "Poster file not found: covers/missing.jpg"
     )
+
+
+def test_window_displays_linked_poster_from_amc_named_subfolder(tmp_path: Path):
+    window = _window()
+    window.service.path = tmp_path / "RPlex_Mov.amc"
+    poster = tmp_path / "RPlex_Mov.amc_pics" / "RPlex_Mov_10.jpg"
+    poster.parent.mkdir()
+    Image.new("RGB", (40, 60), "red").save(poster)
+    rendered = object()
+
+    with patch("amc.gui.ImageTk.PhotoImage", return_value=rendered):
+        window._show_poster(Movie(picture=r"RPlex_Mov.amc_pics\RPlex_Mov_10.jpg"))
+
+    assert window.poster_image is rendered
+    window.poster.configure.assert_called_once_with(image=rendered, text="")
 
 
 def test_modal_waits_until_viewable_before_grab_and_focus():

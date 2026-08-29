@@ -165,6 +165,30 @@ def test_main_window_renders_with_expected_controls(real_root: tk.Tk, tmp_path: 
     }
 
 
+def test_main_window_displays_linked_poster_from_amc_named_subfolder(
+    real_root: tk.Tk, tmp_path: Path
+):
+    catalog_path = tmp_path / "RPlex_Mov.amc"
+    # JSON is used only to construct the window cheaply; picture resolution is
+    # driven by the catalog path and stored Movie value exactly as for native AMC.
+    catalog_path.write_text(
+        '{"version":1,"movies":[{"number":10,"title":"Life Itself",'
+        '"picture":"RPlex_Mov.amc_pics\\\\RPlex_Mov_10.jpg"}]}',
+        encoding="utf-8",
+    )
+    poster = tmp_path / "RPlex_Mov.amc_pics" / "RPlex_Mov_10.jpg"
+    poster.parent.mkdir()
+    Image.new("RGB", (40, 60), "red").save(poster)
+
+    window = CatalogWindow(real_root, catalog_path, preferences_path=tmp_path / "prefs.json")
+    window.table.selection_set("10")
+    window._on_select()
+    real_root.update_idletasks()
+
+    assert window.poster_image is not None
+    assert window.poster.cget("text") == ""
+
+
 def test_html_layout_maps_a_real_tkinterweb_widget_and_renders_the_selection(
     real_root: tk.Tk, tmp_path: Path
 ):
@@ -214,6 +238,7 @@ def test_main_window_has_a_grouped_menu_bar(real_root: tk.Tk, tmp_path: Path):
 
     file_menu = real_root.nametowidget(menubar.entrycget(0, "menu"))
     assert "Open Catalog..." in _menu_labels(file_menu)
+    assert "Export HTML Template..." in _menu_labels(file_menu)
     assert "Exit" in _menu_labels(file_menu)
 
     movie_menu = real_root.nametowidget(menubar.entrycget(2, "menu"))

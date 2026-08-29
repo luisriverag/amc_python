@@ -145,7 +145,10 @@ whether redistribution is permitted. Synthetic fixtures must be clearly labeled.
 ## Deliberate prototype boundaries
 
 - `scripts.py` reads leading metadata comments only. It never invokes IFPS or
-  executes Pascal source, and static values are deliberately omitted.
+  executes Pascal source, and static values are deliberately omitted. Accepted
+  ADR-0005 makes that a permanent application trust boundary: live integrations
+  must be narrow, audited providers with timeouts and preview-before-apply
+  changes, not arbitrary downloaded bytecode or in-process interpreter plugins.
 - `media.py` provides portable filesystem facts and PCM WAV/FLAC/AIFF/MP3/
   MP4/OGG metadata, parsed directly from each format's own public
   specification using only the standard library (AIFF deliberately

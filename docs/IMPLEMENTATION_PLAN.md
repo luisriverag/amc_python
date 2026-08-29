@@ -658,12 +658,16 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     idiomatic for a future non-CLI, non-GUI consumer. PORT_AUDIT design-debt
     item 8 (now fully resolved).
 
-### D5 — GUI parity (current priority)
+### D5 — GUI parity
 
 The general engineering-debt sweep in D4 is far enough along that GUI parity —
 closing the desktop GUI's own gaps against its documented contract, ahead of
-further D4 items — is now the priority within the downstream track. Work this
-tier's next unchecked item before returning to D4.
+further D4 items — became the priority within the downstream track. D5 is now
+done: every item below is either checked or, for the one that isn't
+(accessibility verification), genuinely blocked on assistive technology this
+environment does not have, not on further coding. The current priority within
+the downstream track has moved to D6's remaining unblocked item (the Export
+dialog's picture-copying/SQL/Pictures-export gap — see below).
 
   - [x] Real-display smoke coverage. This development container turned out to
     have Xvfb installed, contradicting an earlier "no real display" note in
@@ -767,12 +771,6 @@ tier's next unchecked item before returning to D4.
     this container. This item stays open until it can be verified on a
     platform where Tk's accessibility support is meaningful (Windows/macOS
     native widgets) or a contributor can verify it directly.
-  - [ ] Screen-reader labels and a verified accessibility pass remain out of
-    reach here regardless of display availability: Tk has no meaningful
-    AT-SPI bridge on X11 to exercise, and no screen reader is installed in
-    this container. This item stays open until it can be verified on a
-    platform where Tk's accessibility support is meaningful (Windows/macOS
-    native widgets) or a contributor can verify it directly.
   - [x] A fourth main-window layout (`HTML`) rendering the selected movie's
     **Individual** HTML template live in the right-hand pane, matching
     upstream's own main window. Adopted `tkinterweb` as this port's second
@@ -837,6 +835,8 @@ Comparing the desktop main window against upstream's own (`main.pas`/
     a **Help** menu with an **About AMC Python...** entry showing the
     installed version (`amc.__version__`), license, and a clickable link
     to this project's own repository.
+
+### D6 — remaining "not ported at all" subsystems
 
 Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
 all: website script execution, localization, printing/reports, and compressed
@@ -964,14 +964,21 @@ script execution at all — see the checked sub-item below.
     export — the live catalog and its own order are never touched by an
     export. `Catalog.sort`'s ordering logic moved to a shared
     `catalog.sort_movies` helper so both use one validated implementation.
-  - [ ] Upstream's Export dialog also has controls this port's export still
-    lacks entirely: for HTML specifically, a Pictures section (copy pictures
-    alongside the export, into a subfolder, only if missing, include
-    extras) — the same "upstream picture/rating-icon file copying" gap
-    already named in `amc.html_template`'s own docstring and in
-    `docs/compatibility.md`. Also out of scope in the same dialog: SQL
-    export and a dedicated "Pictures" export format (bulk-exporting every
-    picture), neither of which this port implements under any export path.
+  - [ ] (Current priority within the downstream track.) Upstream's Export
+    dialog also has controls this port's export still lacks entirely: for
+    HTML specifically, a Pictures section (copy pictures alongside the
+    export, into a subfolder, only if missing, include extras) — the same
+    "upstream picture/rating-icon file copying" gap already named in
+    `amc.html_template`'s own docstring and in `docs/compatibility.md`.
+    Also out of scope in the same dialog: SQL export and a dedicated
+    "Pictures" export format (bulk-exporting every picture), neither of
+    which this port implements under any export path. The picture-copying
+    piece needs an atomic binary-file writer (every existing atomic writer
+    in this package is text-mode, see `storage._atomic_text`) and threading
+    the source catalog's own path through `amc.html_template.
+    export_html_template` so linked pictures can be resolved the same way
+    `presentation.poster_source` already does for the GUI's poster
+    preview — reuse that function rather than re-deriving link resolution.
   - [x] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a
@@ -1108,9 +1115,18 @@ so it does not require a fixture.
 
 The manifest contract and canonical checks now support exact 65-byte native headers,
 declared native versions, movie counts, metadata, and indexed movie-field expectations through
-`tools/verify_fixtures.py`. This makes fixture
-intake reproducible, but does not advance the items above: no genuine upstream
-fixture or redistribution decision has yet been supplied.
+`tools/verify_fixtures.py`. This makes fixture intake reproducible, and two genuine
+fixture sets have since been registered under it —
+`tests/fixtures/native-empty-one-movie/` (empty/one-movie AMC 3.5/4.1/4.2 catalogs)
+and `tests/fixtures/native-sample-catalog/` (a populated AMC 3.5/4.2 catalog pair
+with custom fields and embedded pictures) — which satisfy Sprint 1's own
+`validate_fixtures`/`verify_fixtures` exit checks. Sprint 1 as a whole is still not
+closed: its other required work — reacquiring the published source archive from an
+independently recorded origin, and resolving the ElTree redistribution restriction
+and the absent `Common/ComboBoxAutoWidth.pas` license grant (Milestone 0) — remains
+open. No compatibility status may be upgraded to `verified` regardless of Sprint 1's
+state, since that also needs a documented cross-application (write, then reopen in
+genuine AMC) test that neither fixture set provides yet.
 
 Do not add unrelated UI, CRUD, native writing, or further legacy parsing until this
 slice passes. A source-derived synthetic test is implementation evidence, not

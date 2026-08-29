@@ -45,12 +45,16 @@ tracked in the [port audit](PORT_AUDIT.md#gap-matrix-against-the-original-applic
 
 Python 3.10 and newer is declared. A Linux and Windows workflow is configured for
 Python 3.10–3.13; this repository does not contain evidence of a completed hosted CI
-run. The workflow installs the `dev` extra and runs focused Ruff linting, the full
-test suite with an 80% aggregate branch-coverage floor, compilation and source CLI
-checks, plus isolated wheel/entry-point smoke tests. Formatting and static type
-checking are not yet configured gates. Tk comes from the Python/operating-system
-installation rather than a wheel extra; the isolated packaging check explicitly
-imports both `tkinter` and `amc.gui` before exercising the GUI entry point.
+run. The workflow installs the `dev` extra and runs `tools/check.py` (focused Ruff
+linting, `ruff format --check`, `mypy` in its default non-strict mode — see
+ADR-0008 in `docs/decisions.md` — the full test suite with an 80% aggregate
+branch-coverage floor, compilation, fixture-manifest/license-inventory validation,
+and a source CLI smoke check) and `tools/check_package.py` (isolated wheel/
+sdist build, install, and entry-point smoke tests). Tk comes from the
+Python/operating-system installation rather than a wheel extra; the isolated
+packaging check explicitly imports both `tkinter` and `amc.gui` before exercising
+the GUI entry point. The Linux job additionally installs Xvfb so the desktop
+GUI's real-display smoke tests run instead of self-skipping.
 
 The detailed evidence and gap analysis is maintained in
 [`PORT_AUDIT.md`](PORT_AUDIT.md).

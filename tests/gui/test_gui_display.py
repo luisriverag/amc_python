@@ -182,7 +182,7 @@ def test_main_window_displays_linked_poster_from_amc_named_subfolder(
 
     window = CatalogWindow(real_root, catalog_path, preferences_path=tmp_path / "prefs.json")
     window.table.selection_set("10")
-    window._on_select()
+    window.selection_changed()
     real_root.update_idletasks()
 
     assert window.poster_image is not None

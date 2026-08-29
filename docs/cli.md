@@ -39,6 +39,18 @@ The JSON shapes are part of the CLI contract:
 - `inspect` returns a catalog-information object.
 - `validate` returns an array of diagnostic objects.
 
+`search QUERY` matches upstream's own field-scoped search
+(`ActionFindFindnextExecute` in `main.pas`) rather than only a fixed default
+field set: `--field NAME` restricts matching to one `Movie` field,
+`--whole-field` requires an exact (case-insensitive) match instead of a
+substring, and `--reverse` returns movies that do *not* match instead of ones
+that do. An unknown `--field` returns status 2. Without `--field`, matching
+checks the same broad default set as before (`amc.catalog.
+DEFAULT_SEARCH_FIELDS`). Upstream's expression-evaluation search mode and its
+distinct "Find Next" (jump-to-match) vs. live-filter modes are not
+implemented — this command always filters, matching the desktop's own search
+bar.
+
 `inspect` and `validate` also accept `--max-input-bytes` to reject a file larger
 than the given size before any format-specific parsing starts (default 1 TiB).
 JSON and native inspection load the full file to identify it, so this bounds the
@@ -138,6 +150,14 @@ readers. An exceeded budget is reported as a `validate` diagnostic and as an
   `--max-custom-fields`, `--max-list-values`, `--max-extras-per-movie`, and
   `--max-total-extras` expose the remaining structural budgets. Invalid or exceeded
   budgets return status 2 without replacing an existing destination.
+- Every `export-*` command accepts `--scope {all,checked}` (default `all`) and
+  `--sort-by FIELD [--sort-reverse]`, matching upstream's Export dialog's
+  "Movies to include" and sort-order controls without changing the catalog
+  itself — `checked` scopes to checked movies the same way the desktop's
+  Checked view filter does; `--sort-by` accepts any `Movie` field name
+  (movies missing a value for it sort last). `selected`/`visible` scopes have
+  no CLI equivalent since there is no interactive selection or search here;
+  the desktop's own Export dialog offers those two in addition.
 - `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID] [--timeout SECONDS]
   [--apply]` fetches one movie's metadata from the OMDb API
   (https://www.omdbapi.com/, a REST API that legally re-serves a curated

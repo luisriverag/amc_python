@@ -17,6 +17,27 @@ rather than repeating it here.
 
 ### Added
 
+- Field-scoped search, matching upstream's own search bar:
+  `Catalog.search` accepts `field` (restrict to one movie field),
+  `whole_field` (exact match instead of substring), and `reverse`
+  (movies that do *not* match). The desktop search bar gained a
+  **Search in field** dropdown, **Whole field only**, and **Reverse
+  results** controls; the CLI's `search` command gained matching
+  `--field`/`--whole-field`/`--reverse` flags.
+- Desktop GUI: **Previous Movie**/**Next Movie** (`Ctrl+PageUp`/
+  `Ctrl+PageDown`, and a new **Movie** menu entry pair) step the table
+  selection by one row, matching upstream's own navigation actions —
+  including its no-wraparound behavior at either end.
+- Desktop GUI: a **Help** menu with an **About AMC Python...** dialog
+  (version, license, and a link to this project's own repository) —
+  upstream has a dedicated Help menu; this port previously had neither.
+- Export "Movies to include" scope and export-time sort, matching
+  upstream's own Export dialog: every CLI `export-*` command now accepts
+  `--scope {all,checked}` and `--sort-by FIELD [--sort-reverse]`; the
+  desktop's Export flow opens an **Export options** dialog offering
+  All/Selected/Checked/Visible (each with a live count) and the same
+  sort/reverse control. Neither the catalog's own movie order nor its
+  saved file are touched by an export.
 - Depth-limited media-folder discovery through `discover_media(max_depth=...)`,
   CLI `import-media --max-depth`, and the desktop Import Media workflow.
 - Optional multi-part media merging for adjacent `CD1`/`CD2`-style files,

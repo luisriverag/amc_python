@@ -5,14 +5,22 @@ bounded sprints. The ordering is mandatory: completing prototype features does n
 substitute for upstream evidence, and a later sprint cannot advance a compatibility
 claim while an earlier gate is open.
 
-**Current status: Sprint 1 is externally blocked.** Its required work — using a
-genuine, licensed Ant Movie Catalog 4.2.3.2 Windows installation to produce
-upstream catalogs — cannot be performed inside this repository's automated
-development environment. Sprints 2–4 stay gated behind Sprint 1's exit checks
-exactly as written below; none of their compatibility claims may be advanced
-without registered fixtures. While Sprint 1 waits on an external contributor,
-execution proceeds on the ordered, fixture-independent
-[**Downstream execution backlog (D0–D3)**](IMPLEMENTATION_PLAN.md#downstream-execution-backlog-d0d3)
+**Current status: Sprint 1 is partially underway but still open.** Two genuine
+upstream-generated fixture sets have been contributed and registered —
+`tests/fixtures/native-empty-one-movie/` and `tests/fixtures/
+native-sample-catalog/` — satisfying this sprint's `validate_fixtures`/
+`verify_fixtures` exit checks below. The rest of its required work — reacquiring
+the published source archive from an independently recorded origin, and
+resolving the ElTree redistribution restriction and the absent
+`Common/ComboBoxAutoWidth.pas` license grant — still cannot be performed inside
+this repository's automated development environment and remains externally
+blocked. Sprints 2–4 stay gated behind Sprint 1's exit checks exactly as
+written below; none of their compatibility claims may be advanced without
+registered fixtures, and no status may move to `verified` without also a
+documented cross-application (write, then reopen in genuine AMC) test, which
+neither registered fixture set provides yet. While the remaining blockers wait
+on an external contributor, execution proceeds on the ordered, fixture-independent
+[**Downstream execution backlog (D0–D6)**](IMPLEMENTATION_PLAN.md#downstream-execution-backlog-d0d6)
 in `IMPLEMENTATION_PLAN.md` (Milestones 5 and 6). That work never substitutes
 for Sprint 1 and must not be described as compatibility progress.
 
@@ -48,7 +56,13 @@ for Sprint 1 and must not be described as compatibility progress.
 - Use upstream AMC 4.2.3.2 to create empty and one-movie native catalogs plus their
   XML exports. Record the exact producer build, operating-system locale, catalog
   code page, creation steps, SHA-256, expected values, and redistribution permission.
+  [Partial] Empty/one-movie AMC 3.5/4.1/4.2 native catalogs and a populated
+  3.5/4.2 pair with custom fields and embedded pictures are registered
+  (`tests/fixtures/native-empty-one-movie/`, `tests/fixtures/
+  native-sample-catalog/`); their matching XML exports are not, and the
+  producer build is not confirmed as specifically 4.2.3.2.
 - Register each accepted fixture with the existing provenance-manifest contract.
+  [Done for the fixtures registered so far.]
 
 ### Exit checks
 
@@ -151,11 +165,28 @@ internal JSON representation.
 
 ## Work deferred until these gates pass
 
-- Sandboxed website-script execution and live network providers.
-- Additional native writer versions or removing the experimental writer warning.
-- Broad UI parity, batch picture workflows, printing/report design, and full media
-  codec analysis.
-- Performance-only native refactors that would change unverified byte boundaries.
+- Sandboxed website-script (IFPS) execution: real security exposure (running
+  arbitrary bytecode sourced from the web), left for an explicit
+  product/security decision rather than fixture timing — see
+  `IMPLEMENTATION_PLAN.md`'s D6. A narrower, non-executing alternative
+  (`amc.omdb`, a first-party OMDb API provider covering the two
+  highest-value legacy-script use cases) already shipped and is not
+  blocked by this gate.
+- Additional native writer versions, and removing the experimental-writer
+  warning on the existing AMC 4.2 writer.
+- Performance-only native refactors that would change unverified byte
+  boundaries.
 
-These items remain valid project goals, but they are not on the critical path to a
-defensible port claim.
+Broad UI parity, batch picture workflows, and full media-codec
+duration/bitrate analysis (MP3/MP4/OGG) turned out not to need this gate at
+all: they are Python-owned behavior with no upstream-compatibility claim, so
+they proceeded on the fixture-independent downstream backlog described above
+and are now done — see `IMPLEMENTATION_PLAN.md`'s D0/D1/D5. Printing/report
+design (porting FreeReport) is not merely deferred, either: it was decided
+permanently out of scope regardless of these gates — a standalone-
+application-sized effort disproportionate to this port, with HTML template
+export already covering the underlying "formatted report" need — see D6.
+
+The remaining bulleted items above stay genuinely gated on Sprints 1–4's
+evidence chain; they are not on the critical path to a defensible port claim
+regardless of how much downstream work lands first.

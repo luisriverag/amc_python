@@ -26,8 +26,8 @@ The packaging check verifies that an isolated wheel installation can import both
 - Merge another catalog using safe default collision policies.
 - **Import Media** first asks whether to import from a folder or choose
   individual files, then adds a movie entry per file from portable facts and,
-  for WAV/FLAC/AIFF/MP3, duration and bitrate — the desktop equivalent of the
-  CLI's `import-media`. Choosing a folder also asks whether to include
+  for WAV/FLAC/AIFF/MP3/MP4/OGG, duration and bitrate — the desktop
+  equivalent of the CLI's `import-media`. Choosing a folder also asks whether to include
   subfolders, mirroring `--recursive`; recursive scans can be unlimited or
   capped at a non-negative number of subfolder levels, mirroring CLI
   `--max-depth`. It then offers an optional
@@ -52,7 +52,11 @@ The packaging check verifies that an isolated wheel installation can import both
   full catalog listing, one for individual movie pages — from real AMC's own
   HTML export) instead of AMC Python's own default table export. See
   `amc.html_template` and the CLI's `export-html-template` for the same
-  capability and its documented scope.
+  capability and its documented scope. Either path then opens an **Export
+  options** dialog matching upstream's own Export screen: "Movies to
+  include" (All/Selected/Checked/Visible, each showing a live count) and an
+  export-time "Sort by" field with a Reverse toggle, independent of the
+  catalog's own current order.
 - Create and restore validated, atomically replaced backups.
 - Add and edit all modeled scalar movie fields in a scrollable validated form;
   remove one movie or an extended table selection in a single atomic operation,
@@ -82,21 +86,30 @@ The packaging check verifies that an isolated wheel installation can import both
   through single-line fields; borrower changes remain in the dedicated loan
   controls.
 - Search the visible list; filter all, loaned, available, checked, or unchecked
-  movies; and review displayed/total counts. The table includes borrower and checked
-  status and retains a visible selection across refreshes. Clicking a column heading
-  sorts ascending; clicking it again sorts descending. An arrow shows the active
-  direction, and missing numeric values remain at the end in either direction.
-  The active view filter, layout, and window size are remembered across
-  restarts (see **Preferences** below); this does not affect sorting, which
-  always starts unsorted for a freshly opened catalog.
+  movies; and review displayed/total counts. A second row below the search box —
+  **Search in field** (a specific field, or All fields), **Whole field only**
+  (exact match instead of substring), and **Reverse results** (movies that do
+  *not* match) — matches upstream's own field-scoped search controls
+  (`main.pas`'s `ActionFindFindnextExecute`); this port always live-filters the
+  list as those change, rather than upstream's separate jump-to-next-match mode,
+  and does not implement its expression-evaluation search mode. The table
+  includes borrower and checked status and retains a visible selection across
+  refreshes. Clicking a column heading sorts ascending; clicking it again sorts
+  descending. An arrow shows the active direction, and missing numeric values
+  remain at the end in either direction. The active view filter, layout, and
+  window size are remembered across restarts (see **Preferences** below); this
+  does not affect sorting, which always starts unsorted for a freshly opened
+  catalog, nor the search-field/whole-field/reverse controls, which — like the
+  search text itself — reset each session.
 - Use Ctrl+F to move directly to search and Escape to clear the current query and
   return to the movie table. Selection-dependent actions are disabled until they
   can succeed, and mutation controls remain disabled while an interchange catalog
   is open read-only. Undo and redo also reflect whether history is available.
 - Select a movie to review titles, director, category, actors, borrower, URL,
   description, and comments in a read-only details pane.
-- Switch between table-only, combined poster/details, and poster-focused layouts.
-  Posters appear by default in the combined Details layout; choosing Poster gives
+- Switch between table-only, combined poster/details, poster-focused, and
+  **HTML** layouts. Posters appear by default in the combined Details layout;
+  choosing Poster gives
   the image the full lower pane. Linked
   poster paths are resolved relative to the catalog, and embedded native pictures
   are decoded with Pillow. JPEG, PNG, GIF, BMP, TIFF, and other Pillow-supported
@@ -104,6 +117,17 @@ The packaging check verifies that an isolated wheel installation can import both
   catalog moved from Windows retains an unavailable drive path, the GUI also looks
   for the poster filename beside the catalog. Invalid embedded data falls back to a
   valid linked poster.
+- The **HTML** layout renders the selected movie live through a
+  user-chosen Ant Movie Catalog Individual template — matching upstream's own
+  main window, which shows the current movie's page in a pane next to the
+  list — using `amc.html_template.render_individual_template` with the
+  template's own directory as its `base_url` so relative CSS/image
+  references resolve the same way they would in a real export. **Tools →
+  Choose HTML Preview Template...** picks the template file, persisted
+  across restarts in the same preferences file described below. This is
+  this port's second dependency beyond Pillow: `tkinterweb` (see ADR-0009 in
+  `docs/decisions.md`), chosen after confirming it ships prebuilt wheels for
+  Linux, Windows, and macOS.
 - Check one movie or an extended selection out to one borrower, or check the
   selection back in. The whole loan batch is validated and persisted atomically;
   one conflicting or unavailable movie leaves every selected loan unchanged. The
@@ -129,18 +153,26 @@ The packaging check verifies that an isolated wheel installation can import both
   configurable history limit (100 by default; see **Preferences** below); opening
   or reloading a catalog starts new history.
 
-A **File / Edit / Movie / Tools** menu bar groups every action, alongside File,
-search/view, and catalog-action toolbar rows so controls remain reachable at the
-supported 760-pixel minimum window width. The desktop opens at 1100×720 by
-default and remains resizable down to 760×480.
+A **File / Edit / Movie / Tools / Help** menu bar groups every action, alongside
+File, search/view, and catalog-action toolbar rows so controls remain reachable
+at the supported 760-pixel minimum window width. The desktop opens at 1100×720
+by default and remains resizable down to 760×480.
 
 - **File**: Open Catalog, Reload, Save As, Import Catalog, Import Media,
   Export, Backup, Restore, Preferences, Exit.
 - **Edit**: Add/Edit/Remove Movie, Undo, Redo, Toggle Checked, Find, Clear
   Search.
-- **Movie**: Loan Out, Loan In, Loan History, Set/Assign/Clear Pictures,
-  Open URL, Renumber.
-- **Tools**: Statistics, Duplicates.
+- **Movie**: Previous/Next Movie, Loan Out, Loan In, Loan History,
+  Set/Assign/Clear Pictures, Open URL, Renumber.
+- **Tools**: Statistics, Duplicates, Choose HTML Preview Template.
+- **Help**: About AMC Python (version, license, and a link to this
+  project's own repository).
+
+**Previous Movie**/**Next Movie** (`Ctrl+PageUp`/`Ctrl+PageDown`) step the
+table's current selection by one row, matching upstream's own
+`ActionMoviePrevious`/`ActionMovieNext`: with nothing selected, Next starts at
+the first row and Previous at the last; there is no wraparound past either
+end — stepping out of range clears the selection instead.
 
 Only the tightest add/edit/remove/toggle/undo/redo loop — the actions clicked
 over and over while browsing a catalog — stays on the toolbar as a one-click
@@ -164,7 +196,8 @@ menu, and the toolbar button all at once.
 Keyboard shortcuts include Ctrl+O for Open, Ctrl+Shift+S for Save As, Ctrl+F for
 search, Escape to clear search, Ctrl+N for a new movie, Ctrl+M for Import Media,
 Ctrl+Z/Ctrl+Y for undo/redo, Ctrl+U for the movie URL, Space for checked state,
-Delete for removal, and F5 for reload; the menu bar shows each as an accelerator
+Delete for removal, F5 for reload, and Ctrl+PageUp/Ctrl+PageDown for
+Previous/Next Movie; the menu bar shows each as an accelerator
 label next to its command. Action shortcuts follow the same enabled/disabled
 state as their toolbar buttons and menu entries, so they cannot bypass
 read-only, selection, URL-safety, or history checks.
@@ -202,8 +235,9 @@ upstream fixtures.
 
 ## Preferences
 
-The desktop remembers the last-used view filter, layout, window size, and
-undo/redo history depth across restarts. This is an AMC Python convenience with
+The desktop remembers the last-used view filter, layout, window size,
+undo/redo history depth, and chosen HTML preview template path across
+restarts. This is an AMC Python convenience with
 no upstream counterpart, so it is deliberately stored outside any catalog file —
 never in the JSON catalog, and never confused with a retained Ant Movie Catalog
 property — in a small per-user JSON file (`amc.preferences`):
@@ -213,7 +247,8 @@ property — in a small per-user JSON file (`amc.preferences`):
 elsewhere. Set `AMC_PYTHON_CONFIG_DIR` to use a different location, such as in
 tests or portable installs. Preferences are written atomically whenever the view
 filter or layout changes, once when the **Preferences** toolbar button's history
-limit is saved, and once more when the window closes to capture its final size.
+limit is saved, once when a new HTML preview template is chosen, and once more
+when the window closes to capture its final size.
 A missing, corrupt, or invalid preferences file — or a failed write — is never
 treated as an error: the desktop falls back to built-in defaults (view All,
 layout Details, 1100×720, 100-entry history) rather than failing to start or

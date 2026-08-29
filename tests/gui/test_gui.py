@@ -1,4 +1,5 @@
 from pathlib import Path
+from contextlib import contextmanager
 from unittest.mock import Mock, patch
 
 import base64
@@ -188,6 +189,7 @@ def _window() -> CatalogWindow:
     window = object.__new__(CatalogWindow)
     window.service = Mock()
     window.service.path = Path("opened.json")
+    window.service.catalog = []
     window.refresh = Mock()
     window._path_changed = Mock()
     window.winfo_toplevel = Mock(return_value=Mock())
@@ -198,9 +200,36 @@ def _window() -> CatalogWindow:
     window.html_preview_template = ""
     window.layout = Mock(get=Mock(return_value="Table"))
     window.table = Mock()
+    window.table.get_children = Mock(return_value=[])
     window.sort_field = None
     window.sort_reverse = False
     return window
+
+
+@contextmanager
+def _export_scope_dialog_patches(scope: str = "all", sort_by: str = "", reverse: bool = False):
+    """Patch the Export-options dialog's widget construction so a test can
+    invoke its Export button directly; yields that button's Mock so the
+    test can grab the captured `command` callback."""
+    with (
+        patch("amc.gui.tk.Toplevel", return_value=Mock()),
+        patch(
+            "amc.gui.tk.StringVar",
+            side_effect=[
+                Mock(get=Mock(return_value=scope)),
+                Mock(get=Mock(return_value=sort_by)),
+            ],
+        ),
+        patch("amc.gui.tk.BooleanVar", return_value=Mock(get=Mock(return_value=reverse))),
+        patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Radiobutton"),
+        patch("amc.gui.ttk.Combobox"),
+        patch("amc.gui.ttk.Checkbutton"),
+        patch("amc.gui.ttk.Frame"),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+    ):
+        yield button
 
 
 def test_window_opens_selected_catalog():
@@ -209,6 +238,77 @@ def test_window_opens_selected_catalog():
         window.open_catalog()
     window.service.open.assert_called_once_with("movies.json")
     window._path_changed.assert_called_once_with()
+
+
+def test_select_next_from_nothing_selected_picks_the_first_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=())
+
+    window.select_next()
+
+    window.table.selection_set.assert_called_once_with("1")
+    window.table.focus.assert_called_once_with("1")
+
+
+def test_select_previous_from_nothing_selected_picks_the_last_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=())
+
+    window.select_previous()
+
+    window.table.selection_set.assert_called_once_with("3")
+
+
+def test_select_next_steps_by_one_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("2",))
+
+    window.select_next()
+
+    window.table.selection_set.assert_called_once_with("3")
+
+
+def test_select_previous_steps_by_one_row():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("2",))
+
+    window.select_previous()
+
+    window.table.selection_set.assert_called_once_with("1")
+
+
+def test_select_next_past_the_last_row_clears_the_selection_without_wrapping():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("3",))
+
+    window.select_next()
+
+    window.table.selection_set.assert_called_once_with()
+
+
+def test_select_previous_past_the_first_row_clears_the_selection_without_wrapping():
+    window = _window()
+    window.table.get_children = Mock(return_value=("1", "2", "3"))
+    window.table.selection = Mock(return_value=("1",))
+
+    window.select_previous()
+
+    window.table.selection_set.assert_called_once_with()
+
+
+def test_select_next_on_an_empty_table_does_nothing():
+    window = _window()
+    window.table.get_children = Mock(return_value=())
+    window.table.selection = Mock(return_value=())
+
+    window.select_next()
+
+    window.table.selection_set.assert_not_called()
 
 
 def test_movie_web_url_accepts_only_absolute_http_urls():
@@ -595,12 +695,17 @@ def test_window_import_media_reports_invalid_media_without_mutating_catalog():
 
 def test_window_exports_using_destination_extension():
     window = _window()
+    window.selected_movies = Mock(return_value=[])
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.csv"),
         patch("amc.gui.messagebox.showinfo"),
+        _export_scope_dialog_patches() as button,
     ):
         window.export_catalog()
-    window.service.export.assert_called_once_with("movies.csv", format="csv")
+        button.call_args_list[-1].kwargs["command"]()
+    window.service.export.assert_called_once_with(
+        "movies.csv", format="csv", movies=None, sort_by=None, sort_reverse=False
+    )
 
 
 def test_window_requires_confirmation_for_unverified_native_export():
@@ -617,16 +722,21 @@ def test_window_requires_confirmation_for_unverified_native_export():
 
 def test_window_native_export_explains_existing_backup(tmp_path: Path):
     window = _window()
+    window.selected_movies = Mock(return_value=[])
     destination = tmp_path / "movies.amc"
     destination.write_bytes(b"old catalog")
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value=str(destination)),
         patch("amc.gui.messagebox.askyesno", return_value=True) as confirm,
         patch("amc.gui.messagebox.showinfo") as showinfo,
+        _export_scope_dialog_patches() as button,
     ):
         window.export_catalog()
+        button.call_args_list[-1].kwargs["command"]()
 
-    window.service.export.assert_called_once_with(str(destination), format="amc")
+    window.service.export.assert_called_once_with(
+        str(destination), format="amc", movies=None, sort_by=None, sort_reverse=False
+    )
     assert str(destination.with_suffix(".bak")) in confirm.call_args.args[1]
     assert str(destination.with_suffix(".bak")) in showinfo.call_args.args[1]
 
@@ -642,15 +752,72 @@ def test_window_rejects_unknown_export_extension():
     showerror.assert_called_once()
 
 
+def test_movies_by_scope_resolves_each_scope_value():
+    window = _window()
+    checked = Movie(number=1, title="Alien", checked=True)
+    unchecked = Movie(number=2, title="Aliens", checked=False)
+    window.service.catalog = Catalog([checked, unchecked])
+    window.selected_movies = Mock(return_value=[unchecked])
+    window.table.get_children = Mock(return_value=["1"])
+
+    assert window._movies_by_scope("all") is None
+    assert window._movies_by_scope("selected") == [unchecked]
+    assert window._movies_by_scope("checked") == [checked]
+    assert window._movies_by_scope("visible") == [checked]
+    with pytest.raises(ValueError, match="unknown export scope"):
+        window._movies_by_scope("bogus")
+
+
+def test_export_with_scope_uses_the_chosen_scope_and_sort():
+    window = _window()
+    checked = Movie(number=1, title="Alien", checked=True)
+    window.service.catalog = Catalog([checked])
+    window.selected_movies = Mock(return_value=[])
+
+    with (
+        patch("amc.gui.messagebox.showinfo"),
+        patch("amc.gui.messagebox.showerror") as showerror,
+        _export_scope_dialog_patches(scope="checked", sort_by="title", reverse=True) as button,
+    ):
+        window._export_with_scope("movies.xml", "xml", destination_exists=False)
+        button.call_args_list[-1].kwargs["command"]()
+
+    showerror.assert_not_called()
+    window.service.export.assert_called_once_with(
+        "movies.xml", format="xml", movies=[checked], sort_by="title", sort_reverse=True
+    )
+
+
+def test_export_with_scope_rejects_when_no_movies_match():
+    window = _window()
+    window.service.catalog = Catalog([Movie(number=1, title="Alien", checked=False)])
+    window.selected_movies = Mock(return_value=[])
+
+    with (
+        patch("amc.gui.messagebox.showerror") as showerror,
+        _export_scope_dialog_patches(scope="checked") as button,
+    ):
+        window._export_with_scope("movies.xml", "xml", destination_exists=False)
+        button.call_args_list[-1].kwargs["command"]()
+
+    showerror.assert_called_once()
+    window.service.export.assert_not_called()
+
+
 def test_window_html_export_declining_ant_template_uses_default_export():
     window = _window()
+    window.selected_movies = Mock(return_value=[])
     with (
         patch("amc.gui.filedialog.asksaveasfilename", return_value="movies.html"),
         patch("amc.gui.messagebox.askyesno", return_value=False),
         patch("amc.gui.messagebox.showinfo"),
+        _export_scope_dialog_patches() as button,
     ):
         window.export_catalog()
-    window.service.export.assert_called_once_with("movies.html", format="html")
+        button.call_args_list[-1].kwargs["command"]()
+    window.service.export.assert_called_once_with(
+        "movies.html", format="html", movies=None, sort_by=None, sort_reverse=False
+    )
     window.service.export_html_template.assert_not_called()
 
 
@@ -662,26 +829,34 @@ def _template_dialog_vars(
     individual_template: str,
     individual_dir: str,
     individual_filename: str,
+    scope: str = "all",
+    sort_by: str = "",
+    reverse: bool = False,
 ):
-    """Build the (BooleanVar, BooleanVar) / (StringVar x4) side effects the
-    Export HTML template dialog creates, in the exact order it creates them,
-    so a patched ``tk.BooleanVar``/``tk.StringVar`` hands back one distinct
-    mock per variable instead of one mock shared by all of them."""
+    """Build the (BooleanVar x3) / (StringVar x6) side effects the Export
+    HTML template dialog creates, in the exact order it creates them
+    (including the shared "Movies to include"/"Sort by" controls), so a
+    patched ``tk.BooleanVar``/``tk.StringVar`` hands back one distinct mock
+    per variable instead of one mock shared by all of them."""
     booleans = [
         Mock(get=Mock(return_value=full_enabled)),
         Mock(get=Mock(return_value=individual_enabled)),
+        Mock(get=Mock(return_value=reverse)),
     ]
     strings = [
         Mock(get=Mock(return_value=full_template)),
         Mock(get=Mock(return_value=individual_template)),
         Mock(get=Mock(return_value=individual_dir)),
         Mock(get=Mock(return_value=individual_filename)),
+        Mock(get=Mock(return_value=scope)),
+        Mock(get=Mock(return_value=sort_by)),
     ]
     return booleans, strings
 
 
 def test_window_html_export_with_ant_template_renders_full_and_individual():
     window = _window()
+    window.selected_movies = Mock(return_value=[])
     window.service.export_html_template.return_value = [Path("movies.html"), Path("pages/1.html")]
     booleans, strings = _template_dialog_vars(
         full_enabled=True,
@@ -700,6 +875,8 @@ def test_window_html_export_with_ant_template_renders_full_and_individual():
         patch("amc.gui.ttk.Checkbutton"),
         patch("amc.gui.ttk.Entry"),
         patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Radiobutton"),
+        patch("amc.gui.ttk.Combobox"),
         patch("amc.gui.ttk.Frame"),
         patch("amc.gui.ttk.Button") as button,
         patch("amc.gui.make_modal"),
@@ -718,12 +895,16 @@ def test_window_html_export_with_ant_template_renders_full_and_individual():
         individual_template="individual.html",
         individual_dir="pages",
         individual_filename="{number}.html",
+        movies=None,
+        sort_by=None,
+        sort_reverse=False,
     )
     showinfo.assert_called_once()
 
 
 def test_window_html_export_template_dialog_requires_at_least_one_section():
     window = _window()
+    window.selected_movies = Mock(return_value=[])
     booleans, strings = _template_dialog_vars(
         full_enabled=False,
         full_template="",
@@ -741,6 +922,8 @@ def test_window_html_export_template_dialog_requires_at_least_one_section():
         patch("amc.gui.ttk.Checkbutton"),
         patch("amc.gui.ttk.Entry"),
         patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Radiobutton"),
+        patch("amc.gui.ttk.Combobox"),
         patch("amc.gui.ttk.Frame"),
         patch("amc.gui.ttk.Button") as button,
         patch("amc.gui.make_modal"),
@@ -756,6 +939,7 @@ def test_window_html_export_template_dialog_requires_at_least_one_section():
 
 def test_window_html_export_template_dialog_requires_a_template_when_enabled():
     window = _window()
+    window.selected_movies = Mock(return_value=[])
     booleans, strings = _template_dialog_vars(
         full_enabled=True,
         full_template="",
@@ -773,6 +957,8 @@ def test_window_html_export_template_dialog_requires_a_template_when_enabled():
         patch("amc.gui.ttk.Checkbutton"),
         patch("amc.gui.ttk.Entry"),
         patch("amc.gui.ttk.Label"),
+        patch("amc.gui.ttk.Radiobutton"),
+        patch("amc.gui.ttk.Combobox"),
         patch("amc.gui.ttk.Frame"),
         patch("amc.gui.ttk.Button") as button,
         patch("amc.gui.make_modal"),
@@ -1644,6 +1830,29 @@ def test_window_preferences_dialog_updates_service_history_limit():
     showerror.assert_not_called()
     assert window.service.history_limit == 250
     window._save_preferences.assert_called_once_with()
+    dialog.destroy.assert_called_once_with()
+
+
+def test_window_about_dialog_shows_version_and_opens_link_on_click():
+    window = object.__new__(CatalogWindow)
+    window.winfo_toplevel = Mock(return_value=Mock())
+    dialog = Mock()
+    link = Mock()
+
+    with (
+        patch("amc.gui.tk.Toplevel", return_value=dialog),
+        patch("amc.gui.ttk.Label", side_effect=[Mock(), Mock(), Mock(), Mock(), link]),
+        patch("amc.gui.ttk.Button") as button,
+        patch("amc.gui.make_modal"),
+        patch("amc.gui.webbrowser.open") as browser_open,
+    ):
+        window.show_about()
+        close = button.call_args.kwargs["command"]
+        click = link.bind.call_args.args[1]
+        click(Mock())
+        close()
+
+    browser_open.assert_called_once_with("https://github.com/luisriverag/amc_python")
     dialog.destroy.assert_called_once_with()
 
 

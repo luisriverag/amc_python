@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import overload
 
 from .application import CatalogService
+from .catalog import Catalog
 from .errors import CatalogError
 from .inspection import DEFAULT_MAX_INSPECT_BYTES, inspect_catalog, validate_catalog
 from .model import Movie
@@ -93,6 +94,33 @@ def _parse_picture_crops(crops: list[str]) -> dict[int, tuple[int, int, int, int
     return parsed
 
 
+def _add_export_scope_arguments(export_parser: argparse.ArgumentParser) -> None:
+    """Shared "movies to include" scope and export-time sort, for every export command.
+
+    Matches upstream's Export dialog (`docs/IMPLEMENTATION_PLAN.md` D6):
+    "checked" scopes to checked movies the same way the desktop's Checked
+    view filter does; "selected"/"visible" have no CLI equivalent since
+    there is no interactive selection or search here.
+    """
+    export_parser.add_argument(
+        "--scope",
+        choices=("all", "checked"),
+        default="all",
+        help="movies to include: all movies, or only checked ones (default: all)",
+    )
+    export_parser.add_argument("--sort-by", help="movie field to sort the export by")
+    export_parser.add_argument(
+        "--sort-reverse", action="store_true", help="reverse the export sort order"
+    )
+
+
+def _export_scope_movies(catalog: Catalog, scope: str) -> list[Movie] | None:
+    """Resolve ``--scope`` to an explicit movie list, or None for the whole catalog."""
+    if scope == "all":
+        return None
+    return [movie for movie in catalog if movie.checked]
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="amc", description="Portable Ant Movie Catalog")
     result.add_argument("--catalog", "-c", type=Path, default=Path("catalog.json"))
@@ -101,6 +129,19 @@ def parser() -> argparse.ArgumentParser:
     listing.add_argument("--json", action="store_true", dest="as_json")
     find = commands.add_parser("search", help="search movie metadata")
     find.add_argument("query")
+    find.add_argument(
+        "--field", help="restrict the search to one movie field (default: several common fields)"
+    )
+    find.add_argument(
+        "--whole-field",
+        action="store_true",
+        help="require an exact match instead of a substring",
+    )
+    find.add_argument(
+        "--reverse",
+        action="store_true",
+        help="return movies that do NOT match instead of ones that do",
+    )
     find.add_argument("--json", action="store_true", dest="as_json")
     add = commands.add_parser("add", help="add a movie")
     add.add_argument("title")
@@ -266,12 +307,15 @@ def parser() -> argparse.ArgumentParser:
     )
     export = commands.add_parser("export-xml", help="write an AMC-compatible XML catalog")
     export.add_argument("destination", type=Path)
+    _add_export_scope_arguments(export)
     csv_export = commands.add_parser("export-csv", help="write a spreadsheet-compatible CSV")
     csv_export.add_argument("destination", type=Path)
+    _add_export_scope_arguments(csv_export)
     html_export = commands.add_parser("export-html", help="write a static HTML catalog")
     html_export.add_argument("destination", type=Path)
     html_export.add_argument("--template", type=Path)
     html_export.add_argument("--row-template", type=Path)
+    _add_export_scope_arguments(html_export)
     ant_html_export = commands.add_parser(
         "export-html-template",
         help="render Ant Movie Catalog's own $$TAG_NAME HTML export templates",
@@ -296,6 +340,7 @@ def parser() -> argparse.ArgumentParser:
         help="filename pattern for individual pages, e.g. '{number}.html' (default)",
     )
     ant_html_export.add_argument("--line-break", default="<br>")
+    _add_export_scope_arguments(ant_html_export)
     native_export = commands.add_parser(
         "export-amc",
         help="write an experimental, source-derived AMC 4.2 native catalog",
@@ -315,6 +360,7 @@ def parser() -> argparse.ArgumentParser:
     native_export.add_argument("--max-list-values", type=int)
     native_export.add_argument("--max-extras-per-movie", type=int)
     native_export.add_argument("--max-total-extras", type=int)
+    _add_export_scope_arguments(native_export)
     commands.add_parser("renumber", help="assign consecutive movie numbers")
     backup = commands.add_parser("backup", help="copy the catalog to a validated backup")
     backup.add_argument("destination", type=Path)
@@ -675,15 +721,30 @@ def _run(args: argparse.Namespace) -> int:
             for change in preview.changes:
                 print(f"  {change.field}: {change.before!r} -> {change.after!r}")
     elif args.command == "export-xml":
-        service.export(args.destination, format="xml")
+        service.export(
+            args.destination,
+            format="xml",
+            movies=_export_scope_movies(service.catalog, args.scope),
+            sort_by=args.sort_by,
+            sort_reverse=args.sort_reverse,
+        )
     elif args.command == "export-csv":
-        service.export(args.destination, format="csv")
+        service.export(
+            args.destination,
+            format="csv",
+            movies=_export_scope_movies(service.catalog, args.scope),
+            sort_by=args.sort_by,
+            sort_reverse=args.sort_reverse,
+        )
     elif args.command == "export-html":
         service.export(
             args.destination,
             format="html",
             template=args.template,
             row_template=args.row_template,
+            movies=_export_scope_movies(service.catalog, args.scope),
+            sort_by=args.sort_by,
+            sort_reverse=args.sort_reverse,
         )
     elif args.command == "export-html-template":
         written = service.export_html_template(
@@ -693,6 +754,9 @@ def _run(args: argparse.Namespace) -> int:
             individual_dir=args.individual_dir,
             individual_filename=args.individual_filename,
             line_break=args.line_break,
+            movies=_export_scope_movies(service.catalog, args.scope),
+            sort_by=args.sort_by,
+            sort_reverse=args.sort_reverse,
         )
         print(f"Wrote {len(written)} file(s)")
     elif args.command == "export-amc":
@@ -746,6 +810,9 @@ def _run(args: argparse.Namespace) -> int:
                     else args.max_total_extras
                 ),
             ),
+            movies=_export_scope_movies(service.catalog, args.scope),
+            sort_by=args.sort_by,
+            sort_reverse=args.sort_reverse,
         )
     elif args.command == "renumber":
         service.renumber()
@@ -771,7 +838,12 @@ def _run(args: argparse.Namespace) -> int:
             for group in groups:
                 print(", ".join(f"#{movie.number} {movie.display_title()}" for movie in group))
     else:
-        movies = catalog.search(args.query) if args.command == "search" else list(catalog)
+        if args.command == "search":
+            movies = catalog.search(
+                args.query, field=args.field, whole_field=args.whole_field, reverse=args.reverse
+            )
+        else:
+            movies = list(catalog)
         if args.as_json:
             print(json.dumps([movie.to_dict() for movie in movies], ensure_ascii=False))
         else:

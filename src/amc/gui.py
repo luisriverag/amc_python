@@ -19,6 +19,7 @@ from tkinter import font as tkfont
 from PIL import Image, ImageTk, UnidentifiedImageError
 from tkinterweb import HtmlFrame
 
+from . import __version__
 from .application import CatalogService
 from .errors import CatalogError
 from .html_template import _read_template, render_individual_template
@@ -86,6 +87,33 @@ _EDIT_INTEGER_FIELDS = (
     "file_size",
 )
 _EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
+_SEARCH_FIELDS: tuple[tuple[str, str | None], ...] = (
+    ("All fields", None),
+    ("Title", "title"),
+    ("Original title", "original_title"),
+    ("Translated title", "translated_title"),
+    ("Director", "director"),
+    ("Producer", "producer"),
+    ("Actors", "actors"),
+    ("Category", "category"),
+    ("Country", "country"),
+    ("Year", "year"),
+    ("Description", "description"),
+    ("Comments", "comments"),
+    ("Borrower", "borrower"),
+    ("URL", "url"),
+    ("File Path", "file_path"),
+)
+_SEARCH_FIELD_BY_LABEL = dict(_SEARCH_FIELDS)
+_EXPORT_SORT_FIELDS = (
+    "title",
+    "original_title",
+    "year",
+    "director",
+    "category",
+    "rating",
+    "length",
+)
 _IMAGE_FILETYPES = (
     ("Images", "*.jpg *.jpeg *.png *.gif *.bmp *.tif *.tiff *.webp"),
     ("All files", "*"),
@@ -415,6 +443,34 @@ class CatalogWindow(ttk.Frame):
         layout.pack(side="left", padx=(0, 6))
         layout.bind("<<ComboboxSelected>>", lambda _event: self._layout_changed())
 
+        search_options = ttk.Frame(self)
+        search_options.pack(fill="x", pady=(0, 8))
+        ttk.Label(search_options, text="Search in field:").pack(side="left")
+        self.search_field = tk.StringVar(value=_SEARCH_FIELDS[0][0])
+        field_combo = ttk.Combobox(
+            search_options,
+            textvariable=self.search_field,
+            values=[label for label, _ in _SEARCH_FIELDS],
+            state="readonly",
+            width=16,
+        )
+        field_combo.pack(side="left", padx=(0, 12))
+        self.search_field.trace_add("write", lambda *_: self.refresh())
+        self.search_whole_field = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            search_options,
+            text="Whole field only",
+            variable=self.search_whole_field,
+        ).pack(side="left", padx=(0, 12))
+        self.search_whole_field.trace_add("write", lambda *_: self.refresh())
+        self.search_reverse = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            search_options,
+            text="Reverse results",
+            variable=self.search_reverse,
+        ).pack(side="left")
+        self.search_reverse.trace_add("write", lambda *_: self.refresh())
+
         # Keep catalog actions on their own row. Putting every action beside the
         # search field clipped the right-most controls on common 760px displays.
         # Every action below also has a menu entry (_build_menu_bar, grouped by
@@ -599,6 +655,8 @@ class CatalogWindow(ttk.Frame):
         root.bind("<Control-z>", lambda _event: self.invoke_action("Undo"))
         root.bind("<Control-y>", lambda _event: self.invoke_action("Redo"))
         root.bind("<Control-u>", lambda _event: self.invoke_action("Open URL"))
+        root.bind("<Control-Prior>", lambda _event: self.select_previous())
+        root.bind("<Control-Next>", lambda _event: self.select_next())
 
     def _build_menu_bar(self, master: tk.Tk) -> None:
         """Group every action into a standard File/Edit/Movie/Tools menu bar.
@@ -655,6 +713,13 @@ class CatalogWindow(ttk.Frame):
         menubar.add_cascade(label="Edit", menu=edit_menu)
 
         movie_menu = tk.Menu(menubar, tearoff=False)
+        movie_menu.add_command(
+            label="Previous Movie", command=self.select_previous, accelerator="Ctrl+PageUp"
+        )
+        movie_menu.add_command(
+            label="Next Movie", command=self.select_next, accelerator="Ctrl+PageDown"
+        )
+        movie_menu.add_separator()
         add_action(movie_menu, "Loan Out...", "Loan Out")
         add_action(movie_menu, "Loan In", "Loan In")
         movie_menu.add_command(label="Loan History...", command=self.show_loan_history)
@@ -678,6 +743,10 @@ class CatalogWindow(ttk.Frame):
             label="Choose HTML Preview Template...", command=self.choose_html_preview_template
         )
         menubar.add_cascade(label="Tools", menu=tools_menu)
+
+        help_menu = tk.Menu(menubar, tearoff=False)
+        help_menu.add_command(label="About AMC Python...", command=self.show_about)
+        menubar.add_cascade(label="Help", menu=help_menu)
 
         master.config(menu=menubar)
         self.menubar = menubar
@@ -818,8 +887,12 @@ class CatalogWindow(ttk.Frame):
     def refresh(self) -> None:
         selection = self.table.selection()
         self.table.delete(*self.table.get_children())
-        query = self.search_text.get().strip()
-        movies = self.service.catalog.search(query) if query else list(self.service.catalog)
+        movies = self.service.catalog.search(
+            self.search_text.get(),
+            field=_SEARCH_FIELD_BY_LABEL.get(self.search_field.get()),
+            whole_field=self.search_whole_field.get(),
+            reverse=self.search_reverse.get(),
+        )
         movies = filter_movies(movies, self.view_filter.get())
         for movie in movies:
             self.table.insert("", "end", iid=str(movie.number), values=movie_row(movie))
@@ -843,6 +916,40 @@ class CatalogWindow(ttk.Frame):
     def selected_movies(self) -> list[Movie]:
         """Return every selected table movie in selection order."""
         return [self.service.catalog.get(int(item)) for item in self.table.selection()]
+
+    def select_next(self) -> None:
+        """Select the next row, matching upstream's ActionMovieNext."""
+        self._step_selection(1)
+
+    def select_previous(self) -> None:
+        """Select the previous row, matching upstream's ActionMoviePrevious."""
+        self._step_selection(-1)
+
+    def _step_selection(self, delta: int) -> None:
+        """Move the current row selection by one, matching upstream
+        (`main.pas`'s `ActionMovieNext`/`ActionMoviePreviousExecute`): with
+        nothing selected, Next starts at the first row and Previous at the
+        last; otherwise each steps by exactly one row with no wraparound —
+        stepping past either end clears the selection instead of wrapping.
+        """
+        children = self.table.get_children()
+        if not children:
+            return
+        current = self.table.selection()
+        if current:
+            try:
+                index = children.index(current[0]) + delta
+            except ValueError:
+                index = 0 if delta > 0 else len(children) - 1
+        else:
+            index = 0 if delta > 0 else len(children) - 1
+        if 0 <= index < len(children):
+            target = children[index]
+            self.table.selection_set(target)
+            self.table.focus(target)
+            self.table.see(target)
+        else:
+            self.table.selection_set()
 
     def show_selected(self) -> None:
         """Render the selected movie's useful summary fields read-only."""
@@ -1264,15 +1371,98 @@ class CatalogWindow(ttk.Frame):
                 parent=self,
             ):
                 return
-        try:
-            self.service.export(selected, format=format_name)
-        except _SERVICE_ERRORS as error:
-            messagebox.showerror("Could not export catalog", str(error), parent=self)
-            return
-        completion = f"Exported to {selected}."
-        if format_name == "amc" and destination_exists:
-            completion += f"\nPrevious file: {Path(selected).with_suffix('.bak')}"
-        messagebox.showinfo("Export complete", completion, parent=self)
+        self._export_with_scope(selected, format_name, destination_exists=destination_exists)
+
+    def _movies_by_scope(self, scope: str) -> list[Movie] | None:
+        """Resolve a "Movies to include" choice to an explicit list, or
+        None for the whole catalog, matching upstream's Export dialog."""
+        if scope == "all":
+            return None
+        if scope == "selected":
+            return self.selected_movies()
+        if scope == "checked":
+            return [movie for movie in self.service.catalog if movie.checked]
+        if scope == "visible":
+            return [self.service.catalog.get(int(iid)) for iid in self.table.get_children()]
+        raise ValueError(f"unknown export scope: {scope!r}")
+
+    def _build_export_scope_controls(
+        self, dialog: tk.Toplevel, start_row: int
+    ) -> tuple[tk.StringVar, tk.StringVar, tk.BooleanVar, int]:
+        """Build the "Movies to include"/"Sort by" controls shared by both
+        export dialogs, matching upstream's own Export screen (All/Selected/
+        Checked/Visible, each with a live count, plus an export-time sort
+        order independent of the catalog's current order). Returns the
+        scope/sort-by/reverse variables and the next unused grid row."""
+        counts = {
+            "all": len(self.service.catalog),
+            "selected": len(self.selected_movies()),
+            "checked": sum(1 for movie in self.service.catalog if movie.checked),
+            "visible": len(self.table.get_children()),
+        }
+        scope = tk.StringVar(value="all")
+        row = start_row
+        ttk.Label(dialog, text="Movies to include:").grid(
+            row=row, column=0, columnspan=3, sticky="w", padx=8, pady=(8, 0)
+        )
+        row += 1
+        for key in ("all", "selected", "checked", "visible"):
+            ttk.Radiobutton(
+                dialog, text=f"{key.capitalize()} ({counts[key]})", variable=scope, value=key
+            ).grid(row=row, column=0, columnspan=3, sticky="w", padx=24)
+            row += 1
+        sort_by = tk.StringVar(value="")
+        ttk.Label(dialog, text="Sort by:").grid(row=row, column=0, sticky="w", padx=8, pady=(8, 0))
+        sort_combo = ttk.Combobox(
+            dialog,
+            textvariable=sort_by,
+            values=("", *_EXPORT_SORT_FIELDS),
+            state="readonly",
+            width=14,
+        )
+        sort_combo.grid(row=row, column=1, sticky="w", pady=(8, 0))
+        reverse = tk.BooleanVar(value=False)
+        ttk.Checkbutton(dialog, text="Reverse", variable=reverse).grid(
+            row=row, column=2, sticky="w", pady=(8, 0)
+        )
+        return scope, sort_by, reverse, row + 1
+
+    def _export_with_scope(
+        self, destination: str, format_name: str, *, destination_exists: bool
+    ) -> None:
+        """Ask "Movies to include" and an export sort order, then export."""
+        dialog = tk.Toplevel(self)
+        dialog.title("Export options")
+        dialog.transient(self.winfo_toplevel())
+        scope, sort_by, reverse, next_row = self._build_export_scope_controls(dialog, 0)
+
+        def accept() -> None:
+            movies = self._movies_by_scope(scope.get())
+            if movies is not None and not movies:
+                messagebox.showerror("Export options", "No movies match that scope.", parent=dialog)
+                return
+            try:
+                self.service.export(
+                    destination,
+                    format=format_name,
+                    movies=movies,
+                    sort_by=sort_by.get() or None,
+                    sort_reverse=reverse.get(),
+                )
+            except _SERVICE_ERRORS as error:
+                messagebox.showerror("Could not export catalog", str(error), parent=dialog)
+                return
+            dialog.destroy()
+            completion = f"Exported to {destination}."
+            if format_name == "amc" and destination_exists:
+                completion += f"\nPrevious file: {Path(destination).with_suffix('.bak')}"
+            messagebox.showinfo("Export complete", completion, parent=self)
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=next_row, column=0, columnspan=3, sticky="e", padx=8, pady=8)
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="left", padx=(0, 4))
+        ttk.Button(buttons, text="Export...", command=accept).pack(side="left")
+        make_modal(dialog)
 
     def _export_html_template(self, destination: str) -> None:
         """Render Ant Movie Catalog's own $$TAG_NAME HTML templates.
@@ -1378,6 +1568,8 @@ class CatalogWindow(ttk.Frame):
             "write", lambda *_args: set_row_state(full_widgets, full_enabled.get())
         )
 
+        scope, sort_by, reverse, next_row = self._build_export_scope_controls(dialog, 6)
+
         def accept() -> None:
             if not full_enabled.get() and not individual_enabled.get():
                 messagebox.showerror(
@@ -1400,6 +1592,12 @@ class CatalogWindow(ttk.Frame):
                     parent=dialog,
                 )
                 return
+            movies = self._movies_by_scope(scope.get())
+            if movies is not None and not movies:
+                messagebox.showerror(
+                    "Export HTML template", "No movies match that scope.", parent=dialog
+                )
+                return
             try:
                 written = self.service.export_html_template(
                     destination,
@@ -1409,6 +1607,9 @@ class CatalogWindow(ttk.Frame):
                     ),
                     individual_dir=individual_dir.get() or None,
                     individual_filename=individual_filename.get() or "{number}.html",
+                    movies=movies,
+                    sort_by=sort_by.get() or None,
+                    sort_reverse=reverse.get(),
                 )
             except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not export catalog", str(error), parent=dialog)
@@ -1417,7 +1618,7 @@ class CatalogWindow(ttk.Frame):
             messagebox.showinfo("Export complete", f"Wrote {len(written)} file(s).", parent=self)
 
         buttons = ttk.Frame(dialog)
-        buttons.grid(row=6, column=0, columnspan=3, sticky="e", padx=8, pady=(0, 8))
+        buttons.grid(row=next_row, column=0, columnspan=3, sticky="e", padx=8, pady=(0, 8))
         ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="left", padx=(0, 4))
         ttk.Button(buttons, text="Export...", command=accept).pack(side="left")
         dialog.columnconfigure(1, weight=1)
@@ -1925,6 +2126,41 @@ class CatalogWindow(ttk.Frame):
                 )
             )
         messagebox.showinfo("Duplicate movies", "\n".join(lines), parent=self)
+
+    def show_about(self) -> None:
+        """Version, license, and a project link, matching upstream's own
+        Help menu (`main.dfm`) — this port previously had neither a Help
+        menu nor an About dialog anywhere in the desktop GUI."""
+        dialog = tk.Toplevel(self)
+        dialog.title("About AMC Python")
+        dialog.transient(self.winfo_toplevel())
+        ttk.Label(dialog, text="AMC Python", font=("TkDefaultFont", 12, "bold")).grid(
+            row=0, column=0, sticky="w", padx=12, pady=(12, 0)
+        )
+        ttk.Label(dialog, text=f"Version {__version__}").grid(row=1, column=0, sticky="w", padx=12)
+        ttk.Label(
+            dialog,
+            text="A portable Python port of Ant Movie Catalog.",
+            wraplength=320,
+        ).grid(row=2, column=0, sticky="w", padx=12, pady=(4, 0))
+        ttk.Label(dialog, text="License: GPL-2.0-or-later").grid(
+            row=3, column=0, sticky="w", padx=12, pady=(8, 0)
+        )
+        link = ttk.Label(
+            dialog,
+            text="github.com/luisriverag/amc_python",
+            foreground="blue",
+            cursor="hand2",
+        )
+        link.grid(row=4, column=0, sticky="w", padx=12, pady=(0, 12))
+        link.bind(
+            "<Button-1>",
+            lambda _event: webbrowser.open("https://github.com/luisriverag/amc_python"),
+        )
+        ttk.Button(dialog, text="Close", command=dialog.destroy).grid(
+            row=5, column=0, sticky="e", padx=12, pady=(0, 12)
+        )
+        make_modal(dialog, focus=link)
 
     def renumber(self) -> None:
         if not len(self.service.catalog):

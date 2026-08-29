@@ -5,10 +5,13 @@
 
 **Method:** source review, documentation-claim comparison, CLI enumeration, the
 complete automated test suite, and inspection of the checked-in Delphi source
-snapshot. The supplied archives exactly match all 952 expanded files, but their
-origin lacks independent publisher authentication and upstream-generated fixtures
-are not available, so no claim of behavioral parity with Ant Movie Catalog can be
-verified.
+snapshot. At audit time the supplied archives exactly matched all 952 expanded
+files; the RAR archive and the ElTree files it contained have since been
+removed for licensing reasons (see `THIRD_PARTY_NOTICES.md`), leaving 848
+checked-in files matching the remaining `antcomponents.zip` archive exactly.
+Either way, the archives' origin lacks independent publisher authentication and
+upstream-generated fixtures are not available, so no claim of behavioral parity
+with Ant Movie Catalog can be verified.
 The user has designated the checked-in Delphi files as the authoritative source
 baseline for continued implementation; that decision does not independently
 authenticate the archives or create genuine compatibility fixtures.
@@ -38,7 +41,7 @@ Two progress measures are tracked deliberately:
 | Measure | Result | Meaning |
 |---|---:|---|
 | Prototype implementation | 17 functional package modules, 6 repository tools, 635 passing tests | Python foundation and guarded prototype features exist |
-| Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
+| Source-analysis progress | 848 checked-in upstream/component files (952 before removing ElTree Lite's 104 files — see `THIRD_PARTY_NOTICES.md`); 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 7 upstream-generated fixtures registered (`tests/fixtures/native-empty-one-movie/`, finding 38; `tests/fixtures/native-sample-catalog/`, finding 39); 0 verified upstream subsystems | Narrow, genuine read-path evidence exists for the first time — empty and blank-one-movie native catalogs across AMC 3.5/4.1/4.2, plus populated movies, all eight represented custom-field types, and embedded pictures across AMC 3.5/4.2; this does not verify native format compatibility as a whole — other versions and a write-then-reopen-in-real-AMC check remain unevidenced |
 
 Line count and test count must not be used as a substitute for upstream
@@ -130,15 +133,24 @@ confidence.
 ### Critical blockers
 
 1. **Archive identity is recorded, but publisher authentication is incomplete.**
-   The supplied RAR and ZIP have recorded source-page claims, byte sizes, SHA-256
-   digests, and exact 876-file and 76-file expanded-tree matches. Their precise
-   download time and an independently published checksum are unavailable. See the
-   archive provenance record for the reproducible facts and remaining limitation.
-2. **Source-snapshot redistribution clearance remains incomplete.** A root
-   GPLv2 `LICENSE` and an initial component notice inventory now exist, but the
-   review found an ElTree license that does not permit source redistribution and
-   unresolved per-file review for `Common` and `antcomponents`. See
-   `THIRD_PARTY_NOTICES.md`; these are release blockers, not inferred clearance.
+   The supplied ZIP has a recorded source-page claim, byte size, SHA-256 digest,
+   and an exact 76-file expanded-tree match against `src/antcomponents/`. Its
+   precise download time and an independently published checksum are
+   unavailable. The RAR counterpart (`amc_sources.rar`, previously matched
+   876 files against `src/original/`) has been removed from the repository
+   and its git history along with the ElTree component it contained — see
+   item 2 and `docs/upstream/archive-provenance.md`. See the archive
+   provenance record for the reproducible facts and remaining limitation.
+2. **Source-snapshot redistribution clearance is improved but still
+   incomplete.** A root GPLv2 `LICENSE` and an initial component notice
+   inventory exist. The ElTree Lite component's non-source-redistributable
+   license is no longer an open item: `src/original/ElTree/` and the
+   `amc_sources.rar` archive that also contained it have been removed
+   entirely (resolved by removal, since AMC Python never used ElTree, rather
+   than by obtained permission — see `THIRD_PARTY_NOTICES.md`). Unresolved
+   per-file review for `Common` and `antcomponents` remains open. See
+   `THIRD_PARTY_NOTICES.md`; these are release blockers, not inferred
+   clearance.
 3. **Upstream-generated fixtures exist for native format only.** Two genuine
    fixture sets are registered — `tests/fixtures/native-empty-one-movie/`
    (empty/one-movie AMC 3.5/4.1/4.2 catalogs) and `tests/fixtures/
@@ -773,7 +785,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 
 | Port requirement | Code | Tests | Upstream evidence | Status |
 |---|---|---|---|---|
-| Acquire/inventory source | `tools/acquire_upstream.py` | `tooling/test_acquire_upstream.py` | Supplied archives exactly match the 952-file snapshot; publisher authentication is unavailable | Archive/tree identity confirmed; acquisition timestamp and independent digest pending |
+| Acquire/inventory source | `tools/acquire_upstream.py` | `tooling/test_acquire_upstream.py` | The RAR-derived 952-file snapshot matched exactly at the time; that archive and its ElTree files have since been removed (`THIRD_PARTY_NOTICES.md`), leaving `antcomponents.zip`'s 76-file snapshot matching exactly; publisher authentication is unavailable | Archive/tree identity confirmed; acquisition timestamp and independent digest pending |
 | Native header probe | Source-derived 1.0–4.2 recognition in `inspection.py` | All ten headers, truncation, unknown-version, CLI, and warning tests, plus genuine 3.5/4.1/4.2 fixture headers | Constants and dispatch in `movieclass.pas` | Implemented from source; genuine header evidence exists for 3.5/4.1/4.2, other versions still pending |
 | Native catalog reader | `native.py`, storage/CLI import | Source-derived synthetic happy/error tests, plus genuine-fixture tests (`tests/compatibility/test_native.py`) covering empty/one-movie/populated 3.5/4.1/4.2 catalogs, custom fields, and embedded pictures | `TMovieList.LoadFromFile`, `ReadRecords`, fixed records, `ReadData`, pictures/custom/extras | 1.0–4.2 implemented; genuine 3.5/4.1/4.2 fixture evidence exists (findings 38–39) but not `verified` — no cross-application test yet, and other versions remain unevidenced |
 | Native catalog writer | `native.py`, `storage.py`, `export-amc` | Synthetic round trip; atomic failure; malformed metadata/rating/separator; invalid-limit; encoded-string; full service/CLI budget and resource tests | `TMovieList.SaveToFile` and nested `WriteData` methods | Strict bounded configurable 4.2 writer implemented from source; upstream acceptance unverified |

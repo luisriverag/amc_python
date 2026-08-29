@@ -77,6 +77,10 @@ _EDIT_TEXT_FIELDS = (
     "picture",
 )
 _EDIT_MULTILINE_FIELDS = {"description", "comments"}
+# Fields whose dialog widget should stretch to fill its grid cell and is
+# never a plain, width-configurable ttk.Entry: multi-line fields (a
+# tk.Text) and "picture" (a composite Entry-plus-buttons Frame).
+_EDIT_STRETCH_FIELDS = _EDIT_MULTILINE_FIELDS | {"picture"}
 _EDIT_INTEGER_FIELDS = (
     "color_tag",
     "year",
@@ -87,57 +91,99 @@ _EDIT_INTEGER_FIELDS = (
     "file_size",
 )
 _EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
+# A fixed character width for every field Label, long enough for the
+# longest one ("Translated Title"). Each dialog row is its own independent
+# grid (see _dialog), so nothing otherwise keeps every row's label column
+# the same width; a fixed Label width keeps entries vertically aligned
+# across rows without depending on shared grid state.
+_EDIT_LABEL_WIDTH = max(
+    len(name.replace("_", " ").title())
+    for name in _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS + _EDIT_FLOAT_FIELDS
+)
 # Visual grouping for the Add/Edit movie dialog, matching upstream AMC's own
-# grouped field layout (Identification / Classification / Cast & Crew /
-# Description / Technical Details) instead of one flat field list. This must
-# stay a partition of _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS +
-# _EDIT_FLOAT_FIELDS — enforced by test_edit_field_groups_cover_every_edit_field.
-_EDIT_FIELD_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+# grouped, multi-field-per-row layout (Identification / Classification /
+# Cast & Crew / Description / Technical Details) instead of one flat field
+# list. Each group is a tuple of "rows"; a row naming more than one field is
+# packed side by side only in landscape/wide mode (see
+# _EDIT_WIDE_LAYOUT_MIN_WIDTH) — in portrait/narrow mode every field always
+# gets its own row, one per line. The flattened field set must stay a
+# partition of _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS + _EDIT_FLOAT_FIELDS —
+# enforced by test_edit_field_groups_cover_every_edit_field_exactly_once.
+_EDIT_FIELD_GROUPS: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
     (
         "Identification",
         (
-            "title",
-            "original_title",
-            "translated_title",
-            "media_label",
-            "media_type",
-            "source",
-            "picture",
+            ("media_label", "media_type"),
+            ("source",),
+            ("title",),
+            ("original_title", "rating"),
+            ("translated_title", "user_rating"),
+            ("picture",),
         ),
     ),
     (
         "Classification",
         (
-            "category",
-            "certification",
-            "country",
-            "year",
-            "length",
-            "rating",
-            "user_rating",
-            "color_tag",
-            "date",
+            ("category", "certification"),
+            ("country", "year", "length"),
+            ("date", "color_tag"),
         ),
     ),
-    ("Cast & Crew", ("director", "actors", "producer", "writer", "composer")),
-    ("Description", ("description", "comments", "url")),
+    (
+        "Cast & Crew",
+        (
+            ("director",),
+            ("actors",),
+            ("producer", "writer"),
+            ("composer",),
+        ),
+    ),
+    ("Description", (("description",), ("comments",), ("url",))),
     (
         "Technical Details",
         (
-            "file_path",
-            "video_format",
-            "video_bitrate",
-            "audio_format",
-            "audio_bitrate",
-            "resolution",
-            "framerate",
-            "languages",
-            "subtitles",
-            "media_count",
-            "file_size",
+            ("file_path",),
+            ("video_format", "video_bitrate", "resolution"),
+            ("audio_format", "audio_bitrate", "framerate"),
+            ("languages", "subtitles"),
+            ("media_count", "file_size"),
         ),
     ),
 )
+# Entry width (characters), used only for a field placed in a landscape-mode
+# paired row; a field alone on its row, or any field in portrait/narrow
+# mode, always uses _EDIT_FIELD_FULL_WIDTH instead.
+_EDIT_FIELD_COMPACT_WIDTH: dict[str, int] = {
+    "media_label": 18,
+    "media_type": 12,
+    "original_title": 26,
+    "rating": 5,
+    "translated_title": 26,
+    "user_rating": 5,
+    "category": 16,
+    "certification": 10,
+    "country": 12,
+    "year": 6,
+    "length": 6,
+    "date": 12,
+    "color_tag": 8,
+    "producer": 20,
+    "writer": 20,
+    "video_format": 12,
+    "video_bitrate": 8,
+    "resolution": 12,
+    "audio_format": 12,
+    "audio_bitrate": 8,
+    "framerate": 8,
+    "languages": 18,
+    "subtitles": 18,
+    "media_count": 8,
+    "file_size": 10,
+}
+_EDIT_FIELD_FULL_WIDTH = 40
+# Canvas width (pixels) at or above which a multi-field row packs side by
+# side (landscape); narrower reflows every field to its own row (portrait).
+_EDIT_WIDE_LAYOUT_MIN_WIDTH = 640
 _SEARCH_FIELDS: tuple[tuple[str, str | None], ...] = (
     ("All fields", None),
     ("Title", "title"),
@@ -2314,108 +2360,253 @@ class CatalogWindow(ttk.Frame):
         except ValueError:
             picture_bytes = None
         embed_picture = tk.BooleanVar(value=picture_bytes is not None)
-        canvas = tk.Canvas(dialog, highlightthickness=0, width=970, height=560)
+        canvas = tk.Canvas(dialog, highlightthickness=0, width=760, height=600)
         scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
         fields_frame = ttk.Frame(canvas)
         fields_frame.bind(
             "<Configure>",
             lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
         )
-        canvas.create_window((0, 0), window=fields_frame, anchor="nw")
+        canvas_window = canvas.create_window((0, 0), window=fields_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.grid(row=0, column=0, columnspan=2, sticky="nsew")
-        scrollbar.grid(row=0, column=2, sticky="ns")
+        canvas.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
         dialog.rowconfigure(0, weight=1)
         dialog.columnconfigure(0, weight=1)
+
         title_entry: ttk.Entry | None = None
-        for group_row, (group_title, group_fields) in enumerate(_EDIT_FIELD_GROUPS):
+        field_labels: dict[str, ttk.Label] = {}
+        field_widgets: dict[str, tk.Widget] = {}
+        field_reflow: dict[str, Callable[[bool], None]] = {}
+        classification_group: ttk.LabelFrame | None = None
+        # One independent grid per row (not one shared grid per group): grid
+        # column widths are uniform across every row sharing one grid master,
+        # so the Picture row's much wider composite Entry-plus-buttons widget
+        # would otherwise force every other row in the same group to match
+        # its column width. Scoping each row to its own Frame keeps that
+        # widening local to the row that actually needs it.
+        rows: list[tuple[ttk.Frame, tuple[str, ...]]] = []
+
+        for group_title, group_rows in _EDIT_FIELD_GROUPS:
             group = ttk.LabelFrame(fields_frame, text=group_title)
-            group.grid(row=group_row, column=0, sticky="ew", padx=8, pady=(4, 8))
-            group.columnconfigure(1, weight=1)
-            for row, name in enumerate(group_fields):
-                value = values[name]
-                ttk.Label(group, text=name.replace("_", " ").title()).grid(
-                    row=row, column=0, sticky="w", padx=8, pady=4
-                )
-                if name in _EDIT_MULTILINE_FIELDS:
-                    text = tk.Text(group, width=48, height=5, wrap="word")
-                    text.insert("1.0", value.get())
-                    text.grid(row=row, column=1, sticky="ew", padx=8, pady=4)
-                    multiline_widgets[name] = text
-                else:
-                    entry = ttk.Entry(group, textvariable=value, width=48)
-                    entry.grid(row=row, column=1, padx=8, pady=4)
+            group.pack(fill="x", padx=8, pady=(4, 8))
+            if group_title == "Classification":
+                classification_group = group
+            for row_fields in group_rows:
+                row_frame = ttk.Frame(group)
+                row_frame.pack(fill="x")
+                if any(name in _EDIT_STRETCH_FIELDS for name in row_fields):
+                    row_frame.columnconfigure(1, weight=1)
+                for name in row_fields:
+                    value = values[name]
+                    field_labels[name] = ttk.Label(
+                        row_frame, text=name.replace("_", " ").title(), width=_EDIT_LABEL_WIDTH
+                    )
+                    if name in _EDIT_MULTILINE_FIELDS:
+                        text = tk.Text(
+                            row_frame, width=_EDIT_FIELD_FULL_WIDTH, height=5, wrap="word"
+                        )
+                        text.insert("1.0", value.get())
+                        multiline_widgets[name] = text
+                        field_widgets[name] = text
+                        continue
+                    if name == "picture":
+                        picture_value = value
+
+                        def choose_picture() -> None:
+                            nonlocal picture_bytes
+                            selected = filedialog.askopenfilename(
+                                parent=dialog,
+                                title="Choose poster",
+                                filetypes=_IMAGE_FILETYPES,
+                            )
+                            if not selected:
+                                return
+                            try:
+                                with Image.open(selected) as image:
+                                    image.verify()
+                                picture_bytes = Path(selected).read_bytes()
+                            except (OSError, UnidentifiedImageError) as error:
+                                messagebox.showerror("Invalid poster", str(error), parent=dialog)
+                                return
+                            selected_path = Path(selected)
+                            try:
+                                display_path = selected_path.resolve().relative_to(
+                                    self.service.path.parent.resolve()
+                                )
+                            except ValueError:
+                                display_path = selected_path
+                            picture_value.set(str(display_path))
+
+                        def clear_picture() -> None:
+                            nonlocal picture_bytes
+                            picture_bytes = None
+                            embed_picture.set(False)
+                            picture_value.set("")
+
+                        def crop_picture() -> None:
+                            if picture_bytes is None:
+                                messagebox.showerror(
+                                    "Crop picture",
+                                    "Choose a poster before cropping.",
+                                    parent=dialog,
+                                )
+                                return
+
+                            def apply_crop(box: tuple[int, int, int, int]) -> None:
+                                nonlocal picture_bytes
+                                if picture_bytes is not None:
+                                    picture_bytes = crop_image_bytes(picture_bytes, box)
+
+                            try:
+                                open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)
+                            except (OSError, UnidentifiedImageError) as error:
+                                messagebox.showerror("Crop picture", str(error), parent=dialog)
+
+                        # A single composite widget (Entry + its buttons),
+                        # not a bare Entry beside a separately gridded
+                        # controls frame: pack, not grid, sizes it from its
+                        # own content only, so it cannot distort any other
+                        # row's column widths. Its own internal packing also
+                        # reflows (see field_reflow below): trailing the
+                        # entry in wide mode, wrapped onto their own line
+                        # in narrow mode, since the buttons alone need more
+                        # width than a portrait window may have.
+                        wrapper = ttk.Frame(row_frame)
+                        entry = ttk.Entry(wrapper, textvariable=value, width=_EDIT_FIELD_FULL_WIDTH)
+                        button_row = ttk.Frame(wrapper)
+                        browse_button = ttk.Button(
+                            button_row, text="Browse", command=choose_picture
+                        )
+                        crop_button = ttk.Button(button_row, text="Crop", command=crop_picture)
+                        clear_button = ttk.Button(button_row, text="Clear", command=clear_picture)
+                        embed_check = ttk.Checkbutton(
+                            button_row, text="Embed", variable=embed_picture
+                        )
+
+                        def layout_picture(
+                            wide: bool,
+                            entry: ttk.Entry = entry,
+                            button_row: ttk.Frame = button_row,
+                            browse_button: ttk.Button = browse_button,
+                            crop_button: ttk.Button = crop_button,
+                            clear_button: ttk.Button = clear_button,
+                            embed_check: ttk.Checkbutton = embed_check,
+                        ) -> None:
+                            entry.pack_forget()
+                            button_row.pack_forget()
+                            for button in (browse_button, crop_button, clear_button, embed_check):
+                                button.grid_forget()
+                            if wide:
+                                # All four side by side: this row has plenty
+                                # of width once wide.
+                                browse_button.grid(row=0, column=0)
+                                crop_button.grid(row=0, column=1, padx=4)
+                                clear_button.grid(row=0, column=2)
+                                embed_check.grid(row=0, column=3, padx=(4, 0))
+                                # button_row (fixed size) must be packed
+                                # before entry (fill="x", expand=True): pack
+                                # allocates cavity space in call order, so
+                                # packing the expanding widget first can
+                                # claim space a later fixed-size sibling
+                                # needs, silently unmapping it instead of
+                                # just shrinking the expanding one.
+                                button_row.pack(side="right", padx=(4, 0))
+                                entry.pack(side="left", fill="x", expand=True)
+                            else:
+                                # A 2x2 grid, not one row of four: a narrow
+                                # window's own width is not known in
+                                # advance, and one row risks the same
+                                # pack-order overflow this replaces.
+                                browse_button.grid(row=0, column=0)
+                                crop_button.grid(row=0, column=1, padx=4)
+                                clear_button.grid(row=1, column=0, pady=(4, 0))
+                                embed_check.grid(row=1, column=1, padx=4, pady=(4, 0))
+                                entry.pack(side="top", fill="x")
+                                button_row.pack(side="top", anchor="w", pady=(4, 0))
+
+                        field_widgets[name] = wrapper
+                        field_reflow[name] = layout_picture
+                        continue
+                    entry = ttk.Entry(row_frame, textvariable=value, width=_EDIT_FIELD_FULL_WIDTH)
+                    field_widgets[name] = entry
                     if name == "title":
                         title_entry = entry
-                if name == "picture":
-                    picture_value = value
+                rows.append((row_frame, row_fields))
 
-                    def choose_picture() -> None:
-                        nonlocal picture_bytes
-                        selected = filedialog.askopenfilename(
-                            parent=dialog,
-                            title="Choose poster",
-                            filetypes=_IMAGE_FILETYPES,
-                        )
-                        if not selected:
-                            return
-                        try:
-                            with Image.open(selected) as image:
-                                image.verify()
-                            picture_bytes = Path(selected).read_bytes()
-                        except (OSError, UnidentifiedImageError) as error:
-                            messagebox.showerror("Invalid poster", str(error), parent=dialog)
-                            return
-                        selected_path = Path(selected)
-                        try:
-                            display_path = selected_path.resolve().relative_to(
-                                self.service.path.parent.resolve()
-                            )
-                        except ValueError:
-                            display_path = selected_path
-                        picture_value.set(str(display_path))
+        assert classification_group is not None
+        checked_check = ttk.Checkbutton(classification_group, text="Checked", variable=checked)
+        checked_check.pack(anchor="w", padx=8, pady=4)
 
-                    def clear_picture() -> None:
-                        nonlocal picture_bytes
-                        picture_bytes = None
-                        embed_picture.set(False)
-                        picture_value.set("")
-
-                    def crop_picture() -> None:
-                        if picture_bytes is None:
-                            messagebox.showerror(
-                                "Crop picture",
-                                "Choose a poster before cropping.",
-                                parent=dialog,
-                            )
-                            return
-
-                        def apply_crop(box: tuple[int, int, int, int]) -> None:
-                            nonlocal picture_bytes
-                            if picture_bytes is not None:
-                                picture_bytes = crop_image_bytes(picture_bytes, box)
-
-                        try:
-                            open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)
-                        except (OSError, UnidentifiedImageError) as error:
-                            messagebox.showerror("Crop picture", str(error), parent=dialog)
-
-                    controls = ttk.Frame(group)
-                    controls.grid(row=row, column=2, sticky="w", padx=(0, 8))
-                    ttk.Button(controls, text="Browse", command=choose_picture).pack(side="left")
-                    ttk.Button(controls, text="Crop", command=crop_picture).pack(
-                        side="left", padx=4
+        def layout_row(row_frame: ttk.Frame, row_fields: tuple[str, ...], wide: bool) -> None:
+            """Grid *row_fields* into *row_frame*, side by side only in wide
+            (landscape) mode; narrow (portrait) mode always gives each field
+            its own row. Each row_frame is its own independent grid, so this
+            never affects any other row's column widths."""
+            for name in row_fields:
+                field_labels[name].grid_forget()
+                field_widgets[name].grid_forget()
+            paired = wide and len(row_fields) > 1
+            for slot, name in enumerate(row_fields):
+                column = slot * 2 if paired else 0
+                current_row = 0 if paired else slot
+                if name == "picture" and not wide:
+                    # Picture's own buttons need more width than a narrow
+                    # (portrait) window may leave beside a label column —
+                    # stack its label above instead of beside it, letting
+                    # the composite widget use the row's full width. Safe
+                    # to special-case unconditionally: picture is always
+                    # alone in its own row_fields tuple.
+                    field_labels[name].grid(
+                        row=current_row, column=0, sticky="w", padx=8, pady=(4, 0)
                     )
-                    ttk.Button(controls, text="Clear", command=clear_picture).pack(
-                        side="left", padx=4
+                    field_widgets[name].grid(
+                        row=current_row + 1,
+                        column=0,
+                        columnspan=2,
+                        padx=8,
+                        pady=(0, 4),
+                        sticky="ew",
                     )
-                    ttk.Checkbutton(controls, text="Embed", variable=embed_picture).pack(
-                        side="left"
+                    if name in field_reflow:
+                        field_reflow[name](wide)
+                    continue
+                field_labels[name].grid(row=current_row, column=column, sticky="w", padx=8, pady=4)
+                if name not in _EDIT_STRETCH_FIELDS:
+                    width = (
+                        _EDIT_FIELD_COMPACT_WIDTH.get(name, _EDIT_FIELD_FULL_WIDTH)
+                        if paired
+                        else _EDIT_FIELD_FULL_WIDTH
                     )
-            if group_title == "Classification":
-                ttk.Checkbutton(group, text="Checked", variable=checked).grid(
-                    row=len(group_fields), column=1, sticky="w", padx=8, pady=4
+                    field_widgets[name]["width"] = width
+                field_widgets[name].grid(
+                    row=current_row,
+                    column=column + 1,
+                    padx=8,
+                    pady=4,
+                    sticky="ew" if name in _EDIT_STRETCH_FIELDS else "",
                 )
+                if name in field_reflow:
+                    field_reflow[name](wide)
+
+        layout_mode: dict[str, bool | None] = {"wide": None}
+
+        def relayout(width: int) -> None:
+            wide = width >= _EDIT_WIDE_LAYOUT_MIN_WIDTH
+            if wide == layout_mode["wide"]:
+                return
+            layout_mode["wide"] = wide
+            for row_frame, row_fields in rows:
+                layout_row(row_frame, row_fields, wide)
+            fields_frame.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def on_canvas_configure(event: tk.Event) -> None:
+            canvas.itemconfigure(canvas_window, width=event.width)
+            relayout(event.width)
+
+        canvas.bind("<Configure>", on_canvas_configure)
+        relayout(760)
 
         def accept() -> None:
             for name, widget in multiline_widgets.items():

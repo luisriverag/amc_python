@@ -62,8 +62,12 @@ rather than repeating it here.
 - Desktop Add/Edit Movie dialog: its ~30 fields are now grouped into named
   sections (Identification, Classification, Cast & Crew, Description,
   Technical Details) instead of one long flat list, matching upstream's own
-  grouped Edit Movie layout. Field behavior, validation, and the picture
-  browse/crop/clear/embed controls are unchanged.
+  grouped, multi-field-per-row Edit Movie layout. Related fields (e.g. Year/
+  Length, Video Format/Bitrate/Resolution) pack side by side when the dialog
+  is wide (landscape) and reflow to one field per row when it is narrow
+  (portrait), so resizing the window between the two never clips a field.
+  Field behavior, validation, and the picture browse/crop/clear/embed
+  controls are unchanged.
 - Desktop **Export** action's Ant Movie Catalog HTML-template path: replaced
   three sequential blocking file dialogs (full-catalog template,
   individual-movie template, individual-pages folder) with one dialog

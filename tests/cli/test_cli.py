@@ -112,6 +112,51 @@ def test_cli_edit_and_export(tmp_path: Path):
     assert (movie.title, movie.year) == ("Moon", 2009)
 
 
+def test_cli_export_scope_checked_includes_only_checked_movies(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    xml = tmp_path / "movies.xml"
+    save(
+        Catalog(
+            [
+                Movie(number=1, title="Alien", checked=True),
+                Movie(number=2, title="Aliens", checked=False),
+            ]
+        ),
+        catalog,
+    )
+
+    assert main(["-c", str(catalog), "export-xml", str(xml), "--scope", "checked"]) == 0
+
+    assert [movie.title for movie in load_xml(xml)] == ["Alien"]
+    assert len(load(catalog)) == 2
+
+
+def test_cli_export_sort_by_and_reverse_do_not_change_the_catalog(tmp_path: Path):
+    catalog = tmp_path / "movies.json"
+    xml = tmp_path / "movies.xml"
+    save(Catalog([Movie(number=1, title="Bravo"), Movie(number=2, title="Alpha")]), catalog)
+
+    assert main(["-c", str(catalog), "export-xml", str(xml), "--sort-by", "title"]) == 0
+    assert [movie.title for movie in load_xml(xml)] == ["Alpha", "Bravo"]
+    assert [movie.title for movie in load(catalog)] == ["Bravo", "Alpha"]
+
+    assert (
+        main(
+            [
+                "-c",
+                str(catalog),
+                "export-xml",
+                str(xml),
+                "--sort-by",
+                "title",
+                "--sort-reverse",
+            ]
+        )
+        == 0
+    )
+    assert [movie.title for movie in load_xml(xml)] == ["Bravo", "Alpha"]
+
+
 def test_cli_native_export_accepts_encoding_and_budgets(tmp_path: Path):
     catalog = tmp_path / "movies.json"
     target = tmp_path / "movies.amc"
@@ -597,6 +642,55 @@ def test_cli_list_search_and_stats_support_json(tmp_path: Path, capsys):
         "movies": 2,
         "total_length": 254,
     }
+
+
+def test_cli_search_field_whole_field_and_reverse(tmp_path: Path, capsys):
+    target = tmp_path / "catalog.json"
+    save(
+        Catalog(
+            [
+                Movie(number=1, title="Alien", director="Ridley Scott"),
+                Movie(number=2, title="Scott Pilgrim", director="Edgar Wright"),
+            ]
+        ),
+        target,
+    )
+
+    assert main(["-c", str(target), "search", "scott", "--field", "director", "--json"]) == 0
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [1]
+
+    assert main(["-c", str(target), "search", "scott", "--field", "title", "--json"]) == 0
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [2]
+
+    assert (
+        main(
+            [
+                "-c",
+                str(target),
+                "search",
+                "alien",
+                "--field",
+                "title",
+                "--whole-field",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [1]
+
+    assert (
+        main(["-c", str(target), "search", "scott", "--field", "director", "--reverse", "--json"])
+        == 0
+    )
+    assert [row["number"] for row in json.loads(capsys.readouterr().out)] == [2]
+
+
+def test_cli_search_rejects_an_unknown_field(tmp_path: Path):
+    target = tmp_path / "catalog.json"
+    save(Catalog([Movie(number=1, title="Alien")]), target)
+
+    assert main(["-c", str(target), "search", "x", "--field", "bogus"]) == 2
 
 
 def test_cli_duplicates_supports_json(tmp_path: Path, capsys):

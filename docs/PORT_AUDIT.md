@@ -37,7 +37,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 581 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 635 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 7 upstream-generated fixtures registered (`tests/fixtures/native-empty-one-movie/`, finding 38; `tests/fixtures/native-sample-catalog/`, finding 39); 0 verified upstream subsystems | Narrow, genuine read-path evidence exists for the first time — empty and blank-one-movie native catalogs across AMC 3.5/4.1/4.2, plus populated movies, all eight represented custom-field types, and embedded pictures across AMC 3.5/4.2; this does not verify native format compatibility as a whole — other versions and a write-then-reopen-in-real-AMC check remain unevidenced |
 
@@ -73,7 +73,7 @@ confidence.
 | Source acquisition tool | Streaming download, digest, extraction selection, inventory | Local HTTP and synthetic inventory tests | High for tested behavior |
 | Engineering checks | Canonical tests/compile/fixture checks, `mypy` type checking (default mode), plus isolated wheel install | Tool unit tests and installed console-script JSON smoke | High for tested environment |
 | HTML prototype | Escaped static table with bounded document/row templates | Injection, marker, failure-preservation, and CLI tests | Moderate internally; no AMC template parity |
-| Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF/MP3 duration/bitrate (MP3 via a hand-decoded MPEG frame header, not upstream's MediaInfo.dll); CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, MP3 (CBR, ID3v2/ID3v1 tag handling, reserved-header rejection, Layer I/II/III frame-length formulas), bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
+| Media prototype | File discovery/facts and PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration/bitrate (MP3/MP4/OGG via hand-decoded frame/container parsing, not upstream's MediaInfo.dll); depth-limited recursive discovery, opt-in adjacent-file multi-part merging, linked/embedded same-stem or folder-poster discovery, full/deferred/skipped extraction modes, and bounded filename-title cleanup; CLI `import-media --progress` reporting and a GUI Import Media dialog (file or recursive-folder selection, with the same options) with the same atomic-after-inspection guarantee | File, WAV, FLAC, AIFF, MP3, MP4, OGG (CBR/VBR handling, ID3v2/ID3v1 tags, ISOBMFF box walking, Vorbis identification header), depth/merge/picture/extraction-mode, bounds, filtering, recursive, progress-output, interrupted-scan, and atomic CLI/GUI tests | Moderate for stated subset |
 | Script inventory/settings | Bounded non-executing Infos/options/parameters/permissions/static-name parser; validated option/parameter overrides; atomic Python JSON settings | Synthetic metadata, malformed-entry, configuration, persistence, and CLI tests | Moderate for the stated non-executing subset; no runtime parity |
 | Application service | Failure-atomic CRUD, merge, media import, loans, undo/redo, backup/restore, and export orchestration | Mutation-failure, persistence, history, and adapter tests | High for tested internal workflows |
 | Loan prototype | Single/batch, media-label, and retained-native-number group transitions; managed borrowers; JSON history; source-shaped TSV export | Unit/service/CLI/GUI tests, including atomic conflicts and output preservation | Moderate internally; upstream encoding/behavior unverified |
@@ -140,12 +140,23 @@ confidence.
    review found an ElTree license that does not permit source redistribution and
    unresolved per-file review for `Common` and `antcomponents`. See
    `THIRD_PARTY_NOTICES.md`; these are release blockers, not inferred clearance.
-3. **There are no upstream-generated fixtures.** Consequently XML/CSV compatibility
-   and all upstream parity claims remain unverified.
-4. **Native `.amc` verification is blocked, not implementation.** A source-derived
-   1.0–4.2 reader now exists, but it has only synthetic byte fixtures. Encoding,
-   compiler-layout assumptions, version behavior, and malformed-file compatibility
-   cannot be claimed until upstream-generated catalogs are registered.
+3. **Upstream-generated fixtures exist for native format only.** Two genuine
+   fixture sets are registered — `tests/fixtures/native-empty-one-movie/`
+   (empty/one-movie AMC 3.5/4.1/4.2 catalogs) and `tests/fixtures/
+   native-sample-catalog/` (a populated AMC 3.5/4.2 pair with custom fields
+   and embedded pictures) — which found and fixed two real reader/writer
+   bugs (findings 38–39). XML and CSV still have zero registered
+   upstream-generated fixtures, so XML/CSV compatibility and native
+   compatibility for versions/features beyond what those two fixture sets
+   cover remain unverified.
+4. **Native `.amc` verification is partially underway, no longer purely
+   blocked.** A source-derived 1.0–4.2 reader now exists and passes against
+   the two genuine fixture sets above, but encoding behavior across more
+   than one real catalog, other-version behavior, malformed-file
+   compatibility, and native write compatibility remain unverified. No
+   status may move to `verified` regardless, since that also needs a
+   documented cross-application (write, then reopen in genuine AMC) test,
+   which neither registered fixture set provides yet.
 
 ### Design and quality debt
 
@@ -763,8 +774,8 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Port requirement | Code | Tests | Upstream evidence | Status |
 |---|---|---|---|---|
 | Acquire/inventory source | `tools/acquire_upstream.py` | `tooling/test_acquire_upstream.py` | Supplied archives exactly match the 952-file snapshot; publisher authentication is unavailable | Archive/tree identity confirmed; acquisition timestamp and independent digest pending |
-| Native header probe | Source-derived 1.0–4.2 recognition in `inspection.py` | All ten headers, truncation, unknown-version, CLI, and warning tests | Constants and dispatch in `movieclass.pas` | Implemented from source; genuine fixtures pending |
-| Native catalog reader | `native.py`, storage/CLI import | Source-derived synthetic happy/error tests | `TMovieList.LoadFromFile`, `ReadRecords`, fixed records, `ReadData`, pictures/custom/extras | 1.0–4.2 implemented; no genuine verification |
+| Native header probe | Source-derived 1.0–4.2 recognition in `inspection.py` | All ten headers, truncation, unknown-version, CLI, and warning tests, plus genuine 3.5/4.1/4.2 fixture headers | Constants and dispatch in `movieclass.pas` | Implemented from source; genuine header evidence exists for 3.5/4.1/4.2, other versions still pending |
+| Native catalog reader | `native.py`, storage/CLI import | Source-derived synthetic happy/error tests, plus genuine-fixture tests (`tests/compatibility/test_native.py`) covering empty/one-movie/populated 3.5/4.1/4.2 catalogs, custom fields, and embedded pictures | `TMovieList.LoadFromFile`, `ReadRecords`, fixed records, `ReadData`, pictures/custom/extras | 1.0–4.2 implemented; genuine 3.5/4.1/4.2 fixture evidence exists (findings 38–39) but not `verified` — no cross-application test yet, and other versions remain unevidenced |
 | Native catalog writer | `native.py`, `storage.py`, `export-amc` | Synthetic round trip; atomic failure; malformed metadata/rating/separator; invalid-limit; encoded-string; full service/CLI budget and resource tests | `TMovieList.SaveToFile` and nested `WriteData` methods | Strict bounded configurable 4.2 writer implemented from source; upstream acceptance unverified |
 | Internal working format | `storage.py`, JSON v1 spec | `compatibility/test_storage.py` | Not applicable | Implemented |
 | AMC XML reader/writer | `storage.py` | Synthetic tests | None | Prototype only |
@@ -800,12 +811,13 @@ Observed for this audit:
 
 | Command/check | Result |
 |---|---|
-| `python tools/check.py` | 367 tests passed; 82% aggregate branch coverage; Ruff, compilation, fixture-manifest validation, license-inventory validation, native-expectation verification, and source CLI help passed |
+| `python tools/check.py` | 635 tests passed; 88% aggregate branch coverage; Ruff lint, Ruff format, mypy, compilation, fixture-manifest validation, license-inventory validation, native-expectation verification, and source CLI help passed |
 | `python tools/check_package.py` | Source distribution built and checked to exclude historical evidence trees; wheel built and installed into an isolated environment; module and `amc`, `amc-gui`, and `amc-web` entry-point smoke checks passed |
-| `python tools/validate_fixtures.py` | 0 manifests validated, confirming the compatibility-fixture gap rather than compatibility |
+| `python tools/validate_fixtures.py` | 3 manifests validated — `tests/fixtures/native-empty-one-movie/` and `tests/fixtures/native-sample-catalog/`, this port's first genuine, upstream-generated native fixtures (see findings 38–39) — narrowing, but not closing, the compatibility-fixture gap |
 | `git diff --check` | Passed |
 
-The source-tree check applies focused Ruff diagnostics and an 80% aggregate branch
-coverage floor. It does not run a formatter or static type checker. The packaging
+The source-tree check applies focused Ruff diagnostics, `ruff format --check`, mypy
+in its default, non-strict mode (see ADR-0008 in `docs/decisions.md`), and an 80%
+aggregate branch coverage floor. The packaging
 check is intentionally separate because it builds and installs an isolated wheel
 rather than importing from `src/`.

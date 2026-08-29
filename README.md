@@ -57,8 +57,13 @@ references.
 > embedded pictures, and supplementary records are retained in JSON. Native reads apply
 > configurable file, movie-count, individual/cumulative-picture, cumulative-string,
 > custom-field/list-value, and per-movie/cumulative supplementary-record limits.
-> Genuine-fixture
-> validation remains pending.
+> Two genuine, upstream-generated fixture sets are now registered and checked
+> in continuous integration — empty/one-movie AMC 3.5/4.1/4.2 catalogs, and a
+> populated AMC 3.5/4.2 pair (AMC's own bundled demo catalog) with custom
+> fields and embedded pictures — which found and fixed two real reader/writer
+> bugs. This is not the same as **verified**: no status may move to that word
+> without also a documented cross-application test (writing a catalog here,
+> then reopening it in genuine AMC), which remains pending.
 
 For porting work, the checked-in Delphi snapshot is treated as the user-designated
 authoritative source baseline. Its equality with the checked-in archives is
@@ -103,14 +108,20 @@ amc -c movies.json add "The Apartment" --year 1960 --director "Billy Wilder"
 amc -c movies.json list
 amc -c movies.json list --json
 amc -c movies.json search Wilder
+amc -c movies.json search Wilder --field director
+amc -c movies.json search Wilder --field director --whole-field
+amc -c movies.json search Wilder --reverse
 amc -c movies.json remove 2
 amc -c movies.json edit 1 --title "The Apartment" --year 1960
 amc -c movies.json edit 1 --set 'rating=8.5' --set 'checked=true'
 amc -c movies.json export-xml MyCatalog.xml
+amc -c movies.json export-xml MyCatalog.xml --scope checked
+amc -c movies.json export-xml MyCatalog.xml --sort-by year --sort-reverse
 amc -c movies.json export-csv movies.csv
 amc -c movies.json export-html movies.html
 amc -c movies.json export-html movies.html --template template.html
 amc -c movies.json export-html movies.html --row-template movie-row.html
+amc -c movies.json export-html-template movies.html --full-template full.html --individual-template item.html
 amc -c movies.json export-amc movies.amc
 amc -c movies.json export-amc movies.amc --max-output-bytes 104857600
 amc -c movies.json picture-set 12 cover.jpg --embed
@@ -179,16 +190,28 @@ catalog text. A bounded UTF-8 template may contain exactly one `{{MOVIES}}` mark
 a bounded row template supports escaped uppercase modeled-field markers such as
 `{{NUMBER}}`, `{{ORIGINAL_TITLE}}`, and `{{DESCRIPTION}}`, plus
 `{{DISPLAY_TITLE}}`. Upstream AMC's full template/tag compatibility remains pending.
-`import-media` records portable path/name/extension/size facts. PCM WAV, FLAC,
-and AIFF/AIFF-C files also provide duration and audio bitrate using only
-Python's standard library — WAV and uncompressed AIFF bitrate come from the
-PCM format; FLAC and compressed AIFF-C use an average bitrate computed from
-file size and duration; AIFF's sample rate is decoded from its 80-bit extended
-float without the deprecated, Python-3.13-removed `aifc` module. Broader
-codec inspection (MP3, MP4, OGG, and similar compressed/lossy formats)
-remains an optional-provider gap. Directory expansion is deterministic,
-opt-in recursive, optionally extension-filtered, and bounded to 100,000 files
-per invocation. `--progress` reports inspection progress to stderr for large
+`import-media` records portable path/name/extension/size facts. PCM WAV,
+FLAC, AIFF/AIFF-C, MP3, MP4/M4A/MOV, and OGG Vorbis files also provide
+duration and bitrate using only Python's standard library — WAV and
+uncompressed AIFF bitrate come from the PCM format; FLAC, compressed
+AIFF-C, and MP3 without a parsed Xing/VBRI header use an average bitrate
+computed from file size and duration; MP3 duration comes from its first
+MPEG frame header; MP4 duration comes from the ISOBMFF `moov`/`mvhd` box
+(movie-level only); OGG comes from the Vorbis identification header and
+the stream's last granule position. AIFF's sample rate is decoded from
+its 80-bit extended float without the deprecated, Python-3.13-removed
+`aifc` module. Video-track resolution, framerate, and a real codec name
+remain an optional-provider gap. Directory expansion is deterministic,
+opt-in recursive with an optional `--max-depth` level cap, optionally
+extension-filtered (`--extensions default` selects a shared common-video
+set), and bounded to 100,000 files per invocation. `--merge-parts`
+combines adjacent, same-directory `CD1`/`CD2`-style files into one movie
+entry, summing length/size and averaging bitrate the way upstream does;
+`--import-pictures link|embed` attaches a same-stem or configured
+folder-image poster; `--extract full|defer|skip` controls how much media
+metadata is read immediately versus deferred or skipped; and
+`--title-filter-regex` strips matching text from a filename-derived
+title. `--progress` reports inspection progress to stderr for large
 trees; the catalog is only written after every file is inspected, so
 interrupting the command at any point leaves it untouched.
 Legacy `.ifs` script metadata can be inspected and inventoried without executing
@@ -200,7 +223,13 @@ field-level change list and enforces the permissions declared in the script head
 
 `list`, `search`, `stats`, and `duplicates` accept `--json` for stable
 machine-readable output. Duplicate groups use normalized display title plus year;
-untitled entries are excluded.
+untitled entries are excluded. `search` matches a fixed set of common fields by
+default; `--field NAME` restricts matching to one field, `--whole-field`
+requires an exact match instead of a substring, and `--reverse` returns
+movies that do *not* match. Every `export-*` command accepts
+`--scope {all,checked}` (default `all`) and `--sort-by FIELD
+[--sort-reverse]` to select and order which movies are written without
+changing the catalog's own saved order.
 The output shapes and stable exit statuses are documented in the
 [`command-line contract`](docs/cli.md).
 `backup` and `restore` validate the source catalog, copy its original bytes through
@@ -216,9 +245,13 @@ Python cannot obtain an equivalent directory handle on Windows.
 applies the same type/range validation as JSON loading before saving.
 
 The optional desktop interface uses Python's built-in Tk toolkit. It provides a
-searchable, sortable movie list, file import/export, open/save-as, validated
-backup/restore, loan controls, and catalog review tools. Setup, supported workflows,
-and explicit limitations are documented in the [desktop guide](docs/gui.md).
+field-scoped searchable, sortable movie list (Table/Details/Poster/HTML
+layouts — HTML renders the selected movie live through a chosen Ant Movie
+Catalog template, via the `tkinterweb` dependency), file import/export with
+an Export-options "movies to include"/sort dialog, open/save-as, validated
+backup/restore, loan controls, Previous/Next movie navigation, and catalog
+review tools. Setup, supported workflows, and explicit limitations are
+documented in the [desktop guide](docs/gui.md).
 
 AMC Python also includes a read-only web interface at `http://0.0.0.0:6910/` via
 `amc-web movies.json`. This is a new convenience interface beyond the upstream port,

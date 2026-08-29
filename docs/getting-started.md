@@ -17,9 +17,10 @@ amc --help
 ```
 
 On Windows PowerShell, activate the environment with
-`.venv\Scripts\Activate.ps1`. Pillow is installed automatically. The desktop
-interface additionally requires Tk; see the [desktop guide](gui.md#tk-installation)
-for operating-system-specific details.
+`.venv\Scripts\Activate.ps1`. Pillow and `tkinterweb` are installed
+automatically. The desktop interface additionally requires Tk; see the
+[desktop guide](gui.md#tk-installation) for operating-system-specific
+details.
 
 ## Create and inspect a catalog
 

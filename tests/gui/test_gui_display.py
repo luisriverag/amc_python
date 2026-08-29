@@ -210,7 +210,7 @@ def test_main_window_has_a_grouped_menu_bar(real_root: tk.Tk, tmp_path: Path):
 
     menubar = window.menubar
     top_level = [menubar.entrycget(i, "label") for i in range(menubar.index("end") + 1)]
-    assert top_level == ["File", "Edit", "Movie", "Tools"]
+    assert top_level == ["File", "Edit", "Movie", "Tools", "Help"]
 
     file_menu = real_root.nametowidget(menubar.entrycget(0, "menu"))
     assert "Open Catalog..." in _menu_labels(file_menu)
@@ -342,6 +342,19 @@ def test_preferences_dialog_opens_over_a_real_window(real_root: tk.Tk, tmp_path:
     real_root.update_idletasks()
     real_root.update()
     dialogs = [item for item in _toplevels(real_root) if item.title() == "Preferences"]
+
+    assert len(dialogs) == 1
+    assert dialogs[0].winfo_viewable()
+    dialogs[0].destroy()
+
+
+def test_about_dialog_opens_over_a_real_window(real_root: tk.Tk, tmp_path: Path):
+    window = _open_window(real_root, tmp_path)
+
+    window.show_about()
+    real_root.update_idletasks()
+    real_root.update()
+    dialogs = [item for item in _toplevels(real_root) if item.title() == "About AMC Python"]
 
     assert len(dialogs) == 1
     assert dialogs[0].winfo_viewable()
@@ -638,6 +651,34 @@ def test_loan_history_dialog_reports_none_recorded_in_the_status_bar(
     dialog.destroy()
 
 
+def test_search_bar_field_scope_whole_field_and_reverse_filter_the_real_table(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    window.service.add(Movie(number=2, title="Aliens", director="Scott"))
+    window.refresh()
+    real_root.update()
+    assert len(window.table.get_children()) == 2
+
+    window.search_field.set("Director")
+    window.search_text.set("scott")
+    real_root.update()
+    assert {window.table.item(iid)["values"][0] for iid in window.table.get_children()} == {1, 2}
+
+    window.search_field.set("Title")
+    real_root.update()
+    assert len(window.table.get_children()) == 0
+
+    window.search_whole_field.set(True)
+    window.search_text.set("Aliens")
+    real_root.update()
+    assert [window.table.item(iid)["values"][0] for iid in window.table.get_children()] == [2]
+
+    window.search_reverse.set(True)
+    real_root.update()
+    assert [window.table.item(iid)["values"][0] for iid in window.table.get_children()] == [1]
+
+
 def test_table_sort_click_reorders_rows_and_marks_the_heading(real_root: tk.Tk, tmp_path: Path):
     window = _open_window(real_root, tmp_path)
     window.service.add(Movie(number=2, title="Before Alien", year=1975))
@@ -657,6 +698,33 @@ def test_table_sort_click_reorders_rows_and_marks_the_heading(real_root: tk.Tk, 
     descending = [window.table.item(iid)["values"][1] for iid in window.table.get_children()]
     assert descending == list(reversed(ascending))
     assert window.table.heading("title")["text"].endswith("▼")
+
+
+def test_previous_next_movie_navigation_steps_the_real_table_selection(
+    real_root: tk.Tk, tmp_path: Path
+):
+    window = _open_window(real_root, tmp_path)
+    window.service.add(Movie(number=2, title="Before Alien", year=1975))
+    window.refresh()
+    real_root.update()
+    rows = window.table.get_children()
+    assert len(rows) == 2
+
+    window.select_next()
+    real_root.update()
+    assert window.table.selection() == (rows[0],)
+
+    window.select_next()
+    real_root.update()
+    assert window.table.selection() == (rows[1],)
+
+    window.select_next()
+    real_root.update()
+    assert window.table.selection() == ()
+
+    window.select_previous()
+    real_root.update()
+    assert window.table.selection() == (rows[-1],)
 
 
 def test_edit_dialog_rejects_an_out_of_range_rating_without_closing(

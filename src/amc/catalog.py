@@ -7,6 +7,20 @@ import json
 
 from .model import Movie
 
+DEFAULT_SEARCH_FIELDS = (
+    "title",
+    "original_title",
+    "translated_title",
+    "director",
+    "producer",
+    "actors",
+    "country",
+    "category",
+    "description",
+    "comments",
+    "languages",
+)
+
 
 class Catalog:
     def __init__(
@@ -49,41 +63,42 @@ class Catalog:
         self._movies[self._movies.index(current)] = replacement
         return replacement
 
-    def search(self, query: str) -> list[Movie]:
+    def search(
+        self,
+        query: str,
+        *,
+        field: str | None = None,
+        whole_field: bool = False,
+        reverse: bool = False,
+    ) -> list[Movie]:
+        """Filter movies by *query*, matching upstream's own field-scoped
+        search (`main.pas`'s `ActionFindFindnextExecute`) more closely than
+        a single free-text box.
+
+        *field*, when given, restricts matching to that one `Movie` field
+        instead of `DEFAULT_SEARCH_FIELDS`; *whole_field* requires an exact
+        (casefolded) match instead of a substring, matching upstream's
+        "Whole field only" toggle; *reverse* returns movies that do *not*
+        match instead of ones that do, matching its "Reverse results"
+        toggle. An empty *query* matches every movie (or none, if
+        *reverse*) regardless of the other options, matching how a blank
+        search box is treated everywhere else in this port.
+        """
+        if field is not None and (field not in Movie.__dataclass_fields__ or field == "extras"):
+            raise ValueError(f"unknown movie field: {field}")
         needle = query.strip().casefold()
         if not needle:
-            return list(self)
-        searchable = (
-            "title",
-            "original_title",
-            "translated_title",
-            "director",
-            "producer",
-            "actors",
-            "country",
-            "category",
-            "description",
-            "comments",
-            "languages",
-        )
-        return [
-            movie
-            for movie in self
-            if any(needle in str(getattr(movie, key)).casefold() for key in searchable)
-        ]
+            return [] if reverse else list(self)
+        fields = (field,) if field is not None else DEFAULT_SEARCH_FIELDS
+
+        def matches(movie: Movie) -> bool:
+            values = (str(getattr(movie, key)).casefold() for key in fields)
+            return any((needle == value) if whole_field else (needle in value) for value in values)
+
+        return [movie for movie in self if matches(movie) != reverse]
 
     def sort(self, field: str = "title", *, reverse: bool = False) -> None:
-        if field not in Movie.__dataclass_fields__ or field == "extras":
-            raise ValueError(f"unknown movie field: {field}")
-
-        def key(item: Movie):
-            value = getattr(item, field)
-            return value.casefold() if isinstance(value, str) else value
-
-        present = [movie for movie in self._movies if getattr(movie, field) is not None]
-        missing = [movie for movie in self._movies if getattr(movie, field) is None]
-        present.sort(key=key, reverse=reverse)
-        self._movies = present + missing
+        self._movies = sort_movies(self._movies, field, reverse=reverse)
 
     def renumber(self, start: int = 1) -> None:
         """Assign consecutive numbers while preserving the current order."""
@@ -174,6 +189,28 @@ class Catalog:
         self._movies = result
         self.metadata = merged_metadata
         return count
+
+
+def sort_movies(
+    movies: Iterable[Movie], field: str = "title", *, reverse: bool = False
+) -> list[Movie]:
+    """Return *movies* ordered by *field*, movies with no value for it last.
+
+    Shared by `Catalog.sort` (in place) and export-time sorting (a fresh
+    list, the source catalog untouched) so both use one validated ordering.
+    """
+    if field not in Movie.__dataclass_fields__ or field == "extras":
+        raise ValueError(f"unknown movie field: {field}")
+
+    def key(item: Movie):
+        value = getattr(item, field)
+        return value.casefold() if isinstance(value, str) else value
+
+    movies = list(movies)
+    present = [movie for movie in movies if getattr(movie, field) is not None]
+    missing = [movie for movie in movies if getattr(movie, field) is None]
+    present.sort(key=key, reverse=reverse)
+    return present + missing
 
 
 def _copy_metadata(metadata: dict[str, object] | None) -> dict[str, object]:

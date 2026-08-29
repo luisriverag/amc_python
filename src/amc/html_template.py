@@ -26,10 +26,9 @@ scope and documented at the point they would apply:
   — AMC Python has no first-class `date_watched` field yet, so a real AMC
   catalog's value survives here (XML's generic unknown-attribute retention
   keeps it in `extras`) but is not a typed field.
-- Picture tags render the movie's stored linked/embedded picture reference;
-  they do not copy picture files or the `apprN.gif`/`appr10_N.gif` rating-icon
-  images upstream ships beside a template. Copy those images alongside the
-  rendered output yourself, matching your template.
+- Picture tags can optionally copy linked or embedded movie pictures beside
+  the export. The `apprN.gif`/`appr10_N.gif` rating icons are still template
+  assets and are not copied automatically.
 - `$$ITEM_EXTRA_BEGIN`/`$$ITEM_EXTRA_END` (the supplementary-record loop,
   with its own category/checked/range filter syntax) is not implemented.
   Any such block is removed from the output — matching upstream's own
@@ -39,11 +38,16 @@ scope and documented at the point they would apply:
 
 from __future__ import annotations
 
+import base64
+from html import escape
+import os
 import re
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from .catalog import Catalog
 from .model import Movie
+from .presentation import poster_source
+from .storage import _atomic_binary, _atomic_text
 
 _ITEM_BEGIN = "$$ITEM_BEGIN"
 _ITEM_END = "$$ITEM_END"
@@ -107,6 +111,8 @@ def render_full_template(
     source_name: str = "",
     line_break: str = "<br>",
     individual_filename: str = "{number}.html",
+    picture_directory: str = "",
+    picture_filenames: dict[int, str] | None = None,
 ) -> str:
     """Render the "full catalog" document: one page listing every movie.
 
@@ -116,7 +122,9 @@ def render_full_template(
     only supports one repeated block per document).
     """
     page = _replace_general_tags(template, catalog, source_name, line_break)
-    return _expand_item_loop(page, catalog, line_break, individual_filename)
+    return _expand_item_loop(
+        page, catalog, line_break, individual_filename, picture_directory, picture_filenames
+    )
 
 
 def render_individual_template(
@@ -128,6 +136,8 @@ def render_individual_template(
     line_break: str = "<br>",
     record_number: int = 1,
     individual_filename: str = "{number}.html",
+    picture_directory: str = "",
+    picture_filename: str | None = None,
 ) -> str:
     """Render one movie's own page from the "individual" template."""
     page = _replace_general_tags(template, catalog, source_name, line_break)
@@ -137,6 +147,8 @@ def render_individual_template(
         line_break=line_break,
         record_number=record_number,
         individual_filename=individual_filename,
+        picture_directory=picture_directory,
+        picture_filename=picture_filename,
     )
 
 
@@ -151,6 +163,10 @@ def export_html_template(
     source_name: str = "",
     line_break: str = "<br>",
     max_template_bytes: int = 1024 * 1024,
+    copy_pictures: bool = False,
+    picture_directory: str = "pictures",
+    pictures_only_if_missing: bool = False,
+    catalog_path: str | Path | None = None,
 ) -> list[Path]:
     """Render a full-catalog page and/or one page per movie, atomically.
 
@@ -164,9 +180,42 @@ def export_html_template(
     if full_template is None and individual_template is None:
         raise ValueError("at least one of full_template or individual_template is required")
     destination = Path(destination)
+    picture_writes: list[tuple[Path, bytes]] = []
+    picture_targets: dict[int, Path] = {}
+    if copy_pictures:
+        picture_subdirectory = _picture_subdirectory(picture_directory)
+        if catalog_path is None:
+            raise ValueError("catalog_path is required when copying pictures")
+        seen: dict[str, tuple[Path, bytes]] = {}
+        for movie in catalog:
+            poster = poster_source(movie, Path(catalog_path))
+            if poster is None:
+                continue
+            data = (
+                base64.b64decode(poster[1]) if poster[0] == "data" else Path(poster[1]).read_bytes()
+            )
+            name = Path(movie.picture.replace("\\", "/")).name
+            if not name:
+                name = f"movie-{movie.number}{_picture_suffix(data)}"
+            target = destination.parent / picture_subdirectory / name
+            target_key = _portable_path_key(target)
+            previous = seen.get(target_key)
+            if previous is not None and previous[1] != data:
+                raise ValueError(f"picture filename collision: {name}")
+            if previous is not None:
+                target = previous[0]
+            else:
+                seen[target_key] = (target, data)
+            picture_targets[movie.number] = target
+        picture_writes = list(seen.values())
+
     writes: list[tuple[Path, str]] = []
     if full_template is not None:
         source = _read_template(Path(full_template), max_template_bytes)
+        full_picture_names = {
+            number: Path(os.path.relpath(target, destination.parent)).as_posix()
+            for number, target in picture_targets.items()
+        }
         writes.append(
             (
                 destination,
@@ -176,6 +225,10 @@ def export_html_template(
                     source_name=source_name,
                     line_break=line_break,
                     individual_filename=individual_filename,
+                    # Explicit names avoid rewriting an unresolved linked
+                    # picture to a destination at which nothing was copied.
+                    picture_directory="",
+                    picture_filenames=full_picture_names,
                 ),
             )
         )
@@ -183,9 +236,16 @@ def export_html_template(
         source = _read_template(Path(individual_template), max_template_bytes)
         out_dir = Path(individual_dir) if individual_dir is not None else destination.parent
         for number, movie in enumerate(catalog, start=1):
+            output_path = out_dir / individual_filename.format(number=movie.number)
+            picture_target = picture_targets.get(movie.number)
+            picture_reference = (
+                Path(os.path.relpath(picture_target, output_path.parent)).as_posix()
+                if picture_target is not None
+                else None
+            )
             writes.append(
                 (
-                    out_dir / individual_filename.format(number=movie.number),
+                    output_path,
                     render_individual_template(
                         movie,
                         catalog,
@@ -194,15 +254,31 @@ def export_html_template(
                         line_break=line_break,
                         record_number=number,
                         individual_filename=individual_filename,
+                        picture_filename=picture_reference,
                     ),
                 )
             )
-    from .storage import _atomic_text  # local import: avoid a storage<->html_template cycle
+    output_keys: dict[str, Path] = {}
+    for path, _document in writes:
+        key = _portable_path_key(path)
+        if key in output_keys:
+            raise ValueError(f"HTML output path collision: {path} and {output_keys[key]}")
+        output_keys[key] = path
+    for path, _data in picture_writes:
+        key = _portable_path_key(path)
+        if key in output_keys:
+            raise ValueError(f"picture path collides with HTML output: {path}")
 
     written: list[Path] = []
     for path, document in writes:
         with _atomic_text(path) as stream:
             stream.write(document)
+        written.append(path)
+    for path, data in picture_writes:
+        if pictures_only_if_missing and path.exists():
+            continue
+        with _atomic_binary(path) as stream:
+            stream.write(data)
         written.append(path)
     return written
 
@@ -211,6 +287,44 @@ def _read_template(path: Path, max_bytes: int) -> str:
     if path.stat().st_size > max_bytes:
         raise ValueError(f"HTML template exceeds size limit: {path}")
     return path.read_text(encoding="utf-8")
+
+
+def _picture_subdirectory(value: str) -> Path:
+    """Normalize a portable relative picture directory and reject escapes."""
+    windows_path = PureWindowsPath(value)
+    native_path = Path(value)
+    if (
+        not value.strip()
+        or value in (".", "./", ".\\")
+        or native_path.is_absolute()
+        or windows_path.is_absolute()
+        or windows_path.drive
+        or ".." in native_path.parts
+        or ".." in windows_path.parts
+    ):
+        raise ValueError("picture_directory must be a non-empty relative subdirectory")
+    # Treat both slash styles as separators on every host. CLI arguments and
+    # catalog exports are expected to remain portable between Windows/Linux.
+    parts = tuple(part for part in windows_path.parts if part not in ("", "."))
+    if not parts:
+        raise ValueError("picture_directory must be a non-empty relative subdirectory")
+    return Path(*parts)
+
+
+def _portable_path_key(path: Path) -> str:
+    """Return a comparison key that also catches Windows case collisions."""
+    return path.resolve(strict=False).as_posix().casefold()
+
+
+def _picture_suffix(data: bytes) -> str:
+    """Return a conservative extension for an embedded image without a name."""
+    if data.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return ".gif"
+    return ".img"
 
 
 def _replace_general_tags(page: str, catalog: Catalog, source_name: str, line_break: str) -> str:
@@ -234,7 +348,12 @@ def _replace_general_tags(page: str, catalog: Catalog, source_name: str, line_br
 
 
 def _expand_item_loop(
-    page: str, catalog: Catalog, line_break: str, individual_filename: str
+    page: str,
+    catalog: Catalog,
+    line_break: str,
+    individual_filename: str,
+    picture_directory: str,
+    picture_filenames: dict[int, str] | None = None,
 ) -> str:
     start = page.find(_ITEM_BEGIN)
     if start == -1:
@@ -251,6 +370,8 @@ def _expand_item_loop(
             line_break=line_break,
             record_number=index,
             individual_filename=individual_filename,
+            picture_directory=picture_directory,
+            picture_filename=(picture_filenames or {}).get(movie.number),
         )
         for index, movie in enumerate(catalog, start=1)
     )
@@ -278,6 +399,8 @@ def _replace_movie_tags(
     line_break: str,
     record_number: int,
     individual_filename: str,
+    picture_directory: str = "",
+    picture_filename: str | None = None,
 ) -> str:
     page = _strip_extra_blocks(page)
     replacements = {
@@ -327,7 +450,7 @@ def _replace_movie_tags(
     }
     replacements.update(_rating_tags("USERRATING", "USERAPPR", movie.user_rating))
     replacements.update(_rating_tags("RATING", "APPR", movie.rating, appreciation_alias=True))
-    replacements.update(_picture_tags(movie))
+    replacements.update(_picture_tags(movie, picture_directory, picture_filename))
     for tag, value in replacements.items():
         page = page.replace(tag, value)
     return _replace_custom_field_tags(page, movie)
@@ -398,13 +521,24 @@ def _four_scale(internal: int) -> int:
     return 4
 
 
-def _picture_tags(movie: Movie) -> dict[str, str]:
+def _picture_tags(
+    movie: Movie, picture_directory: str = "", picture_filename: str | None = None
+) -> dict[str, str]:
     picture = movie.picture
-    filename = Path(picture).name.replace("\\", "/") if picture else ""
-    image = f'<img src="{filename}" alt="pic_movie_{movie.number}" />' if filename else ""
+    filename = Path(picture.replace("\\", "/")).name if picture else ""
+    reference = picture_filename or (
+        f"{picture_directory.rstrip('/')}/{filename}"
+        if picture_directory and filename
+        else filename
+    )
+    image = (
+        f'<img src="{escape(reference, quote=True)}" alt="pic_movie_{movie.number}" />'
+        if reference
+        else ""
+    )
     return {
-        "$$ITEM_PICTUREFILENAME": filename,
-        "$$ITEM_PICTUREFILENAME_NP": filename,
+        "$$ITEM_PICTUREFILENAME": reference,
+        "$$ITEM_PICTUREFILENAME_NP": reference,
         "$$ITEM_PICTURE": image,
         "$$ITEM_PICTURE_NP": image,
     }

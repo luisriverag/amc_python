@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 
 import pytest
@@ -173,6 +174,194 @@ def test_export_html_template_rejects_an_oversized_template(tmp_path: Path):
     with pytest.raises(ValueError, match="exceeds size limit"):
         export_html_template(
             catalog, tmp_path / "out.html", full_template=huge, max_template_bytes=1
+        )
+
+
+def test_export_html_template_copies_linked_pictures_into_subdirectory(tmp_path: Path):
+    catalog_path = tmp_path / "catalog.json"
+    source = tmp_path / "covers" / "alien.jpg"
+    source.parent.mkdir()
+    source.write_bytes(b"jpeg-data")
+    catalog = Catalog([Movie(number=1, title="Alien", picture="covers/alien.jpg")])
+    template = tmp_path / "template.html"
+    template.write_text("$$ITEM_BEGIN$$ITEM_PICTURE$$ITEM_END", encoding="utf-8")
+
+    written = export_html_template(
+        catalog,
+        tmp_path / "site" / "index.html",
+        full_template=template,
+        copy_pictures=True,
+        picture_directory="images",
+        catalog_path=catalog_path,
+    )
+
+    picture = tmp_path / "site" / "images" / "alien.jpg"
+    assert picture.read_bytes() == b"jpeg-data"
+    assert 'src="images/alien.jpg"' in (tmp_path / "site" / "index.html").read_text()
+    assert picture in written
+
+
+def test_export_html_template_only_if_missing_preserves_existing_picture(tmp_path: Path):
+    source = tmp_path / "alien.jpg"
+    source.write_bytes(b"new")
+    target = tmp_path / "site" / "pictures" / "alien.jpg"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"old")
+    template = tmp_path / "template.html"
+    template.write_text("x", encoding="utf-8")
+
+    written = export_html_template(
+        Catalog([Movie(number=1, picture="alien.jpg")]),
+        tmp_path / "site" / "index.html",
+        full_template=template,
+        copy_pictures=True,
+        pictures_only_if_missing=True,
+        catalog_path=tmp_path / "catalog.json",
+    )
+
+    assert target.read_bytes() == b"old"
+    assert target not in written
+
+
+def test_export_html_template_names_embedded_picture_and_links_from_individual_dir(tmp_path: Path):
+    png = b"\x89PNG\r\n\x1a\ncontent"
+    catalog = Catalog(
+        [Movie(number=7, extras={"native_picture_base64": base64.b64encode(png).decode()})]
+    )
+    template = tmp_path / "individual.html"
+    template.write_text("$$ITEM_PICTUREFILENAME", encoding="utf-8")
+    full_template = tmp_path / "full.html"
+    full_template.write_text("$$ITEM_BEGIN$$ITEM_PICTUREFILENAME$$ITEM_END", encoding="utf-8")
+
+    export_html_template(
+        catalog,
+        tmp_path / "site" / "index.html",
+        full_template=full_template,
+        individual_template=template,
+        individual_dir=tmp_path / "site" / "pages",
+        copy_pictures=True,
+        catalog_path=tmp_path / "catalog.json",
+    )
+
+    assert (tmp_path / "site" / "pictures" / "movie-7.png").read_bytes() == png
+    assert (tmp_path / "site" / "index.html").read_text() == "pictures/movie-7.png"
+    assert (tmp_path / "site" / "pages" / "7.html").read_text() == "../pictures/movie-7.png"
+
+
+@pytest.mark.parametrize("directory", ("../pictures", "/pictures", r"C:\pictures", ".", " "))
+def test_export_html_template_rejects_unsafe_picture_directory(tmp_path: Path, directory: str):
+    template = tmp_path / "template.html"
+    template.write_text("x", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="relative"):
+        export_html_template(
+            Catalog(),
+            tmp_path / "index.html",
+            full_template=template,
+            copy_pictures=True,
+            picture_directory=directory,
+            catalog_path=tmp_path / "catalog.json",
+        )
+
+
+def test_export_html_template_normalizes_windows_picture_directory(tmp_path: Path):
+    source = tmp_path / "alien.jpg"
+    source.write_bytes(b"picture")
+    template = tmp_path / "template.html"
+    template.write_text("$$ITEM_BEGIN$$ITEM_PICTUREFILENAME$$ITEM_END", encoding="utf-8")
+
+    export_html_template(
+        Catalog([Movie(number=1, picture="alien.jpg")]),
+        tmp_path / "site" / "index.html",
+        full_template=template,
+        copy_pictures=True,
+        picture_directory=r"assets\pictures",
+        catalog_path=tmp_path / "catalog.json",
+    )
+
+    assert (tmp_path / "site" / "assets" / "pictures" / "alien.jpg").exists()
+    assert (tmp_path / "site" / "index.html").read_text() == "assets/pictures/alien.jpg"
+
+
+def test_export_html_template_does_not_rewrite_an_unresolved_picture(tmp_path: Path):
+    template = tmp_path / "template.html"
+    template.write_text("$$ITEM_BEGIN$$ITEM_PICTUREFILENAME$$ITEM_END", encoding="utf-8")
+
+    export_html_template(
+        Catalog([Movie(number=1, picture="missing.jpg")]),
+        tmp_path / "site" / "index.html",
+        full_template=template,
+        copy_pictures=True,
+        catalog_path=tmp_path / "catalog.json",
+    )
+
+    assert (tmp_path / "site" / "index.html").read_text() == "missing.jpg"
+
+
+def test_render_picture_tag_escapes_filename_for_html_attribute():
+    page = render_individual_template(
+        Movie(number=1, picture='cover "one" & two.jpg'),
+        Catalog(),
+        "$$ITEM_PICTURE|$$ITEM_PICTUREFILENAME",
+    )
+
+    assert page == (
+        '<img src="cover &quot;one&quot; &amp; two.jpg" alt="pic_movie_1" />|cover "one" & two.jpg'
+    )
+
+
+def test_render_picture_tag_uses_basename_for_windows_link():
+    page = render_individual_template(
+        Movie(number=1, picture=r"covers\alien.jpg"), Catalog(), "$$ITEM_PICTUREFILENAME"
+    )
+
+    assert page == "alien.jpg"
+
+
+def test_export_html_template_rejects_picture_and_individual_page_collision(tmp_path: Path):
+    source = tmp_path / "1.html"
+    source.write_bytes(b"picture")
+    full = tmp_path / "full-template.html"
+    full.write_text("full", encoding="utf-8")
+    individual = tmp_path / "individual-template.html"
+    individual.write_text("movie", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="collides with HTML output"):
+        export_html_template(
+            Catalog([Movie(number=1, picture="1.html")]),
+            tmp_path / "site" / "index.html",
+            full_template=full,
+            individual_template=individual,
+            individual_dir=tmp_path / "site" / "pictures",
+            copy_pictures=True,
+            catalog_path=tmp_path / "catalog.json",
+        )
+
+    assert not (tmp_path / "site").exists()
+
+
+def test_export_html_template_rejects_case_only_picture_collision(tmp_path: Path):
+    first = tmp_path / "one" / "cover.jpg"
+    second = tmp_path / "two" / "COVER.JPG"
+    first.parent.mkdir()
+    second.parent.mkdir()
+    first.write_bytes(b"first")
+    second.write_bytes(b"second")
+    template = tmp_path / "template.html"
+    template.write_text("x", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="picture filename collision"):
+        export_html_template(
+            Catalog(
+                [
+                    Movie(number=1, picture="one/cover.jpg"),
+                    Movie(number=2, picture="two/COVER.JPG"),
+                ]
+            ),
+            tmp_path / "site" / "index.html",
+            full_template=template,
+            copy_pictures=True,
+            catalog_path=tmp_path / "catalog.json",
         )
 
 

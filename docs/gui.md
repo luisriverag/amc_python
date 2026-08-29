@@ -47,12 +47,19 @@ The packaging check verifies that an isolated wheel installation can import both
   been inspected, so cancelling, an empty folder, or an invalid file leaves it
   untouched.
 - Export XML, CSV, static HTML, or experimental native AMC 4.2 output.
+  For AMC templates, choose **File → Export HTML Template...** directly:
+  first choose the destination filename for the full catalog page, then use
+  **Browse...** beside **Full catalog page** to load its template. Enable
+  **Individual movie pages**, use its separate **Browse...** button to load
+  the individual template, and choose the page folder/filename pattern.
   Choosing an `.html` destination asks whether to render an Ant Movie
   Catalog `$$TAG_NAME` template (a real template file, or two — one for the
   full catalog listing, one for individual movie pages — from real AMC's own
   HTML export) instead of AMC Python's own default table export. See
   `amc.html_template` and the CLI's `export-html-template` for the same
-  capability and its documented scope. Either path then opens an **Export
+  capability and its documented scope. The template dialog can also copy
+  linked or embedded posters into a chosen relative folder and optionally
+  preserve files already present there. Either path then opens an **Export
   options** dialog matching upstream's own Export screen: "Movies to
   include" (All/Selected/Checked/Visible, each showing a live count) and an
   export-time "Sort by" field with a Reverse toggle, independent of the

@@ -62,22 +62,18 @@ because there is no translated content to load yet (revisit when there is,
 not a permanent no), printing/reports because FreeReport is a standalone
 report-designer-sized port disproportionate to this project regardless of
 its now-resolved license (permanent no; HTML template export already covers
-the underlying need). General website script execution remains genuinely
-open: it is the one item with a real security dimension — executing
-arbitrary third-party script bytecode sourced from the web — not just an
-effort one, so building an IFPS compiler/VM stays for an explicit
-product/security-posture call rather than decided unilaterally here. What
-did get decided and built, once asked which legacy scripts actually
+the underlying need). General website script execution is now also decided:
+accepted ADR-0005 excludes an in-process IFPS compiler/VM because arbitrary
+third-party bytecode is outside this application's trust boundary. What
+was built instead, once asked which legacy scripts actually
 mattered: a narrower, first-party alternative (`amc.omdb`, CLI
 `imdb-lookup`, and now the desktop GUI's **Movie / Update from IMDb...**
 dialog) for the two named highest-value cases — refreshing existing
 entries and IMDb lookups — via the OMDb API instead of any script
-execution at all. This closes that concrete slice without deciding the
-general question either way. Execution continues to prioritize: (1) any
-remaining small, bounded, well-scoped item anywhere in D0–D6, picked in
-tier order; (2) once none remain, the next smallest decidable slice of
-what's left — general script execution's own scoping/security decision —
-over open-ended new-subsystem construction. This is still
+execution at all. This closes D6's final security/scoping decision. Execution
+continues to prioritize any remaining small, bounded, well-scoped item in the
+gated compatibility/release backlog rather than open-ended subsystem
+construction. This is still
 evidence-independent — Python-owned behavior and
 test coverage, not an upstream-compatibility claim — so none of it needs a
 fixture or is blocked by Milestone 0.
@@ -121,9 +117,9 @@ unit and compatibility evidence are recorded.
   how the one large mixed-concern file was divided.
 - [x] Configure Linux and Windows CI for all supported Python versions; hosted run
   verification remains pending.
-- [ ] Add formatting, linting, static typing, and coverage (focused Ruff linting,
-  mypy in its default, non-strict mode, and an 80% branch-coverage floor now run
-  in the canonical command and CI; a formatter remains pending. Canonical
+- [x] Add formatting, linting, static typing, and coverage (Ruff formatting and
+  focused linting, mypy in its default non-strict mode, and an 80% branch-
+  coverage floor now run in the canonical command and CI. Canonical
   commands also cover tests, compilation, diff validation, wheel building,
   isolated installation, and source-tree and installed-module CLI smoke checks).
   Adopting mypy found and fixed several real, pre-existing issues rather than
@@ -140,8 +136,8 @@ unit and compatibility evidence are recorded.
   (Keep a Changelog format, seeded with the current capability baseline
   since this project has never made a tagged release) and `docs/decisions.md`
   (eight ADRs formalizing decisions already made informally across this
-  document, `docs/architecture.md`, and `docs/PORT_AUDIT.md` — including the
-  one still-open one, IFPS execution).
+  document, `docs/architecture.md`, and `docs/PORT_AUDIT.md`; ADR-0005 now
+  records the accepted boundary against in-process IFPS execution).
 - [x] Specify internal JSON v1 and test failed-write destination preservation for
   JSON, CSV, and XML serialization failures.
 
@@ -617,8 +613,7 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     not, so a crash immediately after rename could still lose the rename on
     some filesystems even though the new file's own bytes were durable.
     `native.py`'s `replace_and_sync_directory` helper is now shared by every
-    writer in the package. PORT_AUDIT design-debt item 7 (partial: permission
-    errors and concurrent writers remain untested).
+    writer in the package. PORT_AUDIT design-debt item 7.
   - [x] Define and test explicit behavior for a permission-denied or read-only
     destination directory across the atomic writers above: an unwrapped
     `PermissionError`/`OSError` propagates from the temp-file `open()`/`mkdir()`
@@ -627,7 +622,19 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     tests (not real `chmod`, since this environment's automated checks run as
     `root`, which does not enforce permission bits) for every `storage.py`
     atomic writer, `copy_catalog`, and the native `.amc` writer.
-    PORT_AUDIT design-debt item 7 (remaining part: concurrent writers).
+    PORT_AUDIT design-debt item 7.
+  - [x] Make concurrent atomic writers independent. The package previously
+    gave every writer targeting a path the same deterministic `.tmp` name, so
+    two simultaneous saves could truncate or replace one another's staging
+    file before either destination replacement. Text, binary, catalog-copy,
+    native-catalog, and native-backup writes now use UUID-qualified temporary
+    names in the destination directory and create them exclusively, never
+    truncating or cleaning up a staging path they did not create. A forced-name
+    collision regression preserves both the other writer's bytes and the old
+    destination. A barrier-synchronized regression test
+    forces two JSON writers to reach replacement together and verifies that
+    the result is one complete catalog with no temporary-file debris.
+    PORT_AUDIT design-debt item 7 (now fully resolved).
   - [x] Fix the concrete bug the undocumented error-model split had produced:
     the desktop GUI's ~20 `try`/`except` boundaries around `CatalogService`
     calls were meant to share one expected-failure set, but only 5 of them
@@ -964,21 +971,25 @@ script execution at all — see the checked sub-item below.
     export — the live catalog and its own order are never touched by an
     export. `Catalog.sort`'s ordering logic moved to a shared
     `catalog.sort_movies` helper so both use one validated implementation.
-  - [ ] (Current priority within the downstream track.) Upstream's Export
+  - [x] Upstream's Export
     dialog also has controls this port's export still lacks entirely: for
     HTML specifically, a Pictures section (copy pictures alongside the
     export, into a subfolder, only if missing, include extras) — the same
     "upstream picture/rating-icon file copying" gap already named in
     `amc.html_template`'s own docstring and in `docs/compatibility.md`.
-    Also out of scope in the same dialog: SQL export and a dedicated
+    Implemented the picture-copying slice for template exports: linked and
+    embedded posters can be copied through a durable atomic binary writer into
+    a validated relative subdirectory, template picture tags use that path,
+    filename collisions are rejected, and an "only if missing" mode preserves
+    existing assets. The service resolves links relative to the source catalog
+    through `presentation.poster_source`; CLI flags expose all three controls.
+    The desktop template dialog exposes the same controls. Embedded pictures
+    without a stored filename receive a signature-derived extension, and
+    individual pages in a separate folder receive a correct relative asset
+    reference. Rating icons remain template-owned assets. Also out of scope
+    in the same dialog: SQL export and a dedicated
     "Pictures" export format (bulk-exporting every picture), neither of
-    which this port implements under any export path. The picture-copying
-    piece needs an atomic binary-file writer (every existing atomic writer
-    in this package is text-mode, see `storage._atomic_text`) and threading
-    the source catalog's own path through `amc.html_template.
-    export_html_template` so linked pictures can be resolved the same way
-    `presentation.poster_source` already does for the GUI's poster
-    preview — reuse that function rather than re-deriving link resolution.
+    which this port implements under any export path.
   - [x] Localization turns out not to be a portable-format problem: reading
     `Common/AntTranslator.pas` (the actual `.lng` loader, since no `.lng`
     file itself is present in the checked-in source snapshot to treat as a
@@ -1022,17 +1033,19 @@ script execution at all — see the checked sub-item below.
     conceivable printing-adjacent feature. `docs/architecture.md`'s
     "Deliberate prototype boundaries" and `docs/compatibility.md`'s
     Printing/reports row record this.
-  - [ ] General website script execution needs an IFPS (Innerfuse Pascal
+  - [x] General website script execution would need an IFPS (Innerfuse Pascal
     Script) bytecode compiler and sandboxed VM with timeouts, rate limits,
     and a result-merge UI before any script can actually run — `amc.scripts`
     deliberately reads only leading metadata comments today and never
     executes script bodies. This is comparable in scope to printing: a
     standalone interpreter project, not a bounded slice, and it additionally
     carries real security exposure (executing arbitrary scripts sourced from
-    the web) that deserves an explicit decision before any execution path is
-    built, not silent implementation. Left open pending that decision — this
-    item stays unchecked; the sub-item below is a different, smaller thing,
-    not a partial answer to it.
+    the web). **Decided:** do not build or embed that interpreter. AMC Python
+    retains non-executing inspection/configuration and adds only narrow,
+    audited providers with bounded network access and preview-before-apply
+    changes. A separately maintained sandbox could revisit the bytecode
+    question, but it is not an in-process extension point for this application.
+    Accepted ADR-0005 records this security boundary.
   - [x] Asked which legacy scripts mattered most, the answer scoped the
     actual need down to two cases that don't need IFPS at all: refreshing
     metadata on movies already in the catalog ("update scripts") and IMDb

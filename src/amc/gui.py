@@ -689,6 +689,9 @@ class CatalogWindow(ttk.Frame):
         add_tracked(file_menu, "Import Media...", "Import Media", self.import_media, "Ctrl+M")
         file_menu.add_separator()
         file_menu.add_command(label="Export...", command=self.export_catalog)
+        file_menu.add_command(
+            label="Export HTML Template...", command=self.export_html_template_dialog
+        )
         file_menu.add_separator()
         file_menu.add_command(label="Backup...", command=self.backup_catalog)
         add_tracked(file_menu, "Restore...", "Restore", self.restore_catalog)
@@ -1373,6 +1376,17 @@ class CatalogWindow(ttk.Frame):
                 return
         self._export_with_scope(selected, format_name, destination_exists=destination_exists)
 
+    def export_html_template_dialog(self) -> None:
+        """Open the two-template HTML exporter through a discoverable direct action."""
+        destination = filedialog.asksaveasfilename(
+            parent=self.winfo_toplevel(),
+            title="Export HTML template — choose full catalog page",
+            defaultextension=".html",
+            filetypes=(("HTML", "*.html *.htm"),),
+        )
+        if destination:
+            self._export_html_template(destination)
+
     def _movies_by_scope(self, scope: str) -> list[Movie] | None:
         """Resolve a "Movies to include" choice to an explicit list, or
         None for the whole catalog, matching upstream's Export dialog."""
@@ -1487,6 +1501,9 @@ class CatalogWindow(ttk.Frame):
         individual_template = tk.StringVar()
         individual_dir = tk.StringVar()
         individual_filename = tk.StringVar(value="{number}.html")
+        copy_pictures = tk.BooleanVar(value=False)
+        picture_directory = tk.StringVar(value="pictures")
+        pictures_only_if_missing = tk.BooleanVar(value=False)
 
         def browse_template(target: tk.StringVar, title: str) -> None:
             chosen = filedialog.askopenfilename(
@@ -1568,7 +1585,26 @@ class CatalogWindow(ttk.Frame):
             "write", lambda *_args: set_row_state(full_widgets, full_enabled.get())
         )
 
-        scope, sort_by, reverse, next_row = self._build_export_scope_controls(dialog, 6)
+        copy_check = ttk.Checkbutton(dialog, text="Copy pictures", variable=copy_pictures)
+        copy_check.grid(row=6, column=0, columnspan=3, sticky="w", padx=8)
+        ttk.Label(dialog, text="Picture folder:").grid(
+            row=7, column=0, sticky="w", padx=(24, 8), pady=(4, 8)
+        )
+        picture_dir_entry = ttk.Entry(dialog, textvariable=picture_directory, width=40)
+        picture_dir_entry.grid(row=7, column=1, sticky="we", pady=(4, 8))
+        missing_check = ttk.Checkbutton(
+            dialog,
+            text="Only if missing",
+            variable=pictures_only_if_missing,
+        )
+        missing_check.grid(row=7, column=2, sticky="w", padx=8, pady=(4, 8))
+        picture_widgets = [picture_dir_entry, missing_check]
+        set_row_state(picture_widgets, copy_pictures.get())
+        copy_pictures.trace_add(
+            "write", lambda *_args: set_row_state(picture_widgets, copy_pictures.get())
+        )
+
+        scope, sort_by, reverse, next_row = self._build_export_scope_controls(dialog, 8)
 
         def accept() -> None:
             if not full_enabled.get() and not individual_enabled.get():
@@ -1610,6 +1646,9 @@ class CatalogWindow(ttk.Frame):
                     movies=movies,
                     sort_by=sort_by.get() or None,
                     sort_reverse=reverse.get(),
+                    copy_pictures=copy_pictures.get(),
+                    picture_directory=picture_directory.get() or "pictures",
+                    pictures_only_if_missing=pictures_only_if_missing.get(),
                 )
             except _SERVICE_ERRORS as error:
                 messagebox.showerror("Could not export catalog", str(error), parent=dialog)
@@ -1634,6 +1673,7 @@ class CatalogWindow(ttk.Frame):
         )
         if not selected:
             return
+
         try:
             self.service.backup(selected)
         except _SERVICE_ERRORS as error:

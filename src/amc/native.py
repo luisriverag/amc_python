@@ -8,6 +8,7 @@ import math
 import os
 import shutil
 import struct
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, BinaryIO, Protocol
@@ -931,9 +932,11 @@ def write_native_catalog(
     if len(movies) > limits.max_movies:
         raise ValueError("native catalog exceeds movie-count limit")
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.tmp")
+    temporary = unique_temporary_path(path)
+    created = False
     try:
-        with temporary.open("wb") as stream:
+        with temporary.open("xb") as stream:
+            created = True
             bounded = _BoundedWriter(stream, limits.max_file_bytes, limits.max_total_string_bytes)
             bounded.write(
                 next(header for header, version in NATIVE_HEADERS.items() if version == "4.2")
@@ -991,7 +994,8 @@ def write_native_catalog(
             _backup_native_destination(path)
         replace_and_sync_directory(temporary, path)
     finally:
-        temporary.unlink(missing_ok=True)
+        if created:
+            temporary.unlink(missing_ok=True)
 
 
 def _backup_native_destination(path: Path) -> None:
@@ -999,15 +1003,18 @@ def _backup_native_destination(path: Path) -> None:
     backup = path.with_suffix(".bak")
     if backup == path:
         raise ValueError("native catalog backup path must differ from destination")
-    temporary = backup.with_name(f".{backup.name}.tmp")
+    temporary = unique_temporary_path(backup)
+    created = False
     try:
-        with path.open("rb") as source, temporary.open("wb") as destination:
+        with path.open("rb") as source, temporary.open("xb") as destination:
+            created = True
             shutil.copyfileobj(source, destination)
             destination.flush()
             os.fsync(destination.fileno())
         replace_and_sync_directory(temporary, backup)
     finally:
-        temporary.unlink(missing_ok=True)
+        if created:
+            temporary.unlink(missing_ok=True)
 
 
 def replace_and_sync_directory(source: Path, destination: Path) -> None:
@@ -1023,6 +1030,11 @@ def replace_and_sync_directory(source: Path, destination: Path) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def unique_temporary_path(destination: Path) -> Path:
+    """Return a same-directory temporary path unique to one writer."""
+    return destination.with_name(f".{destination.name}.{uuid.uuid4().hex}.tmp")
 
 
 def _encode_native_string(value: str, encoding: str) -> bytes:

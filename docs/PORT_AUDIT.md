@@ -27,7 +27,7 @@ presentation, and loans.
 IFPS script execution and full upstream desktop workflows are not ported.
 Localization and printing/reports are not ported either, and unlike general
 script execution, both are now a decided outcome rather than an open gap
-(findings 29-30); script execution itself remains genuinely undecided, with
+(findings 29-30); script execution is now intentionally excluded by accepted ADR-0005, with
 a narrower first-party alternative built for its two highest-value cases
 instead (finding 31). Python-owned borrower/history metadata is deliberately
 distinguished from upstream
@@ -89,7 +89,7 @@ confidence.
 | Installed CLI | Wheel console script and module entry point smoke-tested; empty JSON list exact output checked | Broader installed command contracts remain missing |
 | Packaging | Wheel build, isolated install, license inclusion, and smoke checks | Source-distribution build/install remains missing |
 | CI | Workflow configured for Linux/Windows and Python 3.10–3.13 | No run result is stored in the repository |
-| Atomic CSV/XML | Shared atomic writer, now with destination directory-entry fsync matching the native writer | Injected codec-failure preservation tests cover both formats; permission errors and concurrent writers remain untested |
+| Atomic CSV/XML | Shared atomic writer, now with destination directory-entry fsync matching the native writer and exclusively created, per-writer UUID-qualified staging paths | Injected codec-failure and permission-denial preservation tests cover both formats; a barrier-synchronized regression forces concurrent writers to replacement together and verifies a complete result without staging debris, while a forced staging-name collision proves another writer's file is neither truncated nor removed |
 | Large-file behavior | XML uses iterative inspection | No resource-limit or performance tests |
 
 ### Not ported
@@ -102,10 +102,9 @@ confidence.
 - Upstream website script compilation/execution (IFPS bytecode compiler and
   sandboxed VM), the complete provider API, result selection and merge,
   license-acceptance workflow, debugging, and static session state (metadata
-  and public settings only). Remains genuinely undecided (finding 31): it
-  carries real security exposure, not just an effort question, and no
-  general "build it" or "don't" call has been made either way. What is
-  decided and built is a narrower, first-party alternative for the two
+  and public settings only). Intentionally excluded by accepted ADR-0005:
+  arbitrary downloaded bytecode is outside the application trust boundary.
+  What is built is a narrower, first-party alternative for the two
   cases named as actually mattering most (finding 31): `amc.omdb`'s
   OMDb-API-backed IMDb lookup/update, wired into the CLI as `imdb-lookup`
   and, since finding 36, the desktop GUI's **Movie / Update from IMDb...**
@@ -460,9 +459,10 @@ confidence.
     item if actually requested — this finding closes the FreeReport-port
     question specifically, not every conceivable printing-adjacent feature.
 31. Website script execution: the general IFPS bytecode compiler and
-    sandboxed VM findings 29-30's sibling decision left open (real security
-    exposure from running arbitrary third-party script bytecode sourced
-    from the web, not just an effort question) is still not being built.
+    sandboxed VM are intentionally excluded by accepted ADR-0005. Running
+    arbitrary third-party script bytecode sourced from the web is outside
+    this application's trust boundary, and a safe runtime would be a separate
+    sandbox product rather than a bounded catalog feature.
     Instead, asked which of the legacy scripts mattered most, the answer
     scoped the actual need down to two cases: refreshing metadata on movies
     already in the catalog ("update scripts") and IMDb lookups specifically.
@@ -486,11 +486,11 @@ confidence.
     as `imdb-lookup NUMBER [--api-key KEY] [--imdb-id ID] [--apply]`
     (dry-run preview by default; `--apply` writes through the existing
     `CatalogService.replace`, no new service primitive needed since a
-    preview's candidate movie is already a complete, valid `Movie`); not yet
-    wired into the desktop GUI, left for a follow-up increment. This closes
+    preview's candidate movie is already a complete, valid `Movie`), and the
+    desktop GUI's **Movie / Update from IMDb...** dialog. This closes
     the "update scripts and IMDb" slice of website script execution as a
-    real, tested capability while leaving general script execution exactly
-    as undecided as finding 29-30 found it — this is a new, narrower,
+    real, tested capability while general script execution is intentionally
+    excluded by ADR-0005 — this is a new, narrower,
     first-party feature, not IFPS parity, and makes no upstream-compatibility
     claim (`amc.scripts` continues to read only metadata comments and never
     executes a `.ips` script body).
@@ -761,7 +761,7 @@ means Python implements useful behavior but not the complete upstream workflow.
 | Main catalog workflows | `main.pas`, `sort.pas`, `filter*.pas`, forms | CRUD, merge, search, filters, sort, duplicate review, renumber, backup/restore | Full selection/group actions, preferences, progress/cancellation, unsaved-state workflows, and verified behavioral parity |
 | Pictures | `TMoviePicture` in `movieclass.pas`, picture forms | Link/embed/clear/export/crop, bounded poster display, and atomic batch set/clear | Upstream import modes, naming/copy/move rules, conversion options, and genuine embedded/linked fixtures |
 | Loans | `loan.pas`, `loanhistory.pas` | Atomic loan transitions, grouping options, managed names, history, TSV export | Upstream settings and dialogs, process-code-page TSV verification, deletion semantics, and genuine consumption tests |
-| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings, now validated against 14 committed real scripts plus a 314-file contributor snapshot used locally (finding 33 — found and fixed a real crash on non-cp1252 scripts); separately, a first-party (not IFPS) OMDb-backed IMDb lookup/update provider (`amc.omdb`, CLI `imdb-lookup`, and since finding 36 the desktop GUI's **Movie / Update from IMDb...** dialog) covers the two cases named most-used, with an isolated merge preview reusing the same safe-merge shape below | IFPS compiler/runtime and general script execution remain undecided (finding 31, real security exposure); complete API inventory, HTTP/browser interactions, license acceptance, debugger, and results UI for actual IFPS scripts |
+| Website scripts | `getscript*.pas`, `ifps/` | Metadata, permissions, option/parameter configuration, Python JSON settings, now validated against 14 committed real scripts plus a 314-file contributor snapshot used locally (finding 33 — found and fixed a real crash on non-cp1252 scripts); separately, a first-party (not IFPS) OMDb-backed IMDb lookup/update provider (`amc.omdb`, CLI `imdb-lookup`, and since finding 36 the desktop GUI's **Movie / Update from IMDb...** dialog) covers the two cases named most-used, with an isolated merge preview reusing the same safe-merge shape below | IFPS compiler/runtime and general script execution are intentionally excluded by accepted ADR-0005 (finding 31, real security exposure); complete API inventory, HTTP/browser interactions, license acceptance, debugger, and results UI for actual IFPS scripts |
 | Media analysis | `getmedia.pas`, `Common/MediaInfo.pas` | Portable file facts and PCM WAV/FLAC/AIFF/MP3/MP4/OGG duration and bitrate (upstream delegates all of this, including WAV, to the third-party `MediaInfo.dll`; every format here is instead parsed directly from its own public format spec — MP4 from the `moov/mvhd` box, OGG from the Vorbis identification header and the stream's last granule position) | MediaInfo integration/version checks, video-track resolution/framerate/real codec name (needs per-track sample-table parsing this port does not do), the full tag map, stream selection, filters, and field merge behavior |
 | HTML export | `export.pas`, `ConstValues.pas` (`strTagFields`/`TAG_*`), `fields.pas` | Safe bounded Python table/templates, plus `amc.html_template` rendering upstream's own `$$TAG_NAME` general/item/rating/picture/custom-field tags and the `$$ITEM_BEGIN`/`$$ITEM_END` full+individual document loop, validated locally against a genuine AMC 4.2.2 export's own real templates | The `$$ITEM_EXTRA_*` supplementary-record loop (with its category/checked/range filter syntax), upstream picture/rating-icon file copying, multi-file/SQL export, and fixture comparison of rendered tag values against genuine upstream output |
 | Preferences/localization | `programsettings.pas`, `languages/`, help | No compatible settings or language-resource loader; localization decided as deliberately deferred (finding 29) — the `.lng` format has no Tk equivalent, and a Python-owned i18n layer awaits real translated content | Settings XML, per-user state, translated UI/help, and migration; localization scaffolding itself only once translated content exists |

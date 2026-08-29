@@ -8,6 +8,7 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from amc.gui import (
+    _EDIT_FIELD_GROUPS,
     _EDIT_FLOAT_FIELDS,
     _EDIT_INTEGER_FIELDS,
     _EDIT_TEXT_FIELDS,
@@ -1571,6 +1572,19 @@ def _form_values(**overrides: str) -> dict[str, str]:
     values = {name: "" for name in _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS + _EDIT_FLOAT_FIELDS}
     values.update(overrides)
     return values
+
+
+def test_edit_field_groups_cover_every_edit_field_exactly_once():
+    """The Add/Edit movie dialog renders fields grouped into named
+    sections, each a sequence of rows that may name more than one field
+    (packed side by side in landscape mode); every editable field must
+    appear in exactly one row of one group, with no field dropped or
+    duplicated."""
+    editable_fields = _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS + _EDIT_FLOAT_FIELDS
+    grouped_fields = [name for _title, rows in _EDIT_FIELD_GROUPS for row in rows for name in row]
+
+    assert len(grouped_fields) == len(set(grouped_fields)), "a field appears in more than one group"
+    assert set(grouped_fields) == set(editable_fields)
 
 
 def test_movie_form_parses_all_scalar_field_kinds():

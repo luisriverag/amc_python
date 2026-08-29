@@ -33,7 +33,7 @@ import pytest
 from PIL import Image
 
 from amc.catalog import Catalog
-from amc.gui import CatalogWindow, open_crop_dialog
+from amc.gui import _EDIT_FIELD_GROUPS, CatalogWindow, open_crop_dialog
 from amc.model import Movie
 from amc.storage import save
 
@@ -69,16 +69,6 @@ def _buttons(widget: tk.Misc) -> dict[str, ttk.Button]:
     return found
 
 
-def _entries(widget: tk.Misc) -> list[ttk.Entry]:
-    """Recursively collect every ttk.Entry under *widget*, in creation order."""
-    found: list[ttk.Entry] = []
-    for child in widget.winfo_children():
-        if isinstance(child, ttk.Entry):
-            found.append(child)
-        found.extend(_entries(child))
-    return found
-
-
 def _comboboxes(widget: tk.Misc) -> list[ttk.Combobox]:
     """Recursively collect every ttk.Combobox under *widget*."""
     found: list[ttk.Combobox] = []
@@ -99,25 +89,49 @@ def _treeviews(widget: tk.Misc) -> list[ttk.Treeview]:
     return found
 
 
-def _labeled_entry(container: tk.Misc, label_text: str) -> ttk.Entry:
-    """Find the Entry widget on the same grid row as a Label with this
-    exact text, matching the edit dialog's one-Label-one-Entry-per-field
-    layout without depending on field order or count."""
-    rows_by_label: dict[int, str] = {}
-    rows_by_entry: dict[int, ttk.Entry] = {}
+def _labeled_widget(container: tk.Misc, label_text: str) -> tk.Widget:
+    """Find the field widget paired with a Label with this exact text,
+    matching the edit dialog's one-Label-one-field layout without
+    depending on field order, count, or which group frame the pair lives
+    in. The dialog groups fields into several LabelFrames (each with its
+    own independent row numbering) and, in landscape mode, packs more than
+    one label/field pair on the same row at different columns — so a pair
+    is identified by (immediate parent, row), matching the label to the
+    nearest field at a greater column in that same row. A field widget can
+    be a plain Entry, a multi-line Text, or (for Picture) a composite
+    Frame wrapping an Entry and its buttons — anything grid-managed in
+    that row that is not itself a Label is a candidate."""
+    labels_by_row: dict[tuple[int, int], list[tuple[int, str]]] = {}
+    widgets_by_row: dict[tuple[int, int], list[tuple[int, tk.Widget]]] = {}
 
     def walk(widget: tk.Misc) -> None:
         for child in widget.winfo_children():
             info = child.grid_info()
-            if isinstance(child, ttk.Label) and info:
-                rows_by_label[info["row"]] = child.cget("text")
-            elif isinstance(child, ttk.Entry) and info:
-                rows_by_entry[info["row"]] = child
+            if info:
+                key = (id(widget), info["row"])
+                if isinstance(child, ttk.Label):
+                    labels_by_row.setdefault(key, []).append((info["column"], child.cget("text")))
+                else:
+                    widgets_by_row.setdefault(key, []).append((info["column"], child))
             walk(child)
 
     walk(container)
-    row = next(row for row, text in rows_by_label.items() if text == label_text)
-    return rows_by_entry[row]
+    for key, labels in labels_by_row.items():
+        for column, text in labels:
+            if text != label_text:
+                continue
+            candidates = sorted(
+                (c for c in widgets_by_row.get(key, []) if c[0] > column), key=lambda c: c[0]
+            )
+            if candidates:
+                return candidates[0][1]
+    raise LookupError(f"no field found for label {label_text!r}")
+
+
+def _labeled_entry(container: tk.Misc, label_text: str) -> ttk.Entry:
+    widget = _labeled_widget(container, label_text)
+    assert isinstance(widget, ttk.Entry)
+    return widget
 
 
 def _png_bytes(size: tuple[int, int] = (40, 30)) -> bytes:
@@ -182,7 +196,7 @@ def test_main_window_displays_linked_poster_from_amc_named_subfolder(
 
     window = CatalogWindow(real_root, catalog_path, preferences_path=tmp_path / "prefs.json")
     window.table.selection_set("10")
-    window._on_select()
+    window.selection_changed()
     real_root.update_idletasks()
 
     assert window.poster_image is not None
@@ -808,7 +822,7 @@ def test_edit_dialog_rejects_a_missing_title_without_closing(real_root: tk.Tk, t
     real_root.update_idletasks()
     real_root.update()
     dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
-    title_entry = _entries(dialog)[0]
+    title_entry = _labeled_entry(dialog, "Title")
     title_entry.delete(0, tk.END)
 
     with patch("amc.gui.messagebox.showerror") as showerror:
@@ -819,4 +833,92 @@ def test_edit_dialog_rejects_a_missing_title_without_closing(real_root: tk.Tk, t
     assert "title is required" in showerror.call_args.args[1]
     assert dialog.winfo_exists()
     assert window.service.catalog.get(movie.number).title == movie.title
+    dialog.destroy()
+
+
+def _label_frames(widget: tk.Misc) -> dict[str, ttk.LabelFrame]:
+    """Recursively collect every ttk.LabelFrame under *widget*, keyed by its title."""
+    found: dict[str, ttk.LabelFrame] = {}
+    for child in widget.winfo_children():
+        if isinstance(child, ttk.LabelFrame):
+            found[child.cget("text")] = child
+        found.update(_label_frames(child))
+    return found
+
+
+def test_edit_dialog_groups_fields_into_named_sections(real_root: tk.Tk, tmp_path: Path):
+    """The edit dialog groups its ~30 fields into named LabelFrame
+    sections (Identification, Classification, ...) instead of one flat
+    list, matching upstream AMC's own grouped layout. Every field must be
+    reachable within its declared group, regardless of row-pairing mode."""
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+
+    frames = _label_frames(dialog)
+    assert set(frames) == {title for title, _rows in _EDIT_FIELD_GROUPS}
+    for group_title, group_rows in _EDIT_FIELD_GROUPS:
+        frame = frames[group_title]
+        for row_fields in group_rows:
+            for name in row_fields:
+                label_text = name.replace("_", " ").title()
+                assert _labeled_widget(frame, label_text) is not None
+
+    dialog.destroy()
+
+
+def test_edit_dialog_packs_paired_fields_side_by_side_when_wide(real_root: tk.Tk, tmp_path: Path):
+    """In a wide (landscape) window, a multi-field row like Year/Length
+    packs its fields side by side: same grid row, increasing column."""
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+    dialog.geometry("900x700")
+    real_root.update_idletasks()
+    real_root.update()
+
+    frames = _label_frames(dialog)
+    classification = frames["Classification"]
+    year_entry = _labeled_entry(classification, "Year")
+    length_entry = _labeled_entry(classification, "Length")
+
+    assert year_entry.grid_info()["row"] == length_entry.grid_info()["row"]
+    assert year_entry.grid_info()["column"] < length_entry.grid_info()["column"]
+
+    dialog.destroy()
+
+
+def test_edit_dialog_stacks_every_field_on_its_own_row_when_narrow(
+    real_root: tk.Tk, tmp_path: Path
+):
+    """In a narrow (portrait) window, fields that would otherwise be
+    paired instead each get their own row, one field per line, so nothing
+    is clipped or squeezed."""
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+    dialog.geometry("380x700")
+    real_root.update_idletasks()
+    real_root.update()
+
+    frames = _label_frames(dialog)
+    classification = frames["Classification"]
+    year_entry = _labeled_entry(classification, "Year")
+    length_entry = _labeled_entry(classification, "Length")
+
+    assert year_entry.grid_info()["column"] == length_entry.grid_info()["column"]
+    assert year_entry.grid_info()["row"] != length_entry.grid_info()["row"]
+
     dialog.destroy()

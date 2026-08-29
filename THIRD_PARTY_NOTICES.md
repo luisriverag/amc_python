@@ -15,7 +15,7 @@ has been removed (see the ElTree note below).
 | Path | Component and credited author | Notice found in snapshot | Review status |
 |---|---|---|---|
 | `src/original/Movie Catalog/` | Ant Movie Catalog, Antoine Potten and Mickaël Vanneufville | GPL; full GPLv2 text at `dev/license.txt` | Notice present. Archive/tree equality is verified; publisher authentication is incomplete. |
-| `src/original/Common/` | Shared Ant application units | Upstream readme says units are GPL or MPL; individual file headers vary | Every retained file is mapped in `docs/upstream/license-inventory.json`; `ComboBoxAutoWidth.pas` remains unresolved because it has only a source-post URL and no license grant. |
+| `src/original/Common/` | Shared Ant application units | Upstream readme says units are GPL or MPL; individual file headers vary | Every retained file is mapped in `docs/upstream/license-inventory.json`. `ComboBoxAutoWidth.pas`, which only linked to a Google Groups post and stated no license, has been removed for the same reason as ElTree below — resolved by removal, not by an obtained grant. |
 | `src/original/FreeReport/` | FreeReport, credited in source primarily to A. Tzyganenko | GNU Library General Public License v2 at `license.txt` | Notice present; modifications and individual bundled units still need review. |
 | `src/original/ifps/` | Innerfuse Pascal Script, Carlo Kok / Innerfuse | Custom permissive license with attribution and documentation conditions at `license.txt` | Notice present; required product attribution must be retained. |
 | `src/original/rkSmartViewPack/` | rkSmartView, RMKlever | Mozilla Public License 1.1 at `License.txt` | Notice present; file-level modification notices still need review. |
@@ -31,20 +31,31 @@ HTML Viewer Components, and TRegExpr as build dependencies. They are not present
 the two checked-in source trees and are not Python runtime dependencies. Their
 licenses must be reviewed if they are later vendored or distributed in artifacts.
 
-## ElTree Lite: removed, not cleared
+## Two files removed, not cleared
 
-`src/original/ElTree/` (EldoS's ElTree Lite, a genuinely used component in
-upstream's own `main.pas`/`main.dfm`) and `src/original_compressed/
-amc_sources.rar` (the compressed archive that also contained it — see
-`docs/upstream/archive-provenance.md`) have both been removed from this
-repository and its git history. ElTree Lite's own license permits
-distribution only as part of compiled software, never as source
-(`license.txt`: "may be distributed ONLY as a part of the compiled
-software"), and AMC Python — a Tkinter application — never used ElTree in
-the first place, so there was no functional loss in removing it. This
-resolves the redistribution restriction by removal rather than by obtained
-permission; it does not establish that redistributing ElTree's source under
-different circumstances would have been permitted.
+Two evidence-tree files with unresolvable redistribution status have been
+removed from this repository and its git history, rather than kept pending
+an obtained permission that was never going to be practical to obtain for
+either:
+
+- `src/original/ElTree/` (EldoS's ElTree Lite, a genuinely used component in
+  upstream's own `main.pas`/`main.dfm`) and `src/original_compressed/
+  amc_sources.rar` (the compressed archive that also contained it — see
+  `docs/upstream/archive-provenance.md`). ElTree Lite's own license permits
+  distribution only as part of compiled software, never as source
+  (`license.txt`: "may be distributed ONLY as a part of the compiled
+  software").
+- `src/original/Common/ComboBoxAutoWidth.pas`, a 107-line VCL combobox-width
+  utility whose only provenance was a comment linking to a Google Groups
+  forum post — no license was ever stated for it at all, which is a weaker
+  position than ElTree's restrictive-but-present EULA, not a stronger one.
+
+Neither file is present in the compiled Python application — AMC Python is a
+Tkinter application that never used either — so removing them cost no
+functionality. This resolves both redistribution problems by removal rather
+than by obtained permission; it does not establish that redistributing
+either file's source under different circumstances would have been
+permitted.
 
 ## Release blockers
 
@@ -53,10 +64,8 @@ Before publishing an artifact containing the remaining historical tree:
 1. independently authenticate the supplied `antcomponents.zip` archive against
    the publisher (the contributor-reported source page, size, hash, and exact
    tree match are recorded, but no publisher checksum or precise retrieval
-   time is available);
-2. resolve the absent license grant for `Common/ComboBoxAutoWidth.pas` and confirm
-   whether it may be redistributed; and
-3. retain every component notice and all attribution/documentation required by it.
+   time is available); and
+2. retain every component notice and all attribution/documentation required by it.
 
 The machine-readable per-file inventory is checked by
 `python tools/check_license_inventory.py`. Its `notice` status identifies a source

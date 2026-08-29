@@ -18,7 +18,7 @@
 | `application.py` | Persistent, failure-atomic user-interface mutations | Presentation or format-specific rules |
 | `storage.py` | JSON, CSV, XML, static HTML, dispatch, and atomic persistence | User interaction |
 | `native.py` | Native AMC parsing, resource limits, and explicit experimental 4.2 serialization | UI behavior or compatibility claims without upstream fixtures |
-| `media.py` | Bounded media discovery and dependency-free file/WAV/FLAC/AIFF/MP3 facts | Network access or UI behavior |
+| `media.py` | Bounded media discovery and dependency-free file/WAV/FLAC/AIFF/MP3/MP4/OGG facts | Network access or UI behavior |
 | `html_template.py` | Renders upstream's own `$$TAG_NAME` HTML export template syntax against `Movie`/`Catalog` | Reading/writing files (done via `storage._atomic_text`) |
 | `scripts.py` | Bounded legacy script metadata inspection | Script execution or network access |
 | `preferences.py` | Atomic per-user desktop GUI preferences, separate from any catalog | Catalog data or format-specific rules |

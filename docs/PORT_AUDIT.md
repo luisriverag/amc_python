@@ -37,7 +37,7 @@ Two progress measures are tracked deliberately:
 
 | Measure | Result | Meaning |
 |---|---:|---|
-| Prototype implementation | 17 functional package modules, 6 repository tools, 581 passing tests | Python foundation and guarded prototype features exist |
+| Prototype implementation | 17 functional package modules, 6 repository tools, 635 passing tests | Python foundation and guarded prototype features exist |
 | Source-analysis progress | 952 checked-in upstream/component files; 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 7 upstream-generated fixtures registered (`tests/fixtures/native-empty-one-movie/`, finding 38; `tests/fixtures/native-sample-catalog/`, finding 39); 0 verified upstream subsystems | Narrow, genuine read-path evidence exists for the first time — empty and blank-one-movie native catalogs across AMC 3.5/4.1/4.2, plus populated movies, all eight represented custom-field types, and embedded pictures across AMC 3.5/4.2; this does not verify native format compatibility as a whole — other versions and a write-then-reopen-in-real-AMC check remain unevidenced |
 
@@ -800,12 +800,13 @@ Observed for this audit:
 
 | Command/check | Result |
 |---|---|
-| `python tools/check.py` | 367 tests passed; 82% aggregate branch coverage; Ruff, compilation, fixture-manifest validation, license-inventory validation, native-expectation verification, and source CLI help passed |
+| `python tools/check.py` | 635 tests passed; 88% aggregate branch coverage; Ruff lint, Ruff format, mypy, compilation, fixture-manifest validation, license-inventory validation, native-expectation verification, and source CLI help passed |
 | `python tools/check_package.py` | Source distribution built and checked to exclude historical evidence trees; wheel built and installed into an isolated environment; module and `amc`, `amc-gui`, and `amc-web` entry-point smoke checks passed |
-| `python tools/validate_fixtures.py` | 0 manifests validated, confirming the compatibility-fixture gap rather than compatibility |
+| `python tools/validate_fixtures.py` | 3 manifests validated — `tests/fixtures/native-empty-one-movie/` and `tests/fixtures/native-sample-catalog/`, this port's first genuine, upstream-generated native fixtures (see findings 38–39) — narrowing, but not closing, the compatibility-fixture gap |
 | `git diff --check` | Passed |
 
-The source-tree check applies focused Ruff diagnostics and an 80% aggregate branch
-coverage floor. It does not run a formatter or static type checker. The packaging
+The source-tree check applies focused Ruff diagnostics, `ruff format --check`, mypy
+in its default, non-strict mode (see ADR-0008 in `docs/decisions.md`), and an 80%
+aggregate branch coverage floor. The packaging
 check is intentionally separate because it builds and installs an isolated wheel
 rather than importing from `src/`.

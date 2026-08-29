@@ -26,6 +26,19 @@ def test_service_links_and_exports_picture_relative_to_catalog(tmp_path: Path):
     assert load(catalog_path).get(1).picture == "cover.jpg"
 
 
+def test_service_exports_windows_link_from_case_different_subfolder(tmp_path: Path):
+    picture = tmp_path / "Pictures" / "cover.jpg"
+    picture.parent.mkdir()
+    picture.write_bytes(b"image")
+    save(Catalog([Movie(number=1, picture=r"pictures\COVER.jpg")]), tmp_path / "catalog.json")
+    service = CatalogService(tmp_path / "catalog.json")
+
+    destination = tmp_path / "copy.jpg"
+    service.export_picture(1, destination)
+
+    assert destination.read_bytes() == b"image"
+
+
 def test_service_embeds_exports_and_clears_picture(tmp_path: Path):
     catalog_path = tmp_path / "catalog.json"
     picture = tmp_path / "cover.png"

@@ -21,7 +21,7 @@ from under it. Mark the old entry **Superseded**, with a forward link.
 | [0002](#adr-0002-catalogservice-as-the-one-shared-application-boundary) | `CatalogService` as the one shared application boundary | Accepted |
 | [0003](#adr-0003-structured-catalogerror-only-for-diagnosable-catalog-content-problems) | Structured `CatalogError` only for diagnosable catalog-content problems | Accepted |
 | [0004](#adr-0004-atomic-same-directory-temp-file-replace-for-every-writer) | Atomic same-directory temp-file replace for every writer | Accepted |
-| [0005](#adr-0005-ifps-script-execution-stays-undecided-a-narrower-omdb-provider-instead) | IFPS script execution stays undecided; a narrower OMDb provider instead | Open |
+| [0005](#adr-0005-do-not-execute-ifps-scripts-use-audited-providers-instead) | Do not execute IFPS scripts; use audited providers instead | Accepted |
 | [0006](#adr-0006-freereport-and-localization-are-not-the-same-kind-of-no) | FreeReport and localization are not the same kind of "no" | Accepted |
 | [0007](#adr-0007-split-tests-by-kind-not-by-source-module) | Split tests by kind, not by source module | Accepted |
 | [0008](#adr-0008-adopt-mypy-in-default-mode-not-strict) | Adopt mypy in default mode, not strict | Accepted |
@@ -136,7 +136,7 @@ replacement" row. It also means every new writer added to this codebase must
 follow the same pattern from day one rather than being retrofitted later; there
 is no "fast path" writer that skips atomicity.
 
-## ADR-0005: IFPS script execution stays undecided; a narrower OMDb provider instead
+## ADR-0005: Do not execute IFPS scripts; use audited providers instead
 
 **Context.** Ant Movie Catalog's "Get Info"/"Update" scripts run as compiled
 Innerfuse Pascal Script (IFPS) bytecode inside the Delphi application, with a
@@ -146,11 +146,17 @@ in scope to a standalone interpreter project — and, unlike every other
 un-ported subsystem, it carries genuine security exposure: running arbitrary
 third-party script bytecode sourced from the web, not just an effort question.
 
-**Decision.** Do not decide this unilaterally. `docs/PORT_AUDIT.md` finding 31
-treats general IFPS execution as **explicitly open**, pending a deliberate
-product/security-posture call, not a default "port everything" assumption.
-Separately, once asked which legacy scripts actually mattered in practice, the
-answer scoped a much smaller need: refreshing existing catalog entries and IMDb
+**Decision.** AMC Python will not compile or execute IFPS scripts. Arbitrary
+downloaded bytecode is outside this application's trust boundary, and safely
+hosting it would require a separately maintained compiler, capability-limited
+runtime, brokered network/filesystem APIs, resource quotas, update/signature
+policy, and security-response process. That is a new sandbox product rather
+than a catalog feature. Non-executing metadata inspection remains supported.
+New live providers must be narrow, hand-written, auditable Python integrations
+with explicit network timeouts and preview-before-apply mutation boundaries.
+
+Once asked which legacy scripts actually mattered in practice, the answer
+scoped a much smaller need: refreshing existing catalog entries and IMDb
 lookups. `amc.omdb` is a small, hand-written, auditable first-party Python
 provider for exactly that pair, via the OMDb API instead of any script
 execution — see ADR context in `docs/architecture.md`'s "Deliberate prototype
@@ -159,11 +165,12 @@ boundaries." It reuses `amc.scripts`' isolated preview-then-apply contract
 both the CLI (`imdb-lookup`) and the desktop GUI (**Movie / Update from
 IMDb...**).
 
-**Consequences.** This status is marked **Open**, not Accepted, deliberately —
-it is the one item in the D0–D6 backlog that stays off the "pick the next
-bounded item" rotation until a human makes the call. `amc.omdb` closes a real
-use case without being read as an implicit "no" (or "yes") on the general
-question; do not treat its existence as resolving finding 31.
+**Consequences.** This ADR is **Accepted** and closes D6's last undecided item.
+`.ifs` discovery, metadata, configuration, and permission-aware merge previews
+remain useful, but no code path may execute their Pascal bodies. Supporting a
+new site means adding and reviewing a bounded provider, not expanding toward a
+general interpreter. A future standalone sandbox may make its own decision,
+but it is not part of AMC Python and must not be loaded in-process as a plugin.
 
 ## ADR-0006: FreeReport and localization are not the same kind of "no"
 

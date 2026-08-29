@@ -23,6 +23,7 @@ from .native import (
     NativeWriteLimits,
     read_native_catalog,
     replace_and_sync_directory,
+    unique_temporary_path,
     write_native_catalog,
 )
 
@@ -89,15 +90,36 @@ _FLOAT_FIELDS = {"rating", "user_rating", "framerate"}
 def _atomic_text(path: Path, *, encoding: str = "utf-8", newline: str | None = None):
     """Yield a durable temporary stream and atomically replace *path* on success."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.tmp")
+    temporary = unique_temporary_path(path)
+    created = False
     try:
-        with temporary.open("w", encoding=encoding, newline=newline) as stream:
+        with temporary.open("x", encoding=encoding, newline=newline) as stream:
+            created = True
             yield stream
             stream.flush()
             os.fsync(stream.fileno())
         replace_and_sync_directory(temporary, path)
     finally:
-        temporary.unlink(missing_ok=True)
+        if created:
+            temporary.unlink(missing_ok=True)
+
+
+@contextmanager
+def _atomic_binary(path: Path):
+    """Yield a durable binary stream and atomically replace *path* on success."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = unique_temporary_path(path)
+    created = False
+    try:
+        with temporary.open("xb") as stream:
+            created = True
+            yield stream
+            stream.flush()
+            os.fsync(stream.fileno())
+        replace_and_sync_directory(temporary, path)
+    finally:
+        if created:
+            temporary.unlink(missing_ok=True)
 
 
 def load(
@@ -232,9 +254,11 @@ def copy_catalog(source: str | Path, destination: str | Path) -> None:
     if source.resolve() == destination.resolve():
         raise ValueError("source and destination catalog paths must differ")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_name(f".{destination.name}.tmp")
+    temporary = unique_temporary_path(destination)
+    created = False
     try:
-        with source.open("rb") as incoming, temporary.open("wb") as outgoing:
+        with source.open("rb") as incoming, temporary.open("xb") as outgoing:
+            created = True
             shutil.copyfileobj(incoming, outgoing)
             outgoing.flush()
             os.fsync(outgoing.fileno())
@@ -243,7 +267,8 @@ def copy_catalog(source: str | Path, destination: str | Path) -> None:
         load(temporary)
         replace_and_sync_directory(temporary, destination)
     finally:
-        temporary.unlink(missing_ok=True)
+        if created:
+            temporary.unlink(missing_ok=True)
 
 
 def _reject_duplicate_csv_headers(

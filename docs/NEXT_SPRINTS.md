@@ -165,9 +165,9 @@ internal JSON representation.
 
 ## Work deferred until these gates pass
 
-- Sandboxed website-script (IFPS) execution: real security exposure (running
-  arbitrary bytecode sourced from the web), left for an explicit
-  product/security decision rather than fixture timing — see
+- Website-script (IFPS) execution: intentionally excluded by accepted ADR-0005
+  because arbitrary downloaded bytecode is outside the application trust
+  boundary; this is a decided product/security boundary, not fixture timing — see
   `IMPLEMENTATION_PLAN.md`'s D6. A narrower, non-executing alternative
   (`amc.omdb`, a first-party OMDb API provider covering the two
   highest-value legacy-script use cases) already shipped and is not

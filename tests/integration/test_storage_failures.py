@@ -3,13 +3,15 @@
 import csv
 import os
 import stat
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 
 from amc import Catalog, Movie
-from amc.storage import copy_catalog, save, save_csv, save_html, save_xml
+from amc.storage import copy_catalog, load, save, save_csv, save_html, save_xml
 
 
 @pytest.mark.parametrize("writer", [save_csv, save_xml])
@@ -103,6 +105,46 @@ def test_copy_catalog_fsyncs_destination_directory_entry(
     copy_catalog(source, destination)
 
     assert directory_syncs == 1
+
+
+def test_concurrent_atomic_writers_use_independent_temporary_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Two writers reaching replacement together must not clobber a shared temp file."""
+    target = tmp_path / "catalog.json"
+    barrier = Barrier(2)
+    from amc import storage
+
+    original_replace = storage.replace_and_sync_directory
+
+    def replace_together(source: Path, destination: Path) -> None:
+        barrier.wait(timeout=5)
+        original_replace(source, destination)
+
+    monkeypatch.setattr(storage, "replace_and_sync_directory", replace_together)
+    catalogs = [Catalog([Movie(title="Alien")]), Catalog([Movie(title="Aliens")])]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        list(executor.map(lambda catalog: save(catalog, target), catalogs))
+
+    assert list(load(target))[0].title in {"Alien", "Aliens"}
+    assert not list(tmp_path.glob(".catalog.json.*.tmp"))
+
+
+def test_atomic_writer_never_overwrites_or_removes_preexisting_staging_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Even a UUID collision must not treat another writer's staging file as ours."""
+    target = tmp_path / "catalog.json"
+    target.write_text('{"version": 1, "movies": []}', encoding="utf-8")
+    staging = tmp_path / ".catalog.json.forced.tmp"
+    staging.write_bytes(b"another writer")
+    monkeypatch.setattr("amc.storage.unique_temporary_path", lambda _path: staging)
+
+    with pytest.raises(FileExistsError):
+        save(Catalog([Movie(title="Alien")]), target)
+
+    assert staging.read_bytes() == b"another writer"
+    assert len(load(target)) == 0
 
 
 def test_atomic_writer_preserves_destination_when_replace_fails(

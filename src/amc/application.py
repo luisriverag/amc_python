@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 from collections.abc import Callable, Iterable
 import io
-import os
 from pathlib import Path
 from typing import TypeVar
 
@@ -23,8 +22,10 @@ from .loans import (
     remove_borrower,
 )
 from .model import Movie
-from .native import NativeReadLimits, NativeWriteLimits, replace_and_sync_directory
+from .native import NativeReadLimits, NativeWriteLimits
+from .presentation import linked_picture_path
 from .storage import (
+    _atomic_binary,
     copy_catalog,
     load,
     save,
@@ -474,21 +475,13 @@ class CatalogService:
         else:
             if not movie.picture:
                 raise ValueError(f"movie {number} has no picture")
-            source = Path(movie.picture)
-            if not source.is_absolute():
-                source = self.path.parent / source
+            source = linked_picture_path(movie.picture, self.path)
+            if source is None:
+                raise FileNotFoundError(movie.picture)
             data = source.read_bytes()
         destination = Path(destination)
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = destination.with_name(f".{destination.name}.tmp")
-        try:
-            with temporary.open("wb") as stream:
-                stream.write(data)
-                stream.flush()
-                os.fsync(stream.fileno())
-            replace_and_sync_directory(temporary, destination)
-        finally:
-            temporary.unlink(missing_ok=True)
+        with _atomic_binary(destination) as stream:
+            stream.write(data)
 
     @staticmethod
     def _prepare_picture(
@@ -670,6 +663,9 @@ class CatalogService:
         movies: list[Movie] | None = None,
         sort_by: str | None = None,
         sort_reverse: bool = False,
+        copy_pictures: bool = False,
+        picture_directory: str = "pictures",
+        pictures_only_if_missing: bool = False,
     ) -> list[Path]:
         """Render Ant Movie Catalog's own `$$TAG_NAME` HTML templates.
 
@@ -690,6 +686,10 @@ class CatalogService:
             individual_filename=individual_filename,
             source_name=self.path.name,
             line_break=line_break,
+            copy_pictures=copy_pictures,
+            picture_directory=picture_directory,
+            pictures_only_if_missing=pictures_only_if_missing,
+            catalog_path=self.path,
         )
 
     def _persist(self, mutation: Callable[[Catalog], _Result]) -> _Result:

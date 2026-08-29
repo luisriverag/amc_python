@@ -69,6 +69,15 @@ rather than repeating it here.
 
 ### Fixed
 
+- Linked pictures in imported AMC catalogs now resolve from subdirectories
+  relative to the catalog on every platform, including backslash-separated
+  Windows links and case differences when a Windows-authored catalog is opened
+  on a case-sensitive filesystem. Moved catalogs also recover an absolute
+  Windows link when its catalog-directory suffix still matches, and catalogs
+  opened through a symbolic link resolve pictures beside the real `.amc` file.
+  If the stored subfolder itself is stale, a bounded fallback accepts a unique
+  matching filename below the catalog directory but refuses ambiguous matches.
+
 - Native `.amc` reader/writer: a `List`-type custom field previously
   crashed `read_native_catalog` outright (`CorruptCatalogError: invalid
   native string length`) for the whole catalog. `_read_custom_field`

@@ -340,6 +340,9 @@ def parser() -> argparse.ArgumentParser:
         help="filename pattern for individual pages, e.g. '{number}.html' (default)",
     )
     ant_html_export.add_argument("--line-break", default="<br>")
+    ant_html_export.add_argument("--copy-pictures", action="store_true")
+    ant_html_export.add_argument("--picture-directory", default="pictures")
+    ant_html_export.add_argument("--pictures-only-if-missing", action="store_true")
     _add_export_scope_arguments(ant_html_export)
     native_export = commands.add_parser(
         "export-amc",
@@ -757,6 +760,9 @@ def _run(args: argparse.Namespace) -> int:
             movies=_export_scope_movies(service.catalog, args.scope),
             sort_by=args.sort_by,
             sort_reverse=args.sort_reverse,
+            copy_pictures=args.copy_pictures,
+            picture_directory=args.picture_directory,
+            pictures_only_if_missing=args.pictures_only_if_missing,
         )
         print(f"Wrote {len(written)} file(s)")
     elif args.command == "export-amc":

@@ -391,11 +391,6 @@
       "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."
     },
     {
-      "path": "src/original/Common/ComboBoxAutoWidth.pas",
-      "status": "unresolved",
-      "basis": "Source comment links to a Google Groups post but states no license."
-    },
-    {
       "path": "src/original/Common/FileManager.pas",
       "status": "notice",
       "basis": "Antoine Potten/Mickael Vanneufville copyright header; Common is distributed under the upstream GPL-or-MPL statement."

@@ -6,12 +6,13 @@
 **Method:** source review, documentation-claim comparison, CLI enumeration, the
 complete automated test suite, and inspection of the checked-in Delphi source
 snapshot. At audit time the supplied archives exactly matched all 952 expanded
-files; the RAR archive and the ElTree files it contained have since been
-removed for licensing reasons (see `THIRD_PARTY_NOTICES.md`), leaving 848
-checked-in files matching the remaining `antcomponents.zip` archive exactly.
-Either way, the archives' origin lacks independent publisher authentication and
-upstream-generated fixtures are not available, so no claim of behavioral parity
-with Ant Movie Catalog can be verified.
+files; the RAR archive, the ElTree files it contained, and the unlicensed
+`ComboBoxAutoWidth.pas` have since been removed for licensing reasons (see
+`THIRD_PARTY_NOTICES.md`), leaving 847 checked-in evidence files, of which the
+remaining `antcomponents.zip` archive still matches its own 76-file subset
+exactly. Either way, the archives' origin lacks independent publisher
+authentication and upstream-generated fixtures are not available, so no claim
+of behavioral parity with Ant Movie Catalog can be verified.
 The user has designated the checked-in Delphi files as the authoritative source
 baseline for continued implementation; that decision does not independently
 authenticate the archives or create genuine compatibility fixtures.
@@ -41,7 +42,7 @@ Two progress measures are tracked deliberately:
 | Measure | Result | Meaning |
 |---|---:|---|
 | Prototype implementation | 17 functional package modules, 6 repository tools, 635 passing tests | Python foundation and guarded prototype features exist |
-| Source-analysis progress | 848 checked-in upstream/component files (952 before removing ElTree Lite's 104 files — see `THIRD_PARTY_NOTICES.md`); 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
+| Source-analysis progress | 847 checked-in upstream/component files (952 before removing ElTree Lite's 104 files and `ComboBoxAutoWidth.pas` — see `THIRD_PARTY_NOTICES.md`); 13 subsystem mappings | Archive/tree identity is established; detailed per-file review is incomplete |
 | Upstream port verification | 7 upstream-generated fixtures registered (`tests/fixtures/native-empty-one-movie/`, finding 38; `tests/fixtures/native-sample-catalog/`, finding 39); 0 verified upstream subsystems | Narrow, genuine read-path evidence exists for the first time — empty and blank-one-movie native catalogs across AMC 3.5/4.1/4.2, plus populated movies, all eight represented custom-field types, and embedded pictures across AMC 3.5/4.2; this does not verify native format compatibility as a whole — other versions and a write-then-reopen-in-real-AMC check remain unevidenced |
 
 Line count and test count must not be used as a substitute for upstream
@@ -143,12 +144,14 @@ confidence.
    provenance record for the reproducible facts and remaining limitation.
 2. **Source-snapshot redistribution clearance is improved but still
    incomplete.** A root GPLv2 `LICENSE` and an initial component notice
-   inventory exist. The ElTree Lite component's non-source-redistributable
-   license is no longer an open item: `src/original/ElTree/` and the
-   `amc_sources.rar` archive that also contained it have been removed
-   entirely (resolved by removal, since AMC Python never used ElTree, rather
-   than by obtained permission — see `THIRD_PARTY_NOTICES.md`). Unresolved
-   per-file review for `Common` and `antcomponents` remains open. See
+   inventory exist. Two previously-open items are now closed by removal
+   rather than by obtained permission, since AMC Python never used either
+   file: ElTree Lite's non-source-redistributable license
+   (`src/original/ElTree/` and the `amc_sources.rar` archive that also
+   contained it) and `Common/ComboBoxAutoWidth.pas`'s absent license grant
+   (it only linked to a Google Groups post, stating no license at all —
+   see `THIRD_PARTY_NOTICES.md`). Unresolved per-file review for the
+   remaining `Common` and `antcomponents` files remains open. See
    `THIRD_PARTY_NOTICES.md`; these are release blockers, not inferred
    clearance.
 3. **Upstream-generated fixtures exist for native format only.** Two genuine

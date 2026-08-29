@@ -9,16 +9,17 @@ claim while an earlier gate is open.
 upstream-generated fixture sets have been contributed and registered —
 `tests/fixtures/native-empty-one-movie/` and `tests/fixtures/
 native-sample-catalog/` — satisfying this sprint's `validate_fixtures`/
-`verify_fixtures` exit checks below. The ElTree redistribution restriction this
-status previously named is resolved: `src/original/ElTree/` and the RAR
-archive that also contained it have been removed from the repository and its
-git history, since ElTree's license permits distribution only inside compiled
-software and AMC Python never used it. The rest of Sprint 1's required work —
-reacquiring the published source archive from an independently recorded
-origin, and resolving the absent `Common/ComboBoxAutoWidth.pas` license
-grant — still cannot be performed inside this repository's automated
-development environment and remains externally blocked. Sprints 2–4 stay
-gated behind Sprint 1's exit checks exactly as
+`verify_fixtures` exit checks below. Both redistribution restrictions this
+status previously named are resolved: `src/original/ElTree/`, the RAR archive
+that also contained it, and the unlicensed `Common/ComboBoxAutoWidth.pas`
+have all been removed from the repository and its git history, since ElTree's
+license permits distribution only inside compiled software,
+`ComboBoxAutoWidth.pas` had no license grant at all, and AMC Python never used
+either. Sprint 1's only remaining required work — reacquiring the published
+source archive from an independently recorded origin — still cannot be
+performed inside this repository's automated development environment and
+remains externally blocked. Sprints 2–4 stay gated behind Sprint 1's exit
+checks exactly as
 written below; none of their compatibility claims may be advanced without
 registered fixtures, and no status may move to `verified` without also a
 documented cross-application (write, then reopen in genuine AMC) test, which
@@ -33,10 +34,12 @@ for Sprint 1 and must not be described as compatibility progress.
 1. **Compatibility evidence before more inferred format behavior.** Native and XML
    code has extensive synthetic coverage but no registered upstream-generated
    fixture.
-2. **Redistribution clearance before release work.** The ElTree restriction is
-   resolved (by removing the affected files, not by obtained permission).
-   Historical source must not be included in a release while the missing
-   `Common/ComboBoxAutoWidth.pas` license grant remains unresolved.
+2. **Redistribution clearance before release work.** The ElTree and
+   `Common/ComboBoxAutoWidth.pas` restrictions are both resolved (by removing
+   the affected files, not by obtained permission). Historical source must
+   still not be included in a release before `antcomponents.zip`'s publisher
+   authentication and the remaining `Common`/`antcomponents` per-file review
+   are complete.
 3. **Losslessness before convenience features.** Unknown, duplicate, ordered, or
    typed interchange data must be retained or rejected with a diagnostic.
 4. **Release hardening after format gates.** Refactoring, performance work, and
@@ -53,19 +56,20 @@ for Sprint 1 and must not be described as compatibility progress.
   checksum or signature. The RAR previously checked in for this comparison
   (`amc_sources.rar`) has been removed along with the ElTree files it
   contained (see below); a freshly reacquired copy would still be compared
-  against the remaining 848-file expanded inventory (`src/original/` minus
-  ElTree, plus `src/antcomponents/`) using `tools/acquire_upstream.py`, but
-  would not itself be re-committed. RAR acquisition tries each installed
-  extractor in order, so one incompatible tool does not prevent a later
-  capable extractor from completing the evidence check.
+  against the remaining 847-file expanded inventory (`src/original/` minus
+  ElTree and `ComboBoxAutoWidth.pas`, plus `src/antcomponents/`) using
+  `tools/acquire_upstream.py`, but would not itself be re-committed. RAR
+  acquisition tries each installed extractor in order, so one incompatible
+  tool does not prevent a later capable extractor from completing the
+  evidence check.
 - Compare a reacquired `antcomponents.zip` with the checked-in copy and its
   76-file expanded inventory the same way.
-- [Done] The ElTree source-redistribution restriction is resolved: rather than
+- [Done] Both the ElTree source-redistribution restriction and the absent
+  license grant for `Common/ComboBoxAutoWidth.pas` are resolved: rather than
   obtaining permission or maintaining a documented non-distributed evidence
-  workflow, `src/original/ElTree/` and the RAR archive that also contained it
-  were removed entirely from the repository and its git history, since AMC
-  Python never used ElTree. The absent license grant for
-  `Common/ComboBoxAutoWidth.pas` remains open.
+  workflow, `src/original/ElTree/`, the RAR archive that also contained it,
+  and `ComboBoxAutoWidth.pas` itself were removed entirely from the
+  repository and its git history, since AMC Python never used either.
 - Use upstream AMC 4.2.3.2 to create empty and one-movie native catalogs plus their
   XML exports. Record the exact producer build, operating-system locale, catalog
   code page, creation steps, SHA-256, expected values, and redistribution permission.

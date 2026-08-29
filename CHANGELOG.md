@@ -59,6 +59,11 @@ rather than repeating it here.
 
 ### Changed
 
+- Desktop Add/Edit Movie dialog: its ~30 fields are now grouped into named
+  sections (Identification, Classification, Cast & Crew, Description,
+  Technical Details) instead of one long flat list, matching upstream's own
+  grouped Edit Movie layout. Field behavior, validation, and the picture
+  browse/crop/clear/embed controls are unchanged.
 - Desktop **Export** action's Ant Movie Catalog HTML-template path: replaced
   three sequential blocking file dialogs (full-catalog template,
   individual-movie template, individual-pages folder) with one dialog

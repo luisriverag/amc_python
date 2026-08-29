@@ -87,6 +87,57 @@ _EDIT_INTEGER_FIELDS = (
     "file_size",
 )
 _EDIT_FLOAT_FIELDS = ("rating", "user_rating", "framerate")
+# Visual grouping for the Add/Edit movie dialog, matching upstream AMC's own
+# grouped field layout (Identification / Classification / Cast & Crew /
+# Description / Technical Details) instead of one flat field list. This must
+# stay a partition of _EDIT_TEXT_FIELDS + _EDIT_INTEGER_FIELDS +
+# _EDIT_FLOAT_FIELDS — enforced by test_edit_field_groups_cover_every_edit_field.
+_EDIT_FIELD_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "Identification",
+        (
+            "title",
+            "original_title",
+            "translated_title",
+            "media_label",
+            "media_type",
+            "source",
+            "picture",
+        ),
+    ),
+    (
+        "Classification",
+        (
+            "category",
+            "certification",
+            "country",
+            "year",
+            "length",
+            "rating",
+            "user_rating",
+            "color_tag",
+            "date",
+        ),
+    ),
+    ("Cast & Crew", ("director", "actors", "producer", "writer", "composer")),
+    ("Description", ("description", "comments", "url")),
+    (
+        "Technical Details",
+        (
+            "file_path",
+            "video_format",
+            "video_bitrate",
+            "audio_format",
+            "audio_bitrate",
+            "resolution",
+            "framerate",
+            "languages",
+            "subtitles",
+            "media_count",
+            "file_size",
+        ),
+    ),
+)
 _SEARCH_FIELDS: tuple[tuple[str, str | None], ...] = (
     ("All fields", None),
     ("Title", "title"),
@@ -2263,7 +2314,7 @@ class CatalogWindow(ttk.Frame):
         except ValueError:
             picture_bytes = None
         embed_picture = tk.BooleanVar(value=picture_bytes is not None)
-        canvas = tk.Canvas(dialog, highlightthickness=0, width=570, height=520)
+        canvas = tk.Canvas(dialog, highlightthickness=0, width=970, height=560)
         scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
         fields_frame = ttk.Frame(canvas)
         fields_frame.bind(
@@ -2277,82 +2328,94 @@ class CatalogWindow(ttk.Frame):
         dialog.rowconfigure(0, weight=1)
         dialog.columnconfigure(0, weight=1)
         title_entry: ttk.Entry | None = None
-        for row, (name, value) in enumerate(values.items()):
-            ttk.Label(fields_frame, text=name.replace("_", " ").title()).grid(
-                row=row, column=0, sticky="w", padx=8, pady=4
-            )
-            if name in _EDIT_MULTILINE_FIELDS:
-                text = tk.Text(fields_frame, width=48, height=5, wrap="word")
-                text.insert("1.0", value.get())
-                text.grid(row=row, column=1, sticky="ew", padx=8, pady=4)
-                multiline_widgets[name] = text
-            else:
-                entry = ttk.Entry(fields_frame, textvariable=value, width=48)
-                entry.grid(row=row, column=1, padx=8, pady=4)
-                if name == "title":
-                    title_entry = entry
-            if name == "picture":
-                picture_value = value
+        for group_row, (group_title, group_fields) in enumerate(_EDIT_FIELD_GROUPS):
+            group = ttk.LabelFrame(fields_frame, text=group_title)
+            group.grid(row=group_row, column=0, sticky="ew", padx=8, pady=(4, 8))
+            group.columnconfigure(1, weight=1)
+            for row, name in enumerate(group_fields):
+                value = values[name]
+                ttk.Label(group, text=name.replace("_", " ").title()).grid(
+                    row=row, column=0, sticky="w", padx=8, pady=4
+                )
+                if name in _EDIT_MULTILINE_FIELDS:
+                    text = tk.Text(group, width=48, height=5, wrap="word")
+                    text.insert("1.0", value.get())
+                    text.grid(row=row, column=1, sticky="ew", padx=8, pady=4)
+                    multiline_widgets[name] = text
+                else:
+                    entry = ttk.Entry(group, textvariable=value, width=48)
+                    entry.grid(row=row, column=1, padx=8, pady=4)
+                    if name == "title":
+                        title_entry = entry
+                if name == "picture":
+                    picture_value = value
 
-                def choose_picture() -> None:
-                    nonlocal picture_bytes
-                    selected = filedialog.askopenfilename(
-                        parent=dialog,
-                        title="Choose poster",
-                        filetypes=_IMAGE_FILETYPES,
-                    )
-                    if not selected:
-                        return
-                    try:
-                        with Image.open(selected) as image:
-                            image.verify()
-                        picture_bytes = Path(selected).read_bytes()
-                    except (OSError, UnidentifiedImageError) as error:
-                        messagebox.showerror("Invalid poster", str(error), parent=dialog)
-                        return
-                    selected_path = Path(selected)
-                    try:
-                        display_path = selected_path.resolve().relative_to(
-                            self.service.path.parent.resolve()
-                        )
-                    except ValueError:
-                        display_path = selected_path
-                    picture_value.set(str(display_path))
-
-                def clear_picture() -> None:
-                    nonlocal picture_bytes
-                    picture_bytes = None
-                    embed_picture.set(False)
-                    picture_value.set("")
-
-                def crop_picture() -> None:
-                    if picture_bytes is None:
-                        messagebox.showerror(
-                            "Crop picture",
-                            "Choose a poster before cropping.",
-                            parent=dialog,
-                        )
-                        return
-
-                    def apply_crop(box: tuple[int, int, int, int]) -> None:
+                    def choose_picture() -> None:
                         nonlocal picture_bytes
-                        if picture_bytes is not None:
-                            picture_bytes = crop_image_bytes(picture_bytes, box)
+                        selected = filedialog.askopenfilename(
+                            parent=dialog,
+                            title="Choose poster",
+                            filetypes=_IMAGE_FILETYPES,
+                        )
+                        if not selected:
+                            return
+                        try:
+                            with Image.open(selected) as image:
+                                image.verify()
+                            picture_bytes = Path(selected).read_bytes()
+                        except (OSError, UnidentifiedImageError) as error:
+                            messagebox.showerror("Invalid poster", str(error), parent=dialog)
+                            return
+                        selected_path = Path(selected)
+                        try:
+                            display_path = selected_path.resolve().relative_to(
+                                self.service.path.parent.resolve()
+                            )
+                        except ValueError:
+                            display_path = selected_path
+                        picture_value.set(str(display_path))
 
-                    try:
-                        open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)
-                    except (OSError, UnidentifiedImageError) as error:
-                        messagebox.showerror("Crop picture", str(error), parent=dialog)
+                    def clear_picture() -> None:
+                        nonlocal picture_bytes
+                        picture_bytes = None
+                        embed_picture.set(False)
+                        picture_value.set("")
 
-                controls = ttk.Frame(fields_frame)
-                controls.grid(row=row, column=2, sticky="w", padx=(0, 8))
-                ttk.Button(controls, text="Browse", command=choose_picture).pack(side="left")
-                ttk.Button(controls, text="Crop", command=crop_picture).pack(side="left", padx=4)
-                ttk.Button(controls, text="Clear", command=clear_picture).pack(side="left", padx=4)
-                ttk.Checkbutton(controls, text="Embed", variable=embed_picture).pack(side="left")
-        ttk.Checkbutton(fields_frame, text="Checked", variable=checked).grid(
-            row=len(values), column=1, sticky="w", padx=8, pady=4
-        )
+                    def crop_picture() -> None:
+                        if picture_bytes is None:
+                            messagebox.showerror(
+                                "Crop picture",
+                                "Choose a poster before cropping.",
+                                parent=dialog,
+                            )
+                            return
+
+                        def apply_crop(box: tuple[int, int, int, int]) -> None:
+                            nonlocal picture_bytes
+                            if picture_bytes is not None:
+                                picture_bytes = crop_image_bytes(picture_bytes, box)
+
+                        try:
+                            open_crop_dialog(dialog, picture_bytes, on_apply=apply_crop)
+                        except (OSError, UnidentifiedImageError) as error:
+                            messagebox.showerror("Crop picture", str(error), parent=dialog)
+
+                    controls = ttk.Frame(group)
+                    controls.grid(row=row, column=2, sticky="w", padx=(0, 8))
+                    ttk.Button(controls, text="Browse", command=choose_picture).pack(side="left")
+                    ttk.Button(controls, text="Crop", command=crop_picture).pack(
+                        side="left", padx=4
+                    )
+                    ttk.Button(controls, text="Clear", command=clear_picture).pack(
+                        side="left", padx=4
+                    )
+                    ttk.Checkbutton(controls, text="Embed", variable=embed_picture).pack(
+                        side="left"
+                    )
+            if group_title == "Classification":
+                ttk.Checkbutton(group, text="Checked", variable=checked).grid(
+                    row=len(group_fields), column=1, sticky="w", padx=8, pady=4
+                )
 
         def accept() -> None:
             for name, widget in multiline_widgets.items():

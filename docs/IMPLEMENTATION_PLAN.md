@@ -89,20 +89,30 @@ backlog it runs in parallel with.
   digest, and commit date are now recorded; its precise download time is unknown.
 - [x] Add a streaming acquisition, extraction, checksum, and inventory tool.
 - [x] Add deterministic acquired-tree versus checked-in-snapshot comparison
-  reporting; the two supplied archives match all 952 expanded files exactly.
+  reporting; at the time both archives were checked in, they matched all 952
+  expanded files exactly. `amc_sources.rar` and the `src/original/ElTree/`
+  files it contained have since been removed (see `THIRD_PARTY_NOTICES.md`);
+  the remaining checked-in `antcomponents.zip` still matches its 76-file
+  expanded tree exactly.
 - [x] Make both supplied archive layouts reproducible in the acquisition tool:
   safe built-in ZIP extraction and optional single-wrapper-directory stripping.
 - [x] Support pre-installation verification against an independently supplied
   archive SHA-256; no authoritative published digest has yet been located.
 - [ ] Confirm snapshot/archive equivalence and complete application/dependency
-  license review (archive/tree equality is verified and the retained `Common` and
-  `antcomponents` files now have a check-enforced per-file inventory; ElTree and
-  the unlicensed `ComboBoxAutoWidth.pas` remain blockers).
+  license review (archive/tree equality was verified while `amc_sources.rar`
+  was still checked in, and the retained `Common` and `antcomponents` files
+  have a check-enforced per-file inventory; ElTree's non-source-redistributable
+  license is resolved by removing `src/original/ElTree/` and the RAR archive
+  that also contained it, rather than by obtained permission — see
+  `THIRD_PARTY_NOTICES.md`. The unlicensed `ComboBoxAutoWidth.pas` remains a
+  blocker).
 - [ ] Add the applicable license and attribution files (root GPLv2 text and an
-  initial notice inventory are present; ElTree redistribution and the absent
-  `ComboBoxAutoWidth.pas` license grant remain blockers).
+  initial notice inventory are present; ElTree's redistribution restriction is
+  now resolved by removal — see above — and the absent `ComboBoxAutoWidth.pas`
+  license grant remains a blocker).
 - [ ] Inventory every source unit, form, resource, script, and file
-  format (952 files counted; initial subsystem map recorded).
+  format (952 files originally counted, now 848 after removing ElTree's 104
+  files; initial subsystem map recorded).
 - [ ] Map each unit to a Python subsystem or an explicit omission
   (priority units only mapped).
 - [ ] Generate reference catalogs using each supported AMC release.
@@ -293,10 +303,13 @@ unblock earlier evidence gates.
 
 1. Reacquire and checksum the published source archive; compare its deterministic
    inventory with both checked-in source trees.
-2. Resolve the ElTree source-redistribution blocker and the absent license grant
-   for `Common/ComboBoxAutoWidth.pas`; the check-enforced `Common` and
-   `antcomponents` per-file inventory, root-level GPLv2, and initial attribution
-   files are now present.
+2. [Partial] The ElTree source-redistribution blocker is resolved, by removing
+   `src/original/ElTree/` and the `amc_sources.rar` archive that also
+   contained it (from the repository and its git history) rather than by
+   obtained permission — AMC Python never used ElTree, so nothing functional
+   was lost. The absent license grant for `Common/ComboBoxAutoWidth.pas`
+   remains open; the check-enforced `Common` and `antcomponents` per-file
+   inventory, root-level GPLv2, and initial attribution files are present.
 3. Generate AMC 4.2.3.2 empty, one-movie, all-fields, custom-field, embedded-picture,
    linked-picture, supplementary-record, Unicode/code-page, and corrupt catalogs.
    [Partial] Empty and one-movie catalogs are done, across AMC 3.5.x/4.1.x/4.2.x
@@ -1135,11 +1148,14 @@ and `tests/fixtures/native-sample-catalog/` (a populated AMC 3.5/4.2 catalog pai
 with custom fields and embedded pictures) — which satisfy Sprint 1's own
 `validate_fixtures`/`verify_fixtures` exit checks. Sprint 1 as a whole is still not
 closed: its other required work — reacquiring the published source archive from an
-independently recorded origin, and resolving the ElTree redistribution restriction
-and the absent `Common/ComboBoxAutoWidth.pas` license grant (Milestone 0) — remains
-open. No compatibility status may be upgraded to `verified` regardless of Sprint 1's
-state, since that also needs a documented cross-application (write, then reopen in
-genuine AMC) test that neither fixture set provides yet.
+independently recorded origin, and resolving the absent
+`Common/ComboBoxAutoWidth.pas` license grant (Milestone 0) — remains open. The
+ElTree redistribution restriction this sentence previously named alongside it is
+resolved, by removing `src/original/ElTree/` and the RAR archive that also
+contained it rather than by obtained permission. No compatibility status may be
+upgraded to `verified` regardless of Sprint 1's state, since that also needs a
+documented cross-application (write, then reopen in genuine AMC) test that
+neither fixture set provides yet.
 
 Do not add unrelated UI, CRUD, native writing, or further legacy parsing until this
 slice passes. A source-derived synthetic test is implementation evidence, not

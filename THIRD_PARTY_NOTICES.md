@@ -6,10 +6,11 @@ under GPL-2.0-or-later. It is also the GPL version 2 text shipped with the upstr
 Ant Movie Catalog application. Files in the historical trees remain under their
 own notices; the root license does not replace those notices.
 
-This inventory is based on the checked-in snapshot. The supplied compressed
-archives exactly match the expanded trees as documented in
-`docs/upstream/archive-provenance.md`, but that content match is not a final
-redistribution clearance.
+This inventory is based on the checked-in snapshot. The supplied
+`antcomponents.zip` archive exactly matches `src/antcomponents/` as documented
+in `docs/upstream/archive-provenance.md`, but that content match is not a
+final redistribution clearance. The other supplied archive, `amc_sources.rar`,
+has been removed (see the ElTree note below).
 
 | Path | Component and credited author | Notice found in snapshot | Review status |
 |---|---|---|---|
@@ -18,7 +19,6 @@ redistribution clearance.
 | `src/original/FreeReport/` | FreeReport, credited in source primarily to A. Tzyganenko | GNU Library General Public License v2 at `license.txt` | Notice present; modifications and individual bundled units still need review. |
 | `src/original/ifps/` | Innerfuse Pascal Script, Carlo Kok / Innerfuse | Custom permissive license with attribution and documentation conditions at `license.txt` | Notice present; required product attribution must be retained. |
 | `src/original/rkSmartViewPack/` | rkSmartView, RMKlever | Mozilla Public License 1.1 at `License.txt` | Notice present; file-level modification notices still need review. |
-| `src/original/ElTree/` | ElTree Lite, EldoS | Custom freeware EULA at `license.txt` | **Redistribution blocker:** the checked-in text permits distribution only as part of compiled software, not source. Obtain permission or remove this tree before a release. |
 | `src/antcomponents/` | Ant components, Antoine Potten, JVCL contributors, and named component authors | MPL 1.1 umbrella notice at `Ant__Licence.txt`, with exceptions | Per-file mapping complete in `docs/upstream/license-inventory.json`; CorelButton's separate notice and the XML units' GPL headers are identified there. |
 | `src/antcomponents/AntCorelButton.*` | CorelButton, Peter Theill / ConquerWare | Separate freeware terms at `AntCorelButton.txt` | Notice present; keep the copyright and permission text. |
 | `src/antcomponents/xml/` | Akretio/JVCL-derived XML units | File headers state GPL terms | Notice present; confirm exact GPL version and upstream provenance. |
@@ -31,17 +31,32 @@ HTML Viewer Components, and TRegExpr as build dependencies. They are not present
 the two checked-in source trees and are not Python runtime dependencies. Their
 licenses must be reviewed if they are later vendored or distributed in artifacts.
 
+## ElTree Lite: removed, not cleared
+
+`src/original/ElTree/` (EldoS's ElTree Lite, a genuinely used component in
+upstream's own `main.pas`/`main.dfm`) and `src/original_compressed/
+amc_sources.rar` (the compressed archive that also contained it — see
+`docs/upstream/archive-provenance.md`) have both been removed from this
+repository and its git history. ElTree Lite's own license permits
+distribution only as part of compiled software, never as source
+(`license.txt`: "may be distributed ONLY as a part of the compiled
+software"), and AMC Python — a Tkinter application — never used ElTree in
+the first place, so there was no functional loss in removing it. This
+resolves the redistribution restriction by removal rather than by obtained
+permission; it does not establish that redistributing ElTree's source under
+different circumstances would have been permitted.
+
 ## Release blockers
 
-Before publishing an artifact containing either historical tree:
+Before publishing an artifact containing the remaining historical tree:
 
-1. independently authenticate the supplied archives against the publisher (the
-   contributor-reported source page, sizes, hashes, and exact tree matches are
-   recorded, but no publisher checksum or precise retrieval time is available);
-2. resolve the ElTree source-redistribution restriction;
-3. resolve the absent license grant for `Common/ComboBoxAutoWidth.pas` and confirm
+1. independently authenticate the supplied `antcomponents.zip` archive against
+   the publisher (the contributor-reported source page, size, hash, and exact
+   tree match are recorded, but no publisher checksum or precise retrieval
+   time is available);
+2. resolve the absent license grant for `Common/ComboBoxAutoWidth.pas` and confirm
    whether it may be redistributed; and
-4. retain every component notice and all attribution/documentation required by it.
+3. retain every component notice and all attribution/documentation required by it.
 
 The machine-readable per-file inventory is checked by
 `python tools/check_license_inventory.py`. Its `notice` status identifies a source

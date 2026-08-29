@@ -665,16 +665,24 @@ update `docs/PORT_AUDIT.md` and `docs/compatibility.md`.
     idiomatic for a future non-CLI, non-GUI consumer. PORT_AUDIT design-debt
     item 8 (now fully resolved).
 
+D4 is now complete: every design/quality-debt item `PORT_AUDIT.md` named as
+fixture-independent is checked above.
+
 ### D5 — GUI parity
 
 The general engineering-debt sweep in D4 is far enough along that GUI parity —
 closing the desktop GUI's own gaps against its documented contract, ahead of
-further D4 items — became the priority within the downstream track. D5 is now
-done: every item below is either checked or, for the one that isn't
+further D4 items — became the priority within the downstream track. D5 is
+otherwise done: every item below is either checked or, for the one that isn't
 (accessibility verification), genuinely blocked on assistive technology this
-environment does not have, not on further coding. The current priority within
-the downstream track has moved to D6's remaining unblocked item (the Export
-dialog's picture-copying/SQL/Pictures-export gap — see below).
+environment does not have, not on further coding. D6 (below) is also now
+fully decided and complete, including the Export dialog's picture-copying
+gap this paragraph previously pointed to as the next unblocked item. With
+both tiers closed except that one genuinely blocked item — which recurs
+identically in D2 and D5, since it is the same gap observed twice, not
+two separate ones — there is no single named D0–D6 slice left to point to
+as "current"; the next downstream item is whichever the gated
+compatibility/release backlog surfaces next.
 
   - [x] Real-display smoke coverage. This development container turned out to
     have Xvfb installed, contradicting an earlier "no real display" note in
@@ -843,24 +851,61 @@ Comparing the desktop main window against upstream's own (`main.pas`/
     installed version (`amc.__version__`), license, and a clickable link
     to this project's own repository.
 
+Comparing the desktop **Add/Edit movie** dialog against a screenshot of
+upstream's own real Windows dialog surfaced one more real gap, distinct from
+the main-window items above:
+
+  - [x] Field grouping and layout: this port's edit dialog rendered its
+    ~30 fields as one long flat list, one field per row with no visual
+    grouping at all, unlike upstream's own grouped, multi-field-per-row
+    layout (e.g. Media Label + Media Type on one row, Original Title +
+    Rating on another, Country + Year + Length on a third). Regrouped the
+    fields into named sections — Identification, Classification, Cast &
+    Crew, Description, Technical Details — matching upstream's own
+    categorization, with related fields packed side by side on one row
+    the same way upstream does (Category + Certification; Country + Year
+    + Length; Video Format + Bitrate + Resolution; Audio Format + Bitrate
+    + Framerate; Languages + Subtitles; Media Count + File Size). The
+    dialog also reflows responsively as the window is resized instead of
+    staying a fixed width: fields pack side by side when the window is
+    wide (landscape) and drop to one field per row when it is narrow
+    (portrait), including the Picture row's Browse/Crop/Clear/Embed
+    controls, which wrap onto their own 2×2 grid when narrow rather than
+    ever being clipped off-screen. Two real Tk layout bugs surfaced and
+    were fixed along the way (confirmed via `winfo_ismapped()`/geometry
+    introspection, not just visual inspection, since several screenshots
+    taken during development turned out to misrepresent actual widget
+    state): grid column widths are shared across every row in one grid
+    master, so the Picture row's much wider composite control was
+    distorting every other row's alignment until each row was given its
+    own independent grid; and packing an expanding (`fill="x"`,
+    `expand=True`) widget before a fixed-size sibling let the expanding
+    widget silently claim space the sibling needed, unmapping it
+    entirely rather than just shrinking the expanding one. Field
+    behavior, validation, and the picture controls themselves are
+    unchanged — this was a layout-only change.
+
 ### D6 — remaining "not ported at all" subsystems
 
 Four subsystems in `PORT_AUDIT.md`'s "Not ported" list started with no code at
 all: website script execution, localization, printing/reports, and compressed
 media codecs (MP3/MP4/OGG). They were not comparable in size or in what
 "proceeding" meant for each — this tier records that per item rather than
-treating them as one uniform backlog. Three of the four are now settled:
-compressed media codecs has dependency-free duration/bitrate coverage for all
-three named formats; localization and printing/reports were scoping
-decisions rather than implementation gaps, and are now decided (see below —
-localization is a timing decision, revisit when translated content exists;
-printing/reports is permanent, FreeReport is out of proportion to this
-project). Website script *execution* remains open in general: it carries
-real security exposure, not just effort, and is deliberately left for an
-explicit call rather than decided unilaterally here. A concrete slice of
-it is no longer open, though: asked which legacy scripts mattered most,
-the answer scoped the actual need down to two cases that don't need
-script execution at all — see the checked sub-item below.
+treating them as one uniform backlog. All four are now settled: compressed
+media codecs has dependency-free duration/bitrate coverage for all three
+named formats; localization and printing/reports were scoping decisions
+rather than implementation gaps (localization is a timing decision, revisit
+when translated content exists; printing/reports is permanent, FreeReport is
+out of proportion to this project); and website script *execution* is decided
+by accepted ADR-0005 (`docs/decisions.md`): no in-process IFPS compiler/VM,
+because arbitrary third-party bytecode sourced from the web is outside this
+application's trust boundary, and safely hosting it would be its own
+sandbox product rather than a catalog feature. Non-executing metadata
+inspection remains supported; any new live provider must stay narrow,
+hand-written, and auditable rather than growing toward a general
+interpreter. Asked which legacy scripts actually mattered before that
+decision, the answer scoped the actual need down to two cases that don't
+need script execution at all — see the checked sub-item below.
 
   - [x] MP3 duration/bitrate, the most tractable of the four: a
     dependency-free MPEG audio frame header parser (`amc.media._inspect_mp3`)

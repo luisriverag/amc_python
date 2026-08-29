@@ -33,7 +33,7 @@ import pytest
 from PIL import Image
 
 from amc.catalog import Catalog
-from amc.gui import CatalogWindow, open_crop_dialog
+from amc.gui import _EDIT_FIELD_GROUPS, CatalogWindow, open_crop_dialog
 from amc.model import Movie
 from amc.storage import save
 
@@ -102,22 +102,25 @@ def _treeviews(widget: tk.Misc) -> list[ttk.Treeview]:
 def _labeled_entry(container: tk.Misc, label_text: str) -> ttk.Entry:
     """Find the Entry widget on the same grid row as a Label with this
     exact text, matching the edit dialog's one-Label-one-Entry-per-field
-    layout without depending on field order or count."""
-    rows_by_label: dict[int, str] = {}
-    rows_by_entry: dict[int, ttk.Entry] = {}
+    layout without depending on field order, count, or which group frame
+    the pair lives in (the dialog groups fields into several LabelFrames,
+    each with its own independent row numbering, so rows alone do not
+    uniquely identify a field — the immediate parent must match too)."""
+    rows_by_label: dict[tuple[int, int], str] = {}
+    rows_by_entry: dict[tuple[int, int], ttk.Entry] = {}
 
     def walk(widget: tk.Misc) -> None:
         for child in widget.winfo_children():
             info = child.grid_info()
             if isinstance(child, ttk.Label) and info:
-                rows_by_label[info["row"]] = child.cget("text")
+                rows_by_label[(id(widget), info["row"])] = child.cget("text")
             elif isinstance(child, ttk.Entry) and info:
-                rows_by_entry[info["row"]] = child
+                rows_by_entry[(id(widget), info["row"])] = child
             walk(child)
 
     walk(container)
-    row = next(row for row, text in rows_by_label.items() if text == label_text)
-    return rows_by_entry[row]
+    key = next(key for key, text in rows_by_label.items() if text == label_text)
+    return rows_by_entry[key]
 
 
 def _png_bytes(size: tuple[int, int] = (40, 30)) -> bytes:
@@ -819,4 +822,59 @@ def test_edit_dialog_rejects_a_missing_title_without_closing(real_root: tk.Tk, t
     assert "title is required" in showerror.call_args.args[1]
     assert dialog.winfo_exists()
     assert window.service.catalog.get(movie.number).title == movie.title
+    dialog.destroy()
+
+
+def _label_frames(widget: tk.Misc) -> dict[str, ttk.LabelFrame]:
+    """Recursively collect every ttk.LabelFrame under *widget*, keyed by its title."""
+    found: dict[str, ttk.LabelFrame] = {}
+    for child in widget.winfo_children():
+        if isinstance(child, ttk.LabelFrame):
+            found[child.cget("text")] = child
+        found.update(_label_frames(child))
+    return found
+
+
+def _labeled_widget(container: tk.Misc, label_text: str) -> tk.Widget:
+    """Like `_labeled_entry`, but matches either an Entry or a multi-line
+    Text sibling, since a field group can mix single- and multi-line
+    fields on their own rows."""
+    rows_by_label: dict[tuple[int, int], str] = {}
+    rows_by_widget: dict[tuple[int, int], tk.Widget] = {}
+
+    def walk(widget: tk.Misc) -> None:
+        for child in widget.winfo_children():
+            info = child.grid_info()
+            if isinstance(child, ttk.Label) and info:
+                rows_by_label[(id(widget), info["row"])] = child.cget("text")
+            elif isinstance(child, (ttk.Entry, tk.Text)) and info:
+                rows_by_widget[(id(widget), info["row"])] = child
+            walk(child)
+
+    walk(container)
+    key = next(key for key, text in rows_by_label.items() if text == label_text)
+    return rows_by_widget[key]
+
+
+def test_edit_dialog_groups_fields_into_named_sections(real_root: tk.Tk, tmp_path: Path):
+    """The edit dialog groups its ~30 fields into named LabelFrame
+    sections (Identification, Classification, ...) instead of one flat
+    list, matching upstream AMC's own grouped layout. Every field must be
+    reachable within its declared group."""
+    window = _open_window(real_root, tmp_path)
+    movie = next(iter(window.service.catalog))
+
+    window._dialog(movie, is_new=False)
+    real_root.update_idletasks()
+    real_root.update()
+    dialog = [item for item in _toplevels(real_root) if item.title() == "Edit movie"][0]
+
+    frames = _label_frames(dialog)
+    assert set(frames) == {title for title, _fields in _EDIT_FIELD_GROUPS}
+    for group_title, group_fields in _EDIT_FIELD_GROUPS:
+        frame = frames[group_title]
+        for name in group_fields:
+            label_text = name.replace("_", " ").title()
+            assert _labeled_widget(frame, label_text) is not None
+
     dialog.destroy()

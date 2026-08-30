@@ -271,6 +271,22 @@ def test_html_export_is_static_escaped_and_atomic(tmp_path: Path):
     assert '<script>alert("x")</script>' not in document
 
 
+def test_html_export_default_template_has_valid_css(tmp_path: Path):
+    """The built-in default template is a plain string substituted with
+    .replace(), not str.format() — doubled braces in its <style> block are
+    never collapsed to single ones, so they must not be doubled in the
+    first place, or every default export ships literally invalid CSS."""
+    target = tmp_path / "catalog.html"
+    save_html(Catalog([Movie(title="Alien")]), target)
+
+    document = target.read_text(encoding="utf-8")
+    style = document[document.index("<style>") + len("<style>") : document.index("</style>")]
+
+    assert "{{" not in style
+    assert "}}" not in style
+    assert "body{font-family" in style
+
+
 def test_html_export_supports_bounded_explicit_template(tmp_path: Path):
     template = tmp_path / "template.html"
     template.write_text("<main><h1>My movies</h1>{{MOVIES}}</main>", encoding="utf-8")
@@ -479,6 +495,28 @@ def test_copy_catalog_rejects_same_path(tmp_path: Path):
         copy_catalog(target, target)
 
 
+@pytest.mark.parametrize(
+    "suffix, writer, loader",
+    [(".xml", save_xml, load_xml), (".csv", save_csv, load_csv)],
+)
+def test_copy_catalog_validates_non_json_formats_by_their_real_suffix(
+    tmp_path: Path, suffix, writer, loader
+):
+    """copy_catalog validates through a same-directory temporary file whose
+    own name always ends in a UUID-qualified ".tmp" — never the catalog's
+    real suffix. Without an explicit suffix hint, load() would misread
+    that temporary file as JSON and reject every valid XML/CSV backup or
+    restore."""
+    source = tmp_path / f"source{suffix}"
+    destination = tmp_path / f"backup{suffix}"
+    writer(Catalog([Movie(title="Alien")]), source)
+
+    copy_catalog(source, destination)
+
+    assert destination.read_bytes() == source.read_bytes()
+    assert next(iter(loader(destination))).title == "Alien"
+
+
 def test_rejects_future_json_versions(tmp_path: Path):
     target = tmp_path / "future.json"
     target.write_text('{"format":"amc-python","version":99,"movies":[]}', encoding="utf-8")
@@ -641,6 +679,15 @@ def test_xml_roundtrip_preserves_catalog_and_custom_field_metadata(tmp_path: Pat
         "a@example.test",
         "columns",
     )
+    # "GUIProperties" and "Type" are the two real-world cases a generic
+    # camelCase<->snake_case conversion cannot reproduce mechanically: an
+    # acronym run, and a rename that adds a whole word. Asserting the exact
+    # key names here (not just XML->XML->XML self-consistency) catches a
+    # regression a pure round-trip check cannot, since a load_xml/save_xml
+    # pair that agreed with itself on a *wrong* key would still pass an
+    # equality-only check.
+    assert metadata["gui_properties"] == "gui"
+    assert metadata["custom_fields"][0]["field_type"] == "List"
     assert metadata["custom_fields"][0]["list_values"] == ["A", "B"]
 
     target = tmp_path / "roundtrip.xml"
@@ -648,6 +695,31 @@ def test_xml_roundtrip_preserves_catalog_and_custom_field_metadata(tmp_path: Pat
     restored = load_xml(target)
     assert restored.metadata == catalog.metadata
     assert next(iter(restored)).extras["Inventory"] == "A"
+
+
+def test_xml_export_writes_gui_properties_from_a_native_loaded_catalog(tmp_path: Path):
+    """A native-loaded catalog stores this under "gui_properties" (native.py's
+    own field name), not the "g_u_i_properties" a naive per-letter camelCase
+    split of "GUIProperties" would produce. An XML/XML round trip cannot
+    catch a mismatch here, because both sides would apply the same (broken
+    or correct) conversion to the same literal — this only surfaces for
+    metadata that did not originate from XML in the first place."""
+    catalog = Catalog(
+        [Movie(title="Alien")],
+        metadata={
+            "native": {
+                "gui_properties": "some-blob",
+                "custom_fields": [{"tag": "Inventory", "field_type": "List"}],
+            }
+        },
+    )
+    target = tmp_path / "catalog.xml"
+
+    save_xml(catalog, target)
+
+    document = target.read_text(encoding="utf-8")
+    assert 'GUIProperties="some-blob"' in document
+    assert 'Type="List"' in document
 
 
 def test_xml_export_rejects_structured_extra_instead_of_losing_it(tmp_path: Path):

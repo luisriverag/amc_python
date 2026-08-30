@@ -127,19 +127,27 @@ def load(
     *,
     native_encoding: str = "cp1252",
     native_limits: NativeReadLimits | None = None,
+    suffix_hint: str | None = None,
 ) -> Catalog:
+    """Load a catalog, dispatching on content where possible and on
+    *path*'s suffix otherwise. Pass `suffix_hint` when the file being read
+    does not carry its real format's suffix (for example, a same-directory
+    temporary file mid atomic-replace) — without it, a non-native,
+    non-JSON file is always misread as JSON regardless of its true format.
+    """
     path = Path(path)
+    suffix = (suffix_hint if suffix_hint is not None else path.suffix).casefold()
     prefix = _read_prefix(path)
     if prefix[:NATIVE_HEADER_SIZE] in NATIVE_HEADERS:
         return _load_native(path, native_encoding, native_limits)
-    if path.suffix.casefold() == ".amc" and not _looks_like_json(prefix):
+    if suffix == ".amc" and not _looks_like_json(prefix):
         # Keep reporting useful native-header errors for malformed native files,
         # while retaining compatibility with JSON catalogs that older releases
         # allowed users to save with an .amc filename.
         return _load_native(path, native_encoding, native_limits)
-    if path.suffix.casefold() == ".xml":
+    if suffix == ".xml":
         return load_xml(path)
-    if path.suffix.casefold() == ".csv":
+    if suffix == ".csv":
         return load_csv(path)
     with path.open(encoding="utf-8-sig") as stream:
         document = json.load(
@@ -263,8 +271,10 @@ def copy_catalog(source: str | Path, destination: str | Path) -> None:
             outgoing.flush()
             os.fsync(outgoing.fileno())
         # Validate the bytes that will actually be installed, rather than opening
-        # the source a second time and permitting a check/use race.
-        load(temporary)
+        # the source a second time and permitting a check/use race. The temporary
+        # path's own suffix is always ".tmp", not the catalog's real format, so
+        # load() would otherwise misread every non-native, non-JSON copy as JSON.
+        load(temporary, suffix_hint=source.suffix)
         replace_and_sync_directory(temporary, destination)
     finally:
         if created:
@@ -467,7 +477,7 @@ def save_html(
     body = "\n".join(rows)
     default_template = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Movie Catalog</title><style>body{{font-family:sans-serif;margin:2rem}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ccc;padding:.4rem;text-align:left}}th{{background:#eee}}.number,.year{{text-align:right}}</style></head>
+<title>Movie Catalog</title><style>body{font-family:sans-serif;margin:2rem}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:.4rem;text-align:left}th{background:#eee}.number,.year{text-align:right}</style></head>
 <body><h1>Movie Catalog</h1><table>
     <thead><tr><th>Number</th><th>Title</th><th>Year</th><th>Director</th></tr></thead>
     <tbody>
@@ -613,27 +623,43 @@ def _xml_metadata(metadata: dict[str, object]) -> dict[str, object]:
     return native if isinstance(native, dict) else {}
 
 
+# Upstream XML attribute names that a generic camelCase<->snake_case
+# conversion cannot reproduce (an acronym run, or a rename that adds/drops
+# whole words, e.g. "Ext"/"extension", "Type"/"field_type"). Keyed by the
+# snake_case name this codebase uses internally; _camel_to_snake looks up
+# the same dict inverted, so the two functions stay true inverses for
+# every key either of them is actually asked to convert.
+_CAMEL_SPECIAL_CASES = {
+    "tag": "Tag",
+    "name": "Name",
+    "extension": "Ext",
+    "field_type": "Type",
+    "default_value": "DefaultValue",
+    "media_info": "MediaInfo",
+    "multi_values": "MultiValues",
+    "multi_value_separator": "MultiValuesSep",
+    "remove_parentheses": "MultiValuesRmP",
+    "patch_values": "MultiValuesPatch",
+    "excluded_in_scripts": "ExcludedInScripts",
+    "gui_properties": "GUIProperties",
+    "list_auto_add": "ListAutoAdd",
+    "list_sort": "ListSort",
+    "list_auto_complete": "ListAutoComplete",
+    "list_use_catalog_values": "ListUseCatalogValues",
+}
+_SNAKE_SPECIAL_CASES = {camel: snake for snake, camel in _CAMEL_SPECIAL_CASES.items()}
+
+
 def _camel_to_snake(value: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", value).casefold()
+    if value in _SNAKE_SPECIAL_CASES:
+        return _SNAKE_SPECIAL_CASES[value]
+    # Split before an uppercase letter that follows a lowercase letter or
+    # digit, and between an acronym run and the capitalized word after it
+    # (e.g. "GUIProperties" -> "GUI_Properties", not "G_U_I_Properties").
+    value = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", value)
+    value = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", "_", value)
+    return value.casefold()
 
 
 def _snake_to_camel(value: str) -> str:
-    special = {
-        "tag": "Tag",
-        "name": "Name",
-        "extension": "Ext",
-        "field_type": "Type",
-        "default_value": "DefaultValue",
-        "media_info": "MediaInfo",
-        "multi_values": "MultiValues",
-        "multi_value_separator": "MultiValuesSep",
-        "remove_parentheses": "MultiValuesRmP",
-        "patch_values": "MultiValuesPatch",
-        "excluded_in_scripts": "ExcludedInScripts",
-        "gui_properties": "GUIProperties",
-        "list_auto_add": "ListAutoAdd",
-        "list_sort": "ListSort",
-        "list_auto_complete": "ListAutoComplete",
-        "list_use_catalog_values": "ListUseCatalogValues",
-    }
-    return special.get(value, "".join(part.capitalize() for part in value.split("_")))
+    return _CAMEL_SPECIAL_CASES.get(value, "".join(part.capitalize() for part in value.split("_")))
